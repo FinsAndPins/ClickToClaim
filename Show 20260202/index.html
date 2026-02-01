@@ -290,7 +290,7 @@ function createBoard(boardName) {
     fetch(`./boards/${boardName}.json`)
         .then(r => r.json())
         .then(data => {
-            const pins = data.output?.predictions || [];
+            const pins = data.predictions || data.output?.predictions || [];
             const totalPins = pins.length;
 
             boardsState[boardName].totalPins = totalPins;
