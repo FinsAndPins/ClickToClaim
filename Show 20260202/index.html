@@ -153,16 +153,14 @@
     const pathParts = window.location.pathname.split("/").filter(Boolean);
     const folder = pathParts[pathParts.length - 1] || "Show";
 
-    // Try to detect YYYYMMDD inside folder name
     const dateMatch = folder.match(/(20\d{6})/);
-
     let finalName = folder;
 
     if (dateMatch) {
-        const raw = dateMatch[1]; // e.g., 20260112
+        const raw = dateMatch[1];
         const year = raw.substring(0, 4);
         const month = raw.substring(4, 6);
-        const day = raw.substring(6, 8);
+        const day = raw.substring(8, 10);
 
         const dateObj = new Date(`${year}-${month}-${day}`);
         const monthName = dateObj.toLocaleString("en-US", { month: "long" });
@@ -287,23 +285,23 @@ function createBoard(boardName) {
         countDiv: countDiv
     };
 
-    fetch(`./boards/${boardName}.json`)
-        .then(r => r.json())
-        .then(data => {
-            const pins = data.predictions || data.output?.predictions || [];
-            const totalPins = pins.length;
+    img.onload = () => {
+        fetch(`./boards/${boardName}.json`)
+            .then(r => r.json())
+            .then(data => {
+                const pins = data.predictions || data.output?.predictions || [];
+                const totalPins = pins.length;
 
-            boardsState[boardName].totalPins = totalPins;
-            globalTotals.totalPins += totalPins;
+                boardsState[boardName].totalPins = totalPins;
+                globalTotals.totalPins += totalPins;
 
-            let claimedSelections = loadSelections(boardName, "claimed");
-            let pulledSelections = loadSelections(boardName, "pulled");
-            boardsState[boardName].claimed = claimedSelections.slice();
-            boardsState[boardName].pulled = pulledSelections.slice();
+                let claimedSelections = loadSelections(boardName, "claimed");
+                let pulledSelections = loadSelections(boardName, "pulled");
+                boardsState[boardName].claimed = claimedSelections.slice();
+                boardsState[boardName].pulled = pulledSelections.slice();
 
-            updateBoardCount(boardName);
+                updateBoardCount(boardName);
 
-            img.onload = () => {
                 const ORIGINAL_WIDTH = img.naturalWidth;
                 const displayedWidth = img.clientWidth;
                 const scale = displayedWidth / ORIGINAL_WIDTH;
@@ -344,8 +342,8 @@ function createBoard(boardName) {
                 });
 
                 updateGlobalCounts();
-            };
-        });
+            });
+    };
 }
 
 // ------------------------------------------------------------
