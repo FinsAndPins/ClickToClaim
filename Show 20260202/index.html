@@ -160,7 +160,7 @@
         const raw = dateMatch[1];
         const year = raw.substring(0, 4);
         const month = raw.substring(4, 6);
-        const day = raw.substring(8, 10);
+        const day = raw.substring(6, 8);
 
         const dateObj = new Date(`${year}-${month}-${day}`);
         const monthName = dateObj.toLocaleString("en-US", { month: "long" });
@@ -272,7 +272,7 @@ function createBoard(boardName) {
     const img = document.createElement("img");
     img.className = "board-img";
     img.loading = "lazy";
-    img.src = `./boards/${boardName}.JPG`;
+    img.src = `./boards/${boardName}.JPG`;   // IMPORTANT FIX
 
     wrapper.appendChild(img);
     container.appendChild(wrapper);
@@ -302,46 +302,44 @@ function createBoard(boardName) {
 
                 updateBoardCount(boardName);
 
-                const ORIGINAL_WIDTH = img.naturalWidth;
-                const displayedWidth = img.clientWidth;
-                const scale = displayedWidth / ORIGINAL_WIDTH;
+                requestAnimationFrame(() => {
+                    const ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
+                    const displayedWidth = img.clientWidth;
+                    const scale = displayedWidth / ORIGINAL_WIDTH;
 
-                pins.forEach((pin, index) => {
-                    const div = document.createElement("div");
-                    div.className = "pin";
+                    pins.forEach((pin, index) => {
+                        const div = document.createElement("div");
+                        div.className = "pin";
 
-                    const left = (pin.x - pin.width / 2) * scale;
-                    const top = (pin.y - pin.height / 2) * scale;
-                    const width = pin.width * scale;
-                    const height = pin.height * scale;
+                        const left = (pin.x - pin.width / 2) * scale;
+                        const top = (pin.y - pin.height / 2) * scale;
+                        const width = pin.width * scale;
+                        const height = pin.height * scale;
 
-                    div.style.left = left + "px";
-                    div.style.top = top + "px";
-                    div.style.width = width + "px";
-                    div.style.height = height + "px";
+                        div.style.left = left + "px";
+                        div.style.top = top + "px";
+                        div.style.width = width + "px";
+                        div.style.height = height + "px";
 
-                    div.style.fontSize = (height * 0.6) + "px";
+                        div.style.fontSize = (height * 0.6) + "px";
 
-                    const check = document.createElement("span");
-                    check.className = "checkmark";
-                    check.textContent = "✓";
-                    div.appendChild(check);
+                        const check = document.createElement("span");
+                        check.className = "checkmark";
+                        check.textContent = "✓";
+                        div.appendChild(check);
 
-                    if (claimedSelections.includes(index)) {
-                        div.classList.add("claimed");
-                    }
-                    if (pulledSelections.includes(index)) {
-                        div.classList.add("pulled");
-                    }
+                        if (claimedSelections.includes(index)) div.classList.add("claimed");
+                        if (pulledSelections.includes(index)) div.classList.add("pulled");
 
-                    div.addEventListener("click", () => {
-                        handlePinClick(boardName, index, div);
+                        div.addEventListener("click", () => {
+                            handlePinClick(boardName, index, div);
+                        });
+
+                        wrapper.appendChild(div);
                     });
 
-                    wrapper.appendChild(div);
+                    updateGlobalCounts();
                 });
-
-                updateGlobalCounts();
             });
     };
 }
