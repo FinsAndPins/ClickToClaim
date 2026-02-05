@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fins and Pins - Click to Claim (Hybrid Firebase Version)</title>
+<title>Fins and Pins - Click to Claim (Corrected Firebase Version)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f5f5f5; }
@@ -33,14 +33,14 @@
 
 <div id="footerControls" style="display:none;">
     <div id="modeLabel">Mode: Claim (Lexi)</div>
-    <button id="modeToggleButton" class="claim-mode">Switch to Pull Mode (PinDad Only)</button>
+    <button id="modeToggleButton" class="claim-mode">Switch Mode (PinDad Only)</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-// --- FIREBASE CONFIG ---
+// --- CONFIG & STATE ---
 const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
     authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
@@ -54,19 +54,19 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- STATE & TITLE LOGIC ---
 const pathParts = window.location.pathname.split("/").filter(Boolean);
 const showName = pathParts[pathParts.length - 1] || "default";
 let currentMode = "claim";
 let boardsState = {};
-let globalTotals = { totalPins: 0, claimed: 0, pulled: 0 };
+let globalTotals = { totalPins: 0, claimed: 0 };
 
+// --- TITLE LOGIC ---
 (function() {
     const dateMatch = showName.match(/(20\d{6})/);
     let finalName = showName;
     if (dateMatch) {
         const raw = dateMatch[1];
-        const dateObj = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}`);
+        const dateObj = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T00:00:00`);
         finalName = `${dateObj.toLocaleString("en-US", { month: "long" })} ${parseInt(raw.substring(6,8))} Show`;
     }
     document.getElementById("showTitle").textContent = finalName;
@@ -106,7 +106,7 @@ function createBoard(boardName) {
         document.body.insertBefore(container, document.getElementById("footerControls"));
 
         const img = container.querySelector('img');
-        boardsState[boardName] = { totalPins: 0, claimed: [], pulled: [], countDiv: container.querySelector('.board-count') };
+        boardsState[boardName] = { totalPins: 0, claimed: [], countDiv: container.querySelector('.board-count') };
 
         fetch(`./boards/${boardName}.json`).then(r => r.json()).then(data => {
             const pins = data.predictions || data.output?.predictions || [];
@@ -115,7 +115,8 @@ function createBoard(boardName) {
 
             img.onload = () => {
                 requestAnimationFrame(() => {
-                    const ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
+                    // AUDIT FIX: Handles both {image:{width:1280}} and {width:1280}
+                    const ORIGINAL_WIDTH = (data.image && data.image.width) || data.width || img.naturalWidth;
                     const scale = img.clientWidth / ORIGINAL_WIDTH;
 
                     pins.forEach((pin, index) => {
@@ -163,13 +164,11 @@ function listenForFirebase() {
                 if (el) el.classList.add('claimed');
             }
         });
-        Object.keys(boardsState).forEach(updateBoardCount);
+        Object.keys(boardsState).forEach(name => {
+            boardsState[name].countDiv.textContent = `Pins: ${boardsState[name].totalPins} — Claimed: ${boardsState[name].claimed.length}`;
+        });
         updateGlobalCounts();
     });
-}
-
-function updateBoardCount(name) {
-    boardsState[name].countDiv.textContent = `Pins: ${boardsState[name].totalPins} — Claimed: ${boardsState[name].claimed.length}`;
 }
 
 function updateGlobalCounts() {
