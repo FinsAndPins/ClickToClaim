@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fins and Pins - Click to Claim (Auto-Rotation Version)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f5f5f5; }
+    h1 { text-align: center; margin-bottom: 4px; font-size: 26px; }
+    h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #444; font-weight: normal; }
+    #globalCounts { text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; }
+
+    .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .board-title { font-size: 20px; margin-bottom: 6px; font-weight: bold; }
+    .board-count { font-size: 16px; margin-bottom: 8px; color: #333; }
+
+    .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; }
+    .board-img { width: 100%; display: block; border-radius: 6px; }
+
+    .pin {
+        position: absolute;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+
+    .pin.claimed { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.20); }
+    .pin .checkmark {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        color: black; opacity: 0.9; pointer-events: none;
+        display: none; line-height: 1;
+    }
+    .pin.pulled .checkmark { display: block; }
+
+    #footerControls { display: flex; justify-content: flex-end; align-items: center; margin: 20px 0 10px 0; }
+    #modeLabel { margin-right: 10px; font-size: 14px; color: #333; }
+    #modeToggleButton {
+        padding: 8px 12px; font-size: 14px; border-radius: 6px;
+        border: 1px solid #333; background: #ffffff; cursor: pointer;
+    }
+    #modeToggleButton.pull-mode { background: #ffe9c6; border-color: #cc8400; }
+    #modeToggleButton.claim-mode { background: #e6f7ff; border-color: #0066aa; }
+</style>
+</head>
+
+<body>
+
+<h1>Welcome to the Click-to-Claim page of Fins and Pins</h1>
+<h2 id="showTitle">Loading…</h2>
+
+<div id="globalCounts">Loading counts…</div>
+
+<div id="footerControls" style="display:none;">
+    <div id="modeLabel">Mode: Claim (Lexi)</div>
+    <button id="modeToggleButton" class="claim-mode">Switch to Pull Mode (PinDad Only)</button>
+</div>
+
+<script>
+// --- AUTO-TITLE FROM FOLDER ---
+(function() {
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    const folder = parts[parts.length - 1] || "Show";
+    const match = folder.match(/(20\d{6})/);
+
+    let finalName = folder;
+    if (match) {
+        const raw = match[1];
+        const date = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}`);
+        finalName = `${date.toLocaleString("en-US", { month: "long" })} ${parseInt(raw.substring(6,8))} Show`;
+    }
+    document.getElementById("showTitle").textContent = finalName;
+})();
+
+// --- LOCAL STORAGE ---
+const parts2 = window.location.pathname.split("/").filter(Boolean);
+const showName = parts2[parts2.length - 1] || "default";
+
+function loadSelections(board, type) {
+    return JSON.parse(localStorage.getItem(`pinSelections-${showName}-${board}-${type}`) || "[]");
+}
+function saveSelections(board, type, arr) {
+    localStorage.setItem(`pinSelections-${showName}-${board}-${type}`, JSON.stringify(arr));
+}
+
+// --- STATE ---
+let currentMode = "claim";
+let boardsState = {};
+let globalTotals = { totalPins: 0, claimed: 0, pulled: 0 };
+
+const footerControls = document.getElementById("footerControls");
+const modeLabel = document.getElementById("modeLabel");
+const modeToggleButton = document.getElementById("modeToggleButton");
+
+function updateModeUI() {
+    if (currentMode === "claim") {
+        modeLabel.textContent = "Mode: Claim (Lexi)";
+        modeToggleButton.textContent = "Switch to Pull Mode (PinDad Only)";
+        modeToggleButton.classList.remove("pull-mode");
+        modeToggleButton.classList.add("claim-mode");
+    } else {
+        modeLabel.textContent = "Mode: Pull (PinDad Only)";
+        modeToggleButton.textContent = "Switch to Claim Mode (Lexi)";
+        modeToggleButton.classList.remove("claim-mode");
+        modeToggleButton.classList.add("pull-mode");
+    }
+}
+
+modeToggleButton.onclick = () => {
+    currentMode = currentMode === "claim" ? "pull" : "claim";
+    updateModeUI();
+};
+
+// --- LOAD MANIFEST ---
+fetch("./boards/manifest.json")
+    .then(r => r.json())
+    .then(list => {
+        list.forEach(name => createBoard(name));
+        footerControls.style.display = "flex";
+        updateGlobalCounts();
+    });
+
+// --- CREATE BOARD ---
+function createBoard(boardName) {
+    const container = document.createElement("div");
+    container.className = "board-container";
+    container.innerHTML = `
+        <div class="board-title">${boardName}</div>
+        <div class="board-count" id="count-${boardName}">Pins: 0 — Claimed: 0 — Pulled: 0</div>
+        <div class="board-wrapper">
+            <img class="board-img" src="./boards/${boardName}.JPG" loading="lazy">
+        </div>
+    `;
+    document.body.insertBefore(container, footerControls);
+
+    const img = container.querySelector("img");
+    const wrapper = container.querySelector(".board-wrapper");
+
+    boardsState[boardName] = {
+        totalPins: 0,
+        claimed: [],
+        pulled: [],
+        countDiv: container.querySelector(".board-count")
+    };
+
+    img.onload = () => {
+        fetch(`./boards/${boardName}.json`)
+            .then(r => r.json())
+            .then(data => {
+                const pins = data.predictions || data.output?.predictions || [];
+                boardsState[boardName].totalPins = pins.length;
+                globalTotals.totalPins += pins.length;
+
+                boardsState[boardName].claimed = loadSelections(boardName, "claimed");
+                boardsState[boardName].pulled = loadSelections(boardName, "pulled");
+
+                updateBoardCount(boardName);
+
+                requestAnimationFrame(() => {
+                    // --- JSON DIMENSIONS ---
+                    let ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
+                    let ORIGINAL_HEIGHT = data.image?.height || img.naturalHeight;
+
+                    const naturalIsLandscape = ORIGINAL_WIDTH > ORIGINAL_HEIGHT;
+                    const displayedIsLandscape = img.clientWidth > img.clientHeight;
+
+                    const pinsAreRotated = naturalIsLandscape !== displayedIsLandscape;
+
+                    const effectiveWidth = pinsAreRotated ? ORIGINAL_HEIGHT : ORIGINAL_WIDTH;
+                    const scale = img.clientWidth / effectiveWidth;
+
+                    pins.forEach((pin, index) => {
+                        let rx, ry, rwidth, rheight;
+
+                        if (pinsAreRotated) {
+                            // --- ROTATE JSON 90° CLOCKWISE ---
+                            rx = pin.y;
+                            ry = ORIGINAL_WIDTH - pin.x;
+                            rwidth = pin.height;
+                            rheight = pin.width;
+                        } else {
+                            // --- NO ROTATION ---
+                            rx = pin.x;
+                            ry = pin.y;
+                            rwidth = pin.width;
+                            rheight = pin.height;
+                        }
+
+                        const div = document.createElement("div");
+                        div.className = "pin";
+
+                        div.style.left = (rx - rwidth / 2) * scale + "px";
+                        div.style.top = (ry - rheight / 2) * scale + "px";
+                        div.style.width = (rwidth * scale) + "px";
+                        div.style.height = (rheight * scale) + "px";
+
+                        div.innerHTML = `<span class="checkmark">✓</span>`;
+
+                        if (boardsState[boardName].claimed.includes(index)) div.classList.add("claimed");
+                        if (boardsState[boardName].pulled.includes(index)) div.classList.add("pulled");
+
+                        div.onclick = () => handlePinClick(boardName, index, div);
+
+                        wrapper.appendChild(div);
+                    });
+
+                    updateGlobalCounts();
+                });
+            });
+    };
+}
+
+// --- CLICK HANDLING ---
+function handlePinClick(boardName, pinIndex, pinDiv) {
+    const state = boardsState[boardName];
+    const type = currentMode === "claim" ? "claimed" : "pulled";
+
+    const active = pinDiv.classList.toggle(type);
+    if (active) {
+        if (!state[type].includes(pinIndex)) state[type].push(pinIndex);
+    } else {
+        state[type] = state[type].filter(i => i !== pinIndex);
+    }
+
+    saveSelections(boardName, type, state[type]);
+    updateBoardCount(boardName);
+    updateGlobalCounts();
+}
+
+// --- COUNT UPDATES ---
+function updateBoardCount(name) {
+    const s = boardsState[name];
+    s.countDiv.textContent =
+        `Pins: ${s.totalPins} — Claimed: ${s.claimed.length} — Pulled: ${s.pulled.length}`;
+}
+
+function updateGlobalCounts() {
+    let c = 0, p = 0;
+    Object.values(boardsState).forEach(s => {
+        c += s.claimed.length;
+        p += s.pulled.length;
+    });
+
+    document.getElementById("globalCounts").textContent =
+        `Total Pins: ${globalTotals.totalPins} — Claimed: ${c} — Pulled: ${p}`;
+}
+</script>
+
+</body>
+</html>
