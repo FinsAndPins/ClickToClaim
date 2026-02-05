@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fins and Pins - Click to Claim (Rotation-Fixed)</title>
+<title>Fins and Pins - Click to Claim (Auto-Rotation Version)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -160,19 +160,34 @@ function createBoard(boardName) {
                 updateBoardCount(boardName);
 
                 requestAnimationFrame(() => {
-                    // --- ORIGINAL JSON DIMENSIONS ---
+                    // --- JSON DIMENSIONS ---
                     let ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
                     let ORIGINAL_HEIGHT = data.image?.height || img.naturalHeight;
 
-                    // --- SCALE BASED ON ROTATED WIDTH ---
-                    const scale = img.clientWidth / ORIGINAL_HEIGHT;
+                    const naturalIsLandscape = ORIGINAL_WIDTH > ORIGINAL_HEIGHT;
+                    const displayedIsLandscape = img.clientWidth > img.clientHeight;
+
+                    const pinsAreRotated = naturalIsLandscape !== displayedIsLandscape;
+
+                    const effectiveWidth = pinsAreRotated ? ORIGINAL_HEIGHT : ORIGINAL_WIDTH;
+                    const scale = img.clientWidth / effectiveWidth;
 
                     pins.forEach((pin, index) => {
-                        // --- ROTATE JSON 90° CLOCKWISE ---
-                        const rx = pin.y;
-                        const ry = ORIGINAL_WIDTH - pin.x;
-                        const rwidth = pin.height;
-                        const rheight = pin.width;
+                        let rx, ry, rwidth, rheight;
+
+                        if (pinsAreRotated) {
+                            // --- ROTATE JSON 90° CLOCKWISE ---
+                            rx = pin.y;
+                            ry = ORIGINAL_WIDTH - pin.x;
+                            rwidth = pin.height;
+                            rheight = pin.width;
+                        } else {
+                            // --- NO ROTATION ---
+                            rx = pin.x;
+                            ry = pin.y;
+                            rwidth = pin.width;
+                            rheight = pin.height;
+                        }
 
                         const div = document.createElement("div");
                         div.className = "pin";
