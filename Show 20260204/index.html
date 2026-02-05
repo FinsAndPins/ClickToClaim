@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fins and Pins - Click to Claim (Firebase Sync v2.3)</title>
+<title>Fins and Pins - Click to Claim (Hybrid Firebase Version)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f5f5f5; }
@@ -12,24 +12,24 @@
     .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
     .board-title { font-size: 20px; margin-bottom: 6px; font-weight: bold; }
     .board-count { font-size: 16px; margin-bottom: 8px; color: #333; }
-    .board-wrapper { position: relative; width: 100%; max-width: 600px; margin: auto; }
+    .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; }
     .board-img { width: 100%; display: block; border-radius: 6px; }
-    .pin { position: absolute; border-radius: 4px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; transition: background 0.2s; }
-    .pin.claimed { border: 3px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.25); }
-    .pin .checkmark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: black; font-weight: bold; pointer-events: none; display: none; }
+    .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; }
+    .pin.claimed { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.20); }
+    .pin .checkmark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: black; opacity: 0.9; pointer-events: none; display: none; line-height: 1; }
     .pin.pulled .checkmark { display: block; }
     #footerControls { display: flex; justify-content: flex-end; align-items: center; margin: 20px 0 10px 0; }
     #modeLabel { margin-right: 10px; font-size: 14px; color: #333; }
-    #modeToggleButton { padding: 8px 12px; font-size: 14px; border-radius: 6px; cursor: pointer; border: 1px solid #333; background: white; }
-    .claim-mode { background: #e6f7ff !important; border-color: #0066aa !important; }
-    .pull-mode { background: #ffe9c6 !important; border-color: #cc8400 !important; }
+    #modeToggleButton { padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #ffffff; cursor: pointer; }
+    #modeToggleButton.pull-mode { background: #ffe9c6; border-color: #cc8400; }
+    #modeToggleButton.claim-mode { background: #e6f7ff; border-color: #0066aa; }
 </style>
 </head>
 <body>
 
-<h1>Fins and Pins Click-to-Claim</h1>
-<h2 id="showTitle">Loading Show Data...</h2>
-<div id="globalCounts">Loading total counts...</div>
+<h1>Welcome to the Click-to-Claim page of Fins and Pins</h1>
+<h2 id="showTitle">Loading…</h2>
+<div id="globalCounts">Loading counts…</div>
 
 <div id="footerControls" style="display:none;">
     <div id="modeLabel">Mode: Claim (Lexi)</div>
@@ -54,20 +54,19 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- STATE & PATHS ---
+// --- STATE & TITLE LOGIC ---
 const pathParts = window.location.pathname.split("/").filter(Boolean);
 const showName = pathParts[pathParts.length - 1] || "default";
 let currentMode = "claim";
 let boardsState = {};
-let globalTotals = { totalPins: 0, claimed: 0 };
+let globalTotals = { totalPins: 0, claimed: 0, pulled: 0 };
 
-// --- AUTO-GENERATE SHOW TITLE ---
 (function() {
     const dateMatch = showName.match(/(20\d{6})/);
     let finalName = showName;
     if (dateMatch) {
         const raw = dateMatch[1];
-        const dateObj = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T00:00:00`);
+        const dateObj = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}`);
         finalName = `${dateObj.toLocaleString("en-US", { month: "long" })} ${parseInt(raw.substring(6,8))} Show`;
     }
     document.getElementById("showTitle").textContent = finalName;
@@ -91,7 +90,7 @@ fetch("./boards/manifest.json")
         const promises = actualList.map(name => createBoard(name));
         Promise.all(promises).then(() => {
             document.getElementById("footerControls").style.display = "flex";
-            listenToFirebase();
+            listenForFirebase();
         });
     });
 
@@ -101,15 +100,13 @@ function createBoard(boardName) {
         container.className = "board-container";
         container.innerHTML = `
             <div class="board-title">${boardName}</div>
-            <div class="board-count" id="count-${boardName}">Loading pins...</div>
-            <div class="board-wrapper" id="wrapper-${boardName}">
-                <img class="board-img" src="./boards/${boardName}.JPG" loading="lazy">
-            </div>
+            <div class="board-count" id="count-${boardName}">Pins: 0 — Claimed: 0</div>
+            <div class="board-wrapper"><img class="board-img" src="./boards/${boardName}.JPG" loading="lazy"></div>
         `;
         document.body.insertBefore(container, document.getElementById("footerControls"));
 
         const img = container.querySelector('img');
-        boardsState[boardName] = { totalPins: 0, claimed: [], countDiv: container.querySelector('.board-count') };
+        boardsState[boardName] = { totalPins: 0, claimed: [], pulled: [], countDiv: container.querySelector('.board-count') };
 
         fetch(`./boards/${boardName}.json`).then(r => r.json()).then(data => {
             const pins = data.predictions || data.output?.predictions || [];
@@ -117,51 +114,47 @@ function createBoard(boardName) {
             globalTotals.totalPins += pins.length;
 
             img.onload = () => {
-                const displayedWidth = img.clientWidth;
-                const originalWidth = data.image.width; // 1280 per your JSON
-                const scale = displayedWidth / originalWidth;
+                requestAnimationFrame(() => {
+                    const ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
+                    const scale = img.clientWidth / ORIGINAL_WIDTH;
 
-                pins.forEach((pin, index) => {
-                    const div = document.createElement("div");
-                    div.className = "pin";
-                    div.dataset.board = boardName;
-                    div.dataset.pin = index;
-                    
-                    // Scaling logic: (CenterCoord - halfWidth) * Scale
-                    div.style.left = (pin.x - pin.width / 2) * scale + "px";
-                    div.style.top = (pin.y - pin.height / 2) * scale + "px";
-                    div.style.width = (pin.width * scale) + "px";
-                    div.style.height = (pin.height * scale) + "px";
-
-                    div.innerHTML = '<span class="checkmark">✓</span>';
-                    div.onclick = () => {
-                        const pinId = `${boardName}-${index}`;
-                        if (currentMode === "claim") {
-                            const isClaimed = !div.classList.contains("claimed");
-                            db.ref(`claims/${showName}/${pinId}`).set(isClaimed ? true : null);
-                        } else {
-                            div.classList.toggle("pulled");
-                        }
-                    };
-                    container.querySelector('.board-wrapper').appendChild(div);
+                    pins.forEach((pin, index) => {
+                        const div = document.createElement("div");
+                        div.className = "pin";
+                        div.dataset.board = boardName;
+                        div.dataset.pin = index;
+                        div.style.left = (pin.x - pin.width / 2) * scale + "px";
+                        div.style.top = (pin.y - pin.height / 2) * scale + "px";
+                        div.style.width = (pin.width * scale) + "px";
+                        div.style.height = (pin.height * scale) + "px";
+                        div.innerHTML = '<span class="checkmark">✓</span>';
+                        
+                        div.onclick = () => {
+                            const pinId = `${boardName}-${index}`;
+                            if (currentMode === "claim") {
+                                const isClaimed = !div.classList.contains("claimed");
+                                db.ref(`claims/${showName}/${pinId}`).set(isClaimed ? true : null);
+                            } else {
+                                div.classList.toggle("pulled");
+                            }
+                        };
+                        container.querySelector('.board-wrapper').appendChild(div);
+                    });
+                    updateGlobalCounts();
+                    resolve();
                 });
-                updateGlobalCounts();
-                resolve();
             };
         });
     });
 }
 
 // --- FIREBASE SYNC ---
-function listenToFirebase() {
+function listenForFirebase() {
     db.ref(`claims/${showName}`).on("value", snapshot => {
         const claims = snapshot.val() || {};
-        
-        // Clear all visuals
         document.querySelectorAll('.pin').forEach(p => p.classList.remove('claimed'));
         Object.keys(boardsState).forEach(b => boardsState[b].claimed = []);
 
-        // Re-apply from Database
         Object.keys(claims).forEach(pinId => {
             const [bName, pIdx] = pinId.split("-");
             if (boardsState[bName]) {
@@ -170,8 +163,6 @@ function listenToFirebase() {
                 if (el) el.classList.add('claimed');
             }
         });
-
-        // Update counts
         Object.keys(boardsState).forEach(updateBoardCount);
         updateGlobalCounts();
     });
