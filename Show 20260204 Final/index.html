@@ -160,15 +160,17 @@ function createBoard(boardName) {
                 updateBoardCount(boardName);
 
                 requestAnimationFrame(() => {
-                    // --- JSON DIMENSIONS ---
+                    // --- DIMENSIONS FROM JSON ---
                     let ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
                     let ORIGINAL_HEIGHT = data.image?.height || img.naturalHeight;
 
                     const naturalIsLandscape = ORIGINAL_WIDTH > ORIGINAL_HEIGHT;
                     const displayedIsLandscape = img.clientWidth > img.clientHeight;
 
+                    // If browser rotated the image (portrait display vs landscape JSON)
                     const pinsAreRotated = naturalIsLandscape !== displayedIsLandscape;
 
+                    // When rotated 90°, the displayed width corresponds to ORIGINAL_HEIGHT
                     const effectiveWidth = pinsAreRotated ? ORIGINAL_HEIGHT : ORIGINAL_WIDTH;
                     const scale = img.clientWidth / effectiveWidth;
 
@@ -176,9 +178,12 @@ function createBoard(boardName) {
                         let rx, ry, rwidth, rheight;
 
                         if (pinsAreRotated) {
-                            // --- ROTATE JSON 90° CLOCKWISE ---
-                            rx = pin.y;
-                            ry = ORIGINAL_WIDTH - pin.x;
+                            // --- ROTATE JSON 90° COUNTER-CLOCKWISE ---
+                            // (x, y) -> (x', y') with width W, height H:
+                            // x' = H - y
+                            // y' = x
+                            rx = ORIGINAL_HEIGHT - pin.y;
+                            ry = pin.x;
                             rwidth = pin.height;
                             rheight = pin.width;
                         } else {
