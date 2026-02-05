@@ -37,18 +37,17 @@
 <div id="footerControls" style="display:none;">
     <div id="modeLabel">Mode: Claim (Lexi)</div>
     <button id="modeToggleButton" class="claim-mode">
-        Pull Mode (PinDad Only)
+        Switch to Pull Mode (PinDad Only)
     </button>
 </div>
 
 <script>
-// --- AUTO-GENERATE SHOW NAME ---
+// --- AUTO-TITLE FROM FOLDER ---
 (function() {
     const pathParts = window.location.pathname.split("/").filter(Boolean);
     const folder = pathParts[pathParts.length - 1] || "Show";
     const dateMatch = folder.match(/(20\d{6})/);
     let finalName = folder;
-
     if (dateMatch) {
         const raw = dateMatch[1];
         const dateObj = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}`);
@@ -57,7 +56,7 @@
     document.getElementById("showTitle").textContent = finalName;
 })();
 
-// --- STORAGE ---
+// --- LOCAL STORAGE HELPERS ---
 const pathParts2 = window.location.pathname.split("/").filter(Boolean);
 const showName = pathParts2[pathParts2.length - 1] || "default";
 
@@ -71,7 +70,7 @@ function saveSelections(boardName, type, arr) {
     localStorage.setItem(key, JSON.stringify(arr));
 }
 
-// --- STATE ---
+// --- APP STATE ---
 let currentMode = "claim";
 let boardsState = {};
 let globalTotals = { totalPins: 0, claimed: 0, pulled: 0 };
@@ -99,7 +98,7 @@ modeToggleButton.addEventListener("click", () => {
     updateModeUI();
 });
 
-// --- LOAD CONTENT ---
+// --- LOAD MANIFEST AND BUILD ---
 fetch("./boards/manifest.json")
     .then(r => r.json())
     .then(boardList => {
@@ -134,7 +133,7 @@ function createBoard(boardName) {
                 updateBoardCount(boardName);
 
                 requestAnimationFrame(() => {
-                    // BRUTAL HONESTY FIX: Look for 1280 in BOTH formats
+                    // FIX: Find 1280 width in either old or new JSON format
                     const ORIGINAL_WIDTH = (data.image && data.image.width) || data.width || img.naturalWidth;
                     const scale = img.clientWidth / ORIGINAL_WIDTH;
 
