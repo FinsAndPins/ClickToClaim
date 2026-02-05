@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fins and Pins - Click to Claim (Version 2.1 Fixed)</title>
+<title>Fins and Pins - Click to Claim (Version 2.2 Rotation Fix)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -10,18 +10,38 @@
     h1 { text-align: center; margin-bottom: 4px; font-size: 26px; }
     h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #444; font-weight: normal; }
     #globalCounts { text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; }
+
     .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
     .board-title { font-size: 20px; margin-bottom: 6px; font-weight: bold; }
     .board-count { font-size: 16px; margin-bottom: 8px; color: #333; }
+
     .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; }
     .board-img { width: 100%; display: block; border-radius: 6px; }
-    .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; }
+
+    .pin {
+        position: absolute;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+
     .pin.claimed { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.20); }
-    .pin .checkmark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: black; opacity: 0.9; pointer-events: none; display: none; line-height: 1; }
+    .pin .checkmark {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        color: black; opacity: 0.9; pointer-events: none;
+        display: none; line-height: 1;
+    }
     .pin.pulled .checkmark { display: block; }
+
     #footerControls { display: flex; justify-content: flex-end; align-items: center; margin: 20px 0 10px 0; }
     #modeLabel { margin-right: 10px; font-size: 14px; color: #333; }
-    #modeToggleButton { padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #ffffff; cursor: pointer; }
+    #modeToggleButton {
+        padding: 8px 12px; font-size: 14px; border-radius: 6px;
+        border: 1px solid #333; background: #ffffff; cursor: pointer;
+    }
     #modeToggleButton.pull-mode { background: #ffe9c6; border-color: #cc8400; }
     #modeToggleButton.claim-mode { background: #e6f7ff; border-color: #0066aa; }
 </style>
@@ -36,41 +56,37 @@
 
 <div id="footerControls" style="display:none;">
     <div id="modeLabel">Mode: Claim (Lexi)</div>
-    <button id="modeToggleButton" class="claim-mode">
-        Switch to Pull Mode (PinDad Only)
-    </button>
+    <button id="modeToggleButton" class="claim-mode">Switch to Pull Mode (PinDad Only)</button>
 </div>
 
 <script>
 // --- AUTO-TITLE FROM FOLDER ---
 (function() {
-    const pathParts = window.location.pathname.split("/").filter(Boolean);
-    const folder = pathParts[pathParts.length - 1] || "Show";
-    const dateMatch = folder.match(/(20\d{6})/);
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    const folder = parts[parts.length - 1] || "Show";
+    const match = folder.match(/(20\d{6})/);
+
     let finalName = folder;
-    if (dateMatch) {
-        const raw = dateMatch[1];
-        const dateObj = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}`);
-        finalName = `${dateObj.toLocaleString("en-US", { month: "long" })} ${parseInt(raw.substring(6,8))} Show`;
+    if (match) {
+        const raw = match[1];
+        const date = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}`);
+        finalName = `${date.toLocaleString("en-US", { month: "long" })} ${parseInt(raw.substring(6,8))} Show`;
     }
     document.getElementById("showTitle").textContent = finalName;
 })();
 
-// --- LOCAL STORAGE HELPERS ---
-const pathParts2 = window.location.pathname.split("/").filter(Boolean);
-const showName = pathParts2[pathParts2.length - 1] || "default";
+// --- LOCAL STORAGE ---
+const parts2 = window.location.pathname.split("/").filter(Boolean);
+const showName = parts2[parts2.length - 1] || "default";
 
-function loadSelections(boardName, type) {
-    const key = `pinSelections-${showName}-${boardName}-${type}`;
-    return JSON.parse(localStorage.getItem(key) || "[]");
+function loadSelections(board, type) {
+    return JSON.parse(localStorage.getItem(`pinSelections-${showName}-${board}-${type}`) || "[]");
+}
+function saveSelections(board, type, arr) {
+    localStorage.setItem(`pinSelections-${showName}-${board}-${type}`, JSON.stringify(arr));
 }
 
-function saveSelections(boardName, type, arr) {
-    const key = `pinSelections-${showName}-${boardName}-${type}`;
-    localStorage.setItem(key, JSON.stringify(arr));
-}
-
-// --- APP STATE ---
+// --- STATE ---
 let currentMode = "claim";
 let boardsState = {};
 let globalTotals = { totalPins: 0, claimed: 0, pulled: 0 };
@@ -93,32 +109,42 @@ function updateModeUI() {
     }
 }
 
-modeToggleButton.addEventListener("click", () => {
+modeToggleButton.onclick = () => {
     currentMode = currentMode === "claim" ? "pull" : "claim";
     updateModeUI();
-});
+};
 
-// --- LOAD MANIFEST AND BUILD ---
+// --- LOAD MANIFEST ---
 fetch("./boards/manifest.json")
     .then(r => r.json())
-    .then(boardList => {
-        boardList.forEach(name => createBoard(name));
+    .then(list => {
+        list.forEach(name => createBoard(name));
         footerControls.style.display = "flex";
         updateGlobalCounts();
     });
 
+// --- CREATE BOARD ---
 function createBoard(boardName) {
     const container = document.createElement("div");
     container.className = "board-container";
     container.innerHTML = `
         <div class="board-title">${boardName}</div>
-        <div class="board-count" id="count-${boardName}">Pins: 0 — Claimed: 0</div>
-        <div class="board-wrapper"><img class="board-img" src="./boards/${boardName}.JPG" loading="lazy"></div>
+        <div class="board-count" id="count-${boardName}">Pins: 0 — Claimed: 0 — Pulled: 0</div>
+        <div class="board-wrapper">
+            <img class="board-img" src="./boards/${boardName}.JPG" loading="lazy">
+        </div>
     `;
     document.body.insertBefore(container, footerControls);
 
-    const img = container.querySelector('img');
-    boardsState[boardName] = { totalPins: 0, claimed: [], pulled: [], countDiv: container.querySelector('.board-count') };
+    const img = container.querySelector("img");
+    const wrapper = container.querySelector(".board-wrapper");
+
+    boardsState[boardName] = {
+        totalPins: 0,
+        claimed: [],
+        pulled: [],
+        countDiv: container.querySelector(".board-count")
+    };
 
     img.onload = () => {
         fetch(`./boards/${boardName}.json`)
@@ -130,59 +156,84 @@ function createBoard(boardName) {
 
                 boardsState[boardName].claimed = loadSelections(boardName, "claimed");
                 boardsState[boardName].pulled = loadSelections(boardName, "pulled");
+
                 updateBoardCount(boardName);
 
                 requestAnimationFrame(() => {
-                    // FIX: Find 1280 width in either old or new JSON format
-                    const ORIGINAL_WIDTH = (data.image && data.image.width) || data.width || img.naturalWidth;
+                    // --- ROTATION-AWARE SCALING ---
+                    let ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
+                    let ORIGINAL_HEIGHT = data.image?.height || img.naturalHeight;
+
+                    const jsonAspect = ORIGINAL_WIDTH / ORIGINAL_HEIGHT;
+                    const displayedAspect = img.clientWidth / img.clientHeight;
+
+                    // If rotated 90°, swap width/height
+                    if (Math.abs(jsonAspect - displayedAspect) > 0.2) {
+                        [ORIGINAL_WIDTH, ORIGINAL_HEIGHT] = [ORIGINAL_HEIGHT, ORIGINAL_WIDTH];
+                    }
+
                     const scale = img.clientWidth / ORIGINAL_WIDTH;
 
                     pins.forEach((pin, index) => {
                         const div = document.createElement("div");
                         div.className = "pin";
+
                         div.style.left = (pin.x - pin.width / 2) * scale + "px";
                         div.style.top = (pin.y - pin.height / 2) * scale + "px";
                         div.style.width = (pin.width * scale) + "px";
                         div.style.height = (pin.height * scale) + "px";
-                        div.innerHTML = '<span class="checkmark">✓</span>';
+
+                        div.innerHTML = `<span class="checkmark">✓</span>`;
 
                         if (boardsState[boardName].claimed.includes(index)) div.classList.add("claimed");
                         if (boardsState[boardName].pulled.includes(index)) div.classList.add("pulled");
 
                         div.onclick = () => handlePinClick(boardName, index, div);
-                        container.querySelector('.board-wrapper').appendChild(div);
+
+                        wrapper.appendChild(div);
                     });
+
                     updateGlobalCounts();
                 });
             });
     };
 }
 
+// --- CLICK HANDLING ---
 function handlePinClick(boardName, pinIndex, pinDiv) {
     const state = boardsState[boardName];
     const type = currentMode === "claim" ? "claimed" : "pulled";
-    const isActive = pinDiv.classList.toggle(currentMode === "claim" ? "claimed" : "pulled");
 
-    if (isActive) {
+    const active = pinDiv.classList.toggle(type);
+    if (active) {
         if (!state[type].includes(pinIndex)) state[type].push(pinIndex);
     } else {
         state[type] = state[type].filter(i => i !== pinIndex);
     }
+
     saveSelections(boardName, type, state[type]);
     updateBoardCount(boardName);
     updateGlobalCounts();
 }
 
+// --- COUNT UPDATES ---
 function updateBoardCount(name) {
     const s = boardsState[name];
-    s.countDiv.textContent = `Pins: ${s.totalPins} — Claimed: ${s.claimed.length} — Pulled: ${s.pulled.length}`;
+    s.countDiv.textContent =
+        `Pins: ${s.totalPins} — Claimed: ${s.claimed.length} — Pulled: ${s.pulled.length}`;
 }
 
 function updateGlobalCounts() {
     let c = 0, p = 0;
-    Object.values(boardsState).forEach(s => { c += s.claimed.length; p += s.pulled.length; });
-    document.getElementById("globalCounts").textContent = `Total Pins: ${globalTotals.totalPins} — Claimed: ${c} — Pulled: ${p}`;
+    Object.values(boardsState).forEach(s => {
+        c += s.claimed.length;
+        p += s.pulled.length;
+    });
+
+    document.getElementById("globalCounts").textContent =
+        `Total Pins: ${globalTotals.totalPins} — Claimed: ${c} — Pulled: ${p}`;
 }
 </script>
+
 </body>
 </html>
