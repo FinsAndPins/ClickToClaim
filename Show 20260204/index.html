@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fins and Pins - Click to Claim (Version 2.2 Rotation Fix)</title>
+<title>Fins and Pins - Click to Claim (Rotation-Proof Version)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -160,15 +160,15 @@ function createBoard(boardName) {
                 updateBoardCount(boardName);
 
                 requestAnimationFrame(() => {
-                    // --- ROTATION-AWARE SCALING ---
+                    // --- ROTATION-PROOF SCALING ---
                     let ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
                     let ORIGINAL_HEIGHT = data.image?.height || img.naturalHeight;
 
-                    const jsonAspect = ORIGINAL_WIDTH / ORIGINAL_HEIGHT;
-                    const displayedAspect = img.clientWidth / img.clientHeight;
+                    const naturalIsLandscape = ORIGINAL_WIDTH > ORIGINAL_HEIGHT;
+                    const displayedIsLandscape = img.clientWidth > img.clientHeight;
 
-                    // If rotated 90°, swap width/height
-                    if (Math.abs(jsonAspect - displayedAspect) > 0.2) {
+                    // If browser rotated the image, swap width/height
+                    if (naturalIsLandscape !== displayedIsLandscape) {
                         [ORIGINAL_WIDTH, ORIGINAL_HEIGHT] = [ORIGINAL_HEIGHT, ORIGINAL_WIDTH];
                     }
 
