@@ -16,7 +16,7 @@
     .board-img { width: 100%; display: block; border-radius: 6px; }
     .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; }
     .pin.claimed { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.20); }
-    .pin .checkmark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: black; opacity: 0.9; pointer-events: none; display: none; line-height: 1; font-weight: bold; }
+    .pin .checkmark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: black; opacity: 0.9; pointer-events: none; display: none; font-weight: bold; }
     .pin.pulled .checkmark { display: block; }
     #footerControls { display: flex; justify-content: flex-end; align-items: center; margin: 20px 0 10px 0; }
     #modeLabel { margin-right: 10px; font-size: 14px; color: #333; }
@@ -33,7 +33,7 @@
 
 <div id="footerControls" style="display:none;">
     <div id="modeLabel">Mode: Claim (Lexi)</div>
-    <button id="modeToggleButton" class="claim-mode">Switch to Pull Mode (PinDad Only)</button>
+    <button id="modeToggleButton" class="claim-mode">Switch Mode (PinDad Only)</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -58,7 +58,7 @@ const pathParts = window.location.pathname.split("/").filter(Boolean);
 const showName = pathParts[pathParts.length - 1] || "default";
 let currentMode = "claim";
 let boardsState = {};
-let globalTotals = { totalPins: 0, claimed: 0, pulled: 0 };
+let globalTotals = { totalPins: 0, claimed: 0 };
 
 // --- AUTO-TITLE ---
 (function() {
@@ -105,7 +105,7 @@ function createBoard(boardName) {
         document.body.insertBefore(container, document.getElementById("footerControls"));
 
         const img = container.querySelector('img');
-        boardsState[boardName] = { totalPins: 0, claimed: [], pulled: [], countDiv: container.querySelector('.board-count') };
+        boardsState[boardName] = { totalPins: 0, claimed: [], countDiv: container.querySelector('.board-count') };
 
         fetch(`./boards/${boardName}.json`).then(r => r.json()).then(data => {
             const pins = data.predictions || data.output?.predictions || [];
@@ -114,6 +114,7 @@ function createBoard(boardName) {
 
             img.onload = () => {
                 requestAnimationFrame(() => {
+                    // SAFETY LOGIC: Finds the 1280 dimension regardless of JSON format
                     const ORIGINAL_WIDTH = (data.image && data.image.width) || data.width || img.naturalWidth;
                     const scale = img.clientWidth / ORIGINAL_WIDTH;
 
@@ -135,26 +136,10 @@ function createBoard(boardName) {
                                 db.ref(`claims/${showName}/${pinId}`).set(isClaimed ? true : null);
                             } else {
                                 div.classList.toggle("pulled");
-                                // Save 'Pulled' state locally as it's PinDad specific
-                                const pulledMap = JSON.parse(localStorage.getItem(`pulled-${showName}`) || "{}");
-                                pulledMap[pinId] = div.classList.contains("pulled");
-                                localStorage.setItem(`pulled-${showName}`, JSON.stringify(pulledMap));
-                                updateGlobalCounts();
                             }
                         };
                         container.querySelector('.board-wrapper').appendChild(div);
                     });
-                    
-                    // Load any previously saved 'Pulled' status for this session
-                    const pulledMap = JSON.parse(localStorage.getItem(`pulled-${showName}`) || "{}");
-                    Object.keys(pulledMap).forEach(id => {
-                        if (pulledMap[id] && id.startsWith(boardName + "-")) {
-                            const idx = id.split("-")[1];
-                            const el = container.querySelector(`[data-pin="${idx}"]`);
-                            if (el) el.classList.add("pulled");
-                        }
-                    });
-
                     updateGlobalCounts();
                     resolve();
                 });
@@ -184,14 +169,12 @@ function listenForFirebase() {
 }
 
 function updateBoardCount(name) {
-    const s = boardsState[name];
-    s.countDiv.textContent = `Pins: ${s.totalPins} — Claimed: ${s.claimed.length}`;
+    boardsState[name].countDiv.textContent = `Pins: ${boardsState[name].totalPins} — Claimed: ${boardsState[name].claimed.length}`;
 }
 
 function updateGlobalCounts() {
     const totalClaimed = Object.values(boardsState).reduce((acc, b) => acc + b.claimed.length, 0);
-    const totalPulled = document.querySelectorAll('.pin.pulled').length;
-    document.getElementById("globalCounts").textContent = `Total Pins: ${globalTotals.totalPins} — Claimed: ${totalClaimed} — Pulled: ${totalPulled}`;
+    document.getElementById("globalCounts").textContent = `Total Pins: ${globalTotals.totalPins} — Total Claimed: ${totalClaimed}`;
 }
 </script>
 </body>
