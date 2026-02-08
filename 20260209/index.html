@@ -37,7 +37,7 @@
 <body>
 
 <h1>Fins and Pins</h1>
-<h2 id="showTitle">Loading Boards...</h2>
+<h2 id="showTitle">Show Date</h2>
 
 <div id="globalCounts">
     <div>Total Pins: <span id="totalPins">0</span> -- Claimed: <span id="totalClaimed">0</span> -- Pulled: <span id="totalPulled">0</span></div>
@@ -68,30 +68,32 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Get the folder name from the URL, even if it has spaces (%20)
-const parts = window.location.pathname.split("/").filter(Boolean);
-const showFolderName = decodeURIComponent(parts[parts.length - 1] || "default");
-const showNameForFirebase = showFolderName.replace(/\s+/g, '_'); // Firebase paths don't like spaces
+// Improved URL Parsing: Ignores trailing slashes
+const pathClean = window.location.pathname.replace(/\/$/, ""); 
+const parts = pathClean.split("/");
+const showFolderName = decodeURIComponent(parts.pop() || "default");
+const showNameForFirebase = showFolderName.replace(/\s+/g, '_');
 
-// --- UPDATED TITLE LOGIC ---
+// --- ROBUST TITLE LOGIC ---
 (function() {
-    // Looks for 8 digits in a row (20260209) anywhere in the folder name
     const match = showFolderName.match(/(\d{8})/);
     if (match) {
-        const raw = match[1];
-        const year = raw.substring(0,4);
-        const month = raw.substring(4,6);
-        const day = raw.substring(6,8);
-        const date = new Date(`${year}-${month}-${day}T12:00:00`); // Use noon to avoid timezone shift
-        
-        const formattedDate = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" });
-        document.getElementById("showTitle").textContent = formattedDate + " Show";
+        try {
+            const raw = match[1];
+            const date = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T12:00:00`);
+            document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+        } catch(e) {
+            document.getElementById("showTitle").textContent = showFolderName;
+        }
     } else {
         document.getElementById("showTitle").textContent = showFolderName;
     }
 })();
 
-// 2. Mode Toggle
+let currentMode = "claim";
+let boardsState = {};
+
+// Mode Toggle
 const modeBtn = document.getElementById("modeToggleButton");
 modeBtn.onclick = () => {
     currentMode = (currentMode === "claim") ? "pull" : "claim";
@@ -99,10 +101,6 @@ modeBtn.onclick = () => {
     modeBtn.className = currentMode === "claim" ? "claim-mode" : "pull-mode";
     modeBtn.textContent = currentMode === "claim" ? "Switch to Pull Mode" : "Switch to Claim Mode";
 };
-
-// 3. Load Manifest
-let currentMode = "claim";
-let boardsState = {};
 
 fetch("./boards/manifest.json")
     .then(r => r.json())
@@ -197,11 +195,9 @@ function handlePinClick(boardName, idx, div) {
 function listenForFirebase() {
     db.ref(`claims/${showNameForFirebase}`).on("value", snapshot => {
         const allClaims = snapshot.val() || {};
-        
         Object.keys(boardsState).forEach(b => {
             boardsState[b].claimed = [];
-            const pinElements = document.querySelectorAll(`[id^="pin-${b}-"]`);
-            pinElements.forEach(el => el.classList.remove("claimed"));
+            document.querySelectorAll(`[id^="pin-${b}-"]`).forEach(el => el.classList.remove("claimed"));
         });
 
         Object.keys(allClaims).forEach(key => {
@@ -212,7 +208,6 @@ function listenForFirebase() {
                 if (el) el.classList.add("claimed");
             }
         });
-
         Object.keys(boardsState).forEach(updateBoardDisplay);
         calculateGlobals();
     });
