@@ -90,3 +90,102 @@ fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/")
 
 </body>
 </html>
+=
+anything else
+>>>>>>> origin/main
+anything
+<<<<<<<+main
+
+
+This was the version that worked as of 20260208_1650
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fins and Pins – Shows</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .show-list {
+        max-width: 500px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .show-item {
+        padding: 12px;
+        margin-bottom: 10px;
+        background: #e9f4ff;
+        border-radius: 6px;
+        font-size: 18px;
+    }
+    .show-item a {
+        text-decoration: none;
+        color: #004a80;
+        font-weight: bold;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>Fins and Pins – Shows</h1>
+
+<div class="show-list" id="showList">
+    Loading shows…
+</div>
+
+<script>
+// Fetch the repo directory listing via GitHub API
+fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/")
+    .then(r => r.json())
+    .then(items => {
+        const container = document.getElementById("showList");
+        container.innerHTML = "";
+
+        // Filter folders that look like shows
+        const showFolders = items.filter(item =>
+            item.type === "dir" &&
+            item.name.toLowerCase().includes("show")
+        );
+
+        if (showFolders.length === 0) {
+            container.innerHTML = "<p>No shows found.</p>";
+            return;
+        }
+
+        showFolders.forEach(folder => {
+            const div = document.createElement("div");
+            div.className = "show-item";
+
+            const link = document.createElement("a");
+            link.href = `./${encodeURIComponent(folder.name)}/`;
+            link.textContent = folder.name;
+
+            div.appendChild(link);
+            container.appendChild(div);
+        });
+    })
+    .catch(err => {
+        document.getElementById("showList").innerHTML =
+            "<p>Error loading shows.</p>";
+    });
+</script>
+
+</body>
+</html>
+=
+anything else
+>>>>>>> origin/main
