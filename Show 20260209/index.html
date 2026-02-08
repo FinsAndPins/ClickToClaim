@@ -68,18 +68,26 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// Get the folder name from the URL, even if it has spaces (%20)
 const parts = window.location.pathname.split("/").filter(Boolean);
-const showName = parts[parts.length - 1] || "default";
-let currentMode = "claim";
-let boardsState = {};
+const showFolderName = decodeURIComponent(parts[parts.length - 1] || "default");
+const showNameForFirebase = showFolderName.replace(/\s+/g, '_'); // Firebase paths don't like spaces
 
-// 1. Generate Title
+// --- UPDATED TITLE LOGIC ---
 (function() {
-    const match = showName.match(/(20\d{6})/);
+    // Looks for 8 digits in a row (20260209) anywhere in the folder name
+    const match = showFolderName.match(/(\d{8})/);
     if (match) {
         const raw = match[1];
-        const date = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T00:00:00`);
-        document.getElementById("showTitle").textContent = `${date.toLocaleString("en-US", { month: "long" })} ${parseInt(raw.substring(6,8))} Show`;
+        const year = raw.substring(0,4);
+        const month = raw.substring(4,6);
+        const day = raw.substring(6,8);
+        const date = new Date(`${year}-${month}-${day}T12:00:00`); // Use noon to avoid timezone shift
+        
+        const formattedDate = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" });
+        document.getElementById("showTitle").textContent = formattedDate + " Show";
+    } else {
+        document.getElementById("showTitle").textContent = showFolderName;
     }
 })();
 
@@ -92,13 +100,15 @@ modeBtn.onclick = () => {
     modeBtn.textContent = currentMode === "claim" ? "Switch to Pull Mode" : "Switch to Claim Mode";
 };
 
-// 3. Load Manifest and Initialize Boards Immediately
+// 3. Load Manifest
+let currentMode = "claim";
+let boardsState = {};
+
 fetch("./boards/manifest.json")
     .then(r => r.json())
     .then(list => {
         const boardsList = document.getElementById("boardsList");
         const promises = list.map(name => {
-            // Create container immediately so Firebase has a target
             const container = document.createElement("div");
             container.className = "board-container";
             container.id = `container-${name}`;
@@ -113,7 +123,7 @@ fetch("./boards/manifest.json")
 
             boardsState[name] = { 
                 totalPins: 0, claimed: [], 
-                pulled: JSON.parse(localStorage.getItem(`pulled-${showName}-${name}`) || "[]") 
+                pulled: JSON.parse(localStorage.getItem(`pulled-${showFolderName}-${name}`) || "[]") 
             };
 
             return setupBoard(name);
@@ -172,30 +182,28 @@ async function setupBoard(name) {
 function handlePinClick(boardName, idx, div) {
     if (currentMode === "claim") {
         const isCurrentlyClaimed = div.classList.contains("claimed");
-        db.ref(`claims/${showName}/${boardName}-${idx}`).set(isCurrentlyClaimed ? null : true);
+        db.ref(`claims/${showNameForFirebase}/${boardName}-${idx}`).set(isCurrentlyClaimed ? null : true);
     } else {
         const state = boardsState[boardName];
         const isPulled = div.classList.toggle("pulled");
         if (isPulled) { if (!state.pulled.includes(idx)) state.pulled.push(idx); }
         else { state.pulled = state.pulled.filter(i => i !== idx); }
-        localStorage.setItem(`pulled-${showName}-${boardName}`, JSON.stringify(state.pulled));
+        localStorage.setItem(`pulled-${showFolderName}-${boardName}`, JSON.stringify(state.pulled));
         updateBoardDisplay(boardName);
         calculateGlobals();
     }
 }
 
 function listenForFirebase() {
-    db.ref(`claims/${showName}`).on("value", snapshot => {
+    db.ref(`claims/${showNameForFirebase}`).on("value", snapshot => {
         const allClaims = snapshot.val() || {};
         
-        // Reset local state first
         Object.keys(boardsState).forEach(b => {
             boardsState[b].claimed = [];
             const pinElements = document.querySelectorAll(`[id^="pin-${b}-"]`);
             pinElements.forEach(el => el.classList.remove("claimed"));
         });
 
-        // Apply new claims
         Object.keys(allClaims).forEach(key => {
             const [bName, pIdx] = key.split("-");
             if (boardsState[bName]) {
