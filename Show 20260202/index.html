@@ -1,13 +1,8 @@
-Copilot said to put anything in a new file at the root level to force a refresh, so I put "anything."
-anything else
-anything
-
-This keeps clearing the clicks
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fins and Pins - Click to Claim (Version 2.2)</title>
+<title>Fins and Pins - Click to Claim (Version 2.1)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -243,80 +238,78 @@ modeToggleButton.addEventListener("click", () => {
 });
 
 // ------------------------------------------------------------
-// LOAD MANIFEST AND BUILD BOARDS (PROMISE-BASED)
+// LOAD MANIFEST AND BUILD BOARDS
 // ------------------------------------------------------------
 fetch("./boards/manifest.json")
     .then(r => r.json())
     .then(boardList => {
-        return Promise.all(boardList.map(createBoard));
-    })
-    .then(() => {
+        boardList.forEach(boardName => {
+            createBoard(boardName);
+        });
+
         footerControls.style.display = "flex";
         updateGlobalCounts();
-        loadClaims();   // Now safe — all boards exist
     });
 
 function createBoard(boardName) {
-    return new Promise(resolve => {
-        const container = document.createElement("div");
-        container.className = "board-container";
+    const container = document.createElement("div");
+    container.className = "board-container";
 
-        const title = document.createElement("div");
-        title.className = "board-title";
-        title.textContent = boardName;
-        container.appendChild(title);
+    const title = document.createElement("div");
+    title.className = "board-title";
+    title.textContent = boardName;
+    container.appendChild(title);
 
-        const countDiv = document.createElement("div");
-        countDiv.className = "board-count";
-        countDiv.id = `count-${boardName}`;
-        countDiv.textContent = "Pins: 0 — Claimed: 0 — Pulled: 0";
-        container.appendChild(countDiv);
+    const countDiv = document.createElement("div");
+    countDiv.className = "board-count";
+    countDiv.id = `count-${boardName}`;
+    countDiv.textContent = "Pins: 0 — Claimed: 0 — Pulled: 0";
+    container.appendChild(countDiv);
 
-        const wrapper = document.createElement("div");
-        wrapper.className = "board-wrapper";
+    const wrapper = document.createElement("div");
+    wrapper.className = "board-wrapper";
 
-        const img = document.createElement("img");
-        img.className = "board-img";
-        img.loading = "lazy";
-        img.src = `./boards/${boardName}.jpeg`;
+    const img = document.createElement("img");
+    img.className = "board-img";
+    img.loading = "lazy";
+    img.src = `./boards/${boardName}.JPG`;   // IMPORTANT FIX
 
-        wrapper.appendChild(img);
-        container.appendChild(wrapper);
-        document.body.insertBefore(container, footerControls);
+    wrapper.appendChild(img);
+    container.appendChild(wrapper);
+    document.body.insertBefore(container, footerControls);
 
-        boardsState[boardName] = {
-            totalPins: 0,
-            claimed: [],
-            pulled: [],
-            countDiv: countDiv
-        };
+    boardsState[boardName] = {
+        totalPins: 0,
+        claimed: [],
+        pulled: [],
+        countDiv: countDiv
+    };
 
+    img.onload = () => {
         fetch(`./boards/${boardName}.json`)
             .then(r => r.json())
             .then(data => {
-                const pins = data.output?.predictions || [];
+                const pins = data.predictions || data.output?.predictions || [];
                 const totalPins = pins.length;
 
                 boardsState[boardName].totalPins = totalPins;
                 globalTotals.totalPins += totalPins;
 
-                let claimedSelections = []; 
+                let claimedSelections = loadSelections(boardName, "claimed");
                 let pulledSelections = loadSelections(boardName, "pulled");
                 boardsState[boardName].claimed = claimedSelections.slice();
                 boardsState[boardName].pulled = pulledSelections.slice();
 
                 updateBoardCount(boardName);
 
-                img.onload = () => {
-                    const ORIGINAL_WIDTH = img.naturalWidth;
+                requestAnimationFrame(() => {
+                    const ORIGINAL_WIDTH = data.image?.width || img.naturalWidth;
                     const displayedWidth = img.clientWidth;
                     const scale = displayedWidth / ORIGINAL_WIDTH;
 
                     pins.forEach((pin, index) => {
                         const div = document.createElement("div");
                         div.className = "pin";
-                        div.dataset.board = boardName;
-                        div.dataset.pin = index;
 
                         const left = (pin.x - pin.width / 2) * scale;
                         const top = (pin.y - pin.height / 2) * scale;
@@ -335,12 +328,8 @@ function createBoard(boardName) {
                         check.textContent = "✓";
                         div.appendChild(check);
 
-                        if (claimedSelections.includes(index)) {
-                            div.classList.add("claimed");
-                        }
-                        if (pulledSelections.includes(index)) {
-                            div.classList.add("pulled");
-                        }
+                        if (claimedSelections.includes(index)) div.classList.add("claimed");
+                        if (pulledSelections.includes(index)) div.classList.add("pulled");
 
                         div.addEventListener("click", () => {
                             handlePinClick(boardName, index, div);
@@ -350,10 +339,9 @@ function createBoard(boardName) {
                     });
 
                     updateGlobalCounts();
-                    resolve();   // ⭐ Board fully loaded
-                };
+                });
             });
-    });
+    };
 }
 
 // ------------------------------------------------------------
@@ -365,17 +353,14 @@ function handlePinClick(boardName, pinIndex, pinDiv) {
 
     if (currentMode === "claim") {
         const isClaimed = pinDiv.classList.toggle("claimed");
-
         if (isClaimed) {
             if (!state.claimed.includes(pinIndex)) {
                 state.claimed.push(pinIndex);
             }
-            claimPin(`${boardName}-${pinIndex}`);
         } else {
             state.claimed = state.claimed.filter(i => i !== pinIndex);
-            unclaimPin(`${boardName}-${pinIndex}`);
         }
-
+        saveSelections(boardName, "claimed", state.claimed);
     } else {
         const isPulled = pinDiv.classList.toggle("pulled");
         if (isPulled) {
@@ -420,76 +405,6 @@ function updateGlobalCounts() {
 
     document.getElementById("globalCounts").textContent =
         `Total Pins: ${globalTotals.totalPins} — Claimed: ${claimed} — Pulled: ${pulled}`;
-}
-</script>
-
-<!-- ------------------------------------------------------------
-     FIREBASE
-------------------------------------------------------------- -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
-<script>
-const firebaseConfig = {
-    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
-    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
-    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
-    projectId: "fins-and-pins-click-to-claim",
-    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
-    messagingSenderId: "31512845258",
-    appId: "1:31512845258:web:2124fae24cfee229084d33",
-    measurementId: "G-JRP1Y4TL0W"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// ------------------------------------------------------------
-// FIREBASE CLAIM SYNC (NAMESPACED BY SHOW)
-// ------------------------------------------------------------
-function claimPin(pinId) {
-    db.ref(`claims/${showName}/${pinId}`).set({
-        claimed: true,
-        timestamp: Date.now()
-    });
-}
-
-function unclaimPin(pinId) {
-    db.ref(`claims/${showName}/${pinId}`).remove();
-}
-
-function loadClaims() {
-    db.ref(`claims/${showName}`).on("value", snapshot => {
-        const claims = snapshot.val() || {};
-
-        Object.keys(boardsState).forEach(boardName => {
-            boardsState[boardName].claimed = [];
-        });
-
-        Object.keys(claims).forEach(pinId => {
-            const [boardName, indexStr] = pinId.split("-");
-            const pinIndex = parseInt(indexStr, 10);
-
-            const state = boardsState[boardName];
-            if (!state) return;
-
-            if (!state.claimed.includes(pinIndex)) {
-                state.claimed.push(pinIndex);
-            }
-
-            const pinDiv = document.querySelector(
-                `[data-board="${boardName}"][data-pin="${pinIndex}"]`
-            );
-
-            if (pinDiv) {
-                pinDiv.classList.add("claimed");
-            }
-
-            updateBoardCount(boardName);   // ⭐ FIXED
-        });
-
-        updateGlobalCounts();
-    });
 }
 </script>
 
