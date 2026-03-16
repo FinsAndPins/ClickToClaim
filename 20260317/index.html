@@ -30,10 +30,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Standard Green: Buyer's view or Pre-Show Admin view */
         .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.25); }
-        
-        /* Yellow: Admin-only view for requests after 11:50am */
         .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.4); }
         
         .tally-badge {
@@ -97,7 +94,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- SECURE ADMIN LOGIC ---
 const ADMIN_KEY = "0626200207081986";
 const urlParams = new URLSearchParams(window.location.search);
 const providedKey = urlParams.get('admin');
@@ -110,7 +106,6 @@ const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
 let currentUser = localStorage.getItem('fp_username') || "";
 let boardsState = {};
 
-// 11:50 AM Cutoff Logic
 const getCutoffTimestamp = () => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 50, 0).getTime();
@@ -241,10 +236,14 @@ function listenForFirebase() {
                     } else {
                         pinEl.classList.add("selection-green");
                     }
-                    const badge = document.createElement('div');
-                    badge.className = 'tally-badge';
-                    badge.textContent = count;
-                    pinEl.appendChild(badge);
+                    
+                    // ONLY SHOW BADGE IF 2 OR MORE CLICKS
+                    if (count >= 2) {
+                        const badge = document.createElement('div');
+                        badge.className = 'tally-badge';
+                        badge.textContent = count;
+                        pinEl.appendChild(badge);
+                    }
                 }
             }
         });
@@ -271,10 +270,10 @@ function calculateGlobals() {
 
 function shareToInstagram() {
     let total = document.getElementById("totalMyClaims").textContent;
-    const text = `I just selected ${total} pins for the Fins and Pins show! @FinsAndPins`;
+    const text = `I just selected ${total} pins for the Fins and Pins show! @fins.and.pins`;
     navigator.clipboard.writeText(text).then(() => {
         alert("Summary copied! Opening Instagram...");
-        window.location.href = "https://www.instagram.com/finsandpins/";
+        window.location.href = "https://www.instagram.com/fins.and.pins/";
     });
 }
 </script>
