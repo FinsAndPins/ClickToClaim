@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fins and Pins - Multi-User Mode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f5f5f5; padding-bottom: 80px; }
+        h1 { text-align: center; margin-bottom: 4px; font-size: 26px; }
+        h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #444; font-weight: normal; }
+        #globalCounts { text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 2000; }
+        #syncStatus { font-size: 12px; color: #666; display: block; margin-top: 4px; font-weight: normal; }
+        .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+        .board-title { font-size: 20px; margin-bottom: 6px; font-weight: bold; }
+        .board-count { font-size: 14px; margin-bottom: 8px; color: #555; }
+        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: #eee; border-radius: 6px; }
+        .board-img { width: 100%; display: block; border-radius: 6px; }
+        .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
+        .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.25); }
+        .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.4); }
+        .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 110; pointer-events: none; border: 2px solid white; }
+        #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; }
+        #shareBtn { padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; cursor: pointer; background: #e6f7ff; color: #0066aa; font-weight: bold; }
+        #adminReportBtn { display:none; padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #fff; color: #333; text-decoration: none; font-weight: bold; }
+        #loginOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
+        .login-box input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .login-box button { background: #0066aa; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="login-box">
+        <h3>Welcome to Fins and Pins</h3>
+        <p style="font-size: 14px; color: #555;">Enter your Instagram or Whatnot handle.</p>
+        <input type="text" id="usernameInput" placeholder="@username (optional)">
+        <button onclick="saveUsername()">Start Selecting</button>
+        <p style="font-size: 11px; color: #999; margin-top: 10px;">Blank will assign a Guest ID.</p>
+    </div>
+</div>
+
+<h1>Fins and Pins</h1>
+<h2 id="showTitle">Show Date</h2>
+
+<div id="globalCounts">
+    <div>Total Pins: <span id="totalPins">0</span> -- My Requests: <span id="totalMyClaims">0</span></div>
+    <div id="syncStatus">📡 Connecting to Firebase...</div>
+</div>
+
+<div id="boardsList"></div>
+
+<div id="footerControls">
+    <div id="userDisplay" style="font-weight: bold; color: #555;">@user</div>
+    <div style="display: flex; gap: 10px;">
+        <a id="adminReportBtn" href="reports.html">Reports</a>
+        <button id="shareBtn" onclick="shareToInstagram()">Share to Instagram</button>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const ADMIN_KEY = "0626200207081986";
+const urlParams = new URLSearchParams(window.location.search);
+const providedKey = urlParams.get('admin');
+
+if (providedKey === ADMIN_KEY) sessionStorage.setItem('fp_admin_active', 'true');
+const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
+
+if (isAdmin) {
+    const reportBtn = document.getElementById('adminReportBtn');
+    reportBtn.style.display = 'block';
+    reportBtn.href = `reports.html?admin=${ADMIN_KEY}`;
+}
+
+let currentUser = localStorage.getItem('fp_username') || "";
+let boardsState = {};
+
+const getCutoffTimestamp = () => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 50, 0).getTime();
+};
+
+if (currentUser) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userDisplay').textContent = currentUser;
+}
+
+function saveUsername() {
+    let val = document.getElementById('usernameInput').value.trim().toLowerCase();
+    if (!val) {
+        val = `guest_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    } else if (!val.startsWith('@')) {
+        val = '@' + val;
+    }
+    currentUser = val;
+    localStorage.setItem('fp_username', val);
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userDisplay').textContent = val;
+    listenForFirebase();
+}
+
+const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, ""); 
+const folderParts = pathClean.split("/");
+const showFolderName = decodeURIComponent(folderParts.pop() || "default");
+const showNameForFirebase = showFolderName.replace(/\s+/g, '_');
+
+(function() {
+    const match = showFolderName.match(/(\d{8})/);
+    if (match) {
+        const raw = match[1];
+        const date = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T12:00:00`);
+        document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+    }
+})();
+
+fetch("./boards/manifest.json")
+    .then(r => r.json())
+    .then(list => {
+        list.sort((a, b) => parseInt(a.match(/\d+/) || 0) - parseInt(b.match(/\d+/) || 0));
+        const boardsList = document.getElementById("boardsList");
+        list.forEach((name, index) => {
+            const container = document.createElement("div");
+            container.className = "board-container";
+            container.innerHTML = `<div class="board-title">Board ${index + 1} <span style="font-size: 0.7em; font-weight: normal; color: #888;">(${name})</span></div><div class="board-count" id="count-${name}">Loading...</div><div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG"></div>`;
+            boardsList.appendChild(container);
+            boardsState[name] = { totalPins: 0, myClaims: 0, allClaims: {} };
+            setupBoard(name);
+        });
+        document.getElementById("syncStatus").textContent = "✅ Connected & Synced";
+        if (currentUser) listenForFirebase();
+    });
+
+async function setupBoard(name) {
+    const response = await fetch(`./boards/${name}.json`);
+    const data = await response.json();
+    const pins = data.predictions || data.output?.predictions || [];
+    boardsState[name].totalPins = pins.length;
+    const img = document.getElementById(`img-${name}`);
+    const render = () => {
+        const wrapper = document.getElementById(`wrapper-${name}`);
+        let ORIG_W = data.image?.width || img.naturalWidth;
+        let ORIG_H = data.image?.height || img.naturalHeight;
+        const rotated = (ORIG_W > ORIG_H) !== (img.clientWidth > img.clientHeight);
+        const scale = img.clientWidth / (rotated ? ORIG_H : ORIG_W);
+        pins.forEach((pin, idx) => {
+            const div = document.createElement("div");
+            div.className = "pin";
+            div.style.left = ((rotated ? (ORIG_H - pin.y) : pin.x) - (rotated ? pin.height : pin.width) / 2) * scale + "px";
+            div.style.top = ((rotated ? pin.x : pin.y) - (rotated ? pin.width : pin.height) / 2) * scale + "px";
+            div.style.width = ((rotated ? pin.height : pin.width) * scale) + "px";
+            div.style.height = ((rotated ? pin.width : pin.height) * scale) + "px";
+            div.id = `pin-${name}-${idx}`;
+            div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); };
+            wrapper.appendChild(div);
+        });
+        updateBoardDisplay(name);
+        calculateGlobals();
+    };
+    if (img.complete) render(); else img.onload = render;
+}
+
+function handlePinClick(boardName, idx) {
+    const pinKey = `${boardName}-${idx}`;
+    const userKey = currentUser.toLowerCase().replace(/[.#$[\]]/g, "_");
+    const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
+    db.ref(`claims/${showNameForFirebase}/${pinKey}/${userKey}`).set(alreadyClicked ? null : { time: firebase.database.ServerValue.TIMESTAMP });
+}
+
+function listenForFirebase() {
+    db.ref(`claims/${showNameForFirebase}`).on("value", snapshot => {
+        const data = snapshot.val() || {};
+        const userKey = currentUser.toLowerCase().replace(/[.#$[\]]/g, "_");
+        const cutoff = getCutoffTimestamp();
+        Object.keys(boardsState).forEach(b => {
+            boardsState[b].allClaims = {}; boardsState[b].myClaims = 0;
+            document.querySelectorAll(`[id^="pin-${b}-"]`).forEach(el => {
+                el.classList.remove("selection-green", "selection-yellow");
+                const badge = el.querySelector('.tally-badge'); if (badge) badge.remove();
+            });
+        });
+        Object.entries(data).forEach(([pinKey, users]) => {
+            const [bName, pIdx] = pinKey.split("-");
+            if (boardsState[bName]) {
+                boardsState[bName].allClaims[pinKey] = users;
+                const pinEl = document.getElementById(`pin-${pinKey}`);
+                const userList = Object.values(users);
+                const count = userList.length;
+                const earliestTime = Math.min(...userList.map(u => u.time));
+                if (users[userKey]) { boardsState[bName].myClaims++; if (pinEl) pinEl.classList.add("selection-green"); }
+                if (pinEl && isAdmin) {
+                    pinEl.classList.remove("selection-green");
+                    if (earliestTime > cutoff) pinEl.classList.add("selection-yellow");
+                    else pinEl.classList.add("selection-green");
+                    if (count >= 2) {
+                        const badge = document.createElement('div'); badge.className = 'tally-badge'; badge.textContent = count; pinEl.appendChild(badge);
+                    }
+                }
+            }
+        });
+        Object.keys(boardsState).forEach(updateBoardDisplay);
+        calculateGlobals();
+    });
+}
+
+function updateBoardDisplay(name) {
+    const s = boardsState[name];
+    document.getElementById(`count-${name}`).textContent = `Pins: ${s.totalPins} | My Requests: ${s.myClaims}`;
+}
+
+function calculateGlobals() {
+    let total = 0, my = 0;
+    Object.values(boardsState).forEach(s => { total += s.totalPins; my += s.myClaims; });
+    document.getElementById("totalPins").textContent = total;
+    document.getElementById("totalMyClaims").textContent = my;
+}
+
+function shareToInstagram() {
+    let total = document.getElementById("totalMyClaims").textContent;
+    const text = `I just selected ${total} pins for the Fins and Pins show! @fins.and.pins`;
+    navigator.clipboard.writeText(text).then(() => { alert("Summary copied! Opening Instagram..."); window.location.href = "https://www.instagram.com/fins.and.pins/"; });
+}
+</script>
+</body>
+</html>
