@@ -17,14 +17,8 @@
         tfoot td { background: #f9f9f9; font-weight: bold; border-top: 2px solid #333; }
         tr:hover { background: #f1f7ff; }
         .timestamp { color: #888; font-size: 12px; }
-        
-        /* Snippet Window */
-        .pin-snippet { 
-            width: 70px; height: 70px; border-radius: 4px; border: 1px solid #ccc; 
-            overflow: hidden; position: relative; background-color: #eee; 
-        }
-        .pin-snippet img { position: absolute; }
-        
+        .pin-snippet { width: 60px; height: 60px; border-radius: 4px; border: 1px solid #ccc; overflow: hidden; position: relative; background-color: #333; }
+        .pin-snippet img { position: absolute; transform: translate(-50%, -50%); top: 50%; left: 50%; width: 500px; height: auto; }
         #authMsg { text-align: center; margin-top: 100px; color: red; font-weight: bold; }
     </style>
 </head>
@@ -93,7 +87,6 @@ const ADMIN_KEY = "0626200207081986";
 const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true';
 
 let globalReportData = null;
-let boardNames = []; 
 
 if (!isAdmin) {
     document.getElementById('authMsg').textContent = "Unauthorized.";
@@ -104,21 +97,28 @@ if (!isAdmin) {
     loadData();
 }
 
-function getQuadrant(x, y) {
-    const horizontal = x < 50 ? "Left" : "Right";
-    const vertical = y < 50 ? "Upper" : "Lower";
+function getQuadrant(x, y, isRotated) {
+    // If rotated, x and y logic swaps
+    const horizontal = (isRotated ? y : x) < 50 ? "Left" : "Right";
+    const vertical = (isRotated ? x : y) < 50 ? "Upper" : "Lower";
     return `${vertical} ${horizontal}`;
 }
 
-function createSnippetHTML(boardName, pin) {
+function createSnippetHTML(boardName, pin, isRotated) {
     if (!pin) return `<div class="pin-snippet"></div>`;
-    const zoom = 7; 
-    const imgPath = `./boards/${boardName}.JPG`;
+    
+    // Calculate position based on the same rotation logic as index.html
+    const displayX = isRotated ? (100 - pin.y) : pin.x;
+    const displayY = isRotated ? pin.x : pin.y;
+    
+    const zoom = 8; // Increased zoom for better pin visibility
     return `
         <div class="pin-snippet">
-            <img src="${imgPath}" 
-                 style="width: ${zoom * 100}%; position: absolute; left: ${50 - (pin.x * zoom)}%; top: ${50 - (pin.y * zoom)}%;"
-                 onerror="this.parentElement.style.border='2px solid red';">
+            <img src="./boards/${boardName}.JPG" 
+                 style="width: ${100 * zoom}%; 
+                        left: calc(50% - ${displayX * zoom}% + ${zoom/2 * 100}%); 
+                        top: calc(50% - ${displayY * zoom}% + ${zoom/2 * 100}%); 
+                        transform: translate(-50%, -50%);">
         </div>`;
 }
 
@@ -129,14 +129,24 @@ async function loadData() {
     const showNameForFirebase = showFolderName.replace(/\s+/g, '_');
 
     const manifestRes = await fetch("./boards/manifest.json");
-    boardNames = await manifestRes.json();
-    boardNames.sort((a, b) => parseInt(a.match(/\d+/) || 0) - parseInt(b.match(/\d+/) || 0));
-
+    const boardNames = await manifestRes.json();
     const boardMeta = {};
+
     for (const name of boardNames) {
         const res = await fetch(`./boards/${name}.json`);
         const data = await res.json();
-        boardMeta[name] = data.predictions || data.output?.predictions || [];
+        
+        // Check image orientation for rotation logic
+        const img = new Image();
+        img.src = `./boards/${name}.JPG`;
+        await new Promise(resolve => img.onload = resolve);
+        
+        const isRotated = img.width > img.height;
+        
+        boardMeta[name] = {
+            pins: data.predictions || data.output?.predictions || [],
+            isRotated: isRotated
+        };
     }
 
     db.ref(`claims/${showNameForFirebase}`).on('value', snapshot => {
@@ -150,62 +160,74 @@ function renderReports(data, boardMeta) {
     const liveFeed = [];
     const popularity = [];
     const globalPinCounts = {};
+    const boardKeys = Object.keys(boardMeta);
     
-    Object.keys(data).forEach(pk => globalPinCounts[pk] = Object.keys(data[pk]).length);
+    Object.keys(data).forEach(pinKey => globalPinCounts[pinKey] = Object.keys(data[pinKey]).length);
 
     Object.entries(data).forEach(([pinKey, users]) => {
         const [bName, pIdx] = pinKey.split("-");
-        const boardNum = boardNames.indexOf(bName) + 1;
-        const pinData = boardMeta[bName][pIdx];
-        const quad = pinData ? getQuadrant(pinData.x, pinData.y) : "Unknown";
-        const locStr = `Board ${boardNum} (${quad})`;
-        const snippet = createSnippetHTML(bName, pinData);
+        const boardIndex = boardKeys.indexOf(bName) + 1;
+        const meta = boardMeta[bName];
+        if (!meta) return;
+
+        const pinData = meta.pins[pIdx];
+        const quad = pinData ? getQuadrant(pinData.x, pinData.y, meta.isRotated) : "Unknown";
+        const locStr = `Board ${boardIndex} (${quad})`;
+        const snippet = createSnippetHTML(bName, pinData, meta.isRotated);
 
         const userEntries = Object.entries(users).sort((a,b) => a[1].time - b[1].time);
-        popularity.push({ snippet, loc: locStr, count: userEntries.length, details: userEntries.map(([u, t]) => `${u} (${new Date(t.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})})`).join(", ") });
+        popularity.push({ snippet, loc: locStr, count: userEntries.length, details: userEntries.map(([u, t]) => `${u}`).join(", ") });
 
-        userEntries.forEach(([username, meta]) => {
+        userEntries.forEach(([username, metaData]) => {
             if (!userStats[username]) userStats[username] = { lastAction: 0, unique: 0, contested: 0 };
-            if (meta.time > userStats[username].lastAction) userStats[username].lastAction = meta.time;
+            if (metaData.time > userStats[username].lastAction) userStats[username].lastAction = metaData.time;
             if (globalPinCounts[pinKey] === 1) userStats[username].unique++; else userStats[username].contested++;
-            liveFeed.push({ snippet, loc: locStr, user: username, time: meta.time });
+            liveFeed.push({ snippet, loc: locStr, user: username, time: metaData.time });
         });
     });
 
-    // 1. User Tally
-    let tU = 0, tC = 0, tT = 0;
-    document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => {
-        const total = s.unique + s.contested;
-        tU += s.unique; tC += s.contested; tT += total;
-        return `<tr><td><strong>${u}</strong></td><td class="timestamp">${new Date(s.lastAction).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td><strong>${total}</strong></td></tr>`;
+    // Render User Tally
+    const userTable = document.querySelector("#userTallyTable tbody");
+    let totalU = 0, totalC = 0, totalT = 0;
+    userTable.innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => {
+        totalU += s.unique; totalC += s.contested; totalT += (s.unique + s.contested);
+        return `<tr><td><strong>${u}</strong></td><td class="timestamp">${new Date(s.lastAction).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td><strong>${s.unique + s.contested}</strong></td></tr>`;
     }).join('');
-    document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td>`;
+    document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${totalU}</td><td>${totalC}</td><td>${totalT}</td>`;
 
-    // 2. Live Feed
-    document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `<tr><td>${f.snippet}</td><td>${f.loc}</td><td><strong>${f.user}</strong></td><td class="timestamp">${new Date(f.time).toLocaleTimeString()}</td></tr>`).join('');
+    // Render Live Feed
+    const feedTable = document.querySelector("#liveFeedTable tbody");
+    feedTable.innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `<tr><td>${f.snippet}</td><td>${f.loc}</td><td><strong>${f.user}</strong></td><td class="timestamp">${new Date(f.time).toLocaleTimeString()}</td></tr>`).join('');
 
-    // 3. Popularity
-    document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).map(p => `<tr><td>${p.snippet}</td><td>${p.loc}</td><td><strong>${p.count}</strong></td><td style="font-size: 11px; color: #666;">${p.details}</td></tr>`).join('');
+    // Render Popularity
+    const popTable = document.querySelector("#popularityTable tbody");
+    popTable.innerHTML = popularity.sort((a,b) => b.count - a.count).map(p => `<tr><td>${p.snippet}</td><td>${p.loc}</td><td><strong>${p.count}</strong></td><td style="font-size: 11px; color: #666;">${p.details}</td></tr>`).join('');
 }
 
 function downloadCSV() {
     if (!globalReportData) return alert("No data.");
-    let csv = "Board-Pin,Board Number,Quadrant,Username,Timestamp,Status\n";
-    Object.entries(globalReportData.raw).forEach(([pk, users]) => {
-        const [bn, pi] = pk.split("-");
-        const bNum = boardNames.indexOf(bn) + 1;
-        const pd = globalReportData.meta[bn][pi];
-        const q = pd ? getQuadrant(pd.x, pd.y) : "Unknown";
-        const st = Object.keys(users).length === 1 ? "Unique" : "Contested";
-        Object.entries(users).forEach(([un, mt]) => {
-            csv += `${pk},Board ${bNum},${q},${un},"${new Date(mt.time).toLocaleString()}",${st}\n`;
+    let csvContent = "data:text/csv;charset=utf-8,Board-Pin,Location,Username,Timestamp,Status\n";
+    const { raw, meta, showName } = globalReportData;
+    const boardKeys = Object.keys(meta);
+
+    Object.entries(raw).forEach(([pinKey, users]) => {
+        const [bName, pIdx] = pinKey.split("-");
+        const boardIndex = boardKeys.indexOf(bName) + 1;
+        const pinMeta = meta[bName];
+        const quad = pinMeta.pins[pIdx] ? getQuadrant(pinMeta.pins[pIdx].x, pinMeta.pins[pIdx].y, pinMeta.isRotated) : "Unknown";
+        const status = Object.keys(users).length === 1 ? "Unique" : "Contested";
+
+        Object.entries(users).forEach(([user, m]) => {
+            csvContent += `${pinKey},Board ${boardIndex} (${quad}),${user},${new Date(m.time).toLocaleString().replace(/,/g,'')},${status}\n`;
         });
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `FinsAndPins_${globalReportData.showName}.csv`);
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `FinsAndPins_${showName}.csv`);
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
 }
 </script>
 </body>
