@@ -20,17 +20,18 @@
 <div class="subtitle">Select a show to view available pins</div>
 
 <div class="show-list" id="showList">
-    Loading shows from ClickToClaim…
+    Loading shows…
 </div>
 
 <script>
-// POINTED TO THE SUBFOLDER
+// We look inside ClickToClaim folder specifically
 fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/ClickToClaim")
     .then(r => r.json())
     .then(items => {
         const container = document.getElementById("showList");
         container.innerHTML = "";
 
+        // Filter for sub-folders (like 20260317)
         const showFolders = items.filter(item =>
             item.type === "dir" &&
             (item.name.toLowerCase().includes("show") || item.name.toLowerCase().includes("test") || item.name.startsWith("2")) &&
@@ -38,11 +39,11 @@ fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/ClickToC
         );
 
         if (showFolders.length === 0) {
-            container.innerHTML = "<p style='text-align:center;'>No shows found in the ClickToClaim folder.</p>";
+            container.innerHTML = "<p style='text-align:center;'>No shows found.</p>";
             return;
         }
 
-        // DESCENDING SORT (Newest first)
+        // Newest first
         showFolders.sort((a, b) => b.name.localeCompare(a.name));
 
         showFolders.forEach(folder => {
@@ -50,8 +51,8 @@ fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/ClickToC
             div.className = "show-item";
             const link = document.createElement("a");
             
-            // ENSURE THE LINK POINTS TO THE SUBFOLDER
-            link.href = `./ClickToClaim/${encodeURIComponent(folder.name)}/index.html`;
+            // SINCE WE ARE ALREADY IN /ClickToClaim/, we don't add it to the link again
+            link.href = `./${encodeURIComponent(folder.name)}/index.html`;
             
             let displayName = folder.name;
             const dateMatch = folder.name.match(/(\d{8})/);
@@ -74,7 +75,7 @@ fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/ClickToC
     .catch(err => {
         console.error(err);
         document.getElementById("showList").innerHTML =
-            "<p style='text-align:center; color:red;'>Error connecting to GitHub. Please refresh.</p>";
+            "<p style='text-align:center; color:red;'>Error connecting to GitHub. Check folder name.</p>";
     });
 </script>
 
