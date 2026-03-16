@@ -43,6 +43,7 @@
 
         #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; }
         #shareBtn { padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; cursor: pointer; background: #e6f7ff; color: #0066aa; font-weight: bold; }
+        #adminReportBtn { display:none; padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #fff; color: #333; text-decoration: none; font-weight: bold; }
 
         #loginOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .login-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
@@ -74,7 +75,10 @@
 
 <div id="footerControls">
     <div id="userDisplay" style="font-weight: bold; color: #555;">@user</div>
-    <button id="shareBtn" onclick="shareToInstagram()">Share to Instagram</button>
+    <div style="display: flex; gap: 10px;">
+        <a id="adminReportBtn" href="reports.html">Reports</a>
+        <button id="shareBtn" onclick="shareToInstagram()">Share to Instagram</button>
+    </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -102,6 +106,13 @@ if (providedKey === ADMIN_KEY) {
     sessionStorage.setItem('fp_admin_active', 'true');
 }
 const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
+
+// Show Report button if Admin
+if (isAdmin) {
+    const reportBtn = document.getElementById('adminReportBtn');
+    reportBtn.style.display = 'block';
+    reportBtn.href = `reports.html?admin=${ADMIN_KEY}`;
+}
 
 let currentUser = localStorage.getItem('fp_username') || "";
 let boardsState = {};
@@ -134,6 +145,15 @@ const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace
 const folderParts = pathClean.split("/");
 const showFolderName = decodeURIComponent(folderParts.pop() || "default");
 const showNameForFirebase = showFolderName.replace(/\s+/g, '_');
+
+(function() {
+    const match = showFolderName.match(/(\d{8})/);
+    if (match) {
+        const raw = match[1];
+        const date = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T12:00:00`);
+        document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+    }
+})();
 
 fetch("./boards/manifest.json")
     .then(r => r.json())
@@ -236,8 +256,6 @@ function listenForFirebase() {
                     } else {
                         pinEl.classList.add("selection-green");
                     }
-                    
-                    // ONLY SHOW BADGE IF 2 OR MORE CLICKS
                     if (count >= 2) {
                         const badge = document.createElement('div');
                         badge.className = 'tally-badge';
