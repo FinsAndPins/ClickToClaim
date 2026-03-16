@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fins and Pins – Shows</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 30px;
+    }
+    .show-list {
+        max-width: 500px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .show-item {
+        padding: 15px;
+        margin-bottom: 12px;
+        background: #f0f7ff;
+        border-radius: 8px;
+        font-size: 18px;
+        border: 1px solid #d0e4f5;
+        transition: background 0.2s;
+    }
+    .show-item:hover {
+        background: #e1f0ff;
+    }
+    .show-item a {
+        text-decoration: none;
+        color: #004a80;
+        font-weight: bold;
+        display: block;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>Fins and Pins</h1>
+<div class="subtitle">Select a show to view available pins</div>
+
+<div class="show-list" id="showList">
+    Loading shows…
+</div>
+
+<script>
+// Fetch the repo directory listing via GitHub API
+fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/")
+    .then(r => r.json())
+    .then(items => {
+        const container = document.getElementById("showList");
+        container.innerHTML = "";
+
+        // 1. Filter: Look for folders that contain "show" OR start with "2" (the year)
+        const showFolders = items.filter(item =>
+            item.type === "dir" &&
+            (item.name.toLowerCase().includes("show") || item.name.startsWith("2")) &&
+            !item.name.startsWith(".") // Ignore hidden folders
+        );
+
+        if (showFolders.length === 0) {
+            container.innerHTML = "<p style='text-align:center;'>No shows found.</p>";
+            return;
+        }
+
+        // 2. Sort: Newest show (highest number/date) at the top
+        showFolders.sort((a, b) => b.name.localeCompare(a.name));
+
+        showFolders.forEach(folder => {
+            const div = document.createElement("div");
+            div.className = "show-item";
+
+            const link = document.createElement("a");
+            link.href = `./${encodeURIComponent(folder.name)}/index.html`;
+            
+            // 3. Display Name Logic: Format YYYYMMDD into a pretty date
+            let displayName = folder.name;
+            const dateMatch = folder.name.match(/(\d{8})/);
+            
+            if (dateMatch) {
+                const raw = dateMatch[1];
+                const year = raw.substring(0,4);
+                const month = raw.substring(4,6);
+                const day = raw.substring(6,8);
+                // Set to noon to prevent timezone shifts
+                const dateObj = new Date(`${year}-${month}-${day}T12:00:00`);
+                
+                if (!isNaN(dateObj.getTime())) {
+                    displayName = dateObj.toLocaleString("en-US", { 
+                        month: "long", 
+                        day: "numeric", 
+                        year: "numeric" 
+                    }) + " Show";
+                }
+            }
+
+            link.textContent = displayName;
+            div.appendChild(link);
+            container.appendChild(div);
+        });
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById("showList").innerHTML =
+            "<p style='text-align:center; color:red;'>Error loading shows. Please refresh.</p>";
+    });
+</script>
+
+</body>
+</html>
