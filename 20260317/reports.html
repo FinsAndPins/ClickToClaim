@@ -15,10 +15,9 @@
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: middle; }
         th { background: #f9f9f9; position: sticky; top: 0; z-index: 10; }
         tfoot td { background: #f9f9f9; font-weight: bold; border-top: 2px solid #333; }
-        tr:hover { background: #f1f7ff; }
         .timestamp { color: #888; font-size: 12px; }
-        .pin-snippet { width: 60px; height: 60px; border-radius: 4px; border: 1px solid #ccc; overflow: hidden; position: relative; background-color: #333; }
-        .pin-snippet img { position: absolute; transform: translate(-50%, -50%); top: 50%; left: 50%; width: 500px; height: auto; }
+        .pin-snippet { width: 70px; height: 70px; border-radius: 4px; border: 2px solid #333; overflow: hidden; position: relative; background-color: #444; }
+        .pin-snippet img { position: absolute; transform-origin: center; pointer-events: none; }
         #authMsg { text-align: center; margin-top: 100px; color: red; font-weight: bold; }
     </style>
 </head>
@@ -86,8 +85,6 @@ const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
 const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true';
 
-let globalReportData = null;
-
 if (!isAdmin) {
     document.getElementById('authMsg').textContent = "Unauthorized.";
 } else {
@@ -97,28 +94,29 @@ if (!isAdmin) {
     loadData();
 }
 
-function getQuadrant(x, y, isRotated) {
-    // If rotated, x and y logic swaps
-    const horizontal = (isRotated ? y : x) < 50 ? "Left" : "Right";
-    const vertical = (isRotated ? x : y) < 50 ? "Upper" : "Lower";
-    return `${vertical} ${horizontal}`;
+function getQuadrant(x, y, rotated) {
+    // Standardize coords: index.html logic
+    const dx = rotated ? (100 - y) : x;
+    const dy = rotated ? x : y;
+    const horiz = dx < 50 ? "Left" : "Right";
+    const vert = dy < 50 ? "Upper" : "Lower";
+    return `${vert} ${horiz}`;
 }
 
-function createSnippetHTML(boardName, pin, isRotated) {
-    if (!pin) return `<div class="pin-snippet"></div>`;
+function createSnippetHTML(boardName, pin, rotated, isUnique) {
+    if (!isUnique || !pin) return `<div style="color:#ccc; font-size:10px;">Pre-pulled</div>`;
     
-    // Calculate position based on the same rotation logic as index.html
-    const displayX = isRotated ? (100 - pin.y) : pin.x;
-    const displayY = isRotated ? pin.x : pin.y;
-    
-    const zoom = 8; // Increased zoom for better pin visibility
+    const zoom = 6; 
+    const dx = rotated ? (100 - pin.y) : pin.x;
+    const dy = rotated ? pin.x : pin.y;
+
     return `
         <div class="pin-snippet">
             <img src="./boards/${boardName}.JPG" 
                  style="width: ${100 * zoom}%; 
-                        left: calc(50% - ${displayX * zoom}% + ${zoom/2 * 100}%); 
-                        top: calc(50% - ${displayY * zoom}% + ${zoom/2 * 100}%); 
-                        transform: translate(-50%, -50%);">
+                        left: -${dx * zoom - 50}%; 
+                        top: -${dy * zoom - 50}%;
+                        position: absolute;">
         </div>`;
 }
 
@@ -136,16 +134,14 @@ async function loadData() {
         const res = await fetch(`./boards/${name}.json`);
         const data = await res.json();
         
-        // Check image orientation for rotation logic
+        // Check image orientation
         const img = new Image();
         img.src = `./boards/${name}.JPG`;
         await new Promise(resolve => img.onload = resolve);
         
-        const isRotated = img.width > img.height;
-        
         boardMeta[name] = {
             pins: data.predictions || data.output?.predictions || [],
-            isRotated: isRotated
+            isRotated: img.width > img.height
         };
     }
 
@@ -171,22 +167,23 @@ function renderReports(data, boardMeta) {
         if (!meta) return;
 
         const pinData = meta.pins[pIdx];
+        const isUnique = globalPinCounts[pinKey] === 1;
         const quad = pinData ? getQuadrant(pinData.x, pinData.y, meta.isRotated) : "Unknown";
         const locStr = `Board ${boardIndex} (${quad})`;
-        const snippet = createSnippetHTML(bName, pinData, meta.isRotated);
+        const snippet = createSnippetHTML(bName, pinData, meta.isRotated, isUnique);
 
         const userEntries = Object.entries(users).sort((a,b) => a[1].time - b[1].time);
-        popularity.push({ snippet, loc: locStr, count: userEntries.length, details: userEntries.map(([u, t]) => `${u}`).join(", ") });
+        popularity.push({ snippet, loc: locStr, count: userEntries.length, details: userEntries.map(([u]) => u).join(", ") });
 
         userEntries.forEach(([username, metaData]) => {
-            if (!userStats[username]) userStats[username] = { lastAction: 0, unique: 0, contested: 0 };
-            if (metaData.time > userStats[username].lastAction) userStats[username].lastAction = metaData.time;
-            if (globalPinCounts[pinKey] === 1) userStats[username].unique++; else userStats[username].contested++;
-            liveFeed.push({ snippet, loc: locStr, user: username, time: metaData.time });
+            const u = username.toLowerCase(); // Handle Case Sensitivity
+            if (!userStats[u]) userStats[u] = { lastAction: 0, unique: 0, contested: 0 };
+            if (metaData.time > userStats[u].lastAction) userStats[u].lastAction = metaData.time;
+            if (isUnique) userStats[u].unique++; else userStats[u].contested++;
+            liveFeed.push({ snippet, loc: locStr, user: u, time: metaData.time });
         });
     });
 
-    // Render User Tally
     const userTable = document.querySelector("#userTallyTable tbody");
     let totalU = 0, totalC = 0, totalT = 0;
     userTable.innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => {
@@ -195,33 +192,26 @@ function renderReports(data, boardMeta) {
     }).join('');
     document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${totalU}</td><td>${totalC}</td><td>${totalT}</td>`;
 
-    // Render Live Feed
     const feedTable = document.querySelector("#liveFeedTable tbody");
     feedTable.innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `<tr><td>${f.snippet}</td><td>${f.loc}</td><td><strong>${f.user}</strong></td><td class="timestamp">${new Date(f.time).toLocaleTimeString()}</td></tr>`).join('');
 
-    // Render Popularity
     const popTable = document.querySelector("#popularityTable tbody");
     popTable.innerHTML = popularity.sort((a,b) => b.count - a.count).map(p => `<tr><td>${p.snippet}</td><td>${p.loc}</td><td><strong>${p.count}</strong></td><td style="font-size: 11px; color: #666;">${p.details}</td></tr>`).join('');
 }
 
 function downloadCSV() {
-    if (!globalReportData) return alert("No data.");
+    if (!globalReportData) return;
     let csvContent = "data:text/csv;charset=utf-8,Board-Pin,Location,Username,Timestamp,Status\n";
     const { raw, meta, showName } = globalReportData;
-    const boardKeys = Object.keys(meta);
-
     Object.entries(raw).forEach(([pinKey, users]) => {
         const [bName, pIdx] = pinKey.split("-");
-        const boardIndex = boardKeys.indexOf(bName) + 1;
-        const pinMeta = meta[bName];
-        const quad = pinMeta.pins[pIdx] ? getQuadrant(pinMeta.pins[pIdx].x, pinMeta.pins[pIdx].y, pinMeta.isRotated) : "Unknown";
+        const boardIndex = Object.keys(meta).indexOf(bName) + 1;
+        const quad = meta[bName].pins[pIdx] ? getQuadrant(meta[bName].pins[pIdx].x, meta[bName].pins[pIdx].y, meta[bName].isRotated) : "Unknown";
         const status = Object.keys(users).length === 1 ? "Unique" : "Contested";
-
         Object.entries(users).forEach(([user, m]) => {
-            csvContent += `${pinKey},Board ${boardIndex} (${quad}),${user},${new Date(m.time).toLocaleString().replace(/,/g,'')},${status}\n`;
+            csvContent += `${pinKey},Board ${boardIndex} (${quad}),${user.toLowerCase()},${new Date(m.time).toLocaleString().replace(/,/g,'')},${status}\n`;
         });
     });
-
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csvContent));
     link.setAttribute("download", `FinsAndPins_${showName}.csv`);
