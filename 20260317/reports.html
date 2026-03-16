@@ -17,8 +17,14 @@
         tfoot td { background: #f9f9f9; font-weight: bold; border-top: 2px solid #333; }
         tr:hover { background: #f1f7ff; }
         .timestamp { color: #888; font-size: 12px; }
-        .pin-snippet { width: 60px; height: 60px; border-radius: 4px; border: 1px solid #ccc; overflow: hidden; position: relative; background-color: #eee; }
+        
+        /* Snippet Window */
+        .pin-snippet { 
+            width: 70px; height: 70px; border-radius: 4px; border: 1px solid #ccc; 
+            overflow: hidden; position: relative; background-color: #eee; 
+        }
         .pin-snippet img { position: absolute; }
+        
         #authMsg { text-align: center; margin-top: 100px; color: red; font-weight: bold; }
     </style>
 </head>
@@ -86,7 +92,8 @@ const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
 const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true';
 
-let globalReportData = null; // Store for CSV export
+let globalReportData = null;
+let boardNames = []; 
 
 if (!isAdmin) {
     document.getElementById('authMsg').textContent = "Unauthorized.";
@@ -105,8 +112,14 @@ function getQuadrant(x, y) {
 
 function createSnippetHTML(boardName, pin) {
     if (!pin) return `<div class="pin-snippet"></div>`;
-    const zoom = 5;
-    return `<div class="pin-snippet"><img src="./boards/${boardName}.JPG" style="width: ${100 * zoom}%; left: -${pin.x * zoom - 50}%; top: -${pin.y * zoom - 50}%;"></div>`;
+    const zoom = 7; 
+    const imgPath = `./boards/${boardName}.JPG`;
+    return `
+        <div class="pin-snippet">
+            <img src="${imgPath}" 
+                 style="width: ${zoom * 100}%; position: absolute; left: ${50 - (pin.x * zoom)}%; top: ${50 - (pin.y * zoom)}%;"
+                 onerror="this.parentElement.style.border='2px solid red';">
+        </div>`;
 }
 
 async function loadData() {
@@ -116,9 +129,10 @@ async function loadData() {
     const showNameForFirebase = showFolderName.replace(/\s+/g, '_');
 
     const manifestRes = await fetch("./boards/manifest.json");
-    const boardNames = await manifestRes.json();
-    const boardMeta = {};
+    boardNames = await manifestRes.json();
+    boardNames.sort((a, b) => parseInt(a.match(/\d+/) || 0) - parseInt(b.match(/\d+/) || 0));
 
+    const boardMeta = {};
     for (const name of boardNames) {
         const res = await fetch(`./boards/${name}.json`);
         const data = await res.json();
@@ -137,14 +151,14 @@ function renderReports(data, boardMeta) {
     const popularity = [];
     const globalPinCounts = {};
     
-    Object.keys(data).forEach(pinKey => globalPinCounts[pinKey] = Object.keys(data[pinKey]).length);
+    Object.keys(data).forEach(pk => globalPinCounts[pk] = Object.keys(data[pk]).length);
 
     Object.entries(data).forEach(([pinKey, users]) => {
         const [bName, pIdx] = pinKey.split("-");
-        const boardIndex = Object.keys(boardMeta).indexOf(bName) + 1;
+        const boardNum = boardNames.indexOf(bName) + 1;
         const pinData = boardMeta[bName][pIdx];
         const quad = pinData ? getQuadrant(pinData.x, pinData.y) : "Unknown";
-        const locStr = `Board ${boardIndex} (${quad})`;
+        const locStr = `Board ${boardNum} (${quad})`;
         const snippet = createSnippetHTML(bName, pinData);
 
         const userEntries = Object.entries(users).sort((a,b) => a[1].time - b[1].time);
@@ -159,54 +173,39 @@ function renderReports(data, boardMeta) {
     });
 
     // 1. User Tally
-    const userTable = document.querySelector("#userTallyTable tbody");
-    let totalU = 0, totalC = 0, totalT = 0;
-    userTable.innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => {
-        totalU += s.unique; totalC += s.contested; totalT += (s.unique + s.contested);
-        return `<tr><td><strong>${u}</strong></td><td class="timestamp">${new Date(s.lastAction).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td><strong>${s.unique + s.contested}</strong></td></tr>`;
+    let tU = 0, tC = 0, tT = 0;
+    document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => {
+        const total = s.unique + s.contested;
+        tU += s.unique; tC += s.contested; tT += total;
+        return `<tr><td><strong>${u}</strong></td><td class="timestamp">${new Date(s.lastAction).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td><strong>${total}</strong></td></tr>`;
     }).join('');
-    document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${totalU}</td><td>${totalC}</td><td>${totalT}</td>`;
+    document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td>`;
 
     // 2. Live Feed
-    const feedTable = document.querySelector("#liveFeedTable tbody");
-    feedTable.innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `<tr><td>${f.snippet}</td><td>${f.loc}</td><td><strong>${f.user}</strong></td><td class="timestamp">${new Date(f.time).toLocaleTimeString()}</td></tr>`).join('');
+    document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `<tr><td>${f.snippet}</td><td>${f.loc}</td><td><strong>${f.user}</strong></td><td class="timestamp">${new Date(f.time).toLocaleTimeString()}</td></tr>`).join('');
 
     // 3. Popularity
-    const popTable = document.querySelector("#popularityTable tbody");
-    popTable.innerHTML = popularity.sort((a,b) => b.count - a.count).map(p => `<tr><td>${p.snippet}</td><td>${p.loc}</td><td><strong>${p.count}</strong></td><td style="font-size: 11px; color: #666;">${p.details}</td></tr>`).join('');
+    document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).map(p => `<tr><td>${p.snippet}</td><td>${p.loc}</td><td><strong>${p.count}</strong></td><td style="font-size: 11px; color: #666;">${p.details}</td></tr>`).join('');
 }
 
 function downloadCSV() {
-    if (!globalReportData) return alert("No data to download yet.");
-    
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Board-Pin,Location,Username,Timestamp,Status (Unique/Contested)\n";
-
-    const data = globalReportData.raw;
-    const meta = globalReportData.meta;
-    const globalPinCounts = {};
-    Object.keys(data).forEach(pk => globalPinCounts[pk] = Object.keys(data[pk]).length);
-
-    Object.entries(data).forEach(([pinKey, users]) => {
-        const [bName, pIdx] = pinKey.split("-");
-        const boardIndex = Object.keys(meta).indexOf(bName) + 1;
-        const pinData = meta[bName][pIdx];
-        const quad = pinData ? getQuadrant(pinData.x, pinData.y) : "Unknown";
-        const status = globalPinCounts[pinKey] === 1 ? "Unique" : "Contested";
-
-        Object.entries(users).forEach(([username, metaData]) => {
-            const timeStr = new Date(metaData.time).toLocaleString().replace(/,/g, '');
-            csvContent += `${pinKey},Board ${boardIndex} (${quad}),${username},${timeStr},${status}\n`;
+    if (!globalReportData) return alert("No data.");
+    let csv = "Board-Pin,Board Number,Quadrant,Username,Timestamp,Status\n";
+    Object.entries(globalReportData.raw).forEach(([pk, users]) => {
+        const [bn, pi] = pk.split("-");
+        const bNum = boardNames.indexOf(bn) + 1;
+        const pd = globalReportData.meta[bn][pi];
+        const q = pd ? getQuadrant(pd.x, pd.y) : "Unknown";
+        const st = Object.keys(users).length === 1 ? "Unique" : "Contested";
+        Object.entries(users).forEach(([un, mt]) => {
+            csv += `${pk},Board ${bNum},${q},${un},"${new Date(mt.time).toLocaleString()}",${st}\n`;
         });
     });
-
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `FinsAndPins_Report_${globalReportData.showName}.csv`);
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `FinsAndPins_${globalReportData.showName}.csv`);
     link.click();
-    document.body.removeChild(link);
 }
 </script>
 </body>
