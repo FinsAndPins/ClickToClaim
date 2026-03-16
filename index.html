@@ -15,50 +15,68 @@
 </style>
 </head>
 <body>
+
 <h1>Fins and Pins</h1>
 <div class="subtitle">Select a show to view available pins</div>
-<div class="show-list" id="showList">Loading shows…</div>
+
+<div class="show-list" id="showList">
+    Loading shows from ClickToClaim…
+</div>
 
 <script>
-fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/")
+// POINTED TO THE SUBFOLDER
+fetch("https://api.github.com/repos/SteveFierstein/FinsAndPins/contents/ClickToClaim")
     .then(r => r.json())
     .then(items => {
         const container = document.getElementById("showList");
         container.innerHTML = "";
+
         const showFolders = items.filter(item =>
             item.type === "dir" &&
-            (item.name.toLowerCase().includes("show") || item.name.startsWith("2")) &&
+            (item.name.toLowerCase().includes("show") || item.name.toLowerCase().includes("test") || item.name.startsWith("2")) &&
             !item.name.startsWith(".")
         );
+
         if (showFolders.length === 0) {
-            container.innerHTML = "<p style='text-align:center;'>No shows found.</p>";
+            container.innerHTML = "<p style='text-align:center;'>No shows found in the ClickToClaim folder.</p>";
             return;
         }
-        // DESCENDING SORT: Newest date/highest number at top
+
+        // DESCENDING SORT (Newest first)
         showFolders.sort((a, b) => b.name.localeCompare(a.name));
 
         showFolders.forEach(folder => {
             const div = document.createElement("div");
             div.className = "show-item";
             const link = document.createElement("a");
-            link.href = `./${encodeURIComponent(folder.name)}/index.html`;
+            
+            // ENSURE THE LINK POINTS TO THE SUBFOLDER
+            link.href = `./ClickToClaim/${encodeURIComponent(folder.name)}/index.html`;
+            
             let displayName = folder.name;
             const dateMatch = folder.name.match(/(\d{8})/);
+            
             if (dateMatch) {
                 const raw = dateMatch[1];
                 const dateObj = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T12:00:00`);
                 if (!isNaN(dateObj.getTime())) {
-                    displayName = dateObj.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+                    displayName = dateObj.toLocaleString("en-US", { 
+                        month: "long", day: "numeric", year: "numeric" 
+                    }) + " Show";
                 }
             }
+
             link.textContent = displayName;
             div.appendChild(link);
             container.appendChild(div);
         });
     })
     .catch(err => {
-        document.getElementById("showList").innerHTML = "<p style='text-align:center; color:red;'>Error loading shows.</p>";
+        console.error(err);
+        document.getElementById("showList").innerHTML =
+            "<p style='text-align:center; color:red;'>Error connecting to GitHub. Please refresh.</p>";
     });
 </script>
+
 </body>
 </html>
