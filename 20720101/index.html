@@ -26,14 +26,18 @@
         .login-box input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .login-box button { background: #0066aa; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
         
-        /* Flash Animation */
-        @keyframes pulse-blue { 0% { border: 6px solid #007aff; box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.7); } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); } }
+        /* Flash Animation for "View on Board" */
+        @keyframes pulse-blue { 
+            0% { border: 6px solid #007aff; box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.7); } 
+            70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 
+            100% { border: 6px solid #007aff; box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); } 
+        }
         .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.3) !important; }
     </style>
 </head>
 <body>
 <div id="loginOverlay"><div class="login-box"><h3>Welcome</h3><input type="text" id="usernameInput" placeholder="@username"><button onclick="saveUsername()">Start</button></div></div>
-<h1>Fins and Pins</h1><h2 id="showTitle"></h2>
+<h1>Fins and Pins</h1><h2 id="showTitle">Show</h2>
 <div id="globalCounts"><div>Pins: <span id="totalPins">0</span> -- My Requests: <span id="totalMyClaims">0</span></div><div id="syncStatus">📡 Connecting...</div></div>
 <div id="boardsList"></div>
 <div id="footerControls"><div id="userDisplay">@user</div><div style="display:flex; gap:10px;"><a id="adminReportBtn" href="reports.html">Reports</a><button id="shareBtn" onclick="shareToInstagram()">Share</button></div></div>
@@ -47,6 +51,7 @@ const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
 const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true';
 if (isAdmin) { sessionStorage.setItem('fp_admin_active', 'true'); const rBtn = document.getElementById('adminReportBtn'); rBtn.style.display = 'block'; rBtn.href = `reports.html?admin=${ADMIN_KEY}`; }
+
 let currentUser = localStorage.getItem('fp_username') || "";
 let boardsState = {};
 const getCutoffTimestamp = () => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 50, 0).getTime(); };

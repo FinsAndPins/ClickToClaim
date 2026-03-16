@@ -7,7 +7,7 @@
         body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn { padding: 10px 15px; background: #0066aa; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
-        section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
         th { background: #f9f9f9; position: sticky; top: 0; }
@@ -19,8 +19,8 @@
 <div id="authContent" style="display:none;">
     <div class="header"><h1>Reports</h1><div><button class="btn" style="background:#28a745" onclick="downloadCSV()">CSV</button> <a id="backBtn" href="index.html" class="btn">Back</a></div></div>
     <section><h2>User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
-    <section><h2>Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Board-Pin</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
-    <section><h2>Popularity</h2><table id="popularityTable"><thead><tr><th>Board-Pin</th><th>Clicks</th><th>Users</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>Popularity</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th></tr></thead><tbody></tbody></table></section>
 </div>
 <div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
 
