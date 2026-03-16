@@ -6,15 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn { padding: 10px 15px; background: #0066aa; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .btn { padding: 10px 15px; background: #0066aa; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; font-size: 14px; }
+        .btn-csv { background: #28a745; }
         section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow-x: auto; }
         h2 { margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
-        th { background: #f9f9f9; position: sticky; top: 0; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: middle; }
+        th { background: #f9f9f9; position: sticky; top: 0; z-index: 10; }
+        tfoot td { background: #f9f9f9; font-weight: bold; border-top: 2px solid #333; }
         tr:hover { background: #f1f7ff; }
         .timestamp { color: #888; font-size: 12px; }
+        .pin-snippet { width: 60px; height: 60px; border-radius: 4px; border: 1px solid #ccc; overflow: hidden; position: relative; background-color: #eee; }
+        .pin-snippet img { position: absolute; }
         #authMsg { text-align: center; margin-top: 100px; color: red; font-weight: bold; }
     </style>
 </head>
@@ -23,22 +27,20 @@
 <div id="authContent" style="display:none;">
     <div class="header">
         <h1>Show Reports</h1>
-        <a href="index.html" class="btn">Back to Boards</a>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-csv" onclick="downloadCSV()">Download CSV</button>
+            <a id="backBtn" href="index.html" class="btn">Back to Boards</a>
+        </div>
     </div>
 
     <section>
-        <h2>1. User Tally Report (By Username)</h2>
+        <h2>1. User Tally (By Username)</h2>
         <table id="userTallyTable">
             <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Last Activity</th>
-                    <th>Unique Claims</th>
-                    <th>Contested (Non-Unique)</th>
-                    <th>Total</th>
-                </tr>
+                <tr><th>Username</th><th>Last Activity</th><th>Unique</th><th>Contested</th><th>Total</th></tr>
             </thead>
             <tbody></tbody>
+            <tfoot><tr id="userTallyFooter"></tr></tfoot>
         </table>
     </section>
 
@@ -46,25 +48,17 @@
         <h2>2. Live Request Feed (Newest First)</h2>
         <table id="liveFeedTable">
             <thead>
-                <tr>
-                    <th>Location</th>
-                    <th>User</th>
-                    <th>Time</th>
-                </tr>
+                <tr><th>Pin</th><th>Location</th><th>User</th><th>Time</th></tr>
             </thead>
             <tbody></tbody>
         </table>
     </section>
 
     <section>
-        <h2>3. Popularity Report (Most Wanted First)</h2>
+        <h2>3. Popularity (Most Wanted)</h2>
         <table id="popularityTable">
             <thead>
-                <tr>
-                    <th>Pin Location</th>
-                    <th>Clicks</th>
-                    <th>Interested Users</th>
-                </tr>
+                <tr><th>Pin</th><th>Location</th><th>Clicks</th><th>Interested Users</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -92,11 +86,14 @@ const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
 const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true';
 
+let globalReportData = null; // Store for CSV export
+
 if (!isAdmin) {
-    document.getElementById('authMsg').textContent = "Unauthorized. Please use the Admin Link.";
+    document.getElementById('authMsg').textContent = "Unauthorized.";
 } else {
     document.getElementById('authMsg').style.display = 'none';
     document.getElementById('authContent').style.display = 'block';
+    document.getElementById('backBtn').href = `index.html?admin=${ADMIN_KEY}`;
     loadData();
 }
 
@@ -106,13 +103,18 @@ function getQuadrant(x, y) {
     return `${vertical} ${horizontal}`;
 }
 
+function createSnippetHTML(boardName, pin) {
+    if (!pin) return `<div class="pin-snippet"></div>`;
+    const zoom = 5;
+    return `<div class="pin-snippet"><img src="./boards/${boardName}.JPG" style="width: ${100 * zoom}%; left: -${pin.x * zoom - 50}%; top: -${pin.y * zoom - 50}%;"></div>`;
+}
+
 async function loadData() {
     const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, ""); 
     const folderParts = pathClean.split("/");
     const showFolderName = decodeURIComponent(folderParts.pop() || "default");
     const showNameForFirebase = showFolderName.replace(/\s+/g, '_');
 
-    // Fetch Board Metadata for Quadrants
     const manifestRes = await fetch("./boards/manifest.json");
     const boardNames = await manifestRes.json();
     const boardMeta = {};
@@ -124,8 +126,8 @@ async function loadData() {
     }
 
     db.ref(`claims/${showNameForFirebase}`).on('value', snapshot => {
-        const data = snapshot.val() || {};
-        renderReports(data, boardMeta);
+        globalReportData = { raw: snapshot.val() || {}, meta: boardMeta, showName: showFolderName };
+        renderReports(globalReportData.raw, boardMeta);
     });
 }
 
@@ -133,9 +135,8 @@ function renderReports(data, boardMeta) {
     const userStats = {};
     const liveFeed = [];
     const popularity = [];
-
-    // Map of Pin -> Number of total clicks (for unique vs non-unique calculation)
     const globalPinCounts = {};
+    
     Object.keys(data).forEach(pinKey => globalPinCounts[pinKey] = Object.keys(data[pinKey]).length);
 
     Object.entries(data).forEach(([pinKey, users]) => {
@@ -144,60 +145,68 @@ function renderReports(data, boardMeta) {
         const pinData = boardMeta[bName][pIdx];
         const quad = pinData ? getQuadrant(pinData.x, pinData.y) : "Unknown";
         const locStr = `Board ${boardIndex} (${quad})`;
+        const snippet = createSnippetHTML(bName, pinData);
 
-        // For Popularity Report
         const userEntries = Object.entries(users).sort((a,b) => a[1].time - b[1].time);
-        popularity.push({
-            loc: locStr,
-            count: userEntries.length,
-            details: userEntries.map(([u, t]) => `${u} (${new Date(t.time).toLocaleTimeString()})`).join(", ")
-        });
+        popularity.push({ snippet, loc: locStr, count: userEntries.length, details: userEntries.map(([u, t]) => `${u} (${new Date(t.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})})`).join(", ") });
 
-        // For User Stats & Live Feed
         userEntries.forEach(([username, meta]) => {
-            // User Stats
             if (!userStats[username]) userStats[username] = { lastAction: 0, unique: 0, contested: 0 };
             if (meta.time > userStats[username].lastAction) userStats[username].lastAction = meta.time;
-            
-            if (globalPinCounts[pinKey] === 1) userStats[username].unique++;
-            else userStats[username].contested++;
-
-            // Live Feed
-            liveFeed.push({ loc: locStr, user: username, time: meta.time });
+            if (globalPinCounts[pinKey] === 1) userStats[username].unique++; else userStats[username].contested++;
+            liveFeed.push({ snippet, loc: locStr, user: username, time: meta.time });
         });
     });
 
-    // 1. Render User Tally (Sorted by Username ASC)
+    // 1. User Tally
     const userTable = document.querySelector("#userTallyTable tbody");
-    userTable.innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => `
-        <tr>
-            <td><strong>${u}</strong></td>
-            <td class="timestamp">${new Date(s.lastAction).toLocaleTimeString()}</td>
-            <td>${s.unique}</td>
-            <td>${s.contested}</td>
-            <td><strong>${s.unique + s.contested}</strong></td>
-        </tr>
-    `).join('');
+    let totalU = 0, totalC = 0, totalT = 0;
+    userTable.innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => {
+        totalU += s.unique; totalC += s.contested; totalT += (s.unique + s.contested);
+        return `<tr><td><strong>${u}</strong></td><td class="timestamp">${new Date(s.lastAction).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td><strong>${s.unique + s.contested}</strong></td></tr>`;
+    }).join('');
+    document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${totalU}</td><td>${totalC}</td><td>${totalT}</td>`;
 
-    // 2. Render Live Feed (Sorted by Time DESC)
+    // 2. Live Feed
     const feedTable = document.querySelector("#liveFeedTable tbody");
-    feedTable.innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `
-        <tr>
-            <td>${f.loc}</td>
-            <td><strong>${f.user}</strong></td>
-            <td class="timestamp">${new Date(f.time).toLocaleTimeString()}</td>
-        </tr>
-    `).join('');
+    feedTable.innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `<tr><td>${f.snippet}</td><td>${f.loc}</td><td><strong>${f.user}</strong></td><td class="timestamp">${new Date(f.time).toLocaleTimeString()}</td></tr>`).join('');
 
-    // 3. Render Popularity (Sorted by Count DESC)
+    // 3. Popularity
     const popTable = document.querySelector("#popularityTable tbody");
-    popTable.innerHTML = popularity.sort((a,b) => b.count - a.count).map(p => `
-        <tr>
-            <td>${p.loc}</td>
-            <td><strong>${p.count}</strong></td>
-            <td style="font-size: 11px; color: #666;">${p.details}</td>
-        </tr>
-    `).join('');
+    popTable.innerHTML = popularity.sort((a,b) => b.count - a.count).map(p => `<tr><td>${p.snippet}</td><td>${p.loc}</td><td><strong>${p.count}</strong></td><td style="font-size: 11px; color: #666;">${p.details}</td></tr>`).join('');
+}
+
+function downloadCSV() {
+    if (!globalReportData) return alert("No data to download yet.");
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Board-Pin,Location,Username,Timestamp,Status (Unique/Contested)\n";
+
+    const data = globalReportData.raw;
+    const meta = globalReportData.meta;
+    const globalPinCounts = {};
+    Object.keys(data).forEach(pk => globalPinCounts[pk] = Object.keys(data[pk]).length);
+
+    Object.entries(data).forEach(([pinKey, users]) => {
+        const [bName, pIdx] = pinKey.split("-");
+        const boardIndex = Object.keys(meta).indexOf(bName) + 1;
+        const pinData = meta[bName][pIdx];
+        const quad = pinData ? getQuadrant(pinData.x, pinData.y) : "Unknown";
+        const status = globalPinCounts[pinKey] === 1 ? "Unique" : "Contested";
+
+        Object.entries(users).forEach(([username, metaData]) => {
+            const timeStr = new Date(metaData.time).toLocaleString().replace(/,/g, '');
+            csvContent += `${pinKey},Board ${boardIndex} (${quad}),${username},${timeStr},${status}\n`;
+        });
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `FinsAndPins_Report_${globalReportData.showName}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 </script>
 </body>
