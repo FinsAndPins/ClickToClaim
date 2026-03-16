@@ -107,7 +107,6 @@ if (providedKey === ADMIN_KEY) {
 }
 const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
 
-// Show Report button if Admin
 if (isAdmin) {
     const reportBtn = document.getElementById('adminReportBtn');
     reportBtn.style.display = 'block';
@@ -128,9 +127,9 @@ if (currentUser) {
 }
 
 function saveUsername() {
-    let val = document.getElementById('usernameInput').value.trim();
+    let val = document.getElementById('usernameInput').value.trim().toLowerCase(); // Lowercase Fix
     if (!val) {
-        val = `Guest_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        val = `guest_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     } else if (!val.startsWith('@')) {
         val = '@' + val;
     }
@@ -211,7 +210,7 @@ async function setupBoard(name) {
 
 function handlePinClick(boardName, idx) {
     const pinKey = `${boardName}-${idx}`;
-    const userKey = currentUser.replace(/[.#$[\]]/g, "_");
+    const userKey = currentUser.toLowerCase().replace(/[.#$[\]]/g, "_"); // Lowercase Fix
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
     
     db.ref(`claims/${showNameForFirebase}/${pinKey}/${userKey}`).set(alreadyClicked ? null : {
@@ -222,7 +221,7 @@ function handlePinClick(boardName, idx) {
 function listenForFirebase() {
     db.ref(`claims/${showNameForFirebase}`).on("value", snapshot => {
         const data = snapshot.val() || {};
-        const userKey = currentUser.replace(/[.#$[\]]/g, "_");
+        const userKey = currentUser.toLowerCase().replace(/[.#$[\]]/g, "_"); // Lowercase Fix
         const cutoff = getCutoffTimestamp();
 
         Object.keys(boardsState).forEach(b => {
