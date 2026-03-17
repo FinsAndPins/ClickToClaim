@@ -12,36 +12,29 @@
         #syncStatus { font-size: 12px; color: #666; display: block; margin-top: 4px; font-weight: normal; }
         .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
         .board-title { font-size: 20px; margin-bottom: 6px; font-weight: bold; }
+        .board-count { font-size: 14px; margin-bottom: 8px; color: #555; }
         .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: #eee; border-radius: 6px; }
         .board-img { width: 100%; display: block; border-radius: 6px; }
-        .pin { position: absolute; border-radius: 6px; border: none; background: transparent; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
+        .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
         .selection-green { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.25); }
         .selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.4); }
         .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 110; pointer-events: none; border: 2px solid white; }
-        
         #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; }
         #shareBtn { padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; cursor: pointer; background: #e6f7ff; color: #0066aa; font-weight: bold; }
         #adminReportBtn { display:none; padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #fff; color: #333; text-decoration: none; font-weight: bold; }
-        
         #loginOverlay, #feedbackOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
         .modal-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
-        .modal-box input, .modal-box textarea { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .modal-box textarea { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .modal-box button { background: #0066aa; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
-        
         #feedbackToggle { position: fixed; bottom: 70px; right: 20px; background: #ff3b30; color: white; border-radius: 50px; padding: 10px 15px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2500; }
-        
         @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
         .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.3) !important; }
     </style>
 </head>
 <body>
-
-<div id="loginOverlay" style="display: flex;"><div class="modal-box"><h3>Welcome</h3><input type="text" id="usernameInput" placeholder="@username"><button onclick="saveUsername()">Start</button></div></div>
-
+<div id="loginOverlay" style="display: flex;"><div class="modal-box"><h3>Welcome</h3><input type="text" id="usernameInput" placeholder="@username" style="width:100%; padding:12px; margin-bottom:15px;"><button onclick="saveUsername()">Start</button></div></div>
 <div id="feedbackOverlay"><div class="modal-box"><h3>Report a Problem</h3><textarea id="feedbackText" placeholder="Describe the issue..." rows="4"></textarea><button onclick="submitFeedback()">Send Feedback</button><button onclick="document.getElementById('feedbackOverlay').style.display='none'" style="background:#666; margin-top:10px;">Cancel</button></div></div>
-
 <div id="feedbackToggle" onclick="document.getElementById('feedbackOverlay').style.display='flex'">Report Issue</div>
-
 <h1>Fins and Pins</h1><h2 id="showTitle"></h2>
 <div id="globalCounts"><div>Pins: <span id="totalPins">0</span> -- My Requests: <span id="totalMyClaims">0</span></div><div id="syncStatus">📡 Connecting...</div></div>
 <div id="boardsList"></div>
@@ -54,22 +47,20 @@ const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", auth
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
-const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true';
-if (isAdmin) { sessionStorage.setItem('fp_admin_active', 'true'); const rBtn = document.getElementById('adminReportBtn'); rBtn.style.display = 'block'; rBtn.href = `reports.html?admin=${ADMIN_KEY}`; }
-
 let currentUser = localStorage.getItem('fp_username') || "";
 let boardsState = {};
 const getCutoffTimestamp = () => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 50, 0).getTime(); };
-if (currentUser) { document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('userDisplay').textContent = currentUser; listenForFirebase(); }
+if (currentUser) { document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('userDisplay').textContent = currentUser; }
+
+const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true';
+if (isAdmin) { sessionStorage.setItem('fp_admin_active', 'true'); document.getElementById('adminReportBtn').style.display = 'block'; document.getElementById('adminReportBtn').href = `reports.html?admin=${ADMIN_KEY}`; }
 
 function saveUsername() {
     let val = document.getElementById('usernameInput').value.trim().toLowerCase();
     if (!val) val = `guest_${Math.random().toString(36).substring(2,6).toUpperCase()}`;
     else if (!val.startsWith('@')) val = '@' + val;
     currentUser = val; localStorage.setItem('fp_username', val);
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('userDisplay').textContent = val;
-    listenForFirebase();
+    document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('userDisplay').textContent = val; listenForFirebase();
 }
 
 const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, ""); 
@@ -81,16 +72,13 @@ fetch("./boards/manifest.json").then(r => r.json()).then(list => {
     list.forEach((name, i) => {
         const container = document.createElement("div"); container.className = "board-container";
         container.innerHTML = `<div class="board-title">Board ${i+1}</div><div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG"></div>`;
-        document.getElementById("boardsList").appendChild(container);
-        boardsState[name] = { allClaims: {} };
-        setupBoard(name);
+        document.getElementById("boardsList").appendChild(container); boardsState[name] = { allClaims: {} }; setupBoard(name);
     });
-    document.getElementById("syncStatus").textContent = "✅ Synced";
+    if (currentUser) listenForFirebase();
 });
 
 async function setupBoard(name) {
-    const res = await fetch(`./boards/${name}.json`);
-    const data = await res.json();
+    const res = await fetch(`./boards/${name}.json`); const data = await res.json();
     const pins = data.predictions || data.output?.predictions || [];
     const img = document.getElementById(`img-${name}`);
     img.onload = () => {
@@ -103,44 +91,37 @@ async function setupBoard(name) {
             div.style.top = ((rotated ? pin.x : pin.y) - (rotated ? pin.width : pin.height)/2) * scale + "px";
             div.style.width = (rotated ? pin.height : pin.width) * scale + "px";
             div.style.height = (rotated ? pin.width : pin.height) * scale + "px";
-            div.id = `pin-${name}-${idx}`;
-            div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); };
-            wrapper.appendChild(div);
+            div.id = `pin-${name}-${idx}`; div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); }; wrapper.appendChild(div);
         });
     };
 }
 
 function handlePinClick(b, i) {
-    const key = `${b}-${i}`;
-    const user = currentUser.replace(/[.#$[\]]/g, "_");
+    const key = `${b}-${i}`; const user = currentUser.replace(/[.#$[\]]/g, "_");
     const exists = boardsState[b].allClaims[key]?.[user];
     db.ref(`claims/${fbName}/${key}/${user}`).set(exists ? null : { time: firebase.database.ServerValue.TIMESTAMP });
 }
 
 function submitFeedback() {
     const msg = document.getElementById('feedbackText').value.trim();
-    if (!msg) return alert("Please type a message.");
-    db.ref(`feedback/${fbName}`).push({ user: currentUser, msg: msg, time: firebase.database.ServerValue.TIMESTAMP });
-    document.getElementById('feedbackText').value = "";
-    document.getElementById('feedbackOverlay').style.display = 'none';
-    alert("Feedback sent! Thank you.");
+    if (!msg) return;
+    db.ref(`feedback/${fbName}`).push({ user: currentUser, msg: msg, time: firebase.database.ServerValue.TIMESTAMP })
+      .then(() => { alert("Sent!"); document.getElementById('feedbackOverlay').style.display='none'; document.getElementById('feedbackText').value = ""; })
+      .catch(e => alert("Error: " + e.message));
 }
 
 function listenForFirebase() {
     db.ref(`claims/${fbName}`).on("value", snapshot => {
-        const data = snapshot.val() || {};
-        const cutoff = getCutoffTimestamp();
+        document.getElementById("syncStatus").textContent = "✅ Connected & Synced";
+        const data = snapshot.val() || {}; const cutoff = getCutoffTimestamp();
         document.querySelectorAll('.pin').forEach(el => { el.classList.remove("selection-green", "selection-yellow", "flash-pin"); const b = el.querySelector('.tally-badge'); if (b) b.remove(); });
         let myTotal = 0;
         Object.entries(data).forEach(([pk, users]) => {
             const [b, i] = pk.split("-"); if (!boardsState[b]) return;
-            boardsState[b].allClaims[pk] = users;
-            const el = document.getElementById(`pin-${pk}`);
-            const uList = Object.values(users);
-            if (users[currentUser.replace(/[.#$[\]]/g, "_")]) { myTotal++; el.classList.add("selection-green"); }
+            boardsState[b].allClaims[pk] = users; const el = document.getElementById(`pin-${pk}`); const uList = Object.values(users);
+            if (users[currentUser.replace(/[.#$[\]]/g, "_")]) { myTotal++; if (el) el.classList.add("selection-green"); }
             if (el && isAdmin) {
-                el.classList.remove("selection-green");
-                const earliest = Math.min(...uList.map(u => u.time));
+                el.classList.remove("selection-green"); const earliest = Math.min(...uList.map(u => u.time));
                 el.classList.add(earliest > cutoff ? "selection-yellow" : "selection-green");
                 if (uList.length >= 2) { const b = document.createElement('div'); b.className='tally-badge'; b.textContent=uList.length; el.appendChild(b); }
             }
@@ -151,13 +132,9 @@ function listenForFirebase() {
             const target = document.querySelector(hash);
             if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.classList.add('flash-pin'); setTimeout(() => target.classList.remove('flash-pin'), 3000); }
         }
-    });
+    }, err => { document.getElementById("syncStatus").textContent = "❌ Connection Denied"; });
 }
-
-function shareToInstagram() {
-    const text = `I just selected ${document.getElementById("totalMyClaims").textContent} pins for the Fins and Pins show! @fins.and.pins`;
-    navigator.clipboard.writeText(text).then(() => { alert("Copied! Opening Instagram..."); window.location.href = "https://www.instagram.com/fins.and.pins/"; });
-}
+function shareToInstagram() { const text = `I just selected ${document.getElementById("totalMyClaims").textContent} pins! @fins.and.pins`; navigator.clipboard.writeText(text).then(() => { alert("Copied!"); window.location.href = "https://www.instagram.com/fins.and.pins/"; }); }
 </script>
 </body>
 </html>
