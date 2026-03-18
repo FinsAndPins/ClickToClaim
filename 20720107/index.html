@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fins and Pins - Solo Entry</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f5f5f5; padding-bottom: 80px; }
+        h1 { text-align: center; margin-bottom: 4px; font-size: 26px; }
+        h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #444; font-weight: normal; }
+        #globalCounts { text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 2000; }
+        #syncStatus { font-size: 12px; color: #666; display: block; margin-top: 4px; font-weight: normal; }
+        .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+        .board-title { font-size: 20px; margin-bottom: 6px; font-weight: bold; display: flex; justify-content: space-between; }
+        .board-count { font-size: 14px; margin-bottom: 8px; color: #0066aa; font-weight: bold; }
+        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: #eee; border-radius: 6px; }
+        .board-img { width: 100%; display: block; border-radius: 6px; }
+        .pin { position: absolute; border-radius: 6px; border: none; background: transparent; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
+        .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.25); }
+        .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.4); }
+        .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 110; pointer-events: none; border: 2px solid white; }
+        #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; }
+        #adminReportBtn { display:none; padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #fff; color: #333; text-decoration: none; font-weight: bold; }
+        #feedbackOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
+        .modal-box textarea { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .modal-box button { background: #0066aa; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+        #feedbackToggle { position: fixed; bottom: 70px; right: 20px; background: #ff3b30; color: white; border-radius: 50px; padding: 8px 12px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2500; }
+        @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
+        .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.3) !important; }
+        .solo-input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; width: 140px; }
+    </style>
+</head>
+<body>
+<div id="feedbackOverlay"><div class="modal-box"><h3>Report Issue</h3><textarea id="feedbackText" placeholder="Describe issue..." rows="4"></textarea><button onclick="submitFeedback()">Send</button><button onclick="document.getElementById('feedbackOverlay').style.display='none'" style="background:#666; margin-top:10px;">Cancel</button></div></div>
+<div id="feedbackToggle" onclick="document.getElementById('feedbackOverlay').style.display='flex'">Report Issue</div>
+<h1>Fins and Pins</h1><h2 id="showTitle"></h2>
+<div id="globalCounts">
+    <div>Show Total Pins: <span id="totalPins">0</span></div>
+    <div style="color: #28a745; margin-top: 5px;">Requested Across All Boards: <span id="globalRequested">0</span></div>
+    <div id="syncStatus">📡 Connecting...</div>
+</div>
+<div id="boardsList"></div>
+<div id="footerControls">
+    <div style="display:flex; align-items:center; gap:8px;">
+        <input type="text" id="usernameInput" class="solo-input" placeholder="@buyer_name" onchange="updateInternalUser(this.value)">
+    </div>
+    <a id="adminReportBtn" href="reports.html">Reports</a>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", authDomain: "fins-and-pins-click-to-claim.firebaseapp.com", databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com", projectId: "fins-and-pins-click-to-claim", storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app", messagingSenderId: "31512845258", appId: "1:31512845258:web:2124fae24cfee229084d33" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ADMIN_KEY = "0626200207081986";
+const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true';
+if (isAdmin) { sessionStorage.setItem('fp_admin_active', 'true'); document.getElementById('adminReportBtn').style.display = 'block'; document.getElementById('adminReportBtn').href = `reports.html?admin=${ADMIN_KEY}`; }
+
+let currentUser = localStorage.getItem('fp_username') || "@admin_solo";
+document.getElementById('usernameInput').value = currentUser;
+let boardsState = {};
+
+const getCutoffTimestamp = () => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 50, 0).getTime(); };
+
+function updateInternalUser(val) {
+    let cleanVal = val.trim().toLowerCase();
+    if (cleanVal === "") cleanVal = "@admin_solo";
+    else if (!cleanVal.startsWith('@')) cleanVal = '@' + cleanVal;
+    currentUser = cleanVal; localStorage.setItem('fp_username', cleanVal);
+    listenForFirebase();
+}
+
+const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, ""); 
+const showFolderName = decodeURIComponent(pathClean.split("/").pop() || "default");
+const fbName = showFolderName.replace(/\s+/g, '_');
+
+fetch("./boards/manifest.json").then(r => r.json()).then(list => {
+    list.sort((a,b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
+    list.forEach((name, i) => {
+        const container = document.createElement("div"); container.className = "board-container";
+        container.innerHTML = `<div class="board-title">Board ${i+1} <span class="board-count" id="count-${name}">0 Requested</span></div><div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG"></div>`;
+        document.getElementById("boardsList").appendChild(container); boardsState[name] = { totalPins: 0, requested: 0, allClaims: {} }; setupBoard(name);
+    });
+    listenForFirebase();
+});
+
+async function setupBoard(name) {
+    const res = await fetch(`./boards/${name}.json`); const data = await res.json();
+    const pins = data.predictions || data.output?.predictions || [];
+    boardsState[name].totalPins = pins.length;
+    const img = document.getElementById(`img-${name}`);
+    img.onload = () => {
+        const wrapper = document.getElementById(`wrapper-${name}`);
+        const rotated = (img.naturalWidth > img.naturalHeight) !== (img.clientWidth > img.clientHeight);
+        const scale = img.clientWidth / (rotated ? img.naturalHeight : img.naturalWidth);
+        pins.forEach((pin, idx) => {
+            const div = document.createElement("div"); div.className = "pin";
+            div.style.left = ((rotated ? (img.naturalHeight - pin.y) : pin.x) - (rotated ? pin.height : pin.width)/2) * scale + "px";
+            div.style.top = ((rotated ? pin.x : pin.y) - (rotated ? pin.width : pin.height)/2) * scale + "px";
+            div.style.width = (rotated ? pin.height : pin.width) * scale + "px";
+            div.style.height = (rotated ? pin.width : pin.height) * scale + "px";
+            div.id = `pin-${name}-${idx}`; div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); }; wrapper.appendChild(div);
+        });
+        calculateGlobals();
+    };
+}
+
+function handlePinClick(b, i) {
+    const key = `${b}-${i}`; const user = currentUser.replace(/[.#$[\]]/g, "_");
+    const exists = boardsState[b].allClaims[key]?.[user];
+    db.ref(`claims/${fbName}/${key}/${user}`).set(exists ? null : { time: firebase.database.ServerValue.TIMESTAMP });
+}
+
+function submitFeedback() {
+    const msg = document.getElementById('feedbackText').value.trim();
+    if (!msg) return;
+    db.ref(`feedback/${fbName}`).push({ user: currentUser, msg: msg, time: firebase.database.ServerValue.TIMESTAMP })
+      .then(() => { alert("Feedback sent!"); document.getElementById('feedbackOverlay').style.display='none'; document.getElementById('feedbackText').value = ""; });
+}
+
+function listenForFirebase() {
+    db.ref(`claims/${fbName}`).on("value", snapshot => {
+        document.getElementById("syncStatus").textContent = "✅ Synced";
+        const data = snapshot.val() || {}; const cutoff = getCutoffTimestamp();
+        let globalReq = 0;
+        Object.keys(boardsState).forEach(b => { boardsState[b].allClaims = {}; boardsState[b].requested = 0; });
+        document.querySelectorAll('.pin').forEach(el => { el.classList.remove("selection-green", "selection-yellow", "flash-pin"); const b = el.querySelector('.tally-badge'); if (b) b.remove(); });
+        
+        Object.entries(data).forEach(([pk, users]) => {
+            const [b, i] = pk.split("-"); if (!boardsState[b]) return;
+            boardsState[b].allClaims[pk] = users;
+            boardsState[b].requested++; globalReq++;
+            const el = document.getElementById(`pin-${pk}`);
+            const userList = Object.values(users);
+            if (users[currentUser.replace(/[.#$[\]]/g, "_")]) if (el) el.classList.add("selection-green");
+            if (el && isAdmin) {
+                el.classList.remove("selection-green");
+                const earliest = Math.min(...userList.map(u => u.time));
+                el.classList.add(earliest > cutoff ? "selection-yellow" : "selection-green");
+                if (userList.length >= 2) { const b = document.createElement('div'); b.className='tally-badge'; b.textContent=userList.length; el.appendChild(b); }
+            }
+        });
+        document.getElementById("globalRequested").textContent = globalReq;
+        Object.keys(boardsState).forEach(b => { document.getElementById(`count-${b}`).textContent = `${boardsState[b].requested} Requested`; });
+        const hash = window.location.hash;
+        if (hash.startsWith('#pin-')) {
+            const target = document.querySelector(hash);
+            if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.classList.add('flash-pin'); setTimeout(() => target.classList.remove('flash-pin'), 3000); }
+        }
+    });
+}
+function calculateGlobals() {
+    let t = 0; Object.values(boardsState).forEach(s => t += s.totalPins);
+    document.getElementById("totalPins").textContent = t;
+}
+</script>
+</body>
+</html>
