@@ -11,8 +11,8 @@
         #globalCounts { text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 2000; }
         #syncStatus { font-size: 12px; color: #666; display: block; margin-top: 4px; font-weight: normal; }
         .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        .board-title { font-size: 20px; margin-bottom: 6px; font-weight: bold; display: flex; justify-content: space-between; }
-        .board-count { font-size: 14px; margin-bottom: 8px; color: #0066aa; font-weight: bold; }
+        .board-title { font-size: 20px; margin-bottom: 6px; font-weight: bold; }
+        .board-count { font-size: 14px; color: #0066aa; font-weight: bold; margin-left: 10px; }
         .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: #eee; border-radius: 6px; }
         .board-img { width: 100%; display: block; border-radius: 6px; }
         .pin { position: absolute; border-radius: 6px; border: none; background: transparent; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
@@ -68,42 +68,61 @@ function updateInternalUser(val) {
     if (cleanVal === "") cleanVal = "@admin_solo";
     else if (!cleanVal.startsWith('@')) cleanVal = '@' + cleanVal;
     currentUser = cleanVal; localStorage.setItem('fp_username', cleanVal);
-    listenForFirebase();
+    listenForFirebase(); // Force a UI refresh for the new name
 }
 
 const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, ""); 
 const showFolderName = decodeURIComponent(pathClean.split("/").pop() || "default");
 const fbName = showFolderName.replace(/\s+/g, '_');
 
+(function() {
+    const match = showFolderName.match(/(\d{8})/);
+    if (match) {
+        const raw = match[1];
+        const date = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T12:00:00`);
+        document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+    }
+})();
+
+// Build Boards
 fetch("./boards/manifest.json").then(r => r.json()).then(list => {
     list.sort((a,b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
-    list.forEach((name, i) => {
+    const promises = list.map((name, i) => {
         const container = document.createElement("div"); container.className = "board-container";
         container.innerHTML = `<div class="board-title">Board ${i+1} <span class="board-count" id="count-${name}">0 Requested</span></div><div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG"></div>`;
-        document.getElementById("boardsList").appendChild(container); boardsState[name] = { totalPins: 0, requested: 0, allClaims: {} }; setupBoard(name);
+        document.getElementById("boardsList").appendChild(container); boardsState[name] = { totalPins: 0, requested: 0, allClaims: {} }; 
+        return setupBoard(name);
     });
-    listenForFirebase();
+    Promise.all(promises).then(() => {
+        listenForFirebase(); // Only start listening AFTER all pins are rendered
+    });
 });
 
 async function setupBoard(name) {
     const res = await fetch(`./boards/${name}.json`); const data = await res.json();
     const pins = data.predictions || data.output?.predictions || [];
     boardsState[name].totalPins = pins.length;
-    const img = document.getElementById(`img-${name}`);
-    img.onload = () => {
-        const wrapper = document.getElementById(`wrapper-${name}`);
-        const rotated = (img.naturalWidth > img.naturalHeight) !== (img.clientWidth > img.clientHeight);
-        const scale = img.clientWidth / (rotated ? img.naturalHeight : img.naturalWidth);
-        pins.forEach((pin, idx) => {
-            const div = document.createElement("div"); div.className = "pin";
-            div.style.left = ((rotated ? (img.naturalHeight - pin.y) : pin.x) - (rotated ? pin.height : pin.width)/2) * scale + "px";
-            div.style.top = ((rotated ? pin.x : pin.y) - (rotated ? pin.width : pin.height)/2) * scale + "px";
-            div.style.width = (rotated ? pin.height : pin.width) * scale + "px";
-            div.style.height = (rotated ? pin.width : pin.height) * scale + "px";
-            div.id = `pin-${name}-${idx}`; div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); }; wrapper.appendChild(div);
-        });
-        calculateGlobals();
-    };
+    return new Promise(resolve => {
+        const img = document.getElementById(`img-${name}`);
+        const renderPins = () => {
+            const wrapper = document.getElementById(`wrapper-${name}`);
+            const rotated = (img.naturalWidth > img.naturalHeight) !== (img.clientWidth > img.clientHeight);
+            const scale = img.clientWidth / (rotated ? img.naturalHeight : img.naturalWidth);
+            pins.forEach((pin, idx) => {
+                const div = document.createElement("div"); div.className = "pin";
+                div.style.left = ((rotated ? (img.naturalHeight - pin.y) : pin.x) - (rotated ? pin.height : pin.width)/2) * scale + "px";
+                div.style.top = ((rotated ? pin.x : pin.y) - (rotated ? pin.width : pin.height)/2) * scale + "px";
+                div.style.width = (rotated ? pin.height : pin.width) * scale + "px";
+                div.style.height = (rotated ? pin.width : pin.height) * scale + "px";
+                div.id = `pin-${name}-${idx}`; 
+                div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); }; 
+                wrapper.appendChild(div);
+            });
+            calculateGlobals();
+            resolve();
+        };
+        if (img.complete) renderPins(); else img.onload = renderPins;
+    });
 }
 
 function handlePinClick(b, i) {
@@ -124,25 +143,31 @@ function listenForFirebase() {
         document.getElementById("syncStatus").textContent = "✅ Synced";
         const data = snapshot.val() || {}; const cutoff = getCutoffTimestamp();
         let globalReq = 0;
+        
+        // Reset states
         Object.keys(boardsState).forEach(b => { boardsState[b].allClaims = {}; boardsState[b].requested = 0; });
         document.querySelectorAll('.pin').forEach(el => { el.classList.remove("selection-green", "selection-yellow", "flash-pin"); const b = el.querySelector('.tally-badge'); if (b) b.remove(); });
         
+        // Process Data
         Object.entries(data).forEach(([pk, users]) => {
             const [b, i] = pk.split("-"); if (!boardsState[b]) return;
             boardsState[b].allClaims[pk] = users;
             boardsState[b].requested++; globalReq++;
             const el = document.getElementById(`pin-${pk}`);
             const userList = Object.values(users);
+            
             if (users[currentUser.replace(/[.#$[\]]/g, "_")]) if (el) el.classList.add("selection-green");
+            
             if (el && isAdmin) {
                 el.classList.remove("selection-green");
                 const earliest = Math.min(...userList.map(u => u.time));
                 el.classList.add(earliest > cutoff ? "selection-yellow" : "selection-green");
-                if (userList.length >= 2) { const b = document.createElement('div'); b.className='tally-badge'; b.textContent=userList.length; el.appendChild(b); }
+                if (userList.length >= 2) { const bBadge = document.createElement('div'); bBadge.className='tally-badge'; bBadge.textContent=userList.length; el.appendChild(bBadge); }
             }
         });
         document.getElementById("globalRequested").textContent = globalReq;
         Object.keys(boardsState).forEach(b => { document.getElementById(`count-${b}`).textContent = `${boardsState[b].requested} Requested`; });
+        
         const hash = window.location.hash;
         if (hash.startsWith('#pin-')) {
             const target = document.querySelector(hash);
