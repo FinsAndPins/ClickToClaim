@@ -15,18 +15,24 @@
         .badge-pull { background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
         .badge-wait { background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
         .feedback-msg { background: #fff9c4; padding: 10px; border-radius: 4px; margin-bottom: 5px; border-left: 4px solid #fbc02d; }
-        .view-link { color: #0066aa; font-weight: bold; text-decoration: none; }
+        .view-link { color: #0066aa; font-weight: bold; text-decoration: none; border: 1px solid #0066aa; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .view-link:hover { background: #0066aa; color: white; }
     </style>
 </head>
 <body>
 <div id="authContent" style="display:none;">
     <div class="header"><h1>Reports</h1><div><button class="btn" style="background:#28a745" onclick="downloadCSV()">CSV</button> <a id="backBtn" href="index.html" class="btn">Back</a></div></div>
+    
     <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
+    
     <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
-    <section><h2>3. Popularity</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+    
+    <section><h2>3. Popularity (Most Requested)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+
     <section><h2>4. Tester Feedback</h2><div id="feedbackContainer">None.</div></section>
 </div>
-<div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking...</div>
+<div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
@@ -35,44 +41,79 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
 let globalData = null;
-function checkAuth(m=false) { if (new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true' || m) { sessionStorage.setItem('fp_admin_active', 'true'); document.getElementById('authMsg').style.display = 'none'; document.getElementById('authContent').style.display = 'block'; document.getElementById('backBtn').href = `index.html?admin=${ADMIN_KEY}`; loadData(); } }
+
+function checkAuth(m=false) {
+    if (new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true' || m) {
+        sessionStorage.setItem('fp_admin_active', 'true');
+        document.getElementById('authMsg').style.display = 'none';
+        document.getElementById('authContent').style.display = 'block';
+        document.getElementById('backBtn').href = `index.html?admin=${ADMIN_KEY}`;
+        loadData();
+    }
+}
 checkAuth();
+
 async function loadData() {
     const path = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, ""); 
     const folder = decodeURIComponent(path.split("/").pop() || "default");
     const fbName = folder.replace(/\s+/g, '_');
     const manifest = await (await fetch("./boards/manifest.json")).json();
     manifest.sort((a,b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
-    db.ref(`claims/${fbName}`).on('value', snap => { globalData = { raw: snap.val() || {}, boardList: manifest, showName: folder }; renderReports(); });
+
+    db.ref(`claims/${fbName}`).on('value', snap => {
+        globalData = { raw: snap.val() || {}, boardList: manifest, showName: folder };
+        renderReports();
+    });
+
     db.ref(`feedback/${fbName}`).on('value', snap => {
         const fb = snap.val() || {};
-        document.getElementById('feedbackContainer').innerHTML = Object.values(fb).reverse().map(f => `<div class="feedback-msg"><strong>${f.user}</strong> <small>(${new Date(f.time).toLocaleString()})</small><br>${f.msg}</div>`).join('') || "No feedback.";
+        document.getElementById('feedbackContainer').innerHTML = Object.values(fb).reverse().map(f => `
+            <div class="feedback-msg">
+                <strong>${f.user}</strong> <small>(${new Date(f.time).toLocaleString()})</small><br>${f.msg}
+            </div>
+        `).join('') || "No feedback yet.";
     });
 }
+
 function renderReports() {
     const userStats = {}; const liveFeed = []; const popularity = [];
     Object.entries(globalData.raw).forEach(([pk, users]) => {
-        const [bName, pIdx] = pk.split("-"); const bNum = globalData.boardList.indexOf(bName) + 1;
+        const [bName, pIdx] = pk.split("-");
+        const bNum = globalData.boardList.indexOf(bName) + 1;
         const cleanLoc = `Board ${bNum} (Pin ${parseInt(pIdx)+1})`;
         const uList = Object.entries(users).sort((a,b) => a[1].time - b[1].time);
         const isUnique = uList.length === 1;
+        
         popularity.push({ pin: pk, display: cleanLoc, count: uList.length, users: Object.keys(users).join(', ') });
+        
         uList.forEach(([u, m]) => {
-            const user = u.toLowerCase(); if (!userStats[user]) userStats[user] = { last: 0, unique: 0, contested: 0 };
+            const user = u.toLowerCase();
+            if (!userStats[user]) userStats[user] = { last: 0, unique: 0, contested: 0 };
             if (m.time > userStats[user].last) userStats[user].last = m.time;
             if (isUnique) userStats[user].unique++; else userStats[user].contested++;
             liveFeed.push({ pin: pk, display: cleanLoc, user: user, time: m.time, unique: isUnique });
         });
     });
+
     let tU=0, tC=0, tT=0;
     document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => {
         tU+=s.unique; tC+=s.contested; tT+=(s.unique+s.contested);
         return `<tr><td>${u}</td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td></tr>`;
     }).join('');
     document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td>`;
-    document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `<tr><td><span class="${f.unique ? 'badge-pull' : 'badge-wait'}">${f.unique ? '📦 PULL' : 'Contested'}</span></td><td>${f.display}</td><td>${f.user}</td><td>${new Date(f.time).toLocaleTimeString()}</td><td><a href="index.html?admin=${ADMIN_KEY}#pin-${f.pin}" class="view-link">View</a></td></tr>`).join('');
-    document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).filter(p => p.count > 0).map(p => `<tr><td>${p.display}</td><td>${p.count}</td><td>${p.users}</td><td><a href="index.html?admin=${ADMIN_KEY}#pin-${p.pin}" class="view-link">View</a></td></tr>`).join('');
+
+    document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `
+        <tr>
+            <td><span class="${f.unique ? 'badge-pull' : 'badge-wait'}">${f.unique ? '📦 PULL' : 'Contested'}</span></td>
+            <td>${f.display}</td><td>${f.user}</td><td>${new Date(f.time).toLocaleTimeString()}</td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${f.pin}" class="view-link">View</a></td>
+        </tr>`).join('');
+
+    document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).filter(p => p.count > 0).map(p => `
+        <tr><td>${p.display}</td><td>${p.count}</td><td>${p.users}</td><td><a href="index.html?admin=${ADMIN_KEY}#pin-${p.pin}" class="view-link">View</a></td></tr>
+    `).join('');
 }
+
 function downloadCSV() {
     let csv = "Location,User,Time,Status\n";
     Object.entries(globalData.raw).forEach(([pk, users]) => {
