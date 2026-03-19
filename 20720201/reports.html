@@ -4,22 +4,23 @@
     <meta charset="UTF-8"><title>Fins and Pins - Reports</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1E2330; color: white; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn { padding: 10px 15px; background: #0066aa; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
-        section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow-x: auto; }
+        .btn { padding: 10px 20px; background: #D2E823; color: black; text-decoration: none; border-radius: 30px; font-weight: bold; border: none; cursor: pointer; }
+        section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 30px; overflow-x: auto; color: #333; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
         th { background: #f9f9f9; position: sticky; top: 0; }
         tr:hover { background: #f1f7ff; }
-        .badge-pull { background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .badge-pull { background: #42E661; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
         .badge-wait { background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
         .feedback-msg { background: #fff9c4; padding: 10px; border-radius: 4px; margin-bottom: 5px; border-left: 4px solid #fbc02d; }
+        .view-link { color: #0066aa; font-weight: bold; text-decoration: none; border: 1px solid #0066aa; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
 <div id="authContent" style="display:none;">
-    <div class="header"><h1>Reports</h1><div><button class="btn" style="background:#28a745" onclick="downloadCSV()">CSV</button> <a id="backBtn" href="index.html" class="btn">Back</a></div></div>
+    <div class="header"><h1>Reports</h1><div><button class="btn" onclick="downloadCSV()">CSV Export</button> <a id="backBtn" href="index.html" class="btn" style="background:white;">Back</a></div></div>
     
     <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
     
@@ -104,13 +105,13 @@ function renderReports() {
         <tr>
             <td><span class="${f.unique ? 'badge-pull' : 'badge-wait'}">${f.unique ? '📦 PULL' : 'Contested'}</span></td>
             <td>${f.display}</td><td>${f.user}</td><td>${new Date(f.time).toLocaleTimeString()}</td>
-            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${f.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${f.pin}" class="view-link">View</a></td>
         </tr>`).join('');
 
     document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).filter(p => p.count > 0).map(p => `
         <tr>
             <td>${p.display}</td><td>${p.count}</td><td>${p.users}</td>
-            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${p.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${p.pin}" class="view-link">View</a></td>
         </tr>`).join('');
 }
 
