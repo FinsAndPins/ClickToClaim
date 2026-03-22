@@ -5,30 +5,61 @@
     <title>Fins and Pins - Click to Claim</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f5f5f5; padding-bottom: 80px; }
-        h1 { text-align: center; margin-bottom: 4px; font-size: 26px; }
-        h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #444; font-weight: normal; }
-        #globalCounts { text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 2000; }
-        #syncStatus { font-size: 12px; color: #666; display: block; margin-top: 4px; font-weight: normal; }
-        .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        .board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .board-title { font-size: 20px; font-weight: bold; }
+        /* Fins and Pins Brand Palette */
+        :root {
+            --dark-bg: #1E2330;      /* Ebony Clay */
+            --brand-pear: #D2E823;   /* Pear Neon */
+            --brand-green: #42E661;  /* Status Green */
+            --card-bg: #FFFFFF;
+        }
+
+        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: var(--dark-bg); padding-bottom: 80px; color: white; }
+        h1 { text-align: center; margin-bottom: 4px; font-size: 26px; color: var(--brand-pear); }
+        h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #ccc; font-weight: normal; }
+        
+        #globalCounts { 
+            text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; 
+            background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; 
+            border: 1px solid rgba(210, 232, 35, 0.3); position: sticky; top: 0; z-index: 2000;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        #syncStatus { font-size: 12px; color: var(--brand-green); display: block; margin-top: 4px; font-weight: normal; }
+        
+        .board-container { margin-bottom: 40px; background: var(--card-bg); padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); color: #333; }
+        .board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .board-title { font-size: 20px; font-weight: bold; color: var(--dark-bg); }
         .admin-board-total { font-size: 14px; color: #0066aa; font-weight: bold; }
-        .board-count { font-size: 14px; margin-bottom: 8px; color: #555; }
-        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: #eee; border-radius: 6px; }
-        .board-img { width: 100%; display: block; border-radius: 6px; }
+        .board-count { font-size: 14px; margin-bottom: 8px; color: #666; }
+        
+        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: #eee; border-radius: 8px; overflow: hidden; }
+        .board-img { width: 100%; display: block; border-radius: 8px; }
+        
+        /* Pin Styles */
         .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
-        .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.25); }
-        .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.4); }
+        .pin.selection-green { border: 4px solid var(--brand-green); background: rgba(66, 230, 97, 0.25); }
+        .pin.selection-yellow { border: 4px solid var(--brand-pear); background: rgba(210, 232, 35, 0.3); }
         .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 110; pointer-events: none; border: 2px solid white; }
-        #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; }
-        #shareBtn { padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; cursor: pointer; background: #e6f7ff; color: #0066aa; font-weight: bold; }
-        #adminReportBtn { display:none; padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #fff; color: #333; text-decoration: none; font-weight: bold; }
-        #loginOverlay, #feedbackOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
-        .modal-box textarea { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .modal-box button { background: #0066aa; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
-        #feedbackToggle { position: fixed; bottom: 70px; right: 20px; background: #ff3b30; color: white; border-radius: 50px; padding: 10px 15px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2500; }
+        
+        /* Footer Controls */
+        #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: #161a24; border-top: 1px solid #333; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; }
+        #userDisplay { font-weight: bold; color: var(--brand-pear); font-size: 16px; }
+        
+        .btn-brand { 
+            padding: 10px 20px; font-size: 14px; border-radius: 30px; border: none; 
+            cursor: pointer; background: var(--brand-pear); color: black; 
+            font-weight: bold; text-decoration: none; transition: transform 0.1s;
+        }
+        .btn-brand:active { transform: scale(0.95); }
+
+        #adminReportBtn { display:none; background: white; color: black; margin-right: 10px; }
+        
+        /* Modals */
+        #loginOverlay, #feedbackOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 100%; max-width: 320px; text-align: center; color: #333; }
+        .modal-box textarea, .modal-box input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        
+        #feedbackToggle { position: fixed; bottom: 75px; right: 20px; background: #ff3b30; color: white; border-radius: 50px; padding: 10px 15px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2500; }
+        
         @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
         .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.3) !important; }
     </style>
@@ -37,9 +68,9 @@
 
 <div id="loginOverlay" style="display: flex;">
     <div class="login-box modal-box">
-        <h3>Welcome</h3>
-        <input type="text" id="usernameInput" placeholder="@username" style="width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px;">
-        <button onclick="saveUsername()">Start Selecting</button>
+        <h3 style="margin-top:0;">Welcome</h3>
+        <input type="text" id="usernameInput" placeholder="@username">
+        <button class="btn-brand" style="width:100%;" onclick="saveUsername()">Start Selecting</button>
     </div>
 </div>
 
@@ -47,8 +78,8 @@
     <div class="modal-box">
         <h3>Report an Issue</h3>
         <textarea id="feedbackText" placeholder="Describe the issue..." rows="4"></textarea>
-        <button onclick="submitFeedback()">Send Feedback</button>
-        <button onclick="document.getElementById('feedbackOverlay').style.display='none'" style="background:#666; margin-top:10px;">Cancel</button>
+        <button class="btn-brand" style="width:100%;" onclick="submitFeedback()">Send Feedback</button>
+        <button class="btn-brand" style="width:100%; background:#666; color:white; margin-top:10px;" onclick="document.getElementById('feedbackOverlay').style.display='none'">Cancel</button>
     </div>
 </div>
 <div id="feedbackToggle" onclick="document.getElementById('feedbackOverlay').style.display='flex'">Report Issue</div>
@@ -58,18 +89,18 @@
 
 <div id="globalCounts">
     <div>Total Pins: <span id="totalPins">0</span></div>
-    <div id="adminGlobalDisplay" style="display:none; color: #28a745; margin-top: 5px;">Show Total Requested: <span id="adminTotalRequested">0</span></div>
-    <div>My Requests: <span id="totalMyClaims">0</span></div>
+    <div id="adminGlobalDisplay" style="display:none; color: var(--brand-pear); margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">Show Total Requested: <span id="adminTotalRequested">0</span></div>
+    <div style="font-weight: normal; font-size: 14px; margin-top: 5px;">My Requests: <span id="totalMyClaims">0</span></div>
     <div id="syncStatus">📡 Connecting to Firebase...</div>
 </div>
 
 <div id="boardsList"></div>
 
 <div id="footerControls">
-    <div id="userDisplay" style="font-weight: bold; color: #555;">@user</div>
+    <div id="userDisplay">@user</div>
     <div style="display: flex; gap: 10px;">
-        <a id="adminReportBtn" href="reports.html">Reports</a>
-        <button id="shareBtn" onclick="shareToInstagram()">Share</button>
+        <a id="adminReportBtn" href="reports.html" class="btn-brand">Reports</a>
+        <button id="shareBtn" class="btn-brand" onclick="shareToInstagram()">Share</button>
     </div>
 </div>
 
@@ -213,7 +244,7 @@ function submitFeedback() {
 
 function listenForFirebase() {
     db.ref(`claims/${fbName}`).on("value", snapshot => {
-        document.getElementById("syncStatus").textContent = "✅ Connected & Synced";
+        document.getElementById("syncStatus").textContent = "✅ Synced";
         const data = snapshot.val() || {};
         const userKey = currentUser.replace(/[.#$[\]]/g, "_");
         const cutoff = getCutoffTimestamp();
