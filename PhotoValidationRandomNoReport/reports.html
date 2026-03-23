@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Team Validation Report</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }
+        img { height: 70px; border-radius: 6px; }
+        .status-match { color: #28a745; font-weight: bold; }
+        .status-no_match { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1>Validation Summary</h1>
+        <button onclick="exportCSV()" style="padding:15px; background:#007bff; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">Export Whatnot CSV</button>
+    </div>
+    <div id="summary" style="margin: 15px 0; font-size: 18px; font-weight: bold;"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>My Photo</th>
+                <th>eBay Match</th>
+                <th>Status</th>
+                <th>Reviewer</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const fbPath = "photo_validation/run_march_2026";
+
+let items = {};
+fetch("./pending_items.json").then(r => r.json()).then(data => {
+    items = data;
+    db.ref(fbPath).on("value", snap => render(snap.val() || {}));
+});
+
+function render(results) {
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+    let matches = 0;
+    let total = Object.keys(items).length;
+
+    Object.keys(results).forEach(safeKey => {
+        const res = results[safeKey];
+        if (res.status === "reviewing") return; // Don't show in-progress items
+
+        const filename = res.filename || safeKey.replace(/_/g, ".");
+        const item = items[filename] || {};
+        
+        if (res.status === 'match') matches++;
+
+        tbody.innerHTML += `<tr>
+            <td><img src="${item.crop || ''}"></td>
+            <td><img src="${item.thumb || ''}"><br><b>${item.title || 'Unknown'}</b></td>
+            <td class="status-${res.status}">${res.status.toUpperCase()}</td>
+            <td>${res.reviewer}</td>
+        </tr>`;
+    });
+    document.getElementById("summary").textContent = `✅ Confirmed Matches: ${matches} | Completed: ${Object.values(results).filter(r => r.status !== 'reviewing').length} / ${total}`;
+}
+
+function exportCSV() {
+    db.ref(fbPath).once("value", snap => {
+        const results = snap.val() || {};
+        let csv = "Title,Price,Filename\n";
+        Object.keys(results).forEach(safeKey => {
+            const res = results[safeKey];
+            if (res.status === 'match') {
+                const fname = res.filename || safeKey.replace(/_/g, ".");
+                const item = items[fname] || {};
+                csv += `"${item.title}",${item.price || 0},${fname}\n`;
+            }
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'whatnot_ready.csv'; a.click();
+    });
+}
+</script>
+</body>
+</html>
