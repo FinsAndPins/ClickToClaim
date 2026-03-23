@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pin Validation Report</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #eee; }
+        img { height: 80px; border-radius: 5px; }
+        .MATCH { color: #28a745; font-weight: bold; }
+        .NO_MATCH { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Validation Summary</h1>
+    <button onclick="exportCSV()" style="padding:15px; background: #007bff; color:white; border:none; border-radius:8px; cursor:pointer;">Export Whatnot CSV</button>
+</div>
+<div id="stats" style="margin: 10px 0;">Loading stats...</div>
+
+<table id="resultsTable">
+    <thead>
+        <tr>
+            <th>Crop</th>
+            <th>eBay Match</th>
+            <th>Status</th>
+            <th>Reviewer</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+</table>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// SAME FIREBASE CONFIG AS INDEX.HTML
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const fbPath = "photo_validation/run_march_2026";
+
+let items = {};
+fetch("./pending_items.json").then(r => r.json()).then(data => {
+    items = data;
+    db.ref(fbPath).on("value", snap => render(snap.val() || {}));
+});
+
+function render(results) {
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+    let matches = 0;
+
+    Object.keys(results).forEach(safeKey => {
+        const res = results[safeKey];
+        const originalKey = res.filename || safeKey.replace(/_/g, "."); // fallback
+        const item = items[originalKey] || { title: "Deleted Item", crop: "", thumb: "" };
+        
+        if (res.status === 'match') matches++;
+
+        const row = `<tr>
+            <td><img src="${item.crop}"></td>
+            <td><img src="${item.thumb}"><br>${item.title}</td>
+            <td class="${res.status.toUpperCase()}">${res.status.toUpperCase()}</td>
+            <td>${res.reviewer}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+    document.getElementById("stats").textContent = `Confirmed Matches: ${matches} | Reviewed: ${Object.keys(results).length}`;
+}
+
+function exportCSV() {
+    db.ref(fbPath).once("value", snap => {
+        const results = snap.val() || {};
+        let csv = "Title,Price,Filename\n";
+        Object.keys(results).forEach(safeKey => {
+            const res = results[safeKey];
+            if (res.status === 'match') {
+                const item = items[res.filename || safeKey.replace(/_/g, ".")] || {};
+                csv += `"${item.title}",${item.price},${res.filename}\n`;
+            }
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'whatnot_upload.csv';
+        a.click();
+    });
+}
+</script>
+</body>
+</html>

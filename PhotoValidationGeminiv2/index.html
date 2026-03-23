@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Photo Validator – Pro Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 0; background: #1a1a1a; color: white; overflow: hidden; }
+        #topBar { background: #2d2d2d; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; }
+        
+        /* Layout & Sizing */
+        #mainArea { height: calc(100vh - 70px); display: flex; flex-direction: column; }
+        .imgContainer { flex: 1; display: flex; gap: 10px; padding: 10px; visibility: hidden; } /* Hidden until loaded */
+        .imgBox { flex: 1; background: #333; border-radius: 15px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        .imgBox img { max-width: 95%; max-height: 95%; object-fit: contain; }
+        .label { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 5px; font-size: 12px; }
+
+        #titleBox { background: #2d2d2d; padding: 15px; font-size: 20px; text-align: center; border-top: 1px solid #444; }
+
+        /* Buttons */
+        #controls { display: flex; gap: 10px; padding: 20px; background: #1a1a1a; align-items: center; }
+        button { border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; transition: opacity 0.1s; }
+        button:active { opacity: 0.7; }
+        
+        .btn-large { flex: 3; height: 100px; font-size: 28px; }
+        .btn-small { flex: 1; height: 80px; font-size: 16px; background: #555; }
+        
+        #matchBtn { background: #28a745; }
+        #noMatchBtn { background: #dc3545; }
+        
+        /* Progress */
+        #progress { font-size: 18px; font-weight: bold; color: #28a745; }
+    </style>
+</head>
+<body>
+
+<div id="topBar">
+    <div id="progress">0 / 0</div>
+    <div id="userDisplay">@user</div>
+</div>
+
+<div id="mainArea">
+    <div id="syncGate" class="imgContainer">
+        <div class="imgBox"><span class="label">CROP</span><img id="cropImg"></div>
+        <div class="imgBox"><span class="label">EBAY</span><img id="thumbImg"></div>
+    </div>
+
+    <div id="titleBox">Waiting for images...</div>
+
+    <div id="controls">
+        <button id="noMatchBtn" class="btn-large" onclick="submitResult('no_match')">❌ NO</button>
+        <button id="unknownBtn" class="btn-small" onclick="submitResult('unknown')">Don't Know</button>
+        <button id="matchBtn" class="btn-large" onclick="submitResult('match')">✅ MATCH</button>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const fbPath = "photo_validation/run_march_2026"; 
+
+let user = localStorage.getItem("validator_user") || prompt("Enter Name:") || "Guest";
+if (!user.startsWith("@")) user = "@" + user;
+localStorage.setItem("validator_user", user);
+document.getElementById("username").textContent = user;
+
+let items = {};
+let itemKeys = [];
+let validated = {};
+
+fetch("./pending_items.json").then(r => r.json()).then(data => {
+    items = data;
+    itemKeys = Object.keys(items);
+    db.ref(fbPath).on("value", snap => {
+        validated = snap.val() || {};
+        loadNext();
+    });
+});
+
+function loadNext() {
+    let nextKey = itemKeys.find(k => !validated[k.replace(/\./g, "_")]);
+
+    if (nextKey) {
+        const item = items[nextKey];
+        const gate = document.getElementById("syncGate");
+        const title = document.getElementById("titleBox");
+        
+        gate.style.visibility = "hidden"; // Hide during load
+        title.textContent = "Loading next pin...";
+
+        // PROMISE-BASED SYNC LOADING
+        const img1 = new Image();
+        const img2 = new Image();
+        let loadedCount = 0;
+
+        const onImgLoad = () => {
+            loadedCount++;
+            if (loadedCount === 2) {
+                document.getElementById("cropImg").src = img1.src;
+                document.getElementById("thumbImg").src = img2.src;
+                title.textContent = item.title;
+                gate.style.visibility = "visible"; // Show both at once
+            }
+        };
+
+        img1.onload = onImgLoad;
+        img2.onload = onImgLoad;
+        img1.src = item.crop;
+        img2.src = item.thumb;
+
+        document.getElementById("progress").textContent = `${Object.keys(validated).length} / ${itemKeys.length}`;
+    } else {
+        document.getElementById("mainArea").innerHTML = "<h1 style='text-align:center; padding-top:100px;'>ALL DONE! 🎉</h1>";
+    }
+}
+
+function submitResult(status) {
+    let currentKey = itemKeys.find(k => !validated[k.replace(/\./g, "_")]);
+    if (!currentKey) return;
+
+    db.ref(`${fbPath}/${currentKey.replace(/\./g, "_")}`).set({
+        status: status,
+        reviewer: user,
+        timestamp: Date.now(),
+        filename: currentKey
+    });
+}
+</script>
+</body>
+</html>
