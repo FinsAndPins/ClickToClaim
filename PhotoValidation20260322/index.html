@@ -2,180 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fins and Pins – Photo Validator</title>
+    <title>Pin Photo Validator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0; padding: 0;
-            background: #f5f5f5;
-        }
-
-        #topBar {
-            position: sticky;
-            top: 0;
-            background: white;
-            padding: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-
-        #usernameDisplay {
-            font-weight: bold;
-            color: #444;
-            margin-bottom: 6px;
-        }
-
-        #progressText {
-            font-size: 14px;
-            margin-bottom: 6px;
-        }
-
-        #progressBarOuter {
-            width: 100%;
-            background: #ddd;
-            height: 10px;
-            border-radius: 6px;
-        }
-
-        #progressBarInner {
-            height: 10px;
-            width: 0%;
-            background: #28a745;
-            border-radius: 6px;
-        }
-
-        #delayControls {
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        #delayControls button {
-            padding: 4px 10px;
-            margin: 0 5px;
-            font-size: 14px;
-        }
-
-        #mainArea {
-            padding: 15px;
-        }
-
-        .imgRow {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .imgBox {
-            flex: 1;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .imgBox img {
-            width: 100%;
-            border-radius: 6px;
-        }
-
-        #titleBox {
-            margin-top: 10px;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #333;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        #buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
-        #buttons button {
-            flex: 1;
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            color: white;
-        }
-
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; }
+        #topBar { position: sticky; top: 0; background: white; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
+        .imgRow { display: flex; gap: 10px; padding: 10px; }
+        .imgBox { flex: 1; background: white; padding: 5px; border-radius: 8px; text-align: center; }
+        .imgBox img { width: 100%; border-radius: 5px; max-height: 400px; object-fit: contain; }
+        #titleBox { background: white; margin: 10px; padding: 15px; border-radius: 8px; font-weight: bold; }
+        #buttons { display: flex; gap: 10px; padding: 10px; }
+        button { flex: 1; padding: 20px; font-size: 18px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; }
         #matchBtn { background: #28a745; }
         #noMatchBtn { background: #dc3545; }
         #unknownBtn { background: #6c757d; }
-
-        #doneMessage {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 22px;
-            font-weight: bold;
-            color: #444;
-        }
+        #progressBar { height: 10px; background: #e0e0e0; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+        #progressFill { height: 100%; background: #28a745; width: 0%; transition: width 0.3s; }
     </style>
 </head>
-
 <body>
 
 <div id="topBar">
-    <div id="usernameDisplay">@user</div>
-    <div id="progressText">0 of 0 validated</div>
+    <div id="user">Reviewing as: <span id="username">...</span></div>
+    <div id="progressText">Loading items...</div>
+    <div id="progressBar"><div id="progressFill"></div></div>
+</div>
 
-    <div id="progressBarOuter">
-        <div id="progressBarInner"></div>
+<div id="main">
+    <div class="imgRow">
+        <div class="imgBox"><h3>My Photo</h3><img id="cropImg" src=""></div>
+        <div class="imgBox"><h3>eBay Match</h3><img id="thumbImg" src=""></div>
     </div>
-
-    <div id="delayControls">
-        Auto‑advance delay:
-        <button onclick="changeDelay(-0.5)">–</button>
-        <span id="delayValue">2.0s</span>
-        <button onclick="changeDelay(0.5)">+</button>
+    <div id="titleBox"></div>
+    <div id="buttons">
+        <button id="matchBtn" onclick="submitResult('match')">MATCH</button>
+        <button id="noMatchBtn" onclick="submitResult('no_match')">NO MATCH</button>
+        <button id="unknownBtn" onclick="submitResult('unknown')">SKIP</button>
     </div>
 </div>
 
-<div id="mainArea">
-    <div id="validatorArea" style="display:none;">
-
-        <div class="imgRow">
-            <div class="imgBox">
-                <h3 style="margin-top:0;">Crop</h3>
-                <img id="cropImg" src="">
-            </div>
-
-            <div class="imgBox">
-                <h3 style="margin-top:0;">eBay</h3>
-                <img id="thumbImg" src="">
-            </div>
-        </div>
-
-        <div id="titleBox"></div>
-
-        <div id="buttons">
-            <button id="matchBtn" onclick="submitResult('match')">Match</button>
-            <button id="noMatchBtn" onclick="submitResult('no_match')">No Match</button>
-            <button id="unknownBtn" onclick="submitResult('unknown')">Don’t Know</button>
-        </div>
-    </div>
-
-    <div id="doneMessage" style="display:none;">
-        🎉 All items validated!
-    </div>
-</div>
-
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-// ===============================
-// Firebase Config
-// ===============================
 const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
     authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
@@ -189,41 +58,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ===============================
-// Folder-based Firebase namespace
-// ===============================
-const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
-const folderParts = pathClean.split("/");
-const folderName = decodeURIComponent(folderParts.pop() || "default");
-const fbName = folderName.replace(/\s+/g, "_");
-const fbPath = `photo_validation/${fbName}`;
+// NAMESPACE: This separates your Validation from your Claims
+const fbPath = "photo_validation/run_march_2026"; 
 
-// ===============================
-// User login
-// ===============================
-let currentUser = localStorage.getItem("validator_username") || "";
-if (!currentUser) {
-    currentUser = prompt("Enter username (e.g., @steve):") || "guest";
-    if (!currentUser.startsWith("@")) currentUser = "@" + currentUser;
-    localStorage.setItem("validator_username", currentUser);
-}
-document.getElementById("usernameDisplay").textContent = currentUser;
+let user = localStorage.getItem("validator_user") || prompt("Enter Name:") || "Guest";
+if (!user.startsWith("@")) user = "@" + user;
+localStorage.setItem("validator_user", user);
+document.getElementById("username").textContent = user;
 
-// ===============================
-// Auto-advance delay
-// ===============================
-let delay = parseFloat(localStorage.getItem("validator_delay") || "2.0");
-document.getElementById("delayValue").textContent = delay.toFixed(1) + "s";
-
-function changeDelay(delta) {
-    delay = Math.max(0.5, delay + delta);
-    localStorage.setItem("validator_delay", delay);
-    document.getElementById("delayValue").textContent = delay.toFixed(1) + "s";
-}
-
-// ===============================
-// Load pending_items.json
-// ===============================
 let items = {};
 let itemKeys = [];
 let validated = {};
@@ -234,83 +76,52 @@ fetch("./pending_items.json")
     .then(data => {
         items = data;
         itemKeys = Object.keys(items);
-        listenForResults();
+        listen();
     });
 
-// ===============================
-// Listen for Firebase updates
-// ===============================
-function listenForResults() {
+function listen() {
     db.ref(fbPath).on("value", snap => {
         validated = snap.val() || {};
-        updateProgress();
-        loadNextItem();
+        updateUI();
     });
 }
 
-// ===============================
-// Load next unvalidated item
-// ===============================
-function loadNextItem() {
+function updateUI() {
+    let found = false;
     for (let i = 0; i < itemKeys.length; i++) {
         const key = itemKeys[i];
-        if (!validated[key] || validated[key].status === "unknown") {
+        const safeKey = key.replace(/\./g, "_");
+        if (!validated[safeKey]) {
             currentIndex = i;
-            showItem(key);
-            return;
+            const item = items[key];
+            document.getElementById("cropImg").src = item.crop;
+            document.getElementById("thumbImg").src = item.thumb;
+            document.getElementById("titleBox").textContent = item.title;
+            found = true;
+            break;
         }
     }
 
-    document.getElementById("validatorArea").style.display = "none";
-    document.getElementById("doneMessage").style.display = "block";
+    const doneCount = Object.keys(validated).length;
+    document.getElementById("progressText").textContent = `${doneCount} of ${itemKeys.length} Reviewed`;
+    document.getElementById("progressFill").style.width = (doneCount / itemKeys.length * 100) + "%";
+
+    if (!found) {
+        document.getElementById("main").innerHTML = "<h2 style='text-align:center; margin-top:50px;'>🎉 All Pins Validated!</h2>";
+    }
 }
 
-// ===============================
-// Show item
-// ===============================
-function showItem(key) {
-    const item = items[key];
-
-    document.getElementById("validatorArea").style.display = "block";
-    document.getElementById("doneMessage").style.display = "none";
-
-    document.getElementById("cropImg").src = item.crop;
-    document.getElementById("thumbImg").src = item.thumb;
-    document.getElementById("titleBox").textContent = item.title;
-}
-
-// ===============================
-// Submit result (with safe Firebase key)
-// ===============================
 function submitResult(status) {
     const key = itemKeys[currentIndex];
-
-    // Firebase-safe key
     const safeKey = key.replace(/\./g, "_");
 
     db.ref(`${fbPath}/${safeKey}`).set({
         status: status,
-        reviewer: currentUser,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
-
-    setTimeout(loadNextItem, delay * 1000);
-}
-
-// ===============================
-// Progress bar
-// ===============================
-function updateProgress() {
-    const total = itemKeys.length;
-    const done = Object.keys(validated).length;
-
-    document.getElementById("progressText").textContent =
-        `${done} of ${total} validated`;
-
-    const pct = (done / total) * 100;
-    document.getElementById("progressBarInner").style.width = pct + "%";
+        reviewer: user,
+        timestamp: Date.now(),
+        orig_filename: key
+    }).catch(err => alert("Firebase Error: " + err.message));
 }
 </script>
-
 </body>
 </html>

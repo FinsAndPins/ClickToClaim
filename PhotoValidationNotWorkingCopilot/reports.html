@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fins and Pins – Validation Reports</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0; padding: 0;
+            background: #f5f5f5;
+        }
+
+        #topBar {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        #summary {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        #filterButtons button {
+            padding: 8px 12px;
+            margin-right: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+        }
+
+        #matchBtn { background: #28a745; }
+        #noMatchBtn { background: #dc3545; }
+        #unknownBtn { background: #6c757d; }
+        #allBtn { background: #007bff; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 10px;
+            background: white;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        th {
+            background: #eee;
+            font-weight: bold;
+        }
+
+        img.thumb {
+            width: 60px;
+            border-radius: 4px;
+        }
+
+        img.crop {
+            width: 80px;
+            border-radius: 4px;
+        }
+
+        #exportBtn {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="topBar">
+    <div id="summary">Loading…</div>
+
+    <div id="filterButtons">
+        <button id="allBtn" onclick="setFilter('all')">All</button>
+        <button id="matchBtn" onclick="setFilter('match')">Match</button>
+        <button id="noMatchBtn" onclick="setFilter('no_match')">No Match</button>
+        <button id="unknownBtn" onclick="setFilter('unknown')">Unknown</button>
+    </div>
+
+    <button id="exportBtn" onclick="exportCSV()">Export CSV</button>
+</div>
+
+<div id="tableContainer">
+    <table id="resultsTable">
+        <thead>
+            <tr>
+                <th>Crop</th>
+                <th>eBay</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Reviewer</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+    </table>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ===============================
+// Firebase Config
+// ===============================
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ===============================
+// Folder-based Firebase namespace
+// ===============================
+const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
+const folderParts = pathClean.split("/");
+const folderName = decodeURIComponent(folderParts.pop() || "default");
+const fbName = folderName.replace(/\s+/g, "_");
+const fbPath = `photo_validation/${fbName}`;
+
+// ===============================
+// Load pending_items.json
+// ===============================
+let items = {};
+
+fetch("./pending_items.json")
+    .then(r => r.json())
+    .then(data => {
+        items = data;
+        listenForResults();
+    });
+
+// ===============================
+// Listen for Firebase updates
+// ===============================
+let results = {};
+let filter = "all";
+
+function listenForResults() {
+    db.ref(fbPath).on("value", snap => {
+        results = snap.val() || {};
+        renderTable();
+        updateSummary();
+    });
+}
+
+// ===============================
+// Render table
+// ===============================
+function renderTable() {
+    const tbody = document.getElementById("resultsBody");
+    tbody.innerHTML = "";
+
+    const keys = Object.keys(items);
+
+    keys.forEach(key => {
+        const safeKey = key.replace(/\./g, "_");
+        const result = results[safeKey];
+
+        const status = result ? result.status : "unknown";
+        const reviewer = result ? result.reviewer : "";
+        const timestamp = result ? new Date(result.timestamp).toLocaleString() : "";
+
+        if (filter !== "all" && status !== filter) return;
+
+        const item = items[key];
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td><img class="crop" src="${item.crop}"></td>
+            <td><img class="thumb" src="${item.thumb}"></td>
+            <td>${item.title}</td>
+            <td>${status}</td>
+            <td>${reviewer}</td>
+            <td>${timestamp}</td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+// ===============================
+// Summary counts
+// ===============================
+function updateSummary() {
+    const keys = Object.keys(items);
+    let match = 0, noMatch = 0, unknown = 0;
+
+    keys.forEach(key => {
+        const safeKey = key.replace(/\./g, "_");
+        const r = results[safeKey];
+        if (!r) unknown++;
+        else if (r.status === "match") match++;
+        else if (r.status === "no_match") noMatch++;
+        else unknown++;
+    });
+
+    document.getElementById("summary").textContent =
+        `Match: ${match} | No Match: ${noMatch} | Unknown: ${unknown} | Total: ${keys.length}`;
+}
+
+// ===============================
+// Filtering
+// ===============================
+function setFilter(f) {
+    filter = f;
+    renderTable();
+}
+
+// ===============================
+// CSV Export
+// ===============================
+function exportCSV() {
+    const keys = Object.keys(items);
+    let csv = "filename,title,status,reviewer,timestamp,crop,thumb\n";
+
+    keys.forEach(key => {
+        const safeKey = key.replace(/\./g, "_");
+        const item = items[key];
+        const r = results[safeKey] || {};
+        const status = r.status || "unknown";
+        const reviewer = r.reviewer || "";
+        const timestamp = r.timestamp ? new Date(r.timestamp).toISOString() : "";
+
+        csv += `"${key}","${item.title}","${status}","${reviewer}","${timestamp}","${item.crop}","${item.thumb}"\n`;
+    });
+
+    const blob = new Blob([csv], {type: "text/csv"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `validation_report_${fbName}.csv`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
