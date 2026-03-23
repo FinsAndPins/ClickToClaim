@@ -124,7 +124,7 @@
 const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
     authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
-    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
     projectId: "fins-and-pins-click-to-claim",
     storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
     messagingSenderId: "31512845258",
@@ -179,16 +179,14 @@ function renderTable() {
     const keys = Object.keys(items);
 
     keys.forEach(key => {
-        const safeKey = key.replace(/\./g, "_");
-        const result = results[safeKey];
+        const item = items[key];
+        const result = results[key];
 
         const status = result ? result.status : "unknown";
         const reviewer = result ? result.reviewer : "";
         const timestamp = result ? new Date(result.timestamp).toLocaleString() : "";
 
         if (filter !== "all" && status !== filter) return;
-
-        const item = items[key];
 
         const row = document.createElement("tr");
 
@@ -213,8 +211,7 @@ function updateSummary() {
     let match = 0, noMatch = 0, unknown = 0;
 
     keys.forEach(key => {
-        const safeKey = key.replace(/\./g, "_");
-        const r = results[safeKey];
+        const r = results[key];
         if (!r) unknown++;
         else if (r.status === "match") match++;
         else if (r.status === "no_match") noMatch++;
@@ -241,9 +238,8 @@ function exportCSV() {
     let csv = "filename,title,status,reviewer,timestamp,crop,thumb\n";
 
     keys.forEach(key => {
-        const safeKey = key.replace(/\./g, "_");
         const item = items[key];
-        const r = results[safeKey] || {};
+        const r = results[key] || {};
         const status = r.status || "unknown";
         const reviewer = r.reviewer || "";
         const timestamp = r.timestamp ? new Date(r.timestamp).toISOString() : "";

@@ -261,6 +261,7 @@ function loadNextItem() {
         }
     }
 
+    // No items left
     document.getElementById("validatorArea").style.display = "none";
     document.getElementById("doneMessage").style.display = "block";
 }
@@ -280,15 +281,12 @@ function showItem(key) {
 }
 
 // ===============================
-// Submit result (with safe Firebase key)
+// Submit result
 // ===============================
 function submitResult(status) {
     const key = itemKeys[currentIndex];
 
-    // Firebase-safe key
-    const safeKey = key.replace(/\./g, "_");
-
-    db.ref(`${fbPath}/${safeKey}`).set({
+    db.ref(`${fbPath}/${key}`).set({
         status: status,
         reviewer: currentUser,
         timestamp: firebase.database.ServerValue.TIMESTAMP
