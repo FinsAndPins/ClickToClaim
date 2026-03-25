@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ClickToDescribe – Fins & Pins</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    /* TOP BAR */
+    #topBar { padding: 10px 15px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; flex-shrink: 0; }
+    #progress { font-size: 14px; color: #aaa; }
+    #userDisplay { font-size: 14px; color: #aaa; }
+
+    /* MAIN AREA */
+    #main { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* PHOTOS ROW */
+    #photos { display: flex; gap: 8px; padding: 8px; flex-shrink: 0; height: 38vh; }
+    .imgBox { flex: 1; background: #2a2a2a; border-radius: 10px; display: flex; flex-direction: column; align-items: center; overflow: hidden; border: 1px solid #444; }
+    .imgLabel { font-size: 10px; color: #888; text-transform: uppercase; padding: 4px 0 2px; letter-spacing: 0.5px; }
+    .imgBox img { flex: 1; width: 100%; object-fit: contain; min-height: 0; }
+
+    /* WORD PICKER */
+    #picker { flex: 1; overflow-y: auto; padding: 8px 12px; }
+    #wordCloud { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; }
+    .pill {
+      padding: 10px 14px; border-radius: 25px; cursor: pointer;
+      font-size: 16px; border: 2px solid transparent;
+      user-select: none; transition: background 0.1s;
+      background: #333; color: white;
+    }
+    .pill.smart { background: #1a6b2e; border-color: #4caf50; }
+    .pill.selected { background: #0056b3; border-color: #4da3ff; }
+    .pill.smart.selected { background: #0056b3; border-color: #4da3ff; }
+
+    /* TITLE PREVIEW */
+    #previewArea { padding: 8px 12px; flex-shrink: 0; background: #1a1a1a; border-top: 1px solid #333; }
+    #previewLabel { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+    #titleInput {
+      width: 100%; background: #2a2a2a; color: #4caf50; border: 1px solid #444;
+      border-radius: 8px; padding: 10px; font-size: 17px; font-weight: bold;
+      font-family: -apple-system, sans-serif;
+    }
+    #charCount { font-size: 11px; color: #666; text-align: right; margin-top: 3px; }
+
+    /* BUTTONS */
+    #actions { display: flex; gap: 10px; padding: 10px 12px; flex-shrink: 0; background: #1e1e1e; border-top: 1px solid #333; }
+    #actions button { flex: 1; padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 19px; color: white; cursor: pointer; }
+    #btnMismatch { background: #c0392b; }
+    #btnSave { background: #27ae60; }
+    #btnMismatch:active { background: #922b21; }
+    #btnSave:active { background: #1e8449; }
+
+    /* LOADING / DONE overlays */
+    #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100; flex-direction: column; gap: 16px; }
+    #overlay.hidden { display: none; }
+    #overlay p { color: white; font-size: 20px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #555; border-top-color: #27ae60; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #doneScreen { display: none; position: fixed; inset: 0; background: #121212; align-items: center; justify-content: center; flex-direction: column; gap: 20px; z-index: 200; }
+    #doneScreen.show { display: flex; }
+    #doneScreen h1 { font-size: 32px; text-align: center; }
+    #doneScreen p { color: #aaa; text-align: center; padding: 0 20px; }
+  </style>
+</head>
+<body>
+
+<div id="topBar">
+  <div id="progress">Loading...</div>
+  <div id="userDisplay">@user</div>
+</div>
+
+<div id="main">
+  <div id="photos">
+    <div class="imgBox">
+      <div class="imgLabel">My Photo</div>
+      <img id="cropImg" src="" alt="pin">
+    </div>
+    <div class="imgBox">
+      <div class="imgLabel">eBay Match</div>
+      <img id="thumbImg" src="" alt="ebay">
+    </div>
+  </div>
+
+  <div id="picker">
+    <div id="wordCloud"></div>
+  </div>
+
+  <div id="previewArea">
+    <div id="previewLabel">Whatnot Title Preview</div>
+    <input type="text" id="titleInput" placeholder="Tap words above to build title...">
+    <div id="charCount">0 / 80 chars</div>
+  </div>
+</div>
+
+<div id="actions">
+  <button id="btnMismatch" onclick="submitResult('mismatch')">❌ MISMATCH</button>
+  <button id="btnSave" onclick="submitResult('described')">✅ SAVE & NEXT</button>
+</div>
+
+<div id="overlay">
+  <div class="spinner"></div>
+  <p id="overlayMsg">Loading pins...</p>
+</div>
+
+<div id="doneScreen">
+  <h1>🎉 All Done!</h1>
+  <p>All pins have been described.<br>You can now export from the reports page.</p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+
+// ── Firebase ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+  authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+  databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+  projectId: "fins-and-pins-click-to-claim",
+  storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+  messagingSenderId: "31512845258",
+  appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── Path from URL ─────────────────────────────────────────
+const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+const fbName = pathClean.split("/").pop() || "default";
+const fbPath = `description_training/${fbName}`;
+
+// ── User ──────────────────────────────────────────────────
+let user = localStorage.getItem("ctd_user") || "";
+if (!user) {
+  user = prompt("Enter your name:") || "Guest";
+  if (!user.startsWith("@")) user = "@" + user;
+  localStorage.setItem("ctd_user", user);
+}
+document.getElementById("userDisplay").textContent = user;
+
+// ── Smart / Excluded word lists ───────────────────────────
+const SMART_WORDS = new Set(["101","22","abby","abu","adorbs","adventure","aladdin","alberto","alice","amos","anger","animal","anna","anniversary","anton","ariel","aristocats","arthur","artland","arts","atta","attack","attraction","attractions","aurora","auto","backpack","bagheera","baloo","bambi","barrel","basil","baymax","beast","beauty","before","belle","bellwether","beloved","berlioz","bernard","bianca","big","boggs","boo","boogie","book","bottle","box","brave","brooms","bruce","bruno","buzz","c-3po","california","calrissian","cameo","candy","capitan","captain","carl","carnival","carrera","cars","cast","cat","celebration","celebrations","center","cereal","character","chefs","cheshire","chewbacca","chief","chip","christmas","cinderella","clayton","club","cluster","coco","colette","color","company","connection","consoles","copper","couples","crest","cricket","cruella","cruise","crush","cruz","cutie","cuties","d23","daisy","dale","dalmatians","dante","darth","dash","dawson","day","dcl","dec","delight","designer","destination","detective","disgust","dlr","doc","donald","dory","dsf","dssh","duchess","duck","dug","dumbo","dwarfs","eeyore","ego","elastigirl","elemental","elinor","elsa","ember","emperor","employee","encanto","epcot","ercole","ernesto","esmeralda","eve","evil","expo","facilier","fairies","fairy","fantasia","fear","felix","fergus","festival","figment","finding","fix-it","flik","flit","flounder","flower","flynn","food","fountain","fox","frame","fredricksen","frog","frollo","frozen","frozone","gale","garden","gardner","gaston","genie","geppetto","giulia","glendale","godmother","gold","goofy","gopinpro","gothel","governor","grandmother","groove","hades","halloween","hamm","han","hans","hatter","haunted","head","hearts","hector","hei","heimlich","hercules","hero","hidden","hiro","history","hollywood","hong","hood","hook","hopper","hopps","hound","hudson","hunchback","iago","icons","imagineering","incredible","incredibles","inside","isabela","jack","jack-jack","jafar","jane","jasmine","jessie","jiminy","jock","joe","john","joy","judy","jungle","kaa","kenobi","kevin","khan","king","kingdom","kong","kristoff","kronk","kuzco","lady","lando","le","leia","lenticular","life","lightning","lightyear","lilo","linguini","lion","little","lock","lotso","louie","loungefly","luca","luisa","luke","lumiere","lunchbox","mad","madam","madame","magic","magical","maleficent","mansion","marian","marie","marlin","marquee","mater","maui","maximus","mayor","mcqueen","medallion","medusa","meeko","megara","mei","member","merida","merlin","mermaid","merry","mickey","miguel","mike","millennium","mim","ming","minnie","mirabel","miriam","mnsshp","moana","mog","monsters","moonwind","morph","mouse","mowgli","mufasa","mulan","mushu","mvmcp","mystery","nala","naveen","nemo","nesting","nick","nightmare","nights","notre","nottingham","obi-wan","olaf","olivia","oogie","ornament","orville","pablo","pacha","palm","palpatine","pan","paris","park","party","passholder","penguin","perdita","peter","phil","phillip","phoebus","piece","piglet","pink","pinocchio","pocahontas","pongo","pooh","pop-up","potato","potts","prince","princess","princesses","ptd","ptn","pumbaa","puzzle","quasimodo","queen","r2-d2","rabbit","rafiki","ralph","randall","rapunzel","ratatouille","ratcliffe","ratigan","ray","remy","rescuers","resort","rex","rider","riley","ringmaster","robin","roquefort","roz","russell","sadness","sally","scar","sebastian","series","seven","shades","shan","shang","shanghai","shere","sheriff","shock","showcase","simba","skellington","skywalker","slade","sleeping","slinky","smee","smith","snow","soda","solo","sorcerer","soul","squirt","stamp","star","stepmother","stitch","stone","store","story","studio","studios","sully","summer","supporting","sven","sword","syndrome","tales","tamatoa","tangled","tantor","tarzan","terk","theatre","thomas","thumper","tiana","tigger","timon","timothy","tinkerbell","tod","tokyo","toy","trader","trading","tramp","transformation","treasure","truck","trusty","tyler","university","ursula","vader","vanellope","villain","vintage","vinyl","violet","wade","wall-e","wars","wasabi","wazowski","wdcs","wdi","wdw","wendy","white","wilde","willow","windows","wine","winnie","woody","world","wreck-it","yoda","yokai","zazu","zootopia"]);
+
+const EXCLUDED_WORDS = new Set(["pin","disney","walt","new","used","rare","authentic","collectible","lapel","enamel","lot","nwt","htf","obo","nib","noc","moc","sealed","free","ships","combined","shipping","the","and","for","with","from","this","that","are","was","you","your","only","see","pick","choose","select","please","at","in","on","of","a","an","is","to","by","its","been","as","also","very","just","great","nice"]);
+
+// ── State ─────────────────────────────────────────────────
+let items = {}, itemKeys = [], validated = {};
+let currentKey = null;
+let selectedWords = [];
+
+// ── Load data ─────────────────────────────────────────────
+setOverlay("Loading pins...");
+fetch("./pending_items.json")
+  .then(r => r.json())
+  .then(data => {
+    items = data;
+    itemKeys = Object.keys(data);
+    db.ref(fbPath).on("value", snap => {
+      validated = snap.val() || {};
+      hideOverlay();
+      loadNext();
+    });
+  })
+  .catch(() => setOverlay("⚠️ Could not load pending_items.json"));
+
+// ── Load next pin ─────────────────────────────────────────
+function loadNext() {
+  // First: resume any "reviewing" by this user
+  currentKey = itemKeys.find(k => {
+    const v = validated[safeKey(k)];
+    return v && v.status === "reviewing" && v.reviewer === user;
+  });
+  // Otherwise: find first undone item
+  if (!currentKey) {
+    currentKey = itemKeys.find(k => !validated[safeKey(k)]);
+  }
+
+  const done = Object.values(validated).filter(v => v.status === "described" || v.status === "mismatch").length;
+  document.getElementById("progress").textContent = `${done} / ${itemKeys.length} Done`;
+
+  if (!currentKey) {
+    document.getElementById("doneScreen").classList.add("show");
+    return;
+  }
+
+  // Mark as reviewing
+  if (!validated[safeKey(currentKey)] || validated[safeKey(currentKey)].status !== "reviewing") {
+    db.ref(`${fbPath}/${safeKey(currentKey)}`).update({ status: "reviewing", reviewer: user });
+  }
+
+  const item = items[currentKey];
+  document.getElementById("cropImg").src = item.crop || "";
+  document.getElementById("thumbImg").src = item.thumb || "";
+  buildWordCloud(item.title || "");
+}
+
+// ── Word cloud ────────────────────────────────────────────
+function buildWordCloud(title) {
+  const cloud = document.getElementById("wordCloud");
+  cloud.innerHTML = "";
+  selectedWords = [];
+
+  const words = title.split(/\s+/).filter(w => w.length > 0);
+  words.forEach(word => {
+    const lower = word.toLowerCase().replace(/[^a-z0-9\-]/g, "");
+    if (EXCLUDED_WORDS.has(lower)) return;
+    if (!lower) return;
+
+    const pill = document.createElement("div");
+    pill.className = "pill";
+    pill.textContent = word;
+
+    const isSmart = SMART_WORDS.has(lower);
+    if (isSmart) {
+      pill.classList.add("smart", "selected");
+      selectedWords.push(word);
+    }
+
+    pill.addEventListener("click", () => {
+      const idx = selectedWords.indexOf(word);
+      if (idx >= 0) {
+        selectedWords.splice(idx, 1);
+        pill.classList.remove("selected", "smart");
+      } else {
+        selectedWords.push(word);
+        pill.classList.add("selected");
+        pill.classList.remove("smart");
+      }
+      updatePreview();
+    });
+
+    cloud.appendChild(pill);
+  });
+
+  updatePreview();
+}
+
+// ── Title preview ─────────────────────────────────────────
+function updatePreview() {
+  const title = selectedWords.join(" ");
+  const input = document.getElementById("titleInput");
+  input.value = title;
+  const len = title.length;
+  document.getElementById("charCount").textContent = `${len} / 80 chars`;
+  document.getElementById("charCount").style.color = len > 80 ? "#e74c3c" : "#666";
+}
+
+// Allow manual edits to the title input
+document.getElementById("titleInput").addEventListener("input", function() {
+  const len = this.value.length;
+  document.getElementById("charCount").textContent = `${len} / 80 chars`;
+  document.getElementById("charCount").style.color = len > 80 ? "#e74c3c" : "#666";
+});
+
+// ── Submit ────────────────────────────────────────────────
+function submitResult(status) {
+  if (!currentKey) return;
+  const finalTitle = status === "mismatch"
+    ? "MISMATCH"
+    : document.getElementById("titleInput").value.trim() || selectedWords.join(" ");
+
+  db.ref(`${fbPath}/${safeKey(currentKey)}`).set({
+    status: status,
+    reviewer: user,
+    timestamp: Date.now(),
+    filename: currentKey,
+    original_title: items[currentKey].title,
+    whatnot_title: finalTitle,
+    price: items[currentKey].price,
+    source: items[currentKey].source || ""
+  });
+  // loadNext() will be called by the Firebase listener
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function safeKey(k) { return k.replace(/\./g, "_"); }
+function setOverlay(msg) {
+  document.getElementById("overlayMsg").textContent = msg;
+  document.getElementById("overlay").classList.remove("hidden");
+}
+function hideOverlay() {
+  document.getElementById("overlay").classList.add("hidden");
+}
+
+</script>
+</body>
+</html>
