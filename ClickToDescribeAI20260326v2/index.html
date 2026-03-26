@@ -19,7 +19,7 @@
     .imgLabel { font-size: 10px; color: #888; text-transform: uppercase; padding: 4px 0 2px; letter-spacing: 0.5px; flex-shrink: 0; }
     .imgBox img { flex: 1; width: 100%; object-fit: contain; min-height: 0; }
 
-    /* PRICE ROW — below photos, associated with eBay price */
+    /* PRICE ROW */
     #priceRow { display: flex; align-items: center; gap: 10px; padding: 4px 8px 6px; flex-shrink: 0; }
     #priceRow .label { margin: 0; flex-shrink: 0; }
     #priceInput {
@@ -71,8 +71,17 @@
       border-radius: 6px; padding: 4px 10px; cursor: pointer;
     }
 
-    /* BUTTONS */
-    #actions { display: flex; gap: 10px; padding: 10px 12px; flex-shrink: 0; background: #1e1e1e; border-top: 1px solid #333; }
+    /* SMALL NAV ROW (Back / Skip) */
+    #navRow { display: flex; gap: 10px; padding: 6px 12px 0; flex-shrink: 0; }
+    #navRow button {
+      flex: 1; padding: 9px; border-radius: 10px; border: 1px solid #444;
+      background: #1e1e1e; color: #aaa; font-size: 14px; cursor: pointer;
+    }
+    #navRow button:active { background: #2a2a2a; }
+    #btnBack:disabled { opacity: 0.3; cursor: default; }
+
+    /* MAIN ACTION BUTTONS */
+    #actions { display: flex; gap: 10px; padding: 8px 12px 12px; flex-shrink: 0; background: #1e1e1e; border-top: 1px solid #333; }
     #actions button { flex: 1; padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 19px; color: white; cursor: pointer; }
     #btnMismatch { background: #c0392b; }
     #btnSave { background: #27ae60; }
@@ -111,7 +120,6 @@
   </div>
 </div>
 
-<!-- Price row: edit eBay price before saving -->
 <div id="priceRow">
   <div class="label">Price</div>
   <input type="number" id="priceInput" min="0" step="1" placeholder="—">
@@ -135,6 +143,12 @@
       <button id="useAIBtn" onclick="useAITitle()">↑ Use AI Title</button>
     </div>
   </div>
+</div>
+
+<!-- Small Back / Skip row above main buttons -->
+<div id="navRow">
+  <button id="btnBack" onclick="goBack()" disabled>← Back</button>
+  <button id="btnSkip" onclick="skipPin()">Skip →</button>
 </div>
 
 <div id="actions">
@@ -187,58 +201,124 @@ document.getElementById("userDisplay").textContent = user;
 // ── State ─────────────────────────────────────────────────
 let items = {}, itemKeys = [], validated = {};
 let currentKey = null;
+let history = [];      // keys we've visited — enables Back
+let skipped = new Set(); // keys skipped this session — pushed to end of queue
 
-// ── Load ──────────────────────────────────────────────────
+// ── Initial load ──────────────────────────────────────────
 setOverlay("Loading pins...");
 fetch("./pending_items.json")
   .then(r => r.json())
   .then(data => {
     items = data;
     itemKeys = Object.keys(data);
-    db.ref(fbPath).on("value", snap => {
+    // Load Firebase once to get existing validated data, then stop auto-navigating
+    db.ref(fbPath).once("value", snap => {
       validated = snap.val() || {};
+      // Keep listening for updates to progress counter only
+      db.ref(fbPath).on("value", snap => {
+        validated = snap.val() || {};
+        updateProgress();
+      });
       hideOverlay();
       loadNext();
     });
   })
   .catch(() => setOverlay("⚠️ Could not load pending_items.json"));
 
-// ── Load next ─────────────────────────────────────────────
-function loadNext() {
-  currentKey = itemKeys.find(k => {
-    const v = validated[safeKey(k)];
-    return v && v.status === "reviewing" && v.reviewer === user;
-  }) || itemKeys.find(k => !validated[safeKey(k)]);
-
+// ── Progress display ──────────────────────────────────────
+function updateProgress() {
   const done = Object.values(validated).filter(v =>
     v.status === "described" || v.status === "mismatch").length;
   document.getElementById("progress").textContent = `${done} / ${itemKeys.length} Done`;
+}
 
-  if (!currentKey) {
+// ── Load next unreviewed pin ──────────────────────────────
+function loadNext() {
+  // 1. Resume any pin this user left mid-review
+  let nextKey = itemKeys.find(k => {
+    if (skipped.has(k)) return false;
+    const v = validated[safeKey(k)];
+    return v && v.status === "reviewing" && v.reviewer === user;
+  });
+  // 2. Next untouched pin
+  if (!nextKey) {
+    nextKey = itemKeys.find(k =>
+      !skipped.has(k) && !validated[safeKey(k)]
+    );
+  }
+  // 3. Fall back to skipped pins (end of queue)
+  if (!nextKey) {
+    nextKey = itemKeys.find(k =>
+      skipped.has(k) && !validated[safeKey(k)]
+    );
+  }
+
+  updateProgress();
+
+  if (!nextKey) {
     document.getElementById("doneScreen").classList.add("show");
     return;
   }
 
-  if (!validated[safeKey(currentKey)] || validated[safeKey(currentKey)].status !== "reviewing") {
-    db.ref(`${fbPath}/${safeKey(currentKey)}`).update({ status: "reviewing", reviewer: user });
-  }
+  showPin(nextKey);
+}
 
-  const item = items[currentKey];
+// ── Render a specific pin ─────────────────────────────────
+function showPin(key) {
+  if (currentKey && currentKey !== key) history.push(currentKey);
+  currentKey = key;
+
+  const item = items[key];
+  const saved = validated[safeKey(key)];
+
   document.getElementById("cropImg").src = item.crop || "";
   document.getElementById("thumbImg").src = item.thumb || "";
   document.getElementById("ebayTitle").textContent = item.title || "—";
   document.getElementById("aiSuggestion").textContent = item.ai_title || item.title || "—";
 
-  // Pre-fill title input with AI suggestion
+  // Restore previously saved title if going back; otherwise default to AI title
   const titleInput = document.getElementById("titleInput");
-  titleInput.value = item.ai_title || item.title || "";
+  if (saved && saved.whatnot_title && saved.whatnot_title !== "MISMATCH") {
+    titleInput.value = saved.whatnot_title;
+  } else {
+    titleInput.value = item.ai_title || item.title || "";
+  }
   updateCharCount();
 
-  // Pre-fill price (integer, editable)
-  document.getElementById("priceInput").value = item.price != null ? Math.round(item.price) : "";
+  // Restore saved price or fall back to pipeline price
+  const savedPrice = saved ? saved.price : null;
+  document.getElementById("priceInput").value =
+    savedPrice != null ? Math.round(savedPrice) : (item.price != null ? Math.round(item.price) : "");
+
+  // Mark as in-progress
+  db.ref(`${fbPath}/${safeKey(key)}`).update({ status: "reviewing", reviewer: user });
+
+  document.getElementById("btnBack").disabled = history.length === 0;
 }
 
-// ── Use eBay title ─────────────────────────────────────────
+// ── Back button ───────────────────────────────────────────
+function goBack() {
+  if (history.length === 0) return;
+  const prevKey = history.pop();
+  // Put current pin back as un-reviewed (remove from validated)
+  if (currentKey) {
+    db.ref(`${fbPath}/${safeKey(currentKey)}`).remove();
+  }
+  currentKey = null; // prevent showPin from pushing to history again
+  showPin(prevKey);
+}
+
+// ── Skip button ───────────────────────────────────────────
+function skipPin() {
+  if (!currentKey) return;
+  skipped.add(currentKey);
+  // Remove "reviewing" lock so it's available next session
+  db.ref(`${fbPath}/${safeKey(currentKey)}`).remove();
+  currentKey = null;
+  loadNext();
+}
+
+// ── Use eBay title ────────────────────────────────────────
 function useEbayTitle() {
   if (!currentKey) return;
   document.getElementById("titleInput").value = items[currentKey].title || "";
@@ -249,8 +329,7 @@ function useEbayTitle() {
 // ── Use AI title ──────────────────────────────────────────
 function useAITitle() {
   if (!currentKey) return;
-  const ai = items[currentKey].ai_title || items[currentKey].title || "";
-  document.getElementById("titleInput").value = ai;
+  document.getElementById("titleInput").value = items[currentKey].ai_title || items[currentKey].title || "";
   updateCharCount();
   document.getElementById("titleInput").focus();
 }
@@ -273,15 +352,17 @@ function submitResult(status) {
   const item = items[currentKey];
   const wasEdited = finalTitle !== item.ai_title;
 
-  // Use edited price if provided, otherwise fall back to original
   const priceRaw = document.getElementById("priceInput").value;
   const finalPrice = priceRaw !== "" ? parseInt(priceRaw, 10) : item.price;
 
-  db.ref(`${fbPath}/${safeKey(currentKey)}`).set({
+  const keyToSave = currentKey;
+  currentKey = null; // clear before loadNext so showPin doesn't double-push history
+
+  db.ref(`${fbPath}/${safeKey(keyToSave)}`).set({
     status,
     reviewer: user,
     timestamp: Date.now(),
-    filename: currentKey,
+    filename: keyToSave,
     original_title: item.title,
     ai_title: item.ai_title || "",
     whatnot_title: finalTitle,
@@ -289,6 +370,8 @@ function submitResult(status) {
     price: finalPrice,
     source: item.source || ""
   });
+
+  loadNext();
 }
 
 // ── Helpers ───────────────────────────────────────────────
