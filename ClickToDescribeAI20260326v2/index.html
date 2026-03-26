@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ClickToDescribe AI – Fins & Pins</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    /* TOP BAR */
+    #topBar { padding: 10px 15px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; flex-shrink: 0; }
+    #progress { font-size: 14px; color: #aaa; }
+    #userDisplay { font-size: 14px; color: #aaa; }
+
+    /* PHOTOS */
+    #photos { display: flex; gap: 8px; padding: 8px 8px 4px; flex-shrink: 0; height: 38vh; }
+    .imgBox { flex: 1; background: #2a2a2a; border-radius: 10px; display: flex; flex-direction: column; align-items: center; overflow: hidden; border: 1px solid #444; }
+    .imgLabel { font-size: 10px; color: #888; text-transform: uppercase; padding: 4px 0 2px; letter-spacing: 0.5px; flex-shrink: 0; }
+    .imgBox img { flex: 1; width: 100%; object-fit: contain; min-height: 0; }
+
+    /* PRICE ROW — below photos, associated with eBay price */
+    #priceRow { display: flex; align-items: center; gap: 10px; padding: 4px 8px 6px; flex-shrink: 0; }
+    #priceRow .label { margin: 0; flex-shrink: 0; }
+    #priceInput {
+      width: 80px; background: #2a2a2a; color: #e0e0e0;
+      border: 1px solid #555; border-radius: 6px;
+      padding: 6px 10px; font-size: 16px; font-weight: bold;
+      font-family: -apple-system, sans-serif;
+      -moz-appearance: textfield;
+    }
+    #priceInput:focus { outline: none; border-color: #aaa; }
+    #priceInput::-webkit-inner-spin-button,
+    #priceInput::-webkit-outer-spin-button { -webkit-appearance: none; }
+    #priceHint { font-size: 11px; color: #555; }
+
+    /* TITLE EDITING AREA */
+    #editArea { flex: 1; display: flex; flex-direction: column; padding: 12px; gap: 10px; overflow-y: auto; }
+
+    .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+
+    #ebayTitle {
+      color: #777; font-size: 13px; line-height: 1.4;
+      background: #1e1e1e; border-radius: 8px; padding: 10px;
+      border: 1px solid #2a2a2a;
+      cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    #ebayTitle:active { border-color: #666; color: #aaa; }
+
+    #aiSuggestion {
+      color: #f39c12; font-size: 14px; font-weight: bold;
+      background: #1e1e1e; border-radius: 8px; padding: 10px;
+      border: 1px solid #3a3a2a;
+      line-height: 1.4;
+      cursor: pointer; transition: border-color 0.15s, opacity 0.15s;
+    }
+    #aiSuggestion:active { border-color: #f39c12; opacity: 0.7; }
+
+    #titleInput {
+      width: 100%; background: #2a2a2a; color: #4caf50;
+      border: 2px solid #4caf50; border-radius: 8px;
+      padding: 12px; font-size: 18px; font-weight: bold;
+      font-family: -apple-system, sans-serif; resize: none;
+    }
+    #titleInput:focus { outline: none; border-color: #27ae60; }
+
+    #charRow { display: flex; justify-content: space-between; align-items: center; }
+    #charCount { font-size: 11px; color: #666; }
+    #useAIBtn {
+      font-size: 12px; color: #f39c12; background: none; border: 1px solid #f39c12;
+      border-radius: 6px; padding: 4px 10px; cursor: pointer;
+    }
+
+    /* BUTTONS */
+    #actions { display: flex; gap: 10px; padding: 10px 12px; flex-shrink: 0; background: #1e1e1e; border-top: 1px solid #333; }
+    #actions button { flex: 1; padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 19px; color: white; cursor: pointer; }
+    #btnMismatch { background: #c0392b; }
+    #btnSave { background: #27ae60; }
+    #btnMismatch:active { background: #922b21; }
+    #btnSave:active { background: #1e8449; }
+
+    /* OVERLAYS */
+    #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; flex-direction: column; gap: 16px; }
+    #overlay.hidden { display: none; }
+    #overlay p { color: white; font-size: 20px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #555; border-top-color: #27ae60; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #doneScreen { display: none; position: fixed; inset: 0; background: #121212; align-items: center; justify-content: center; flex-direction: column; gap: 20px; z-index: 200; }
+    #doneScreen.show { display: flex; }
+    #doneScreen h1 { font-size: 32px; text-align: center; }
+    #doneScreen p { color: #aaa; text-align: center; padding: 0 20px; }
+    #doneScreen a { color: #4caf50; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<div id="topBar">
+  <div id="progress">Loading...</div>
+  <div id="userDisplay">@user</div>
+</div>
+
+<div id="photos">
+  <div class="imgBox">
+    <div class="imgLabel">My Photo</div>
+    <img id="cropImg" src="" alt="pin">
+  </div>
+  <div class="imgBox">
+    <div class="imgLabel">eBay Match</div>
+    <img id="thumbImg" src="" alt="ebay">
+  </div>
+</div>
+
+<!-- Price row: edit eBay price before saving -->
+<div id="priceRow">
+  <div class="label">Price</div>
+  <input type="number" id="priceInput" min="0" step="1" placeholder="—">
+  <div id="priceHint">no $ or decimals · edit to override</div>
+</div>
+
+<div id="editArea">
+  <div>
+    <div class="label">eBay Title (tap to use ↓)</div>
+    <div id="ebayTitle" onclick="useEbayTitle()">—</div>
+  </div>
+  <div>
+    <div class="label">✨ AI Suggested Title (tap to use ↓)</div>
+    <div id="aiSuggestion" onclick="useAITitle()">—</div>
+  </div>
+  <div>
+    <div class="label">Your Whatnot Title</div>
+    <input type="text" id="titleInput" placeholder="Edit title here...">
+    <div id="charRow">
+      <div id="charCount">0 / 80 chars</div>
+      <button id="useAIBtn" onclick="useAITitle()">↑ Use AI Title</button>
+    </div>
+  </div>
+</div>
+
+<div id="actions">
+  <button id="btnMismatch" onclick="submitResult('mismatch')">❌ MISMATCH</button>
+  <button id="btnSave" onclick="submitResult('described')">✅ SAVE & NEXT</button>
+</div>
+
+<div id="overlay">
+  <div class="spinner"></div>
+  <p id="overlayMsg">Loading pins...</p>
+</div>
+
+<div id="doneScreen">
+  <h1>🎉 All Done!</h1>
+  <p>All pins have been described.<br>Open the reports page to export your Whatnot CSV.</p>
+  <a href="./reports.html">→ Go to Reports</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+
+// ── Firebase ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+  authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+  databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+  projectId: "fins-and-pins-click-to-claim",
+  storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+  messagingSenderId: "31512845258",
+  appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── Path from URL ─────────────────────────────────────────
+const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+const fbName = pathClean.split("/").pop() || "default";
+const fbPath = `description_training/${fbName}`;
+
+// ── User ──────────────────────────────────────────────────
+let user = localStorage.getItem("ctd_user") || "";
+if (!user) {
+  user = prompt("Enter your name:") || "Guest";
+  if (!user.startsWith("@")) user = "@" + user;
+  localStorage.setItem("ctd_user", user);
+}
+document.getElementById("userDisplay").textContent = user;
+
+// ── State ─────────────────────────────────────────────────
+let items = {}, itemKeys = [], validated = {};
+let currentKey = null;
+
+// ── Load ──────────────────────────────────────────────────
+setOverlay("Loading pins...");
+fetch("./pending_items.json")
+  .then(r => r.json())
+  .then(data => {
+    items = data;
+    itemKeys = Object.keys(data);
+    db.ref(fbPath).on("value", snap => {
+      validated = snap.val() || {};
+      hideOverlay();
+      loadNext();
+    });
+  })
+  .catch(() => setOverlay("⚠️ Could not load pending_items.json"));
+
+// ── Load next ─────────────────────────────────────────────
+function loadNext() {
+  currentKey = itemKeys.find(k => {
+    const v = validated[safeKey(k)];
+    return v && v.status === "reviewing" && v.reviewer === user;
+  }) || itemKeys.find(k => !validated[safeKey(k)]);
+
+  const done = Object.values(validated).filter(v =>
+    v.status === "described" || v.status === "mismatch").length;
+  document.getElementById("progress").textContent = `${done} / ${itemKeys.length} Done`;
+
+  if (!currentKey) {
+    document.getElementById("doneScreen").classList.add("show");
+    return;
+  }
+
+  if (!validated[safeKey(currentKey)] || validated[safeKey(currentKey)].status !== "reviewing") {
+    db.ref(`${fbPath}/${safeKey(currentKey)}`).update({ status: "reviewing", reviewer: user });
+  }
+
+  const item = items[currentKey];
+  document.getElementById("cropImg").src = item.crop || "";
+  document.getElementById("thumbImg").src = item.thumb || "";
+  document.getElementById("ebayTitle").textContent = item.title || "—";
+  document.getElementById("aiSuggestion").textContent = item.ai_title || item.title || "—";
+
+  // Pre-fill title input with AI suggestion
+  const titleInput = document.getElementById("titleInput");
+  titleInput.value = item.ai_title || item.title || "";
+  updateCharCount();
+
+  // Pre-fill price (integer, editable)
+  document.getElementById("priceInput").value = item.price != null ? Math.round(item.price) : "";
+}
+
+// ── Use eBay title ─────────────────────────────────────────
+function useEbayTitle() {
+  if (!currentKey) return;
+  document.getElementById("titleInput").value = items[currentKey].title || "";
+  updateCharCount();
+  document.getElementById("titleInput").focus();
+}
+
+// ── Use AI title ──────────────────────────────────────────
+function useAITitle() {
+  if (!currentKey) return;
+  const ai = items[currentKey].ai_title || items[currentKey].title || "";
+  document.getElementById("titleInput").value = ai;
+  updateCharCount();
+  document.getElementById("titleInput").focus();
+}
+
+// ── Char counter ──────────────────────────────────────────
+document.getElementById("titleInput").addEventListener("input", updateCharCount);
+function updateCharCount() {
+  const len = document.getElementById("titleInput").value.length;
+  document.getElementById("charCount").textContent = `${len} / 80 chars`;
+  document.getElementById("charCount").style.color = len > 80 ? "#e74c3c" : "#666";
+}
+
+// ── Submit ────────────────────────────────────────────────
+function submitResult(status) {
+  if (!currentKey) return;
+  const finalTitle = status === "mismatch"
+    ? "MISMATCH"
+    : document.getElementById("titleInput").value.trim();
+
+  const item = items[currentKey];
+  const wasEdited = finalTitle !== item.ai_title;
+
+  // Use edited price if provided, otherwise fall back to original
+  const priceRaw = document.getElementById("priceInput").value;
+  const finalPrice = priceRaw !== "" ? parseInt(priceRaw, 10) : item.price;
+
+  db.ref(`${fbPath}/${safeKey(currentKey)}`).set({
+    status,
+    reviewer: user,
+    timestamp: Date.now(),
+    filename: currentKey,
+    original_title: item.title,
+    ai_title: item.ai_title || "",
+    whatnot_title: finalTitle,
+    was_edited: wasEdited,
+    price: finalPrice,
+    source: item.source || ""
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function safeKey(k) { return k.replace(/\./g, "_"); }
+function setOverlay(msg) {
+  document.getElementById("overlayMsg").textContent = msg;
+  document.getElementById("overlay").classList.remove("hidden");
+}
+function hideOverlay() {
+  document.getElementById("overlay").classList.add("hidden");
+}
+
+</script>
+</body>
+</html>
