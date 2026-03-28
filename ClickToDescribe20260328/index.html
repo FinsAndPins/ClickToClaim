@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ClickToDescribe – Fins & Pins</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0; background: #111; color: #fff;
+      display: flex; flex-direction: column; height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* ── TOP BAR ── */
+    #topBar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 14px; background: #1a1a1a;
+      border-bottom: 1px solid #2a2a2a; flex-shrink: 0;
+    }
+    #progress { font-size: 13px; color: #888; }
+    #reviewerDisplay { font-size: 13px; color: #666; }
+
+    /* ── PHOTO ── */
+    #photoWrap {
+      flex: 1; min-height: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 10px 10px 6px;
+      background: #111;
+    }
+    #pinPhoto {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain; border-radius: 12px;
+      background: #222;
+    }
+
+    /* ── TITLE AREA ── */
+    #titleArea {
+      flex-shrink: 0;
+      padding: 8px 12px 6px;
+    }
+    #titleLabel {
+      font-size: 11px; color: #666; text-transform: uppercase;
+      letter-spacing: 0.6px; margin-bottom: 5px;
+    }
+    #titleInput {
+      width: 100%;
+      background: #1e1e1e; color: #4caf50;
+      border: 1.5px solid #2e4a2e; border-radius: 10px;
+      padding: 10px 12px; font-size: 16px; line-height: 1.35;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      resize: none; outline: none;
+      min-height: 58px;
+    }
+    #titleInput:focus { border-color: #4caf50; }
+
+    /* ── BUTTONS ── */
+    #btnRow {
+      flex-shrink: 0;
+      display: flex; gap: 10px;
+      padding: 8px 12px 14px;
+      padding-bottom: max(14px, env(safe-area-inset-bottom));
+    }
+    #confirmBtn {
+      flex: 1;
+      background: #27ae60; color: #fff;
+      border: none; border-radius: 14px;
+      font-size: 20px; font-weight: 700;
+      padding: 16px 10px; cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: background 0.15s, transform 0.1s;
+      -webkit-user-select: none; user-select: none;
+    }
+    #confirmBtn:active { background: #1e8449; transform: scale(0.97); }
+
+    #nextBtn {
+      background: #2a2a2a; color: #888;
+      border: 1px solid #333; border-radius: 14px;
+      font-size: 15px; font-weight: 500;
+      padding: 16px 18px; cursor: pointer;
+      white-space: nowrap;
+      -webkit-user-select: none; user-select: none;
+    }
+    #nextBtn:active { background: #1a1a1a; color: #aaa; }
+
+    /* ── LOADING / DONE SCREENS ── */
+    #loadScreen {
+      position: fixed; inset: 0; background: #111;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+      z-index: 10;
+    }
+    #loadScreen p { color: #888; font-size: 15px; margin: 0; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #333; border-top-color: #27ae60;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #doneScreen {
+      position: fixed; inset: 0; background: #111;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px; padding: 30px;
+    }
+    #doneScreen h2 { font-size: 28px; margin: 0; color: #27ae60; }
+    #doneScreen p { color: #888; font-size: 16px; margin: 0; text-align: center; }
+
+    /* ── REVIEWER MODAL ── */
+    #reviewerModal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 20; padding: 20px;
+    }
+    .modalBox {
+      background: #1e1e1e; border-radius: 16px;
+      padding: 28px 24px; width: 100%; max-width: 360px;
+    }
+    .modalBox h3 { margin: 0 0 6px; font-size: 20px; }
+    .modalBox p { margin: 0 0 18px; color: #888; font-size: 14px; }
+    .modalBox input {
+      width: 100%; background: #2a2a2a; color: #fff;
+      border: 1.5px solid #444; border-radius: 10px;
+      padding: 12px 14px; font-size: 18px; outline: none;
+      font-family: inherit; margin-bottom: 14px;
+    }
+    .modalBox input:focus { border-color: #27ae60; }
+    .modalBox button {
+      width: 100%; background: #27ae60; color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 18px; font-weight: 700;
+      padding: 14px; cursor: pointer;
+    }
+    .modalBox button:active { background: #1e8449; }
+  </style>
+</head>
+<body>
+
+<!-- Reviewer modal -->
+<div id="reviewerModal" style="display:none;">
+  <div class="modalBox">
+    <h3>Who are you?</h3>
+    <p>Enter your Whatnot handle</p>
+    <input id="reviewerInput" type="text" placeholder="@YourHandle" autocomplete="off">
+    <button id="reviewerSaveBtn">Start Reviewing</button>
+  </div>
+</div>
+
+<!-- Loading screen -->
+<div id="loadScreen">
+  <div class="spinner"></div>
+  <p id="loadMsg">Loading pins…</p>
+</div>
+
+<!-- Done screen -->
+<div id="doneScreen">
+  <h2>🎉 All done!</h2>
+  <p id="doneMsg">You've reviewed all available pins for this session.</p>
+</div>
+
+<!-- Main UI (hidden until ready) -->
+<div id="topBar" style="display:none;">
+  <span id="progress">– / –</span>
+  <span id="reviewerDisplay"></span>
+</div>
+
+<div id="photoWrap" style="display:none;">
+  <img id="pinPhoto" src="" alt="Pin photo">
+</div>
+
+<div id="titleArea" style="display:none;">
+  <div id="titleLabel">AI Title — tap to edit</div>
+  <textarea id="titleInput" rows="2" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"></textarea>
+</div>
+
+<div id="btnRow" style="display:none;">
+  <button id="confirmBtn">✓ Confirm</button>
+  <button id="nextBtn">Next →</button>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+  authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+  databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+  projectId: "fins-and-pins-click-to-claim",
+  storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+  messagingSenderId: "31512845258",
+  appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const FB_PATH = 'description_review/ClickToDescribe20260328';
+const PENDING_URL = '../ClickToDescribeAI20260326v2/pending_items.json';
+const LS_REVIEWER = 'fp_reviewer_describe';
+
+let reviewer = '';
+let queue = [];       // pending filenames not yet confirmed
+let currentIdx = 0;
+let allPins = {};     // filename → pin data
+let confirmed = {};   // filename → true
+
+// ── REVIEWER SETUP ───────────────────────────────────────────────────────────
+function initReviewer() {
+  const saved = localStorage.getItem(LS_REVIEWER);
+  if (saved) {
+    reviewer = saved;
+    start();
+  } else {
+    document.getElementById('reviewerModal').style.display = 'flex';
+    document.getElementById('reviewerInput').focus();
+  }
+}
+
+document.getElementById('reviewerSaveBtn').addEventListener('click', () => {
+  const val = document.getElementById('reviewerInput').value.trim();
+  if (!val) return;
+  reviewer = val.startsWith('@') ? val : '@' + val;
+  localStorage.setItem(LS_REVIEWER, reviewer);
+  document.getElementById('reviewerModal').style.display = 'none';
+  start();
+});
+document.getElementById('reviewerInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('reviewerSaveBtn').click();
+});
+
+// ── MAIN FLOW ────────────────────────────────────────────────────────────────
+async function start() {
+  setLoad('Loading pins…');
+
+  // 1. Fetch pending_items.json
+  let pending;
+  try {
+    const res = await fetch(PENDING_URL);
+    pending = await res.json();
+  } catch (e) {
+    setLoad('❌ Could not load pending_items.json');
+    return;
+  }
+  allPins = pending;
+
+  // 2. Fetch already-confirmed from Firebase
+  setLoad('Checking progress…');
+  const snap = await db.ref(FB_PATH).get();
+  confirmed = snap.exists() ? snap.val() : {};
+
+  // 3. Build queue (unconfirmed pins only)
+  const allKeys = Object.keys(pending);
+  queue = allKeys.filter(k => !confirmed[k.replace(/\./g, '_')]);
+
+  document.getElementById('loadScreen').style.display = 'none';
+
+  if (queue.length === 0) {
+    showDone(allKeys.length);
+    return;
+  }
+
+  showMainUI();
+  showPin(0);
+}
+
+function setLoad(msg) {
+  document.getElementById('loadMsg').textContent = msg;
+  document.getElementById('loadScreen').style.display = 'flex';
+}
+
+function showMainUI() {
+  ['topBar','photoWrap','titleArea','btnRow'].forEach(id => {
+    document.getElementById(id).style.display = '';
+  });
+  document.getElementById('reviewerDisplay').textContent = reviewer;
+}
+
+function showPin(idx) {
+  currentIdx = idx;
+  if (idx >= queue.length) {
+    showDone(Object.keys(allPins).length);
+    return;
+  }
+
+  const filename = queue[idx];
+  const pin = allPins[filename];
+
+  // Progress
+  const total = Object.keys(allPins).length;
+  const done = total - queue.length + idx;
+  document.getElementById('progress').textContent =
+    `${done + 1} / ${total}  (${queue.length - idx} left)`;
+
+  // Photo
+  const photo = document.getElementById('pinPhoto');
+  photo.src = '';
+  photo.src = pin.crop || pin.thumb || '';
+
+  // Title
+  document.getElementById('titleInput').value = pin.ai_title || pin.title || '';
+}
+
+function showDone(total) {
+  ['topBar','photoWrap','titleArea','btnRow'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('doneScreen').style.display = 'flex';
+  document.getElementById('doneMsg').textContent =
+    `All ${total} titles reviewed. Great work, ${reviewer}!`;
+}
+
+// ── CONFIRM ──────────────────────────────────────────────────────────────────
+document.getElementById('confirmBtn').addEventListener('click', async () => {
+  const filename = queue[currentIdx];
+  const pin = allPins[filename];
+  const finalTitle = document.getElementById('titleInput').value.trim();
+  const aiTitle = pin.ai_title || pin.title || '';
+  const wasEdited = finalTitle !== aiTitle;
+
+  const key = filename.replace(/\./g, '_');
+  await db.ref(`${FB_PATH}/${key}`).set({
+    filename,
+    ai_title: aiTitle,
+    final_title: finalTitle,
+    was_edited: wasEdited,
+    reviewer,
+    timestamp: Date.now(),
+    status: 'confirmed'
+  });
+
+  confirmed[key] = true;
+  showPin(currentIdx + 1);
+});
+
+// ── NEXT (skip) ──────────────────────────────────────────────────────────────
+document.getElementById('nextBtn').addEventListener('click', () => {
+  showPin(currentIdx + 1);
+});
+
+// ── KICK OFF ────────────────────────────────────────────────────────────────
+initReviewer();
+</script>
+</body>
+</html>
