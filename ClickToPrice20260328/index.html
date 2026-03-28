@@ -309,7 +309,10 @@ async function start() {
   confirmed = snap.exists() ? snap.val() : {};
 
   const allKeys = Object.keys(pending);
-  queue = allKeys.filter(k => !confirmed[k.replace(/\./g, '_')]);
+  queue = seededShuffle(
+    allKeys.filter(k => !confirmed[k.replace(/\./g, '_')]),
+    strToSeed(reviewer)
+  );
 
   document.getElementById('loadScreen').style.display = 'none';
 
@@ -402,6 +405,26 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
 document.getElementById('nextBtn').addEventListener('click', () => {
   showPin(currentIdx + 1);
 });
+
+// ── SEEDED SHUFFLE ───────────────────────────────────────────────────────────
+function strToSeed(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+  return h >>> 0;
+}
+function seededShuffle(arr, seed) {
+  let s = seed;
+  function rand() {
+    s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+    return (s >>> 0) / 0x100000000;
+  }
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 // ── KICK OFF ────────────────────────────────────────────────────────────────
 initReviewer();
