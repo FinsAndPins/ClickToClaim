@@ -357,7 +357,7 @@ function showPin(idx) {
     `${done + 1} / ${total}  (${queue.length - idx} left)`;
 
   // Title strip
-  document.getElementById('pinTitle').value = pin.ai_title || pin.title || filename;
+  document.getElementById('pinTitle').value = cleanTitle(pin.ai_title || pin.title || filename);
   updateBackBtn();
 
   // Photo
@@ -439,6 +439,16 @@ document.getElementById('backBtn').addEventListener('click', async () => {
 
 function updateBackBtn() {
   document.getElementById('backBtn').disabled = history.length === 0;
+}
+
+// ── TITLE CLEANUP ────────────────────────────────────────────────────────────
+function cleanTitle(t) {
+  if (!t) return '';
+  t = t.replace(/\b(new\s+in\s+package|NIP|various)\b/gi, '');
+  t = t.replace(/\bLE\s*[/]?\s*\d+\b/g, 'LE');
+  t = t.replace(/\bLimited\s+Edition\s+(?:of\s+)?\d+\b/gi, 'Limited Edition');
+  t = t.replace(/\s{2,}/g, ' ').replace(/^[\s,\-–]+|[\s,\-–]+$/g, '').trim();
+  return t;
 }
 
 // ── SEEDED SHUFFLE ───────────────────────────────────────────────────────────

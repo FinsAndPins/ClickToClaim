@@ -302,7 +302,7 @@ function showPin(idx) {
   photo.src = pin.crop || pin.thumb || '';
 
   // Title
-  document.getElementById('titleInput').value = pin.ai_title || pin.title || '';
+  document.getElementById('titleInput').value = cleanTitle(pin.ai_title || pin.title || '');
 }
 
 function showDone(total) {
@@ -341,6 +341,20 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
 document.getElementById('nextBtn').addEventListener('click', () => {
   showPin(currentIdx + 1);
 });
+
+// ── TITLE CLEANUP ────────────────────────────────────────────────────────────
+function cleanTitle(t) {
+  if (!t) return '';
+  // Remove "NIP", "new in package", "various" (whole word/phrase, case-insensitive)
+  t = t.replace(/\b(new\s+in\s+package|NIP|various)\b/gi, '');
+  // Remove edition size number after LE or Limited Edition
+  // e.g. "LE 500" → "LE",  "LE/500" → "LE",  "Limited Edition 300" → "Limited Edition"
+  t = t.replace(/\bLE\s*[/]?\s*\d+\b/g, 'LE');
+  t = t.replace(/\bLimited\s+Edition\s+(?:of\s+)?\d+\b/gi, 'Limited Edition');
+  // Collapse extra spaces and strip stray leading/trailing punctuation
+  t = t.replace(/\s{2,}/g, ' ').replace(/^[\s,\-–]+|[\s,\-–]+$/g, '').trim();
+  return t;
+}
 
 // ── SEEDED SHUFFLE ───────────────────────────────────────────────────────────
 function strToSeed(s) {
