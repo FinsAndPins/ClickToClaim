@@ -32,7 +32,14 @@
     }
     #pinTitle {
       font-size: 13px; color: #aaa; line-height: 1.3;
+      width: 100%; background: transparent;
+      border: none; border-bottom: 1.5px solid transparent;
+      outline: none; font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: text; padding: 0;
+    }
+    #pinTitle:focus {
+      border-bottom-color: #e67e22; color: #fff;
     }
 
     /* ── PHOTO ── */
@@ -115,7 +122,7 @@
     }
     #confirmBtn:active { background: #ca6f1e; transform: scale(0.97); }
 
-    #nextBtn {
+    #nextBtn, #backBtn {
       background: #2a2a2a; color: #888;
       border: 1px solid #333; border-radius: 14px;
       font-size: 15px; font-weight: 500;
@@ -123,7 +130,8 @@
       white-space: nowrap;
       -webkit-user-select: none; user-select: none;
     }
-    #nextBtn:active { background: #1a1a1a; color: #aaa; }
+    #nextBtn:active, #backBtn:not(:disabled):active { background: #1a1a1a; color: #aaa; }
+    #backBtn:disabled { opacity: 0.25; cursor: default; }
 
     /* ── LOADING / DONE ── */
     #loadScreen {
@@ -207,7 +215,7 @@
 </div>
 
 <div id="titleStrip" style="display:none;">
-  <div id="pinTitle">—</div>
+  <input id="pinTitle" type="text" value="—" autocomplete="off" autocorrect="off" spellcheck="false">
 </div>
 
 <div id="photoWrap" style="display:none;">
@@ -236,8 +244,9 @@
 </div>
 
 <div id="btnRow" style="display:none;">
+  <button id="backBtn" disabled>← Back</button>
   <button id="confirmBtn">$ Confirm Price</button>
-  <button id="nextBtn">Next →</button>
+  <button id="nextBtn">Skip →</button>
 </div>
 
 <!-- Firebase SDK -->
@@ -265,6 +274,7 @@ let queue = [];
 let currentIdx = 0;
 let allPins = {};
 let confirmed = {};
+let history = [];   // [{idx, confirmed, key}]
 
 // Pricing rules: $10 floor, round to nearest $5
 function adjustPrice(raw) {
@@ -347,7 +357,8 @@ function showPin(idx) {
     `${done + 1} / ${total}  (${queue.length - idx} left)`;
 
   // Title strip
-  document.getElementById('pinTitle').textContent = pin.ai_title || pin.title || filename;
+  document.getElementById('pinTitle').value = pin.ai_title || pin.title || filename;
+  updateBackBtn();
 
   // Photo
   const photo = document.getElementById('pinPhoto');
@@ -385,6 +396,8 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   const finalPrice = parseInt(document.getElementById('priceInput').value) || 10;
   const suggestedPrice = adjustPrice(pin.price);
   const wasAdjusted = finalPrice !== suggestedPrice;
+  const finalTitle = document.getElementById('pinTitle').value.trim() || pin.ai_title || pin.title || filename;
+  const titleEdited = finalTitle !== (pin.ai_title || pin.title || filename);
 
   const key = filename.replace(/\./g, '_');
   await db.ref(`${FB_PATH}/${key}`).set({
@@ -393,18 +406,40 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
     suggested_price: suggestedPrice,
     final_price: finalPrice,
     was_adjusted: wasAdjusted,
+    final_title: finalTitle,
+    title_edited: titleEdited,
     reviewer,
     timestamp: Date.now()
   });
 
+  history.push({ idx: currentIdx, confirmed: true, key });
+  if (history.length > 3) history.shift();
   confirmed[key] = true;
+  allPins[filename].ai_title = finalTitle;  // keep edit if user goes back then re-confirms
   showPin(currentIdx + 1);
 });
 
 // ── NEXT (skip) ──────────────────────────────────────────────────────────────
 document.getElementById('nextBtn').addEventListener('click', () => {
+  history.push({ idx: currentIdx, confirmed: false });
+  if (history.length > 3) history.shift();
   showPin(currentIdx + 1);
 });
+
+// ── BACK ──────────────────────────────────────────────────────────────────────
+document.getElementById('backBtn').addEventListener('click', async () => {
+  if (history.length === 0) return;
+  const last = history.pop();
+  if (last.confirmed) {
+    await db.ref(`${FB_PATH}/${last.key}`).remove();
+    delete confirmed[last.key];
+  }
+  showPin(last.idx);
+});
+
+function updateBackBtn() {
+  document.getElementById('backBtn').disabled = history.length === 0;
+}
 
 // ── SEEDED SHUFFLE ───────────────────────────────────────────────────────────
 function strToSeed(s) {
