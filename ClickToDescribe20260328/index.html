@@ -75,7 +75,7 @@
     }
     #confirmBtn:active { background: #1e8449; transform: scale(0.97); }
 
-    #nextBtn {
+    #nextBtn, #backBtn {
       background: #2a2a2a; color: #888;
       border: 1px solid #333; border-radius: 14px;
       font-size: 15px; font-weight: 500;
@@ -83,7 +83,21 @@
       white-space: nowrap;
       -webkit-user-select: none; user-select: none;
     }
-    #nextBtn:active { background: #1a1a1a; color: #aaa; }
+    #nextBtn:active, #backBtn:not(:disabled):active { background: #1a1a1a; color: #aaa; }
+    #backBtn:disabled { opacity: 0.25; cursor: default; }
+    #dontKnowRow {
+      flex-shrink: 0;
+      padding: 0 12px 6px;
+    }
+    #dontKnowBtn {
+      width: 100%;
+      background: #2a2a2a; color: #666;
+      border: 1px solid #333; border-radius: 14px;
+      font-size: 15px; font-weight: 500;
+      padding: 12px; cursor: pointer;
+      -webkit-user-select: none; user-select: none;
+    }
+    #dontKnowBtn:active { background: #1a1a1a; color: #888; }
 
     /* ── LOADING / DONE SCREENS ── */
     #loadScreen {
@@ -175,7 +189,11 @@
   <textarea id="titleInput" rows="2" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"></textarea>
 </div>
 
+<div id="dontKnowRow" style="display:none;">
+  <button id="dontKnowBtn">Don't Know</button>
+</div>
 <div id="btnRow" style="display:none;">
+  <button id="backBtn" disabled>← Back</button>
   <button id="confirmBtn">✓ Confirm</button>
   <button id="nextBtn">Next →</button>
 </div>
@@ -205,6 +223,7 @@ let queue = [];       // pending filenames not yet confirmed
 let currentIdx = 0;
 let allPins = {};     // filename → pin data
 let confirmed = {};   // filename → true
+let history = [];     // [{idx, saved, key}] — max 3
 
 // ── REVIEWER SETUP ───────────────────────────────────────────────────────────
 function initReviewer() {
@@ -274,7 +293,7 @@ function setLoad(msg) {
 }
 
 function showMainUI() {
-  ['topBar','photoWrap','titleArea','btnRow'].forEach(id => {
+  ['topBar','photoWrap','titleArea','dontKnowRow','btnRow'].forEach(id => {
     document.getElementById(id).style.display = '';
   });
   document.getElementById('reviewerDisplay').textContent = reviewer;
@@ -303,10 +322,15 @@ function showPin(idx) {
 
   // Title
   document.getElementById('titleInput').value = cleanTitle(pin.ai_title || pin.title || '');
+  updateBackBtn();
+}
+
+function updateBackBtn() {
+  document.getElementById('backBtn').disabled = history.length === 0;
 }
 
 function showDone(total) {
-  ['topBar','photoWrap','titleArea','btnRow'].forEach(id => {
+  ['topBar','photoWrap','titleArea','dontKnowRow','btnRow'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
   document.getElementById('doneScreen').style.display = 'flex';
@@ -334,11 +358,45 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   });
 
   confirmed[key] = true;
+  history.push({ idx: currentIdx, saved: true, key });
+  if (history.length > 3) history.shift();
   showPin(currentIdx + 1);
+});
+
+// ── DONT KNOW ────────────────────────────────────────────────────────────────
+document.getElementById('dontKnowBtn').addEventListener('click', async () => {
+  const filename = queue[currentIdx];
+  const key = filename.replace(/\./g, '_');
+  await db.ref(`${FB_PATH}/${key}`).set({
+    filename,
+    ai_title: allPins[filename].ai_title || allPins[filename].title || '',
+    final_title: null,
+    was_edited: false,
+    reviewer,
+    timestamp: Date.now(),
+    status: 'dont_know'
+  });
+  confirmed[key] = true;
+  history.push({ idx: currentIdx, saved: true, key });
+  if (history.length > 3) history.shift();
+  showPin(currentIdx + 1);
+});
+
+// ── BACK ─────────────────────────────────────────────────────────────────────
+document.getElementById('backBtn').addEventListener('click', async () => {
+  if (history.length === 0) return;
+  const last = history.pop();
+  if (last.saved) {
+    await db.ref(`${FB_PATH}/${last.key}`).remove();
+    delete confirmed[last.key];
+  }
+  showPin(last.idx);
 });
 
 // ── NEXT (skip) ──────────────────────────────────────────────────────────────
 document.getElementById('nextBtn').addEventListener('click', () => {
+  history.push({ idx: currentIdx, saved: false, key: null });
+  if (history.length > 3) history.shift();
   showPin(currentIdx + 1);
 });
 
