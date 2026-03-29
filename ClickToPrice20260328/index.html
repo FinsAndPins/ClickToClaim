@@ -151,10 +151,12 @@
     #doneScreen {
       position: fixed; inset: 0; background: #111;
       display: none; flex-direction: column;
-      align-items: center; justify-content: center; gap: 16px; padding: 30px;
+      align-items: center; justify-content: center; gap: 10px; padding: 30px;
     }
-    #doneScreen h2 { font-size: 28px; margin: 0; color: #e67e22; }
-    #doneScreen p { color: #888; font-size: 16px; margin: 0; text-align: center; }
+    #doneScreen .done-emoji { font-size: 80px; line-height: 1; margin-bottom: 6px; }
+    #doneScreen h2 { font-size: 36px; margin: 0; color: #e67e22; }
+    #doneScreen .done-sub { font-size: 22px; color: #e67e22; margin: 0; }
+    #doneScreen p { color: #888; font-size: 15px; margin: 0; text-align: center; }
 
     /* ── REVIEWER MODAL ── */
     #reviewerModal {
@@ -204,8 +206,10 @@
 
 <!-- Done screen -->
 <div id="doneScreen">
-  <h2>💰 All priced!</h2>
-  <p id="doneMsg">Every pin has a confirmed price.</p>
+  <div class="done-emoji">💰</div>
+  <h2>Congratulations!</h2>
+  <p class="done-sub" id="doneMsg"></p>
+  <p id="doneStats"></p>
 </div>
 
 <!-- Main UI -->
@@ -275,6 +279,7 @@ let currentIdx = 0;
 let allPins = {};
 let confirmed = {};
 let history = [];   // [{idx, confirmed, key}]
+let sessionCount = 0;
 
 // Pricing rules: $10 floor, round to nearest $5
 function adjustPrice(raw) {
@@ -318,11 +323,17 @@ async function start() {
   const snap = await db.ref(FB_PATH).get();
   confirmed = snap.exists() ? snap.val() : {};
 
+  // Fetch title-confirmed pins to prioritize (show those first)
+  const titleSnap = await db.ref('description_review/ClickToDescribe20260328').get();
+  const titleConfirmed = titleSnap.exists() ? titleSnap.val() : {};
+
+  // Build queue: title-confirmed pins first, then rest (each group seeded-shuffled)
   const allKeys = Object.keys(pending);
-  queue = seededShuffle(
-    allKeys.filter(k => !confirmed[k.replace(/\./g, '_')]),
-    strToSeed(reviewer)
-  );
+  const seed = strToSeed(reviewer);
+  const unconfirmed = allKeys.filter(k => !confirmed[k.replace(/\./g, '_')]);
+  const priority = unconfirmed.filter(k =>  titleConfirmed[k.replace(/\./g, '_')]);
+  const rest     = unconfirmed.filter(k => !titleConfirmed[k.replace(/\./g, '_')]);
+  queue = [...seededShuffle(priority, seed), ...seededShuffle(rest, seed)];
 
   document.getElementById('loadScreen').style.display = 'none';
 
@@ -378,8 +389,10 @@ function showDone(total) {
     document.getElementById(id).style.display = 'none';
   });
   document.getElementById('doneScreen').style.display = 'flex';
-  document.getElementById('doneMsg').textContent =
-    `All ${total} pins priced! Nice work, ${reviewer}.`;
+  document.getElementById('doneMsg').textContent = `All ${total} pins priced!`;
+  document.getElementById('doneStats').textContent = sessionCount > 0
+    ? `You confirmed ${sessionCount} pin${sessionCount !== 1 ? 's' : ''} this session. Amazing work, ${reviewer}!`
+    : `Great work, ${reviewer}! You can close this tab.`;
 }
 
 // ── QUICK PRICE CHIPS ────────────────────────────────────────────────────────
@@ -415,6 +428,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   history.push({ idx: currentIdx, confirmed: true, key });
   if (history.length > 3) history.shift();
   confirmed[key] = true;
+  sessionCount++;
   allPins[filename].ai_title = finalTitle;  // keep edit if user goes back then re-confirms
   showPin(currentIdx + 1);
 });
@@ -433,6 +447,7 @@ document.getElementById('backBtn').addEventListener('click', async () => {
   if (last.confirmed) {
     await db.ref(`${FB_PATH}/${last.key}`).remove();
     delete confirmed[last.key];
+    sessionCount = Math.max(0, sessionCount - 1);
   }
   showPin(last.idx);
 });

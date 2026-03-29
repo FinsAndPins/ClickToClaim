@@ -117,10 +117,12 @@
     #doneScreen {
       position: fixed; inset: 0; background: #111;
       display: none; flex-direction: column;
-      align-items: center; justify-content: center; gap: 16px; padding: 30px;
+      align-items: center; justify-content: center; gap: 10px; padding: 30px;
     }
-    #doneScreen h2 { font-size: 28px; margin: 0; color: #27ae60; }
-    #doneScreen p { color: #888; font-size: 16px; margin: 0; text-align: center; }
+    #doneScreen .done-emoji { font-size: 80px; line-height: 1; margin-bottom: 6px; }
+    #doneScreen h2 { font-size: 36px; margin: 0; color: #27ae60; }
+    #doneScreen .done-sub { font-size: 22px; color: #27ae60; margin: 0; }
+    #doneScreen p { color: #888; font-size: 15px; margin: 0; text-align: center; }
 
     /* ── REVIEWER MODAL ── */
     #reviewerModal {
@@ -170,8 +172,10 @@
 
 <!-- Done screen -->
 <div id="doneScreen">
-  <h2>🎉 All done!</h2>
-  <p id="doneMsg">You've reviewed all available pins for this session.</p>
+  <div class="done-emoji">🎉</div>
+  <h2>Congratulations!</h2>
+  <p class="done-sub" id="doneMsg"></p>
+  <p id="doneStats"></p>
 </div>
 
 <!-- Main UI (hidden until ready) -->
@@ -224,6 +228,7 @@ let currentIdx = 0;
 let allPins = {};     // filename → pin data
 let confirmed = {};   // filename → true
 let history = [];     // [{idx, saved, key}] — max 3
+let sessionCount = 0; // pins confirmed this session
 
 // ── REVIEWER SETUP ───────────────────────────────────────────────────────────
 function initReviewer() {
@@ -269,12 +274,17 @@ async function start() {
   const snap = await db.ref(FB_PATH).get();
   confirmed = snap.exists() ? snap.val() : {};
 
-  // 3. Build queue (unconfirmed pins only), shuffled by reviewer name
+  // 3. Fetch price-confirmed pins to prioritize (show those first)
+  const priceSnap = await db.ref('price_review/ClickToPrice20260328').get();
+  const priceConfirmed = priceSnap.exists() ? priceSnap.val() : {};
+
+  // 4. Build queue: price-confirmed pins first, then rest (each group seeded-shuffled)
   const allKeys = Object.keys(pending);
-  queue = seededShuffle(
-    allKeys.filter(k => !confirmed[k.replace(/\./g, '_')]),
-    strToSeed(reviewer)
-  );
+  const seed = strToSeed(reviewer);
+  const unconfirmed = allKeys.filter(k => !confirmed[k.replace(/\./g, '_')]);
+  const priority = unconfirmed.filter(k =>  priceConfirmed[k.replace(/\./g, '_')]);
+  const rest     = unconfirmed.filter(k => !priceConfirmed[k.replace(/\./g, '_')]);
+  queue = [...seededShuffle(priority, seed), ...seededShuffle(rest, seed)];
 
   document.getElementById('loadScreen').style.display = 'none';
 
@@ -334,8 +344,10 @@ function showDone(total) {
     document.getElementById(id).style.display = 'none';
   });
   document.getElementById('doneScreen').style.display = 'flex';
-  document.getElementById('doneMsg').textContent =
-    `All ${total} titles reviewed. Great work, ${reviewer}!`;
+  document.getElementById('doneMsg').textContent = `All ${total} titles reviewed!`;
+  document.getElementById('doneStats').textContent = sessionCount > 0
+    ? `You confirmed ${sessionCount} pin${sessionCount !== 1 ? 's' : ''} this session. Amazing work, ${reviewer}!`
+    : `Great work, ${reviewer}! You can close this tab.`;
 }
 
 // ── CONFIRM ──────────────────────────────────────────────────────────────────
@@ -358,6 +370,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   });
 
   confirmed[key] = true;
+  sessionCount++;
   history.push({ idx: currentIdx, saved: true, key });
   if (history.length > 3) history.shift();
   showPin(currentIdx + 1);
@@ -377,6 +390,7 @@ document.getElementById('dontKnowBtn').addEventListener('click', async () => {
     status: 'dont_know'
   });
   confirmed[key] = true;
+  sessionCount++;
   history.push({ idx: currentIdx, saved: true, key });
   if (history.length > 3) history.shift();
   showPin(currentIdx + 1);
@@ -389,6 +403,7 @@ document.getElementById('backBtn').addEventListener('click', async () => {
   if (last.saved) {
     await db.ref(`${FB_PATH}/${last.key}`).remove();
     delete confirmed[last.key];
+    sessionCount = Math.max(0, sessionCount - 1);
   }
   showPin(last.idx);
 });
