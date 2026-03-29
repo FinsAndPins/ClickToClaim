@@ -62,8 +62,14 @@
 <h2 id="showTitle">Show Date</h2>
 
 <div id="globalCounts">
-    <div>Total Pins: <span id="totalPins">0</span> &nbsp;|&nbsp; My Requests: <span id="totalMyClaims">0</span></div>
-    <div id="adminGlobalDisplay" style="display:none; color: #28a745; margin-top: 3px; font-size: 16px;">Show Total Requested: <span id="adminTotalRequested">0</span></div>
+    <div id="userStatsRow">Total Pins: <span id="totalPins">0</span> &nbsp;|&nbsp; My Requests: <span id="totalMyClaims">0</span></div>
+    <div id="adminGlobalDisplay" style="display:none; color: #28a745; margin-top: 3px; font-size: 15px;">
+        Total Pins: <span id="adminTotalPins">0</span> &nbsp;|&nbsp;
+        Requested: <span id="adminTotalRequested">0</span> &nbsp;|&nbsp;
+        Unique: <span id="adminUnique">0</span> &nbsp;|&nbsp;
+        Contested: <span id="adminContested">0</span> &nbsp;|&nbsp;
+        Users: <span id="adminTotalUsers">0</span>
+    </div>
     <div id="syncStatus">📡 Connecting to Firebase...</div>
     <div id="countdownArea"></div>
     <div id="fuelGaugeArea">
@@ -116,6 +122,7 @@ if (isAdmin) {
     reportBtn.style.display = 'block';
     reportBtn.href = `reports.html?admin=${ADMIN_KEY}`;
     document.getElementById('adminGlobalDisplay').style.display = 'block';
+    document.getElementById('userStatsRow').style.display = 'none';
 }
 
 let currentUser = localStorage.getItem('fp_username') || "";
@@ -202,7 +209,7 @@ function updateFuelGauge(requested) {
     textEl.textContent   = `${requested} / ${FUEL_MAX}`;
     const left = FUEL_MAX - requested;
     if (left <= 0)
-        spotsEl.innerHTML = `<strong style="color:#dc3545">⚠️ FULL – no spots left!</strong>`;
+        spotsEl.innerHTML = `<strong style="color:#dc3545">🔥 ${requested} pins requested!</strong>`;
     else if (left <= 20)
         spotsEl.innerHTML = `<strong style="color:#fd7e14">⚠️ Only ${left} spots left!</strong>`;
     else
@@ -352,16 +359,26 @@ function updateBoardDisplay(name) {
 }
 
 function calculateGlobals() {
-    let total = 0, my = 0, globalRequested = 0;
+    let total = 0, my = 0, globalRequested = 0, globalUnique = 0, globalContested = 0;
+    const allUsers = new Set();
     Object.values(boardsState).forEach(s => {
         total += s.totalPins;
         my    += s.myClaims;
         globalRequested += s.globalBoardClaims;
+        Object.values(s.allClaims).forEach(uMap => {
+            const cnt = Object.keys(uMap).length;
+            if (cnt === 1) globalUnique++; else globalContested++;
+            Object.keys(uMap).forEach(u => allUsers.add(u));
+        });
     });
     document.getElementById("totalPins").textContent     = total;
     document.getElementById("totalMyClaims").textContent = my;
     if (isAdmin) {
+        document.getElementById("adminTotalPins").textContent      = total;
         document.getElementById("adminTotalRequested").textContent = globalRequested;
+        document.getElementById("adminUnique").textContent         = globalUnique;
+        document.getElementById("adminContested").textContent      = globalContested;
+        document.getElementById("adminTotalUsers").textContent     = allUsers.size;
     }
     updateFuelGauge(globalRequested);
 }
