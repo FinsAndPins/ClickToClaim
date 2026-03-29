@@ -15,19 +15,23 @@
         .badge-pull { background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
         .badge-wait { background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
         .feedback-msg { background: #fff9c4; padding: 10px; border-radius: 4px; margin-bottom: 5px; border-left: 4px solid #fbc02d; }
+        #summaryTable td:first-child { font-weight: bold; color: #333; font-size: 16px; }
+        #summaryTable td:last-child { color: #0066aa; font-size: 15px; }
     </style>
 </head>
 <body>
 <div id="authContent" style="display:none;">
-    <div class="header"><h1>Reports</h1><div><button class="btn" style="background:#28a745" onclick="downloadCSV()">CSV</button> <a id="backBtn" href="index.html" class="btn">Back</a></div></div>
-    
-    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
-    
-    <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
-    
-    <section><h2>3. Popularity (Most Requested)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+    <div class="header"><h1>Reports</h1><div><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
 
-    <section><h2>4. Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
+    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
+
+    <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+
+    <section><h2>3. Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+
+    <section><h2>4. Click Summary</h2><table id="summaryTable"><thead><tr><th>Clicks</th><th>Pins</th></tr></thead><tbody></tbody></table></section>
+
+    <section><h2>5. Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
 </div>
 <div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
 
@@ -52,7 +56,7 @@ function checkAuth(m=false) {
 checkAuth();
 
 async function loadData() {
-    const path = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, ""); 
+    const path = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
     const folder = decodeURIComponent(path.split("/").pop() || "default");
     const fbName = folder.replace(/\s+/g, '_');
     const manifest = await (await fetch("./boards/manifest.json")).json();
@@ -81,9 +85,9 @@ function renderReports() {
         const cleanLoc = `Board ${bNum} (Pin ${parseInt(pIdx)+1})`;
         const uList = Object.entries(users).sort((a,b) => a[1].time - b[1].time);
         const isUnique = uList.length === 1;
-        
+
         popularity.push({ pin: pk, display: cleanLoc, count: uList.length, users: Object.keys(users).join(', ') });
-        
+
         uList.forEach(([u, m]) => {
             const user = u.toLowerCase();
             if (!userStats[user]) userStats[user] = { last: 0, unique: 0, contested: 0 };
@@ -107,20 +111,20 @@ function renderReports() {
             <td><a href="index.html?admin=${ADMIN_KEY}#pin-${f.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
         </tr>`).join('');
 
-    document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).filter(p => p.count > 0).map(p => `
+    // Popularity: only show pins with 2+ clicks
+    document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).filter(p => p.count > 1).map(p => `
         <tr>
             <td>${p.display}</td><td>${p.count}</td><td>${p.users}</td>
             <td><a href="index.html?admin=${ADMIN_KEY}#pin-${p.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
-        </tr>`).join('');
-}
+        </tr>`).join('') || '<tr><td colspan="4" style="color:#999;">No contested pins yet.</td></tr>';
 
-function downloadCSV() {
-    let csv = "Location,User,Time,Status\n";
-    Object.entries(globalData.raw).forEach(([pk, users]) => {
-        const status = Object.keys(users).length === 1 ? "Unique" : "Contested";
-        Object.entries(users).forEach(([u, m]) => { csv += `${pk},${u},${new Date(m.time).toLocaleString().replace(/,/g,'')},${status}\n`; });
-    });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = `Report_${globalData.showName}.csv`; a.click();
+    // Click summary: distribution in descending order by click count
+    const clickDist = {};
+    popularity.forEach(p => { if (p.count > 0) clickDist[p.count] = (clickDist[p.count] || 0) + 1; });
+    const sortedCounts = Object.keys(clickDist).map(Number).sort((a, b) => b - a);
+    document.querySelector('#summaryTable tbody').innerHTML = sortedCounts.length
+        ? sortedCounts.map(c => `<tr><td>${c} click${c !== 1 ? 's' : ''}</td><td>${clickDist[c]} pin${clickDist[c] !== 1 ? 's' : ''}</td></tr>`).join('')
+        : '<tr><td colspan="2" style="color:#999;">No data yet.</td></tr>';
 }
 </script>
 </body>

@@ -10,10 +10,16 @@
         h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #444; font-weight: normal; }
         #globalCounts { text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 2000; }
         #syncStatus { font-size: 12px; color: #666; display: block; margin-top: 4px; font-weight: normal; }
+        #countdownArea { font-size: 13px; color: #555; margin-top: 6px; font-weight: normal; min-height: 18px; }
+        #fuelGaugeArea { margin-top: 8px; padding: 0 10px; font-weight: normal; }
+        #fuelGaugeLabel { display: flex; justify-content: space-between; font-size: 12px; color: #555; margin-bottom: 3px; }
+        #fuelBarTrack { background: #e0e0e0; border-radius: 8px; height: 12px; overflow: hidden; }
+        #fuelBar { height: 100%; width: 0%; background: #28a745; border-radius: 8px; transition: width 0.5s; }
+        #spotsLeft { font-size: 11px; color: #888; margin-top: 2px; text-align: right; }
         .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        .board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .board-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
         .board-title { font-size: 20px; font-weight: bold; }
-        .admin-board-total { font-size: 14px; color: #0066aa; font-weight: bold; }
+        .admin-board-total { font-size: 12px; color: #0066aa; font-weight: bold; text-align: right; max-width: 230px; line-height: 1.5; }
         .board-count { font-size: 14px; margin-bottom: 8px; color: #555; }
         .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: #eee; border-radius: 6px; }
         .board-img { width: 100%; display: block; border-radius: 6px; }
@@ -22,7 +28,6 @@
         .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.4); }
         .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 110; pointer-events: none; border: 2px solid white; }
         #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; }
-        #shareBtn { padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; cursor: pointer; background: #e6f7ff; color: #0066aa; font-weight: bold; }
         #adminReportBtn { display:none; padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #fff; color: #333; text-decoration: none; font-weight: bold; }
         #loginOverlay, #feedbackOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
         .modal-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
@@ -57,10 +62,15 @@
 <h2 id="showTitle">Show Date</h2>
 
 <div id="globalCounts">
-    <div>Total Pins: <span id="totalPins">0</span></div>
-    <div id="adminGlobalDisplay" style="display:none; color: #28a745; margin-top: 5px;">Show Total Requested: <span id="adminTotalRequested">0</span></div>
-    <div>My Requests: <span id="totalMyClaims">0</span></div>
+    <div>Total Pins: <span id="totalPins">0</span> &nbsp;|&nbsp; My Requests: <span id="totalMyClaims">0</span></div>
+    <div id="adminGlobalDisplay" style="display:none; color: #28a745; margin-top: 3px; font-size: 16px;">Show Total Requested: <span id="adminTotalRequested">0</span></div>
     <div id="syncStatus">📡 Connecting to Firebase...</div>
+    <div id="countdownArea"></div>
+    <div id="fuelGaugeArea">
+        <div id="fuelGaugeLabel"><span>Pins Requested</span><span id="fuelText">0 / 250</span></div>
+        <div id="fuelBarTrack"><div id="fuelBar"></div></div>
+        <div id="spotsLeft"></div>
+    </div>
 </div>
 
 <div id="boardsList"></div>
@@ -69,7 +79,6 @@
     <div id="userDisplay" style="font-weight: bold; color: #555;">@user</div>
     <div style="display: flex; gap: 10px;">
         <a id="adminReportBtn" href="reports.html">Reports</a>
-        <button id="shareBtn" onclick="shareToInstagram()">Share</button>
     </div>
 </div>
 
@@ -77,6 +86,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
+// ── SHOW CONFIGURATION ──────────────────────────────────────────────
+const CUTOFF_HOUR = 11, CUTOFF_MIN = 50;   // Pre-request cutoff (local time)
+const SHOW_HOUR = 12, SHOW_MIN = 0;         // Show start time – adjust per show
+const FUEL_MAX = 250;                        // Max pins that can be selected
+
 const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
     authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
@@ -106,10 +120,11 @@ if (isAdmin) {
 
 let currentUser = localStorage.getItem('fp_username') || "";
 let boardsState = {};
+let cutoffTime = null, showTime = null;
 
 const getCutoffTimestamp = () => {
     const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 50, 0).getTime();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), CUTOFF_HOUR, CUTOFF_MIN, 0).getTime();
 };
 
 if (currentUser) {
@@ -131,7 +146,7 @@ function saveUsername() {
     listenForFirebase();
 }
 
-const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, ""); 
+const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
 const folderParts = pathClean.split("/");
 const showFolderName = decodeURIComponent(folderParts.pop() || "default");
 const fbName = showFolderName.replace(/\s+/g, '_');
@@ -140,10 +155,59 @@ const fbName = showFolderName.replace(/\s+/g, '_');
     const match = showFolderName.match(/(\d{8})/);
     if (match) {
         const raw = match[1];
-        const date = new Date(`${raw.substring(0,4)}-${raw.substring(4,6)}-${raw.substring(6,8)}T12:00:00`);
+        const y = raw.substring(0,4), mo = raw.substring(4,6), d = raw.substring(6,8);
+        const date = new Date(`${y}-${mo}-${d}T12:00:00`);
         document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+        cutoffTime = new Date(`${y}-${mo}-${d}T${String(CUTOFF_HOUR).padStart(2,'0')}:${String(CUTOFF_MIN).padStart(2,'0')}:00`);
+        showTime   = new Date(`${y}-${mo}-${d}T${String(SHOW_HOUR).padStart(2,'0')}:${String(SHOW_MIN).padStart(2,'0')}:00`);
     }
+    updateCountdowns();
 })();
+setInterval(updateCountdowns, 1000);
+
+function updateCountdowns() {
+    const el = document.getElementById('countdownArea');
+    if (!el || !cutoffTime || !showTime) return;
+    const now = Date.now();
+    const fmt = (ms) => {
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        const s = Math.floor((ms % 60000) / 1000);
+        return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+    };
+    const cutoffMs = cutoffTime.getTime() - now;
+    const showMs   = showTime.getTime() - now;
+    const parts = [];
+    if (cutoffMs > 0) {
+        parts.push(`⏰ Cutoff in <strong>${fmt(cutoffMs)}</strong>`);
+    } else if (showMs > 0) {
+        parts.push(`🔒 Pre-requests closed`);
+    }
+    if (showMs > 0) {
+        parts.push(`🎬 Show in <strong>${fmt(showMs)}</strong>`);
+    } else if (showMs > -7200000) {
+        parts.push(`🎬 <strong>Show is live!</strong>`);
+    }
+    el.innerHTML = parts.join(' &nbsp;|&nbsp; ');
+}
+
+function updateFuelGauge(requested) {
+    const pct = Math.min(100, Math.round((requested / FUEL_MAX) * 100));
+    const bar    = document.getElementById('fuelBar');
+    const textEl = document.getElementById('fuelText');
+    const spotsEl = document.getElementById('spotsLeft');
+    if (!bar) return;
+    bar.style.width      = pct + '%';
+    bar.style.background = pct >= 90 ? '#dc3545' : pct >= 70 ? '#fd7e14' : '#28a745';
+    textEl.textContent   = `${requested} / ${FUEL_MAX}`;
+    const left = FUEL_MAX - requested;
+    if (left <= 0)
+        spotsEl.innerHTML = `<strong style="color:#dc3545">⚠️ FULL – no spots left!</strong>`;
+    else if (left <= 20)
+        spotsEl.innerHTML = `<strong style="color:#fd7e14">⚠️ Only ${left} spots left!</strong>`;
+    else
+        spotsEl.textContent = `${left} spots remaining`;
+}
 
 fetch("./boards/manifest.json")
     .then(r => r.json())
@@ -156,7 +220,7 @@ fetch("./boards/manifest.json")
             container.innerHTML = `
                 <div class="board-header">
                     <span class="board-title">Board ${index + 1}</span>
-                    <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">0 Requested</span>
+                    <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
                 </div>
                 <div class="board-count" id="count-${name}">Loading...</div>
                 <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG"></div>`;
@@ -182,10 +246,10 @@ async function setupBoard(name) {
         pins.forEach((pin, idx) => {
             const div = document.createElement("div");
             div.className = "pin";
-            div.style.left = ((rotated ? (ORIG_H - pin.y) : pin.x) - (rotated ? pin.height : pin.width) / 2) * scale + "px";
-            div.style.top = ((rotated ? pin.x : pin.y) - (rotated ? pin.width : pin.height) / 2) * scale + "px";
-            div.style.width = ((rotated ? pin.height : pin.width) * scale) + "px";
-            div.style.height = ((rotated ? pin.width : pin.height) * scale) + "px";
+            div.style.left   = ((rotated ? (ORIG_H - pin.y) : pin.x) - (rotated ? pin.height : pin.width)  / 2) * scale + "px";
+            div.style.top    = ((rotated ? pin.x : pin.y)             - (rotated ? pin.width  : pin.height) / 2) * scale + "px";
+            div.style.width  = ((rotated ? pin.height : pin.width)  * scale) + "px";
+            div.style.height = ((rotated ? pin.width  : pin.height) * scale) + "px";
             div.id = `pin-${name}-${idx}`;
             div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); };
             wrapper.appendChild(div);
@@ -197,7 +261,7 @@ async function setupBoard(name) {
 }
 
 function handlePinClick(boardName, idx) {
-    const pinKey = `${boardName}-${idx}`;
+    const pinKey  = `${boardName}-${idx}`;
     const userKey = currentUser.replace(/[.#$[\]]/g, "_");
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
     db.ref(`claims/${fbName}/${pinKey}/${userKey}`).set(alreadyClicked ? null : { time: firebase.database.ServerValue.TIMESTAMP });
@@ -214,9 +278,9 @@ function submitFeedback() {
 function listenForFirebase() {
     db.ref(`claims/${fbName}`).on("value", snapshot => {
         document.getElementById("syncStatus").textContent = "✅ Connected & Synced";
-        const data = snapshot.val() || {};
+        const data    = snapshot.val() || {};
         const userKey = currentUser.replace(/[.#$[\]]/g, "_");
-        const cutoff = getCutoffTimestamp();
+        const cutoff  = getCutoffTimestamp();
         Object.keys(boardsState).forEach(b => {
             boardsState[b].allClaims = {}; boardsState[b].myClaims = 0; boardsState[b].globalBoardClaims = 0;
             document.querySelectorAll(`[id^="pin-${b}-"]`).forEach(el => {
@@ -225,13 +289,13 @@ function listenForFirebase() {
             });
         });
         Object.entries(data).forEach(([pinKey, users]) => {
-            const [bName, pIdx] = pinKey.split("-");
+            const [bName] = pinKey.split("-");
             if (boardsState[bName]) {
                 boardsState[bName].allClaims[pinKey] = users;
                 boardsState[bName].globalBoardClaims++;
-                const pinEl = document.getElementById(`pin-${pinKey}`);
+                const pinEl    = document.getElementById(`pin-${pinKey}`);
                 const userList = Object.values(users);
-                const count = userList.length;
+                const count    = userList.length;
                 const earliestTime = Math.min(...userList.map(u => u.time));
                 if (users[userKey]) { boardsState[bName].myClaims++; if (pinEl) pinEl.classList.add("selection-green"); }
                 if (pinEl && isAdmin) {
@@ -246,14 +310,14 @@ function listenForFirebase() {
         });
         updateAllBoardDisplays();
         calculateGlobals();
-        
+
         const hash = window.location.hash;
         if (hash.startsWith('#pin-')) {
             const target = document.querySelector(hash);
-            if (target) { 
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-                target.classList.add('flash-pin'); 
-                setTimeout(() => target.classList.remove('flash-pin'), 3000); 
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('flash-pin');
+                setTimeout(() => target.classList.remove('flash-pin'), 3000);
             }
         }
     });
@@ -264,33 +328,42 @@ function updateAllBoardDisplays() {
 }
 
 function updateBoardDisplay(name) {
-    const s = boardsState[name];
+    const s  = boardsState[name];
     const el = document.getElementById(`count-${name}`);
     if (el) el.textContent = `Pins: ${s.totalPins} | My Requests: ${s.myClaims}`;
     if (isAdmin) {
         const adminEl = document.getElementById(`admin-count-${name}`);
-        if (adminEl) adminEl.textContent = `${s.globalBoardClaims} Requested`;
+        if (adminEl) {
+            let unique = 0, contested = 0, totalClicks = 0;
+            const users = new Set();
+            Object.entries(s.allClaims).forEach(([, uMap]) => {
+                const cnt = Object.keys(uMap).length;
+                totalClicks += cnt;
+                Object.keys(uMap).forEach(u => users.add(u));
+                if (cnt === 1) unique++; else contested++;
+            });
+            if (totalClicks === 0) {
+                adminEl.textContent = 'No requests yet';
+            } else {
+                adminEl.textContent = `${unique} Unique · ${contested} Contested · ${totalClicks} Clicks · ${users.size} Users`;
+            }
+        }
     }
 }
 
 function calculateGlobals() {
     let total = 0, my = 0, globalRequested = 0;
-    Object.values(boardsState).forEach(s => { 
-        total += s.totalPins; 
-        my += s.myClaims; 
+    Object.values(boardsState).forEach(s => {
+        total += s.totalPins;
+        my    += s.myClaims;
         globalRequested += s.globalBoardClaims;
     });
-    document.getElementById("totalPins").textContent = total;
+    document.getElementById("totalPins").textContent     = total;
     document.getElementById("totalMyClaims").textContent = my;
     if (isAdmin) {
         document.getElementById("adminTotalRequested").textContent = globalRequested;
     }
-}
-
-function shareToInstagram() {
-    let total = document.getElementById("totalMyClaims").textContent;
-    const text = `I just selected ${total} pins for the Fins and Pins show! @fins.and.pins`;
-    navigator.clipboard.writeText(text).then(() => { alert("Summary copied! Opening Instagram..."); window.location.href = "https://www.instagram.com/fins.and.pins/"; });
+    updateFuelGauge(globalRequested);
 }
 </script>
 </body>
