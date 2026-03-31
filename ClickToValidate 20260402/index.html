@@ -20,6 +20,7 @@
         .btn-mid { flex: 1; font-size: 14px; background: #333; color: #bbb; }
         #matchBtn { background: #28a745; }
         #noMatchBtn { background: #dc3545; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -39,7 +40,7 @@
 <div id="controls">
     <button id="noMatchBtn" class="btn-main" onclick="submitResult('no_match')">❌ NO</button>
     <div class="btn-mid-col">
-        <button id="backBtn" class="btn-mid" onclick="goBack()">← Back</button>
+        <button id="backBtn" class="btn-mid" onclick="goBack()" disabled>← Back</button>
         <button id="skipBtn" class="btn-mid" onclick="skipPin()">Skip</button>
     </div>
     <button id="matchBtn" class="btn-main" onclick="submitResult('match')">✅ MATCH</button>
@@ -49,7 +50,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-// --- UPDATE THIS URL TO MATCH YOUR REPO ---
+// --- CONFIGURATION ---
 const GITHUB_BASE = "https://finsandpins.github.io/ClickToClaim/ClickToValidate%2020260402/pins/";
 
 const firebaseConfig = {
@@ -77,6 +78,8 @@ let items = {};
 let itemKeys = [];
 let validated = {};
 let currentKey = null;
+let history = []; // Tracks keys you just validated
+let localSkipped = new Set(); // Tracks what you skipped this session
 
 fetch("./pending_items.json").then(r => r.json()).then(data => {
     items = data;
@@ -91,7 +94,7 @@ function loadNext() {
     let nextKey = itemKeys.find(k => {
         const d = validated[k.replace(/\./g, "_")];
         return d && d.status === "reviewing" && d.reviewer === user;
-    }) || itemKeys.find(k => !validated[k.replace(/\./g, "_")]);
+    }) || itemKeys.find(k => !validated[k.replace(/\./g, "_")] && !localSkipped.has(k));
 
     if (!nextKey) {
         document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h2>Session Complete! 🎉</h2></div>";
@@ -102,14 +105,14 @@ function loadNext() {
     currentKey = nextKey;
     const safeKey = currentKey.replace(/\./g, "_");
 
-    // Lock pin for this user
+    // Lock pin
     db.ref(`${fbPath}/${safeKey}`).update({ status: "reviewing", reviewer: user });
 
     const item = items[currentKey];
     const cropImg = document.getElementById("cropImg");
     const thumbImg = document.getElementById("thumbImg");
 
-    // EXTENSION LOGIC: Try common extensions if the primary one fails
+    // Extension Logic
     const baseName = currentKey.split('.')[0]; 
     const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG'];
     let extIndex = 0;
@@ -120,26 +123,32 @@ function loadNext() {
             extIndex++;
             cropImg.src = nextUrl;
         } else {
-            // Last Resort: Fallback to the ImgBB link in the JSON
-            console.warn("All GitHub extensions failed, falling back to ImgBB");
             cropImg.onerror = null;
             cropImg.src = item.crop;
         }
     }
 
     cropImg.onerror = tryNextExtension;
-    tryNextExtension(); // Kick off the first attempt
+    tryNextExtension();
 
     thumbImg.src = item.thumb;
     document.getElementById("titleBox").textContent = item.title;
 
     const doneCount = Object.values(validated).filter(v => v.status !== 'reviewing').length;
     document.getElementById("progress").textContent = `${doneCount} / ${itemKeys.length} Pins`;
+    
+    // Update Back Button State
+    document.getElementById("backBtn").disabled = history.length === 0;
 }
 
 function submitResult(status) {
     if (!currentKey) return;
     const safeKey = currentKey.replace(/\./g, "_");
+    
+    // Track for 'Back' button
+    history.push(currentKey);
+    if (history.length > 5) history.shift();
+
     db.ref(`${fbPath}/${safeKey}`).set({
         status: status,
         reviewer: user,
@@ -152,19 +161,32 @@ function submitResult(status) {
 
 function skipPin() {
     if (!currentKey) return;
-    db.ref(`${fbPath}/${currentKey.replace(/\./g, "_")}`).remove();
+    const safeKey = currentKey.replace(/\./g, "_");
+    
+    // Clear lock from Firebase so others can see it
+    db.ref(`${fbPath}/${safeKey}`).remove();
+    
+    // Skip locally so YOU don't see it again immediately
+    localSkipped.add(currentKey);
     currentKey = null;
+    loadNext();
 }
 
 function goBack() {
-    const myHistory = Object.entries(validated)
-        .filter(([k, v]) => v.reviewer === user && v.status !== "reviewing")
-        .sort((a, b) => b[1].timestamp - a[1].timestamp);
-
-    if (myHistory.length > 0) {
-        db.ref(`${fbPath}/${myHistory[0][0]}`).remove();
-        currentKey = null;
+    if (history.length === 0) return;
+    
+    // 1. Clear current item's lock
+    if (currentKey) {
+        db.ref(`${fbPath}/${currentKey.replace(/\./g, "_")}`).remove();
     }
+    
+    // 2. Pop the previous key and reset it to 'reviewing'
+    const prevKey = history.pop();
+    currentKey = null; // Forces loadNext to re-process
+    db.ref(`${fbPath}/${prevKey.replace(/\./g, "_")}`).update({ 
+        status: "reviewing", 
+        reviewer: user 
+    });
 }
 </script>
 </body>
