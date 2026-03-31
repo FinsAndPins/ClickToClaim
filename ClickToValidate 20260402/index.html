@@ -7,22 +7,22 @@
     <style>
         body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; overflow: hidden; }
         #topBar { display: flex; justify-content: space-between; padding: 15px; background: #222; border-bottom: 1px solid #333; }
-        #displayArea { height: 60vh; display: flex; gap: 10px; padding: 10px; visibility: hidden; }
+        #displayArea { height: 35vh; overflow-y: auto; display: flex; gap: 10px; padding: 10px; visibility: hidden; }
         .imgBox { flex: 1; background: #2a2a2a; border-radius: 15px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #444; }
         .imgBox img { max-width: 98%; max-height: 98%; object-fit: contain; }
         .badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #aaa; }
         #titleBox { height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 20px; font-size: 22px; }
-        #controls { display: flex; gap: 12px; padding: 15px; height: 120px; }
+        #controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 15px; height: auto; }
         button { border: none; border-radius: 16px; color: white; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
         button:active { transform: scale(0.96); }
-        .btn-main { flex: 1; height: 100%; font-size: 32px; }
-        .btn-side { width: 80px; height: 80%; font-size: 16px; }
+        .btn-main { width: 100%; height: 70px; font-size: 32px; }
+        .btn-side { width: 100%; height: 70px; font-size: 16px; }
         #matchBtn { background: #28a745; }
         #noMatchBtn { background: #dc3545; }
-        #backBtn { background: #444; color: #aaa; }
+        #backBtn { background: #444; color: #aaa; width: 50%; height: 35px; justify-self: center; align-self: center; }
         #backBtn:disabled { opacity: 0.25; cursor: default; }
-        #dontKnowRow { padding: 0 15px 6px; }
-        #unknownBtn { width: 100%; height: 44px; font-size: 15px; font-weight: 500; background: #333; color: #888; border-radius: 14px; border: 1px solid #444; }
+        #dontKnowRow { display: none; }
+        #unknownBtn { grid-column: 2; width: 50%; height: 35px; justify-self: center; font-size: 15px; font-weight: 500; background: #333; color: #888; border-radius: 14px; border: 1px solid #444; }
         #loadingOverlay { position: fixed; top: 70px; left: 0; right: 0; bottom: 250px; display: flex; align-items: center; justify-content: center; background: #121212; z-index: 5; font-size: 20px; }
         #doneScreen { position: fixed; inset: 0; background: #121212; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; text-align: center; }
     </style>
@@ -50,13 +50,12 @@
 
 <div id="titleBox">---</div>
 
-<div id="dontKnowRow">
-    <button id="unknownBtn" onclick="submitResult('unknown')">Don't Know</button>
-</div>
+<div id="dontKnowRow"></div>
 <div id="controls">
+    <button id="noMatchBtn" class="btn-main" onclick="submitResult('no_match')">❌ NO</button>
     <button id="backBtn" class="btn-side" onclick="goBack()" disabled>← Back</button>
     <button id="matchBtn" class="btn-main" onclick="submitResult('match')">✅ MATCH</button>
-    <button id="noMatchBtn" class="btn-side" onclick="submitResult('no_match')">❌ NO</button>
+    <button id="unknownBtn" onclick="submitResult('unknown')">Don't Know</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
