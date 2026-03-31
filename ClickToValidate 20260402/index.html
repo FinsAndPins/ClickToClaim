@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Photo Validator</title>
+    <title>Photo Validator – GitHub Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        /* New Button Layout Styles */
         body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; overflow: hidden; }
-        #topBar { display: flex; justify-content: space-between; padding: 10px 15px; background: #1e1e1e; border-bottom: 1px solid #333; height: 30px; align-items: center; }
+        #topBar { display: flex; justify-content: space-between; padding: 10px 15px; background: #1e1e1e; border-bottom: 1px solid #333; height: 35px; align-items: center; }
         #displayArea { display: flex; gap: 10px; padding: 10px; height: 45vh; }
         .imgBox { flex: 1; background: #222; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #333; }
         .imgBox img { max-width: 95%; max-height: 95%; object-fit: contain; }
@@ -21,13 +20,9 @@
         .btn-mid { flex: 1; font-size: 14px; background: #333; color: #bbb; }
         #matchBtn { background: #28a745; }
         #noMatchBtn { background: #dc3545; }
-        
-        #loadingOverlay { position: fixed; inset: 0; background: #121212; display: none; align-items: center; justify-content: center; z-index: 100; font-size: 18px; }
     </style>
 </head>
 <body>
-
-<div id="loadingOverlay">Loading...</div>
 
 <div id="topBar">
     <div id="progress" style="color: #28a745; font-weight: bold;">0 / 0 Pins</div>
@@ -54,7 +49,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-// Exact same configuration and logic from your Original Version
+// --- CONFIGURATION ---
+const GITHUB_BASE = "https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO_NAME/pins/";
+
 const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
     authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
@@ -67,7 +64,6 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
 const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
 const folderName = decodeURIComponent(pathClean.split("/").pop() || "default");
 const fbPath = `photo_validation/${folderName.replace(/\s+/g, "_").replace(/\./g, "_")}`;
@@ -82,7 +78,6 @@ let itemKeys = [];
 let validated = {};
 let currentKey = null;
 
-// Original loading logic
 fetch("./pending_items.json").then(r => r.json()).then(data => {
     items = data;
     itemKeys = Object.keys(items);
@@ -93,14 +88,13 @@ fetch("./pending_items.json").then(r => r.json()).then(data => {
 });
 
 function loadNext() {
-    // Original logic for multi-user sync
     let nextKey = itemKeys.find(k => {
         const d = validated[k.replace(/\./g, "_")];
         return d && d.status === "reviewing" && d.reviewer === user;
     }) || itemKeys.find(k => !validated[k.replace(/\./g, "_")]);
 
     if (!nextKey) {
-        document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h2>All Done! 🎉</h2></div>";
+        document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h2>Session Complete! 🎉</h2></div>";
         return;
     }
 
@@ -108,13 +102,14 @@ function loadNext() {
     currentKey = nextKey;
     const safeKey = currentKey.replace(/\./g, "_");
 
-    // Original lock mechanism
     if (!validated[safeKey] || validated[safeKey].status !== "reviewing") {
         db.ref(`${fbPath}/${safeKey}`).update({ status: "reviewing", reviewer: user });
     }
 
     const item = items[currentKey];
-    document.getElementById("cropImg").src = item.crop;
+    
+    // Logic Change: Point to GitHub folder using the filename key
+    document.getElementById("cropImg").src = GITHUB_BASE + currentKey;
     document.getElementById("thumbImg").src = item.thumb;
     document.getElementById("titleBox").textContent = item.title;
 

@@ -1,0 +1,20 @@
+{
+  "inference_id": "38345dff-3887-44a4-aca5-ab0b70f7cbc7",
+  "time": 0.3009247769996364,
+  "image": {
+    "width": 960,
+    "height": 1280
+  },
+  "predictions": [
+    {
+      "x": 468.54920196533203,
+      "y": 705.8240661621094,
+      "width": 477.68577575683594,
+      "height": 524.0481567382812,
+      "confidence": 0.8670576214790344,
+      "class": "Pin",
+      "class_id": 0,
+      "detection_id": "538eb984-d091-4ca5-83e4-2af2743393ef"
+    }
+  ]
+}
