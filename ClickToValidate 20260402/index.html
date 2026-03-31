@@ -2,46 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Photo Validator</title>
+    <title>Fins & Pins Validator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; overflow: hidden; touch-action: manipulation; }
-        #topBar { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #1e1e1e; border-bottom: 1px solid #333; height: 30px; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; overflow: hidden; }
+        #topBar { display: flex; justify-content: space-between; padding: 10px 15px; background: #1e1e1e; border-bottom: 1px solid #333; height: 30px; align-items: center; }
         #displayArea { display: flex; gap: 10px; padding: 10px; height: 45vh; }
-        .imgBox { flex: 1; background: #1e1e1e; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #333; overflow: hidden; }
-        .imgBox img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); padding: 3px 8px; border-radius: 4px; font-size: 10px; color: #aaa; z-index: 2; }
-        #titleBox { height: 70px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 15px; font-size: 18px; line-height: 1.3; font-weight: 500; }
+        .imgBox { flex: 1; background: #222; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #333; }
+        .imgBox img { max-width: 95%; max-height: 95%; object-fit: contain; }
+        .badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #aaa; }
+        #titleBox { height: 70px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 15px; font-size: 18px; line-height: 1.2; }
         
-        /* New Button Layout */
+        /* The Layout You Liked */
         #controls { display: flex; gap: 10px; padding: 10px; height: 130px; }
-        button { border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .btn-main { flex: 1.5; font-size: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .btn-mid-col { display: flex; flex-direction: column; gap: 10px; flex: 0.8; }
-        .btn-mid { flex: 1; font-size: 14px; background: #333; color: #bbb; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        button { border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; }
+        .btn-main { flex: 2; font-size: 28px; }
+        .btn-mid-col { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .btn-mid { flex: 1; font-size: 14px; background: #333; color: #bbb; }
         #matchBtn { background: #28a745; }
         #noMatchBtn { background: #dc3545; }
         
-        #loadingOverlay { position: fixed; inset: 0; background: #121212; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; font-size: 18px; gap: 15px; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: #28a745; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        #loadingOverlay { position: fixed; inset: 0; background: #121212; display: flex; align-items: center; justify-content: center; z-index: 100; font-size: 18px; }
     </style>
 </head>
 <body>
 
-<div id="loadingOverlay">
-    <div class="spinner"></div>
-    <div id="loadingText">Synchronizing Images...</div>
-</div>
+<div id="loadingOverlay">🚀 Synchronizing...</div>
 
 <div id="topBar">
-    <div id="progress" style="color: #4cd964; font-weight: 600; font-size: 14px;">Loading...</div>
-    <div id="userDisplay" style="color: #888; font-size: 14px;">@user</div>
+    <div id="progress" style="color: #28a745; font-weight: bold;">Loading...</div>
+    <div id="userDisplay">@user</div>
 </div>
 
 <div id="displayArea">
-    <div class="imgBox"><span class="badge">MY PHOTO</span><img id="cropImg"></div>
-    <div class="imgBox"><span class="badge">EBAY MATCH</span><img id="thumbImg"></div>
+    <div class="imgBox" onclick="this.querySelector('img').src += '?reload=1'"><span class="badge">MY PHOTO</span><img id="cropImg"></div>
+    <div class="imgBox" onclick="this.querySelector('img').src += '?reload=1'"><span class="badge">EBAY MATCH</span><img id="thumbImg"></div>
 </div>
 
 <div id="titleBox">---</div>
@@ -50,7 +45,7 @@
     <button id="noMatchBtn" class="btn-main" onclick="submitResult('no_match')">❌ NO</button>
     <div class="btn-mid-col">
         <button id="backBtn" class="btn-mid" onclick="goBack()">← Back</button>
-        <button id="skipBtn" class="btn-mid" onclick="skipPin()">⏭️ Skip</button>
+        <button id="skipBtn" class="btn-mid" onclick="skipPin()">Skip</button>
     </div>
     <button id="matchBtn" class="btn-main" onclick="submitResult('match')">✅ MATCH</button>
 </div>
@@ -59,6 +54,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
+// Your existing Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
     authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
@@ -72,11 +68,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// Get folder name from URL for multi-event support
 const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
 const folderName = decodeURIComponent(pathClean.split("/").pop() || "default");
 const fbPath = `photo_validation/${folderName.replace(/\s+/g, "_").replace(/\./g, "_")}`;
 
-let user = localStorage.getItem("validator_user") || prompt("Enter your @username:") || "@Guest";
+let user = localStorage.getItem("validator_user") || prompt("Enter @username:") || "@Guest";
 if (!user.startsWith("@")) user = "@" + user;
 localStorage.setItem("validator_user", user);
 document.getElementById("userDisplay").textContent = user;
@@ -86,10 +83,12 @@ let itemKeys = [];
 let validated = {};
 let currentKey = null;
 
-// Load Data
+// Initial Load
 fetch("./pending_items.json").then(r => r.json()).then(data => {
     items = data;
     itemKeys = Object.keys(items);
+    
+    // Listen for updates from Firebase
     db.ref(fbPath).on("value", snap => {
         validated = snap.val() || {};
         loadNext();
@@ -97,11 +96,16 @@ fetch("./pending_items.json").then(r => r.json()).then(data => {
 });
 
 function loadNext() {
-    // Find next pin: either one I'm already reviewing, or the first available one
+    // 1. Find a pin this user is already reviewing
     let nextKey = itemKeys.find(k => {
         const d = validated[k.replace(/\./g, "_")];
         return d && d.status === "reviewing" && d.reviewer === user;
-    }) || itemKeys.find(k => !validated[k.replace(/\./g, "_")]);
+    });
+
+    // 2. If none, find the first pin that has NO status at all
+    if (!nextKey) {
+        nextKey = itemKeys.find(k => !validated[k.replace(/\./g, "_")]);
+    }
 
     if (!nextKey) {
         document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h2>All Done! 🎉</h2></div>";
@@ -112,27 +116,14 @@ function loadNext() {
     currentKey = nextKey;
     const safeKey = currentKey.replace(/\./g, "_");
 
-    // Lock the pin for this user
+    // LOCK: Set reviewing status immediately so others don't see it
     db.ref(`${fbPath}/${safeKey}`).update({ status: "reviewing", reviewer: user });
 
     const item = items[currentKey];
-    const cropImg = document.getElementById("cropImg");
-    const thumbImg = document.getElementById("thumbImg");
-
-    // UI Updates
-    document.getElementById("loadingOverlay").style.display = "flex";
     document.getElementById("titleBox").textContent = item.title;
-    
-    let loaded = 0;
-    const checkLoad = () => { if(++loaded >= 2) document.getElementById("loadingOverlay").style.display = "none"; };
-    
-    cropImg.onload = checkLoad;
-    thumbImg.onload = checkLoad;
-    cropImg.onerror = checkLoad; // Hide overlay even if image fails
-    thumbImg.onerror = checkLoad;
-
-    cropImg.src = item.crop;
-    thumbImg.src = item.thumb;
+    document.getElementById("cropImg").src = item.crop;
+    document.getElementById("thumbImg").src = item.thumb;
+    document.getElementById("loadingOverlay").style.display = "none";
 
     const doneCount = Object.values(validated).filter(v => v.status !== 'reviewing').length;
     document.getElementById("progress").textContent = `${doneCount} / ${itemKeys.length} Pins`;
@@ -141,6 +132,7 @@ function loadNext() {
 function submitResult(status) {
     if (!currentKey) return;
     const safeKey = currentKey.replace(/\./g, "_");
+    
     db.ref(`${fbPath}/${safeKey}`).set({
         status: status,
         reviewer: user,
@@ -149,24 +141,30 @@ function submitResult(status) {
         title: items[currentKey].title,
         price: items[currentKey].price
     });
+    // Setting this to null triggers the 'value' listener to call loadNext()
+    currentKey = null; 
+    document.getElementById("loadingOverlay").style.display = "flex";
 }
 
 function skipPin() {
     if (!currentKey) return;
-    // To skip and let others see it, we just remove the "reviewing" status
+    // Remove the 'reviewing' status so the next person (or you later) can see it
     db.ref(`${fbPath}/${currentKey.replace(/\./g, "_")}`).remove();
-    currentKey = null; 
+    currentKey = null;
+    document.getElementById("loadingOverlay").style.display = "flex";
 }
 
 function goBack() {
-    // Finds the last pin this user worked on and clears its status
+    // Look through validated items for the most recent one by this user
     const myHistory = Object.entries(validated)
         .filter(([k, v]) => v.reviewer === user && v.status !== "reviewing")
         .sort((a, b) => b[1].timestamp - a[1].timestamp);
 
     if (myHistory.length > 0) {
         const lastKey = myHistory[0][0];
+        // Remove the validation so it becomes "new" again
         db.ref(`${fbPath}/${lastKey}`).remove();
+        currentKey = null;
     }
 }
 </script>
