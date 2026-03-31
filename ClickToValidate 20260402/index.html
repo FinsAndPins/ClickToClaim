@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fins & Pins Validator</title>
+    <title>Photo Validator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
+        /* New Button Layout Styles */
         body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; overflow: hidden; }
         #topBar { display: flex; justify-content: space-between; padding: 10px 15px; background: #1e1e1e; border-bottom: 1px solid #333; height: 30px; align-items: center; }
         #displayArea { display: flex; gap: 10px; padding: 10px; height: 45vh; }
@@ -13,7 +14,6 @@
         .badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #aaa; }
         #titleBox { height: 70px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 15px; font-size: 18px; line-height: 1.2; }
         
-        /* The Layout You Liked */
         #controls { display: flex; gap: 10px; padding: 10px; height: 130px; }
         button { border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; }
         .btn-main { flex: 2; font-size: 28px; }
@@ -22,21 +22,21 @@
         #matchBtn { background: #28a745; }
         #noMatchBtn { background: #dc3545; }
         
-        #loadingOverlay { position: fixed; inset: 0; background: #121212; display: flex; align-items: center; justify-content: center; z-index: 100; font-size: 18px; }
+        #loadingOverlay { position: fixed; inset: 0; background: #121212; display: none; align-items: center; justify-content: center; z-index: 100; font-size: 18px; }
     </style>
 </head>
 <body>
 
-<div id="loadingOverlay">🚀 Synchronizing...</div>
+<div id="loadingOverlay">Loading...</div>
 
 <div id="topBar">
-    <div id="progress" style="color: #28a745; font-weight: bold;">Loading...</div>
+    <div id="progress" style="color: #28a745; font-weight: bold;">0 / 0 Pins</div>
     <div id="userDisplay">@user</div>
 </div>
 
 <div id="displayArea">
-    <div class="imgBox" onclick="this.querySelector('img').src += '?reload=1'"><span class="badge">MY PHOTO</span><img id="cropImg"></div>
-    <div class="imgBox" onclick="this.querySelector('img').src += '?reload=1'"><span class="badge">EBAY MATCH</span><img id="thumbImg"></div>
+    <div class="imgBox"><span class="badge">MY PHOTO</span><img id="cropImg"></div>
+    <div class="imgBox"><span class="badge">EBAY MATCH</span><img id="thumbImg"></div>
 </div>
 
 <div id="titleBox">---</div>
@@ -54,7 +54,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-// Your existing Firebase Config
+// Exact same configuration and logic from your Original Version
 const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
     authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
@@ -68,12 +68,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Get folder name from URL for multi-event support
 const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
 const folderName = decodeURIComponent(pathClean.split("/").pop() || "default");
 const fbPath = `photo_validation/${folderName.replace(/\s+/g, "_").replace(/\./g, "_")}`;
 
-let user = localStorage.getItem("validator_user") || prompt("Enter @username:") || "@Guest";
+let user = localStorage.getItem("validator_user") || prompt("Enter Name:") || "Guest";
 if (!user.startsWith("@")) user = "@" + user;
 localStorage.setItem("validator_user", user);
 document.getElementById("userDisplay").textContent = user;
@@ -83,12 +82,10 @@ let itemKeys = [];
 let validated = {};
 let currentKey = null;
 
-// Initial Load
+// Original loading logic
 fetch("./pending_items.json").then(r => r.json()).then(data => {
     items = data;
     itemKeys = Object.keys(items);
-    
-    // Listen for updates from Firebase
     db.ref(fbPath).on("value", snap => {
         validated = snap.val() || {};
         loadNext();
@@ -96,16 +93,11 @@ fetch("./pending_items.json").then(r => r.json()).then(data => {
 });
 
 function loadNext() {
-    // 1. Find a pin this user is already reviewing
+    // Original logic for multi-user sync
     let nextKey = itemKeys.find(k => {
         const d = validated[k.replace(/\./g, "_")];
         return d && d.status === "reviewing" && d.reviewer === user;
-    });
-
-    // 2. If none, find the first pin that has NO status at all
-    if (!nextKey) {
-        nextKey = itemKeys.find(k => !validated[k.replace(/\./g, "_")]);
-    }
+    }) || itemKeys.find(k => !validated[k.replace(/\./g, "_")]);
 
     if (!nextKey) {
         document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h2>All Done! 🎉</h2></div>";
@@ -116,14 +108,15 @@ function loadNext() {
     currentKey = nextKey;
     const safeKey = currentKey.replace(/\./g, "_");
 
-    // LOCK: Set reviewing status immediately so others don't see it
-    db.ref(`${fbPath}/${safeKey}`).update({ status: "reviewing", reviewer: user });
+    // Original lock mechanism
+    if (!validated[safeKey] || validated[safeKey].status !== "reviewing") {
+        db.ref(`${fbPath}/${safeKey}`).update({ status: "reviewing", reviewer: user });
+    }
 
     const item = items[currentKey];
-    document.getElementById("titleBox").textContent = item.title;
     document.getElementById("cropImg").src = item.crop;
     document.getElementById("thumbImg").src = item.thumb;
-    document.getElementById("loadingOverlay").style.display = "none";
+    document.getElementById("titleBox").textContent = item.title;
 
     const doneCount = Object.values(validated).filter(v => v.status !== 'reviewing').length;
     document.getElementById("progress").textContent = `${doneCount} / ${itemKeys.length} Pins`;
@@ -132,7 +125,6 @@ function loadNext() {
 function submitResult(status) {
     if (!currentKey) return;
     const safeKey = currentKey.replace(/\./g, "_");
-    
     db.ref(`${fbPath}/${safeKey}`).set({
         status: status,
         reviewer: user,
@@ -141,29 +133,21 @@ function submitResult(status) {
         title: items[currentKey].title,
         price: items[currentKey].price
     });
-    // Setting this to null triggers the 'value' listener to call loadNext()
-    currentKey = null; 
-    document.getElementById("loadingOverlay").style.display = "flex";
 }
 
 function skipPin() {
     if (!currentKey) return;
-    // Remove the 'reviewing' status so the next person (or you later) can see it
     db.ref(`${fbPath}/${currentKey.replace(/\./g, "_")}`).remove();
     currentKey = null;
-    document.getElementById("loadingOverlay").style.display = "flex";
 }
 
 function goBack() {
-    // Look through validated items for the most recent one by this user
     const myHistory = Object.entries(validated)
         .filter(([k, v]) => v.reviewer === user && v.status !== "reviewing")
         .sort((a, b) => b[1].timestamp - a[1].timestamp);
 
     if (myHistory.length > 0) {
-        const lastKey = myHistory[0][0];
-        // Remove the validation so it becomes "new" again
-        db.ref(`${fbPath}/${lastKey}`).remove();
+        db.ref(`${fbPath}/${myHistory[0][0]}`).remove();
         currentKey = null;
     }
 }
