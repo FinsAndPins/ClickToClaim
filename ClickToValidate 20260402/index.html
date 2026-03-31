@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Photo Validator – GitHub Edition</title>
+    <title>Photo Validator – GitHub Stable Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; overflow: hidden; }
@@ -49,8 +49,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-// --- CONFIGURATION ---
-const GITHUB_BASE = "https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO_NAME/pins/";
+// --- UPDATE THIS URL TO MATCH YOUR REPO ---
+const GITHUB_BASE = "https://finsandpins.github.io/ClickToClaim/ClickToValidate%2020260402/pins/";
 
 const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
@@ -102,15 +102,35 @@ function loadNext() {
     currentKey = nextKey;
     const safeKey = currentKey.replace(/\./g, "_");
 
-    if (!validated[safeKey] || validated[safeKey].status !== "reviewing") {
-        db.ref(`${fbPath}/${safeKey}`).update({ status: "reviewing", reviewer: user });
-    }
+    // Lock pin for this user
+    db.ref(`${fbPath}/${safeKey}`).update({ status: "reviewing", reviewer: user });
 
     const item = items[currentKey];
-    
-    // Logic Change: Point to GitHub folder using the filename key
-    document.getElementById("cropImg").src = GITHUB_BASE + currentKey;
-    document.getElementById("thumbImg").src = item.thumb;
+    const cropImg = document.getElementById("cropImg");
+    const thumbImg = document.getElementById("thumbImg");
+
+    // EXTENSION LOGIC: Try common extensions if the primary one fails
+    const baseName = currentKey.split('.')[0]; 
+    const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG'];
+    let extIndex = 0;
+
+    function tryNextExtension() {
+        if (extIndex < extensions.length) {
+            const nextUrl = GITHUB_BASE + baseName + "." + extensions[extIndex];
+            extIndex++;
+            cropImg.src = nextUrl;
+        } else {
+            // Last Resort: Fallback to the ImgBB link in the JSON
+            console.warn("All GitHub extensions failed, falling back to ImgBB");
+            cropImg.onerror = null;
+            cropImg.src = item.crop;
+        }
+    }
+
+    cropImg.onerror = tryNextExtension;
+    tryNextExtension(); // Kick off the first attempt
+
+    thumbImg.src = item.thumb;
     document.getElementById("titleBox").textContent = item.title;
 
     const doneCount = Object.values(validated).filter(v => v.status !== 'reviewing').length;
