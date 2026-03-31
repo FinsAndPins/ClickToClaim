@@ -7,7 +7,7 @@
     <style>
         body { font-family: -apple-system, sans-serif; margin: 0; background: #121212; color: white; overflow: hidden; }
         #topBar { display: flex; justify-content: space-between; padding: 15px; background: #222; border-bottom: 1px solid #333; }
-        #displayArea { height: 60vh; display: flex; gap: 10px; padding: 10px; visibility: hidden; }
+        #displayArea { height: 42vh; display: flex; gap: 10px; padding: 10px; visibility: hidden; }
         .imgBox { flex: 1; background: #2a2a2a; border-radius: 15px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #444; }
         .imgBox img { max-width: 98%; max-height: 98%; object-fit: contain; }
         .badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #aaa; }
@@ -146,8 +146,31 @@ function loadNext() {
 
         const done = Object.values(validated).filter(v => v.status !== 'reviewing').length;
         document.getElementById("progress").textContent = `${done} / ${itemKeys.length} Pins`;
+
+        // Prefetch next few pins into browser cache (staggered to avoid imgbb rate limiting)
+        prefetchAhead(nextKey);
     } else {
         document.getElementById("doneScreen").style.display = "flex";
+    }
+}
+
+// Silently cache the next few pins so they load instantly when reached
+function prefetchAhead(afterKey, count = 3) {
+    const idx = itemKeys.indexOf(afterKey);
+    if (idx === -1) return;
+    let queued = 0;
+    for (let i = idx + 1; i < itemKeys.length && queued < count; i++) {
+        const k = itemKeys[i];
+        const d = validated[k.replace(/\./g, "_")];
+        if (d && d.status !== 'reviewing') continue;  // already done, skip
+        if (localSkipped.has(k)) continue;
+        const item = items[k];
+        const delay = queued * 600;  // stagger: 0ms, 600ms, 1200ms
+        setTimeout(() => {
+            if (item.crop)  new Image().src = item.crop;
+            if (item.thumb) new Image().src = item.thumb;
+        }, delay);
+        queued++;
     }
 }
 
