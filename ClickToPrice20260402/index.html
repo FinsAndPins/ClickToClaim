@@ -367,8 +367,8 @@ function showPin(idx) {
   document.getElementById('progress').textContent =
     `${done + 1} / ${total}  (${queue.length - idx} left)`;
 
-  // Title strip
-  document.getElementById('pinTitle').value = cleanTitle(pin.ai_title || pin.title || filename);
+  // Title strip (final character first)
+  document.getElementById('pinTitle').value = cleanTitle(pin.final_character || pin.ai_title || pin.title || filename);
   updateBackBtn();
 
   // Photo
@@ -409,8 +409,9 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   const finalPrice = parseInt(document.getElementById('priceInput').value) || 10;
   const suggestedPrice = adjustPrice(pin.price);
   const wasAdjusted = finalPrice !== suggestedPrice;
-  const finalTitle = document.getElementById('pinTitle').value.trim() || pin.ai_title || pin.title || filename;
-  const titleEdited = finalTitle !== (pin.ai_title || pin.title || filename);
+  const baseTitle = cleanTitle(pin.final_character || pin.ai_title || pin.title || filename);
+  const finalTitle = document.getElementById('pinTitle').value.trim() || baseTitle;
+  const titleEdited = finalTitle !== baseTitle;
 
   const key = filename.replace(/\./g, '_');
   await db.ref(`${FB_PATH}/${key}`).set({

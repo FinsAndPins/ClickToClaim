@@ -189,7 +189,7 @@
 </div>
 
 <div id="titleArea" style="display:none;">
-  <div id="titleLabel">AI Title — tap to edit</div>
+  <div id="titleLabel">Final Character — tap to edit</div>
   <textarea id="titleInput" rows="2" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"></textarea>
 </div>
 
@@ -330,8 +330,9 @@ function showPin(idx) {
   photo.src = '';
   photo.src = pin.crop || pin.thumb || '';
 
-  // Title
-  document.getElementById('titleInput').value = cleanTitle(pin.ai_title || pin.title || '');
+  // Title / character
+  const baseTitle = cleanTitle(pin.final_character || pin.ai_title || pin.title || '');
+  document.getElementById('titleInput').value = baseTitle;
   updateBackBtn();
 }
 
@@ -355,13 +356,13 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   const filename = queue[currentIdx];
   const pin = allPins[filename];
   const finalTitle = document.getElementById('titleInput').value.trim();
-  const aiTitle = pin.ai_title || pin.title || '';
-  const wasEdited = finalTitle !== aiTitle;
+  const baseTitle = cleanTitle(pin.final_character || pin.ai_title || pin.title || '');
+  const wasEdited = finalTitle !== baseTitle;
 
   const key = filename.replace(/\./g, '_');
   await db.ref(`${FB_PATH}/${key}`).set({
     filename,
-    ai_title: aiTitle,
+    ai_title: baseTitle,
     final_title: finalTitle,
     was_edited: wasEdited,
     reviewer,
@@ -382,7 +383,7 @@ document.getElementById('dontKnowBtn').addEventListener('click', async () => {
   const key = filename.replace(/\./g, '_');
   await db.ref(`${FB_PATH}/${key}`).set({
     filename,
-    ai_title: allPins[filename].ai_title || allPins[filename].title || '',
+    ai_title: cleanTitle(allPins[filename].final_character || allPins[filename].ai_title || allPins[filename].title || ''),
     final_title: null,
     was_edited: false,
     reviewer,
