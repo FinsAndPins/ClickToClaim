@@ -176,8 +176,8 @@
       <div id="controls">
         <label for="orderSelect">Order</label>
         <select id="orderSelect">
-          <option value="mixed" selected>Mixed</option>
-          <option value="grouped">Grouped</option>
+          <option value="mixed">Mixed</option>
+          <option value="grouped" selected>Grouped</option>
         </select>
         <label for="colsSelect">Across</label>
         <select id="colsSelect">
@@ -222,7 +222,7 @@
     const PENDING_URL = "../ClickToDescribe20260402/pending_items.json";
     const PINS_BASE = "https://finsandpins.github.io/ClickToClaim/ClickToValidate%2020260402/pins/";
     const LS_REVIEWER = "fp_reviewer_describe_grid_prod_v1";
-    const viewState = { cols: 6, rows: 2, scale: 1, orderMode: "mixed" };
+    const viewState = { cols: 6, rows: 2, scale: 1, orderMode: "grouped" };
 
     let reviewer = "";
     let allPins = {};
