@@ -368,7 +368,7 @@ function showPin(idx) {
     `${done + 1} / ${total}  (${queue.length - idx} left)`;
 
   // Title strip (final character first)
-  document.getElementById('pinTitle').value = cleanTitle(pin.final_character || pin.ai_title || pin.title || filename);
+  document.getElementById('pinTitle').value = cleanTitle(pin.final_character || 'Unknown');
   updateBackBtn();
 
   // Photo
@@ -409,7 +409,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   const finalPrice = parseInt(document.getElementById('priceInput').value) || 10;
   const suggestedPrice = adjustPrice(pin.price);
   const wasAdjusted = finalPrice !== suggestedPrice;
-  const baseTitle = cleanTitle(pin.final_character || pin.ai_title || pin.title || filename);
+  const baseTitle = cleanTitle(pin.final_character || 'Unknown');
   const finalTitle = document.getElementById('pinTitle').value.trim() || baseTitle;
   const titleEdited = finalTitle !== baseTitle;
 

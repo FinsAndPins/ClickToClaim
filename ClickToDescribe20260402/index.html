@@ -331,7 +331,7 @@ function showPin(idx) {
   photo.src = pin.crop || pin.thumb || '';
 
   // Title / character
-  const baseTitle = cleanTitle(pin.final_character || pin.ai_title || pin.title || '');
+  const baseTitle = cleanTitle(pin.final_character || 'Unknown');
   document.getElementById('titleInput').value = baseTitle;
   updateBackBtn();
 }
@@ -356,7 +356,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   const filename = queue[currentIdx];
   const pin = allPins[filename];
   const finalTitle = document.getElementById('titleInput').value.trim();
-  const baseTitle = cleanTitle(pin.final_character || pin.ai_title || pin.title || '');
+  const baseTitle = cleanTitle(pin.final_character || 'Unknown');
   const wasEdited = finalTitle !== baseTitle;
 
   const key = filename.replace(/\./g, '_');
@@ -383,7 +383,7 @@ document.getElementById('dontKnowBtn').addEventListener('click', async () => {
   const key = filename.replace(/\./g, '_');
   await db.ref(`${FB_PATH}/${key}`).set({
     filename,
-    ai_title: cleanTitle(allPins[filename].final_character || allPins[filename].ai_title || allPins[filename].title || ''),
+    ai_title: cleanTitle(allPins[filename].final_character || 'Unknown'),
     final_title: null,
     was_edited: false,
     reviewer,
