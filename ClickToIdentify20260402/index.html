@@ -331,6 +331,7 @@
   <div id="searchWrap" style="display:none;">
     <input id="searchInput" placeholder="Keyword Search (e.g. Ariel LE 300)">
     <button id="searchBtn" class="secondaryBtn">Search</button>
+    <button id="prevBtn" class="secondaryBtn">Back 5</button>
     <button id="moreBtn" class="secondaryBtn">Show 5 more</button>
   </div>
 
@@ -612,6 +613,37 @@
       }
       return out;
     }
+    function normalizeSearchTerm(q) {
+      return String(q || "").replace(/\s+/g, " ").trim();
+    }
+    function buildSearchVariants(q) {
+      const base = normalizeSearchTerm(q);
+      if (!base) return [];
+      const variants = [
+        `"${base}"`,
+        base,
+        `${base} disney pin`,
+        `disney ${base} pin`
+      ];
+      const seen = new Set();
+      const out = [];
+      for (const v of variants) {
+        const key = v.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(v);
+      }
+      return out;
+    }
+    async function fetchKeywordCandidatesMulti(query) {
+      const variants = buildSearchVariants(query);
+      const combined = [];
+      for (const v of variants) {
+        const items = await fetchKeywordCandidates(v);
+        if (items.length) combined.push(...items);
+      }
+      return dedupeCandidates(combined);
+    }
     function renderCandidates() {
       const grid = document.getElementById("candidateGrid");
       grid.innerHTML = "";
@@ -623,6 +655,7 @@
         }
       }
       document.getElementById("candidateStatus").textContent = `${chunk.length} shown (${candidatePool.length} total)`;
+      document.getElementById("prevBtn").disabled = candidatePool.length <= 5;
       document.getElementById("moreBtn").disabled = candidatePool.length <= 5;
       if (chunk.length === 0) {
         grid.innerHTML = "<div style='color:#777;font-size:12px;padding:8px 0;'>No additional listings available.</div>";
@@ -772,26 +805,38 @@
     document.getElementById("searchBtn").addEventListener("click", async () => {
       const filename = queue[idx];
       const q = document.getElementById("searchInput").value.trim();
-      // Try exact phrase first, then broad phrase, then local fallback.
-      const liveExact = await fetchKeywordCandidates(`"${q}"`);
-      const liveKeyword = liveExact.length ? liveExact : await fetchKeywordCandidates(q);
+      if (!q) return;
+      // Use multiple query variants to better mimic eBay app behavior.
+      const liveKeyword = await fetchKeywordCandidatesMulti(q);
       const localPool = buildCandidatePool(q, filename);
       const liveRanked = filterAndRankMatches(liveKeyword, q);
       const localRanked = filterAndRankMatches(localPool, q);
-      // Prefer actual matching-term results first.
+      // Prefer eBay matches first; only rely on local catalog when live is thin.
       let merged = dedupeCandidates([
         ...liveRanked.matched,
-        ...localRanked.matched,
         ...liveRanked.unmatched,
-        ...localRanked.unmatched
       ]);
+      if (merged.length < 12) {
+        merged = dedupeCandidates([
+          ...merged,
+          ...localRanked.matched,
+          ...localRanked.unmatched
+        ]);
+      }
       if (!merged.length) merged = localPool;
       candidatePool = merged;
       candidateOffset = 0;
       selectedCandidate = null;
+      const liveCount = liveRanked.matched.length + liveRanked.unmatched.length;
       document.getElementById("selectedStatus").textContent = liveRanked.matched.length
-        ? `Matches first: ${liveRanked.matched.length}`
-        : "No exact term matches, showing closest results";
+        ? `eBay matches first: ${liveRanked.matched.length}`
+        : liveCount
+          ? `Showing eBay results (${liveCount})`
+          : "No eBay matches, using local fallback";
+      renderCandidates();
+    });
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      if (candidatePool.length > 0) candidateOffset = (candidateOffset - 5 + candidatePool.length) % candidatePool.length;
       renderCandidates();
     });
     document.getElementById("moreBtn").addEventListener("click", () => {
