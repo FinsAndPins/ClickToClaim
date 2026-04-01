@@ -293,10 +293,12 @@
     }
 
     function applyOrderToRemainingQueue() {
+      const visible = getVisibleFilenamesFromDom();
       const remaining = queue.slice(pointer);
-      queue = applyOrdering(remaining);
+      queue = applyOrdering([...visible, ...remaining]);
       pointer = 0;
-      rerenderForViewChange();
+      renderGrid();
+      updateStats();
     }
 
     function initControls() {
