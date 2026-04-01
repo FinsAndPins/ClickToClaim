@@ -218,8 +218,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const FB_PATH = 'description_review/ClickToDescribe20260328';
-const PENDING_URL = '../ClickToDescribeAI20260326v2/pending_items.json';
+const FB_PATH = 'description_review/ClickToDescribe20260402';
+const PENDING_URL = './pending_items.json';
 const LS_REVIEWER = 'fp_reviewer_describe';
 
 let reviewer = '';
@@ -275,7 +275,7 @@ async function start() {
   confirmed = snap.exists() ? snap.val() : {};
 
   // 3. Fetch price-confirmed pins to prioritize (show those first)
-  const priceSnap = await db.ref('price_review/ClickToPrice20260328').get();
+  const priceSnap = await db.ref('price_review/ClickToPrice20260402').get();
   const priceConfirmed = priceSnap.exists() ? priceSnap.val() : {};
 
   // 4. Build queue: price-confirmed pins first, then rest (each group seeded-shuffled)

@@ -269,8 +269,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const FB_PATH = 'price_review/ClickToPrice20260328';
-const PENDING_URL = '../ClickToDescribeAI20260326v2/pending_items.json';
+const FB_PATH = 'price_review/ClickToPrice20260402';
+const PENDING_URL = './pending_items.json';
 const LS_REVIEWER = 'fp_reviewer_price';
 
 let reviewer = '';
@@ -324,7 +324,7 @@ async function start() {
   confirmed = snap.exists() ? snap.val() : {};
 
   // Fetch title-confirmed pins to prioritize (show those first)
-  const titleSnap = await db.ref('description_review/ClickToDescribe20260328').get();
+  const titleSnap = await db.ref('description_review/ClickToDescribe20260402').get();
   const titleConfirmed = titleSnap.exists() ? titleSnap.val() : {};
 
   // Build queue: title-confirmed pins first, then rest (each group seeded-shuffled)
