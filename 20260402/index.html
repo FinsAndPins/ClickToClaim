@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fins and Pins - Click to Claim</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f5f5f5; padding-bottom: 80px; }
+        h1 { text-align: center; margin-bottom: 4px; font-size: 26px; }
+        h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #444; font-weight: normal; }
+        #globalCounts { text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 2000; }
+        #syncStatus { font-size: 12px; color: #666; display: block; margin-top: 4px; font-weight: normal; }
+        #countdownArea { font-size: 13px; color: #555; margin-top: 6px; font-weight: normal; min-height: 18px; }
+        #fuelGaugeArea { margin-top: 8px; padding: 0 10px; font-weight: normal; }
+        #fuelGaugeLabel { display: flex; justify-content: space-between; font-size: 12px; color: #555; margin-bottom: 3px; }
+        #fuelBarTrack { background: #e0e0e0; border-radius: 8px; height: 12px; overflow: hidden; }
+        #fuelBar { height: 100%; width: 0%; background: #28a745; border-radius: 8px; transition: width 0.5s; }
+        #spotsLeft { font-size: 11px; color: #888; margin-top: 2px; text-align: right; }
+        .board-container { margin-bottom: 40px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+        .board-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .board-title { font-size: 20px; font-weight: bold; }
+        .admin-board-total { font-size: 12px; color: #0066aa; font-weight: bold; text-align: right; max-width: 230px; line-height: 1.5; }
+        .board-count { font-size: 14px; margin-bottom: 8px; color: #555; }
+        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: #eee; border-radius: 6px; }
+        .board-img { width: 100%; display: block; border-radius: 6px; }
+        .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
+        .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.9); background: rgba(0, 255, 0, 0.25); }
+        .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.4); }
+        .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 110; pointer-events: none; border: 2px solid white; }
+        #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; }
+        #adminReportBtn { display:none; padding: 10px 15px; font-size: 14px; border-radius: 6px; border: 1px solid #333; background: #fff; color: #333; text-decoration: none; font-weight: bold; }
+        #loginOverlay, #feedbackOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
+        .modal-box textarea { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .modal-box button { background: #0066aa; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+        #feedbackToggle { position: fixed; bottom: 70px; right: 20px; background: #ff3b30; color: white; border-radius: 50px; padding: 10px 15px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2500; }
+        @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
+        .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.3) !important; }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay" style="display: flex;">
+    <div class="login-box modal-box">
+        <h3>Welcome</h3>
+        <input type="text" id="usernameInput" placeholder="@username" style="width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px;">
+        <button onclick="saveUsername()">Start Selecting</button>
+    </div>
+</div>
+
+<div id="feedbackOverlay">
+    <div class="modal-box">
+        <h3>Report an Issue</h3>
+        <textarea id="feedbackText" placeholder="Describe the issue..." rows="4"></textarea>
+        <button onclick="submitFeedback()">Send Feedback</button>
+        <button onclick="document.getElementById('feedbackOverlay').style.display='none'" style="background:#666; margin-top:10px;">Cancel</button>
+    </div>
+</div>
+<div id="feedbackToggle" onclick="document.getElementById('feedbackOverlay').style.display='flex'">Report Issue</div>
+
+<h1>Fins and Pins</h1>
+<h2 id="showTitle">Show Date</h2>
+
+<div id="globalCounts">
+    <div id="userStatsRow">Total Pins: <span id="totalPins">0</span> &nbsp;|&nbsp; My Requests: <span id="totalMyClaims">0</span></div>
+    <div id="adminGlobalDisplay" style="display:none; color: #28a745; margin-top: 3px; font-size: 15px;">
+        Total Pins: <span id="adminTotalPins">0</span> &nbsp;|&nbsp;
+        Requested: <span id="adminTotalRequested">0</span> &nbsp;|&nbsp;
+        Unique: <span id="adminUnique">0</span> &nbsp;|&nbsp;
+        Contested: <span id="adminContested">0</span> &nbsp;|&nbsp;
+        Users: <span id="adminTotalUsers">0</span>
+    </div>
+    <div id="syncStatus">📡 Connecting to Firebase...</div>
+    <div id="countdownArea"></div>
+    <div id="fuelGaugeArea">
+        <div id="fuelGaugeLabel"><span>Pins Requested</span><span id="fuelText">0 / 250</span></div>
+        <div id="fuelBarTrack"><div id="fuelBar"></div></div>
+        <div id="spotsLeft"></div>
+    </div>
+</div>
+
+<div id="boardsList"></div>
+
+<div id="footerControls">
+    <div id="userDisplay" style="font-weight: bold; color: #555;">@user</div>
+    <div style="display: flex; gap: 10px;">
+        <a id="adminReportBtn" href="reports.html">Reports</a>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ── SHOW CONFIGURATION ──────────────────────────────────────────────
+const CUTOFF_HOUR = 11, CUTOFF_MIN = 50;   // Pre-request cutoff (local time)
+const SHOW_HOUR = 12, SHOW_MIN = 0;         // Show start time – adjust per show
+const FUEL_MAX = 250;                        // Max pins that can be selected
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const ADMIN_KEY = "0626200207081986";
+const urlParams = new URLSearchParams(window.location.search);
+const providedKey = urlParams.get('admin');
+
+if (providedKey === ADMIN_KEY) sessionStorage.setItem('fp_admin_active', 'true');
+const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
+
+if (isAdmin) {
+    const reportBtn = document.getElementById('adminReportBtn');
+    reportBtn.style.display = 'block';
+    reportBtn.href = `reports.html?admin=${ADMIN_KEY}`;
+    document.getElementById('adminGlobalDisplay').style.display = 'block';
+    document.getElementById('userStatsRow').style.display = 'none';
+}
+
+let currentUser = localStorage.getItem('fp_username') || "";
+let boardsState = {};
+let cutoffTime = null, showTime = null;
+
+const getCutoffTimestamp = () => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), CUTOFF_HOUR, CUTOFF_MIN, 0).getTime();
+};
+
+if (currentUser) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userDisplay').textContent = currentUser;
+}
+
+function saveUsername() {
+    let val = document.getElementById('usernameInput').value.trim().toLowerCase();
+    if (!val) {
+        val = `guest_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    } else if (!val.startsWith('@')) {
+        val = '@' + val;
+    }
+    currentUser = val;
+    localStorage.setItem('fp_username', val);
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userDisplay').textContent = val;
+    listenForFirebase();
+}
+
+const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+const folderParts = pathClean.split("/");
+const showFolderName = decodeURIComponent(folderParts.pop() || "default");
+const fbName = showFolderName.replace(/\s+/g, '_');
+
+(function() {
+    const match = showFolderName.match(/(\d{8})/);
+    if (match) {
+        const raw = match[1];
+        const y = raw.substring(0,4), mo = raw.substring(4,6), d = raw.substring(6,8);
+        const date = new Date(`${y}-${mo}-${d}T12:00:00`);
+        document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+        cutoffTime = new Date(`${y}-${mo}-${d}T${String(CUTOFF_HOUR).padStart(2,'0')}:${String(CUTOFF_MIN).padStart(2,'0')}:00`);
+        showTime   = new Date(`${y}-${mo}-${d}T${String(SHOW_HOUR).padStart(2,'0')}:${String(SHOW_MIN).padStart(2,'0')}:00`);
+    }
+    updateCountdowns();
+})();
+setInterval(updateCountdowns, 1000);
+
+function updateCountdowns() {
+    const el = document.getElementById('countdownArea');
+    if (!el || !cutoffTime || !showTime) return;
+    const now = Date.now();
+    const fmt = (ms) => {
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        const s = Math.floor((ms % 60000) / 1000);
+        return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+    };
+    const cutoffMs = cutoffTime.getTime() - now;
+    const showMs   = showTime.getTime() - now;
+    const parts = [];
+    if (cutoffMs > 0) {
+        parts.push(`⏰ Cutoff in <strong>${fmt(cutoffMs)}</strong>`);
+    } else if (showMs > 0) {
+        parts.push(`🔒 Pre-requests closed`);
+    }
+    if (showMs > 0) {
+        parts.push(`🎬 Show in <strong>${fmt(showMs)}</strong>`);
+    } else if (showMs > -7200000) {
+        parts.push(`🎬 <strong>Show is live!</strong>`);
+    }
+    el.innerHTML = parts.join(' &nbsp;|&nbsp; ');
+}
+
+function updateFuelGauge(requested) {
+    const pct = Math.min(100, Math.round((requested / FUEL_MAX) * 100));
+    const bar    = document.getElementById('fuelBar');
+    const textEl = document.getElementById('fuelText');
+    const spotsEl = document.getElementById('spotsLeft');
+    if (!bar) return;
+    bar.style.width      = pct + '%';
+    bar.style.background = pct >= 90 ? '#dc3545' : pct >= 70 ? '#fd7e14' : '#28a745';
+    textEl.textContent   = `${requested} / ${FUEL_MAX}`;
+    const left = FUEL_MAX - requested;
+    if (left <= 0)
+        spotsEl.innerHTML = `<strong style="color:#dc3545">🔥 ${requested} pins requested!</strong>`;
+    else if (left <= 20)
+        spotsEl.innerHTML = `<strong style="color:#fd7e14">⚠️ Only ${left} spots left!</strong>`;
+    else
+        spotsEl.textContent = `${left} spots remaining`;
+}
+
+fetch("./boards/manifest.json")
+    .then(r => r.json())
+    .then(list => {
+        list.sort((a, b) => parseInt(a.match(/\d+/) || 0) - parseInt(b.match(/\d+/) || 0));
+        const boardsList = document.getElementById("boardsList");
+        list.forEach((name, index) => {
+            const container = document.createElement("div");
+            container.className = "board-container";
+            container.innerHTML = `
+                <div class="board-header">
+                    <span class="board-title">Board ${index + 1}</span>
+                    <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
+                </div>
+                <div class="board-count" id="count-${name}">Loading...</div>
+                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG"></div>`;
+            boardsList.appendChild(container);
+            boardsState[name] = { totalPins: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
+            setupBoard(name);
+        });
+        if (currentUser) listenForFirebase();
+    });
+
+async function setupBoard(name) {
+    const response = await fetch(`./boards/${name}.json`);
+    const data = await response.json();
+    const pins = data.predictions || data.output?.predictions || [];
+    boardsState[name].totalPins = pins.length;
+    const img = document.getElementById(`img-${name}`);
+    const render = () => {
+        const wrapper = document.getElementById(`wrapper-${name}`);
+        let ORIG_W = data.image?.width || img.naturalWidth;
+        let ORIG_H = data.image?.height || img.naturalHeight;
+        const rotated = (ORIG_W > ORIG_H) !== (img.clientWidth > img.clientHeight);
+        const scale = img.clientWidth / (rotated ? ORIG_H : ORIG_W);
+        pins.forEach((pin, idx) => {
+            const div = document.createElement("div");
+            div.className = "pin";
+            div.style.left   = ((rotated ? (ORIG_H - pin.y) : pin.x) - (rotated ? pin.height : pin.width)  / 2) * scale + "px";
+            div.style.top    = ((rotated ? pin.x : pin.y)             - (rotated ? pin.width  : pin.height) / 2) * scale + "px";
+            div.style.width  = ((rotated ? pin.height : pin.width)  * scale) + "px";
+            div.style.height = ((rotated ? pin.width  : pin.height) * scale) + "px";
+            div.id = `pin-${name}-${idx}`;
+            div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); };
+            wrapper.appendChild(div);
+        });
+        updateBoardDisplay(name);
+        calculateGlobals();
+    };
+    if (img.complete) render(); else img.onload = render;
+}
+
+function handlePinClick(boardName, idx) {
+    const pinKey  = `${boardName}-${idx}`;
+    const userKey = currentUser.replace(/[.#$[\]]/g, "_");
+    const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
+    db.ref(`claims/${fbName}/${pinKey}/${userKey}`).set(alreadyClicked ? null : { time: firebase.database.ServerValue.TIMESTAMP });
+}
+
+function submitFeedback() {
+    const msg = document.getElementById('feedbackText').value.trim();
+    if (!msg) return;
+    db.ref(`feedback/${fbName}`).push({ user: currentUser, msg: msg, time: firebase.database.ServerValue.TIMESTAMP })
+      .then(() => { alert("Feedback sent!"); document.getElementById('feedbackOverlay').style.display='none'; document.getElementById('feedbackText').value = ""; })
+      .catch(e => alert("Error: " + e.message));
+}
+
+function listenForFirebase() {
+    db.ref(`claims/${fbName}`).on("value", snapshot => {
+        document.getElementById("syncStatus").textContent = "✅ Connected & Synced";
+        const data    = snapshot.val() || {};
+        const userKey = currentUser.replace(/[.#$[\]]/g, "_");
+        const cutoff  = getCutoffTimestamp();
+        Object.keys(boardsState).forEach(b => {
+            boardsState[b].allClaims = {}; boardsState[b].myClaims = 0; boardsState[b].globalBoardClaims = 0;
+            document.querySelectorAll(`[id^="pin-${b}-"]`).forEach(el => {
+                el.classList.remove("selection-green", "selection-yellow", "flash-pin");
+                const badge = el.querySelector('.tally-badge'); if (badge) badge.remove();
+            });
+        });
+        Object.entries(data).forEach(([pinKey, users]) => {
+            const [bName] = pinKey.split("-");
+            if (boardsState[bName]) {
+                boardsState[bName].allClaims[pinKey] = users;
+                boardsState[bName].globalBoardClaims++;
+                const pinEl    = document.getElementById(`pin-${pinKey}`);
+                const userList = Object.values(users);
+                const count    = userList.length;
+                const earliestTime = Math.min(...userList.map(u => u.time));
+                if (users[userKey]) { boardsState[bName].myClaims++; if (pinEl) pinEl.classList.add("selection-green"); }
+                if (pinEl && isAdmin) {
+                    pinEl.classList.remove("selection-green");
+                    if (earliestTime > cutoff) pinEl.classList.add("selection-yellow");
+                    else pinEl.classList.add("selection-green");
+                    if (count >= 2) {
+                        const badge = document.createElement('div'); badge.className = 'tally-badge'; badge.textContent = count; pinEl.appendChild(badge);
+                    }
+                }
+            }
+        });
+        updateAllBoardDisplays();
+        calculateGlobals();
+
+        const hash = window.location.hash;
+        if (hash.startsWith('#pin-')) {
+            const target = document.querySelector(hash);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('flash-pin');
+                setTimeout(() => target.classList.remove('flash-pin'), 3000);
+            }
+        }
+    });
+}
+
+function updateAllBoardDisplays() {
+    Object.keys(boardsState).forEach(updateBoardDisplay);
+}
+
+function updateBoardDisplay(name) {
+    const s  = boardsState[name];
+    const el = document.getElementById(`count-${name}`);
+    if (el) el.textContent = `Pins: ${s.totalPins} | My Requests: ${s.myClaims}`;
+    if (isAdmin) {
+        const adminEl = document.getElementById(`admin-count-${name}`);
+        if (adminEl) {
+            let unique = 0, contested = 0, totalClicks = 0;
+            const users = new Set();
+            Object.entries(s.allClaims).forEach(([, uMap]) => {
+                const cnt = Object.keys(uMap).length;
+                totalClicks += cnt;
+                Object.keys(uMap).forEach(u => users.add(u));
+                if (cnt === 1) unique++; else contested++;
+            });
+            if (totalClicks === 0) {
+                adminEl.textContent = 'No requests yet';
+            } else {
+                adminEl.textContent = `${unique} Unique · ${contested} Contested · ${totalClicks} Clicks · ${users.size} Users`;
+            }
+        }
+    }
+}
+
+function calculateGlobals() {
+    let total = 0, my = 0, globalRequested = 0, globalUnique = 0, globalContested = 0;
+    const allUsers = new Set();
+    Object.values(boardsState).forEach(s => {
+        total += s.totalPins;
+        my    += s.myClaims;
+        globalRequested += s.globalBoardClaims;
+        Object.values(s.allClaims).forEach(uMap => {
+            const cnt = Object.keys(uMap).length;
+            if (cnt === 1) globalUnique++; else globalContested++;
+            Object.keys(uMap).forEach(u => allUsers.add(u));
+        });
+    });
+    document.getElementById("totalPins").textContent     = total;
+    document.getElementById("totalMyClaims").textContent = my;
+    if (isAdmin) {
+        document.getElementById("adminTotalPins").textContent      = total;
+        document.getElementById("adminTotalRequested").textContent = globalRequested;
+        document.getElementById("adminUnique").textContent         = globalUnique;
+        document.getElementById("adminContested").textContent      = globalContested;
+        document.getElementById("adminTotalUsers").textContent     = allUsers.size;
+    }
+    updateFuelGauge(globalRequested);
+}
+</script>
+</body>
+</html>
