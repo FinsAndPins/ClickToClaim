@@ -189,12 +189,12 @@
         <label for="rowsSelect">Down</label>
         <select id="rowsSelect">
           <option value="1">1</option>
-          <option value="2" selected>2</option>
+          <option value="2">2</option>
           <option value="3">3</option>
-          <option value="4">4</option>
+          <option value="4" selected>4</option>
         </select>
         <label for="sizeRange">Size</label>
-        <input id="sizeRange" type="range" min="80" max="125" step="5" value="100">
+        <input id="sizeRange" type="range" min="80" max="125" step="5" value="80">
       </div>
       <div id="reviewerDisplay"></div>
     </div>
@@ -222,7 +222,7 @@
     const PENDING_URL = "../ClickToDescribe20260402/pending_items.json";
     const PINS_BASE = "https://finsandpins.github.io/ClickToClaim/ClickToValidate%2020260402/pins/";
     const LS_REVIEWER = "fp_reviewer_describe_grid_prod_v1";
-    const viewState = { cols: 6, rows: 2, scale: 1, orderMode: "grouped" };
+    const viewState = { cols: 6, rows: 4, scale: 0.8, orderMode: "grouped" };
 
     let reviewer = "";
     let allPins = {};
