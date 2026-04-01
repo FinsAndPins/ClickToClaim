@@ -279,6 +279,7 @@ let queue = [];
 let currentIdx = 0;
 let allPins = {};
 let confirmed = {};
+let describeConfirmed = {};
 let history = [];   // [{idx, confirmed, key}]
 let sessionCount = 0;
 
@@ -326,14 +327,14 @@ async function start() {
 
   // Fetch title-confirmed pins to prioritize (show those first)
   const titleSnap = await db.ref('description_review/ClickToDescribe20260402').get();
-  const titleConfirmed = titleSnap.exists() ? titleSnap.val() : {};
+  describeConfirmed = titleSnap.exists() ? titleSnap.val() : {};
 
   // Build queue: title-confirmed pins first, then rest (each group seeded-shuffled)
   const allKeys = Object.keys(pending);
   const seed = strToSeed(reviewer);
   const unconfirmed = allKeys.filter(k => !confirmed[k.replace(/\./g, '_')]);
-  const priority = unconfirmed.filter(k =>  titleConfirmed[k.replace(/\./g, '_')]);
-  const rest     = unconfirmed.filter(k => !titleConfirmed[k.replace(/\./g, '_')]);
+  const priority = unconfirmed.filter(k =>  describeConfirmed[k.replace(/\./g, '_')]);
+  const rest     = unconfirmed.filter(k => !describeConfirmed[k.replace(/\./g, '_')]);
   queue = [...seededShuffle(priority, seed), ...seededShuffle(rest, seed)];
 
   document.getElementById('loadScreen').style.display = 'none';
@@ -369,7 +370,9 @@ function showPin(idx) {
     `${done + 1} / ${total}  (${queue.length - idx} left)`;
 
   // Title strip (final character first)
-  document.getElementById('pinTitle').value = cleanTitle(pin.final_character || 'Unknown');
+  const key = filename.replace(/\./g, '_');
+  const describeTitle = describeConfirmed[key]?.final_title;
+  document.getElementById('pinTitle').value = cleanTitle(describeTitle || pin.final_character || 'Unknown');
   updateBackBtn();
 
   // Photo
@@ -414,7 +417,9 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   const finalPrice = parseInt(document.getElementById('priceInput').value) || 10;
   const suggestedPrice = adjustPrice(pin.price);
   const wasAdjusted = finalPrice !== suggestedPrice;
-  const baseTitle = cleanTitle(pin.final_character || 'Unknown');
+  const keyForBase = filename.replace(/\./g, '_');
+  const describeTitle = describeConfirmed[keyForBase]?.final_title;
+  const baseTitle = cleanTitle(describeTitle || pin.final_character || 'Unknown');
   const finalTitle = document.getElementById('pinTitle').value.trim() || baseTitle;
   const titleEdited = finalTitle !== baseTitle;
 
