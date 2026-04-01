@@ -174,6 +174,11 @@
     <div id="topBar">
       <div id="stats">Loading…</div>
       <div id="controls">
+        <label for="orderSelect">Order</label>
+        <select id="orderSelect">
+          <option value="mixed" selected>Mixed</option>
+          <option value="grouped">Grouped</option>
+        </select>
         <label for="colsSelect">Across</label>
         <select id="colsSelect">
           <option value="3">3</option>
@@ -217,7 +222,7 @@
     const PENDING_URL = "../ClickToDescribe20260402/pending_items.json";
     const PINS_BASE = "https://finsandpins.github.io/ClickToClaim/ClickToValidate%2020260402/pins/";
     const LS_REVIEWER = "fp_reviewer_describe_grid_prod_v1";
-    const viewState = { cols: 6, rows: 2, scale: 1 };
+    const viewState = { cols: 6, rows: 2, scale: 1, orderMode: "mixed" };
 
     let reviewer = "";
     let allPins = {};
@@ -251,6 +256,25 @@
       return Array.from(document.querySelectorAll("#grid .card[data-filename]")).map((el) => el.dataset.filename);
     }
 
+    function normalizeCharacter(t) {
+      return cleanTitle(t || "").toLowerCase().trim();
+    }
+
+    function sortGroupedByCharacter(items) {
+      return (items || []).slice().sort((a, b) => {
+        const aChar = normalizeCharacter(getDisplayCharacter(a));
+        const bChar = normalizeCharacter(getDisplayCharacter(b));
+        if (aChar < bChar) return -1;
+        if (aChar > bChar) return 1;
+        return a.localeCompare(b);
+      });
+    }
+
+    function applyOrdering(items) {
+      if (viewState.orderMode === "grouped") return sortGroupedByCharacter(items);
+      return (items || []).slice();
+    }
+
     function rerenderForViewChange() {
       const currentVisible = getVisibleFilenamesFromDom();
       const desired = visibleSlots();
@@ -268,13 +292,22 @@
       updateStats();
     }
 
+    function applyOrderToRemainingQueue() {
+      const remaining = queue.slice(pointer);
+      queue = applyOrdering(remaining);
+      pointer = 0;
+      rerenderForViewChange();
+    }
+
     function initControls() {
       const colsEl = document.getElementById("colsSelect");
       const rowsEl = document.getElementById("rowsSelect");
       const sizeEl = document.getElementById("sizeRange");
+      const orderEl = document.getElementById("orderSelect");
       colsEl.value = String(viewState.cols);
       rowsEl.value = String(viewState.rows);
       sizeEl.value = String(Math.round(viewState.scale * 100));
+      orderEl.value = viewState.orderMode;
 
       colsEl.addEventListener("change", () => {
         viewState.cols = Math.max(1, parseInt(colsEl.value || "6", 10));
@@ -289,6 +322,10 @@
       sizeEl.addEventListener("input", () => {
         viewState.scale = Math.max(0.8, Math.min(1.25, parseInt(sizeEl.value || "100", 10) / 100));
         applyGridLayout();
+      });
+      orderEl.addEventListener("change", () => {
+        viewState.orderMode = orderEl.value === "grouped" ? "grouped" : "mixed";
+        applyOrderToRemainingQueue();
       });
       applyGridLayout();
     }
@@ -329,7 +366,7 @@
         savedMap = sourceSnap.exists() ? sourceSnap.val() : {};
 
         const allKeys = Object.keys(allPins);
-        queue = allKeys.filter((filename) => !savedMap[sanitizeKey(filename)]);
+        queue = applyOrdering(allKeys.filter((filename) => !savedMap[sanitizeKey(filename)]));
         pointer = 0;
         totalConfirmed = Object.keys(savedMap).length;
 
