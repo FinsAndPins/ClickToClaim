@@ -221,6 +221,7 @@ const db = firebase.database();
 const FB_PATH = 'description_review/ClickToDescribe20260402';
 const PENDING_URL = './pending_items.json';
 const LS_REVIEWER = 'fp_reviewer_describe';
+const GITHUB_PINS_BASE = 'https://finsandpins.github.io/ClickToClaim/ClickToValidate%2020260402/pins/';
 
 let reviewer = '';
 let queue = [];       // pending filenames not yet confirmed
@@ -328,7 +329,11 @@ function showPin(idx) {
   // Photo
   const photo = document.getElementById('pinPhoto');
   photo.src = '';
-  photo.src = pin.crop || pin.thumb || '';
+  photo.onerror = () => {
+    photo.onerror = null;
+    photo.src = pin.crop || pin.thumb || '';
+  };
+  photo.src = `${GITHUB_PINS_BASE}${encodeURIComponent(filename)}`;
 
   // Title / character
   const baseTitle = cleanTitle(pin.final_character || 'Unknown');
