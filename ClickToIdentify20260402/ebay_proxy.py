@@ -17,13 +17,31 @@ KEYS_PATH = Path("/Users/steve/Library/Mobile Documents/com~apple~CloudDocs/Mini
 TOKEN_CACHE = {"value": "", "expires_at": 0}
 
 
+def load_credentials():
+    env_client_id = (os.getenv("EBAY_CLIENT_ID") or "").strip()
+    env_client_secret = (os.getenv("EBAY_CLIENT_SECRET") or "").strip()
+    if env_client_id and env_client_secret:
+        return env_client_id, env_client_secret
+
+    if KEYS_PATH.exists():
+        keys = json.loads(KEYS_PATH.read_text(encoding="utf-8"))
+        return keys.get("client_id", "").strip(), keys.get("client_secret", "").strip()
+
+    raise RuntimeError(
+        "Missing eBay credentials. Set EBAY_CLIENT_ID and EBAY_CLIENT_SECRET "
+        "or provide ebay_keys.json at configured KEYS_PATH."
+    )
+
+
 def get_access_token():
     now = time.time()
     if TOKEN_CACHE["value"] and now < TOKEN_CACHE["expires_at"] - 120:
         return TOKEN_CACHE["value"]
 
-    keys = json.loads(KEYS_PATH.read_text(encoding="utf-8"))
-    creds = base64.b64encode(f"{keys['client_id']}:{keys['client_secret']}".encode()).decode()
+    client_id, client_secret = load_credentials()
+    if not client_id or not client_secret:
+        raise RuntimeError("Empty eBay credentials.")
+    creds = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
     resp = requests.post(
         "https://api.ebay.com/identity/v1/oauth2/token",
         headers={
@@ -163,9 +181,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    port = 8091
-    server = HTTPServer(("127.0.0.1", port), Handler)
-    print(f"eBay proxy listening on http://127.0.0.1:{port}")
+    port = int(os.getenv("PORT", "8091"))
+    host = os.getenv("HOST", "0.0.0.0")
+    server = HTTPServer((host, port), Handler)
+    print(f"eBay proxy listening on http://{host}:{port}")
     server.serve_forever()
 
 

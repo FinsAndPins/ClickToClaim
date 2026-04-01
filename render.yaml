@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: clicktoidentify-proxy
+    env: python
+    rootDir: ClickToIdentify20260402
+    buildCommand: pip install -r requirements.txt
+    startCommand: python ebay_proxy.py
+    plan: free
+    envVars:
+      - key: EBAY_CLIENT_ID
+        sync: false
+      - key: EBAY_CLIENT_SECRET
+        sync: false

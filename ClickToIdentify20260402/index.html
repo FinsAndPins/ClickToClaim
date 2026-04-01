@@ -428,7 +428,15 @@
 
     const FB_PATH = "identify_review/ClickToIdentify20260402_dev";
     const FB_PROBLEMS = "identify_problems/ClickToIdentify20260402_dev";
-    const EBAY_PROXY = "http://127.0.0.1:8091";
+    // Local dev uses localhost proxy; hosted Pages uses public proxy for phone access.
+    const PROD_EBAY_PROXY = "https://clicktoidentify-proxy.onrender.com";
+    const DEV_EBAY_PROXY = "http://127.0.0.1:8091";
+    const proxyParam = new URLSearchParams(location.search).get("proxy");
+    const EBAY_PROXY = proxyParam
+      ? proxyParam
+      : (location.hostname === "127.0.0.1" || location.hostname === "localhost")
+        ? DEV_EBAY_PROXY
+        : PROD_EBAY_PROXY;
     const PENDING_URL = "./pending_items.json";
     const CATALOG_URL = "./catalog_items.json";
     const LS_REVIEWER = "fp_reviewer_identify_20260402";
@@ -446,6 +454,7 @@
     let selectedCandidate = null;
     let visualCache = {};
     let skipRounds = {};
+    let lastProxyHealth = "unknown";
 
     function adjustPrice(raw) {
       if (!raw || isNaN(raw)) return 10;
@@ -558,10 +567,16 @@
           `${EBAY_PROXY}/visual_search?filename=${encodeURIComponent(filename)}&limit=50`,
           3500
         );
+        if (data && data.error) {
+          lastProxyHealth = "error";
+          return [];
+        }
+        lastProxyHealth = "ok";
         const items = Array.isArray(data.items) ? data.items : [];
         visualCache[filename] = items;
         return items;
       } catch (e) {
+        lastProxyHealth = "error";
         return [];
       }
     }
@@ -572,9 +587,15 @@
           `${EBAY_PROXY}/keyword_search?q=${encodeURIComponent(q)}&limit=50`,
           5000
         );
+        if (data && data.error) {
+          lastProxyHealth = "error";
+          return [];
+        }
+        lastProxyHealth = "ok";
         const items = Array.isArray(data.items) ? data.items : [];
         return items;
       } catch (e) {
+        lastProxyHealth = "error";
         return [];
       }
     }
@@ -717,9 +738,11 @@
       candidatePool = visual;
       const rounds = skipRounds[filename] || 0;
       candidateOffset = rounds > 0 ? Math.min(rounds * 5, Math.max(0, candidatePool.length - 1)) : 0;
-      document.getElementById("selectedStatus").textContent = candidatePool.length
+      document.getElementById("selectedStatus").textContent = visual.length
         ? "Showing eBay visual results"
-        : "No eBay visual results for this pin";
+        : lastProxyHealth === "error"
+          ? "eBay unavailable (proxy offline)"
+          : "No eBay visual results for this pin";
       renderCandidates();
       document.getElementById("backBtn").disabled = history.length === 0;
     }
@@ -806,12 +829,12 @@
     });
 
     document.getElementById("searchBtn").addEventListener("click", async () => {
+      const filename = queue[idx];
       const q = document.getElementById("searchInput").value.trim();
       if (!q) return;
       // Use multiple query variants to better mimic eBay app behavior.
       const liveKeyword = await fetchKeywordCandidatesMulti(q);
       const liveRanked = filterAndRankMatches(liveKeyword, q);
-      // eBay-only mode: never mix in local catalog fallback.
       let merged = dedupeCandidates([
         ...liveRanked.matched,
         ...liveRanked.unmatched,
@@ -824,7 +847,9 @@
         ? `eBay matches first: ${liveRanked.matched.length}`
         : liveCount
           ? `Showing eBay results (${liveCount})`
-          : "No eBay results for this search";
+          : (lastProxyHealth === "error"
+              ? "eBay search unavailable (proxy offline)"
+              : "No eBay results for this search");
       renderCandidates();
     });
     document.getElementById("prevBtn").addEventListener("click", () => {
