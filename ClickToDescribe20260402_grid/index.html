@@ -45,6 +45,17 @@
       padding: 6px 8px;
       font-size: 12px;
     }
+    #skipPageBtn {
+      background: #262626;
+      color: #d2d2d2;
+      border: 1px solid #3b3b3b;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #skipPageBtn:hover { background: #303030; }
     #stats { color: #9f9f9f; font-size: 14px; }
     #reviewerDisplay { color: #6fbf7a; font-size: 14px; font-weight: 600; }
     #grid {
@@ -195,6 +206,7 @@
         </select>
         <label for="sizeRange">Size</label>
         <input id="sizeRange" type="range" min="80" max="125" step="5" value="80">
+        <button id="skipPageBtn" type="button">Skip Page</button>
       </div>
       <div id="reviewerDisplay"></div>
     </div>
@@ -301,11 +313,22 @@
       updateStats();
     }
 
+    function skipVisiblePage() {
+      const visible = getVisibleFilenamesFromDom();
+      if (!visible.length) return;
+      const remaining = queue.slice(pointer);
+      queue = applyOrdering([...remaining, ...visible]);
+      pointer = 0;
+      renderGrid();
+      updateStats();
+    }
+
     function initControls() {
       const colsEl = document.getElementById("colsSelect");
       const rowsEl = document.getElementById("rowsSelect");
       const sizeEl = document.getElementById("sizeRange");
       const orderEl = document.getElementById("orderSelect");
+      const skipPageBtn = document.getElementById("skipPageBtn");
       colsEl.value = String(viewState.cols);
       rowsEl.value = String(viewState.rows);
       sizeEl.value = String(Math.round(viewState.scale * 100));
@@ -328,6 +351,9 @@
       orderEl.addEventListener("change", () => {
         viewState.orderMode = orderEl.value === "grouped" ? "grouped" : "mixed";
         applyOrderToRemainingQueue();
+      });
+      skipPageBtn.addEventListener("click", () => {
+        skipVisiblePage();
       });
       applyGridLayout();
     }
