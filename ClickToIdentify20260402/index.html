@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ClickToIdentify - Fins & Pins</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #111;
+      color: #fff;
+      height: 100dvh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    #topBar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
+    #progress { font-size: 12px; color: #888; }
+    #reviewerDisplay { font-size: 12px; color: #666; }
+    #photoWrap {
+      flex: 1;
+      min-height: 32dvh;
+      padding: 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #pinPhoto {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #222;
+    }
+    #characterArea { padding: 6px 10px; flex-shrink: 0; }
+    #characterLabel {
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 5px;
+    }
+    #characterInput {
+      width: 100%;
+      background: #1e1e1e;
+      color: #4caf50;
+      border: 1.5px solid #2e4a2e;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 16px;
+      outline: none;
+    }
+    #ourPriceLabel {
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin: 8px 0 5px;
+    }
+    #ourPriceInput {
+      width: 100%;
+      background: #1e1e1e;
+      color: #f39c12;
+      border: 1.5px solid #4a3a00;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 16px;
+      outline: none;
+    }
+    #priceChipsTop {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      padding: 4px 10px 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .chip {
+      background: #2a2a2a;
+      color: #ccc;
+      border: 1px solid #333;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .chip:active { background: #3a3a1a; color: #f39c12; border-color: #f39c12; }
+    #candidateHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 10px 5px;
+      flex-shrink: 0;
+    }
+    #candidateStatus { font-size: 12px; color: #7f8c8d; }
+    #selectedStatus { font-size: 12px; color: #e67e22; }
+    #candidateGrid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(100px, 1fr));
+      gap: 8px;
+      max-height: 160px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0 10px 8px;
+      flex-shrink: 0;
+    }
+    .card {
+      background: #1c1c1c;
+      border: 1px solid #2f2f2f;
+      border-radius: 10px;
+      padding: 6px;
+      min-width: 110px;
+    }
+    .card.selected { border-color: #e67e22; box-shadow: 0 0 0 1px #e67e22 inset; }
+    .card img { width: 100%; height: 90px; object-fit: cover; border-radius: 8px; background: #222; }
+    .price { font-size: 13px; color: #f39c12; margin-top: 4px; font-weight: 700; }
+    .title { font-size: 11px; color: #bbb; line-height: 1.25; max-height: 2.5em; overflow: hidden; }
+    .cardRow { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; gap: 6px; }
+    .viewLink { font-size: 10px; color: #666; text-decoration: none; white-space: nowrap; }
+    .pickBtn {
+      border: 1px solid #444;
+      background: #2b2b2b;
+      color: #ddd;
+      border-radius: 8px;
+      padding: 4px 7px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    #searchWrap {
+      display: flex;
+      gap: 8px;
+      padding: 0 10px 8px;
+      flex-shrink: 0;
+    }
+    #searchInput {
+      flex: 1;
+      background: #1e1e1e;
+      color: #ddd;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .secondaryBtn {
+      background: #2a2a2a;
+      border: 1px solid #333;
+      color: #aaa;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    #btnRow {
+      display: flex;
+      gap: 8px;
+      padding: 0 10px 12px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      flex-shrink: 0;
+    }
+    #confirmBtn {
+      flex: 1;
+      background: #e67e22;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 13px 10px;
+    }
+    #backBtn, #skipBtn {
+      background: #2a2a2a;
+      color: #888;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 13px 12px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    #backBtn:disabled { opacity: 0.3; }
+    #tinyRow {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 10px 8px;
+      flex-shrink: 0;
+    }
+    .tinyBtn {
+      font-size: 12px;
+      color: #777;
+      background: transparent;
+      border: 1px solid #333;
+      border-radius: 9px;
+      padding: 6px 8px;
+    }
+    #loadScreen, #doneScreen, #reviewerModal, #priceModal, #infoModal, #problemModal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 20;
+    }
+    #loadScreen, #doneScreen {
+      background: #111;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    #reviewerModal, #priceModal, #infoModal, #problemModal {
+      background: rgba(0,0,0,0.86);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal {
+      width: 100%;
+      max-width: 360px;
+      background: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .modal h3 { margin: 0 0 10px; font-size: 18px; }
+    .modal p { margin: 0 0 10px; font-size: 13px; color: #999; }
+    .modal input {
+      width: 100%;
+      margin-bottom: 8px;
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 15px;
+    }
+    .modal textarea {
+      width: 100%;
+      min-height: 90px;
+      margin-bottom: 8px;
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+    }
+    .fieldLabel {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin: 2px 0 4px;
+    }
+    .modalRow { display: flex; gap: 8px; }
+    .modalBtn {
+      flex: 1;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-weight: 700;
+      background: #e67e22;
+      color: #fff;
+    }
+    .modalBtn.secondary { background: #2e2e2e; color: #aaa; border: 1px solid #444; }
+    #loadMsg { color: #888; font-size: 14px; }
+    #doneScreen h2 { color: #e67e22; margin: 0 0 8px; }
+    #doneScreen p { color: #aaa; margin: 3px 0; text-align: center; }
+    #infoBody { white-space: pre-wrap; font-size: 12px; color: #bbb; max-height: 45dvh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div id="topBar" style="display:none;">
+    <span id="progress">- / -</span>
+    <span></span>
+    <span id="reviewerDisplay"></span>
+  </div>
+
+  <div id="photoWrap" style="display:none;"><img id="pinPhoto" alt="Pin"></div>
+
+  <div id="characterArea" style="display:none;">
+    <div id="characterLabel">Character (editable)</div>
+    <input id="characterInput" type="text" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div id="ourPriceLabel">Our Price (editable)</div>
+    <input id="ourPriceInput" type="number" min="10" step="5" inputmode="numeric" placeholder="10">
+  </div>
+  <div id="priceChipsTop" style="display:none;">
+    <button class="chip" data-price="10">$10</button>
+    <button class="chip" data-price="15">$15</button>
+    <button class="chip" data-price="20">$20</button>
+    <button class="chip" data-price="25">$25</button>
+    <button class="chip" data-price="30">$30</button>
+    <button class="chip" data-price="35">$35</button>
+    <button class="chip" data-price="40">$40</button>
+    <button class="chip" data-price="50">$50</button>
+    <button class="chip" data-price="75">$75</button>
+  </div>
+
+  <div id="candidateHeader" style="display:none;">
+    <span id="candidateStatus">5 candidates</span>
+    <span id="selectedStatus">No selection</span>
+  </div>
+  <div id="candidateGrid" style="display:none;"></div>
+
+  <div id="searchWrap" style="display:none;">
+    <input id="searchInput" placeholder="Keyword Search (e.g. Ariel LE 300)">
+    <button id="searchBtn" class="secondaryBtn">Search</button>
+    <button id="moreBtn" class="secondaryBtn">Show 5 more</button>
+  </div>
+
+  <div id="tinyRow" style="display:none;">
+    <button id="pinInfoBtn" class="tinyBtn">Pin Info</button>
+    <button id="reportBtn" class="tinyBtn">Report Problem</button>
+  </div>
+
+  <div id="btnRow" style="display:none;">
+    <button id="backBtn" disabled>&larr; Back</button>
+    <button id="confirmBtn">Confirm</button>
+    <button id="skipBtn">Skip &rarr;</button>
+  </div>
+
+  <div id="loadScreen" style="display:flex;">
+    <p id="loadMsg">Loading ClickToIdentify...</p>
+  </div>
+
+  <div id="doneScreen">
+    <h2>Congratulations!</h2>
+    <p id="doneMsg"></p>
+    <p id="doneStats"></p>
+    <div style="height:8px;"></div>
+    <button id="reviewAllBtn" class="modalBtn" style="width:220px;">Review All</button>
+  </div>
+
+  <div id="reviewerModal">
+    <div class="modal">
+      <h3>Who are you?</h3>
+      <p>Enter your Whatnot handle</p>
+      <input id="reviewerInput" placeholder="@YourHandle">
+      <button id="reviewerSaveBtn" class="modalBtn">Start Identifying</button>
+    </div>
+  </div>
+
+  <div id="priceModal">
+    <div class="modal">
+      <h3>Price Now</h3>
+      <p id="priceModalTitle"></p>
+      <div class="fieldLabel">Character</div>
+      <input id="modalCharacter" placeholder="Character">
+      <div class="fieldLabel">eBay Price (read only)</div>
+      <input id="modalEbayPrice" placeholder="eBay Price" readonly>
+      <div class="fieldLabel">Our Price (editable, no $ sign)</div>
+      <input id="modalOurPrice" placeholder="Our Price (no $ / no decimals)" inputmode="numeric">
+      <div class="modalRow">
+        <button id="modalCancelBtn" class="modalBtn secondary">Cancel</button>
+        <button id="modalSaveBtn" class="modalBtn">Save & Next</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="infoModal">
+    <div class="modal">
+      <h3>Pin Info</h3>
+      <div id="infoBody"></div>
+      <div style="height:8px;"></div>
+      <button id="infoCloseBtn" class="modalBtn secondary">Close</button>
+    </div>
+  </div>
+
+  <div id="problemModal">
+    <div class="modal">
+      <h3>Report Problem</h3>
+      <p>Add details for Lexi's issue on this pin.</p>
+      <textarea id="problemText" placeholder="What went wrong? (e.g. wrong match type, blurry crop, missing listing, etc.)"></textarea>
+      <div class="modalRow">
+        <button id="problemCancelBtn" class="modalBtn secondary">Cancel</button>
+        <button id="problemSaveBtn" class="modalBtn">Save Problem</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+      authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+      databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+      projectId: "fins-and-pins-click-to-claim",
+      storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+      messagingSenderId: "31512845258",
+      appId: "1:31512845258:web:2124fae24cfee229084d33"
+    };
+    let db = null;
+    if (window.firebase && typeof firebase.initializeApp === "function") {
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+      } catch (e) {
+        console.error("Firebase init failed:", e);
+      }
+    }
+
+    const FB_PATH = "identify_review/ClickToIdentify20260402_dev";
+    const FB_PROBLEMS = "identify_problems/ClickToIdentify20260402_dev";
+    const EBAY_PROXY = "http://127.0.0.1:8091";
+    const PENDING_URL = "./pending_items.json";
+    const CATALOG_URL = "./catalog_items.json";
+    const LS_REVIEWER = "fp_reviewer_identify_20260402";
+
+    let reviewer = "";
+    let pending = {};
+    let queue = [];
+    let idx = 0;
+    let saved = {};
+    let catalog = [];
+    let history = [];
+    let sessionCount = 0;
+    let candidatePool = [];
+    let candidateOffset = 0;
+    let selectedCandidate = null;
+    let visualCache = {};
+    let skipRounds = {};
+
+    function adjustPrice(raw) {
+      if (!raw || isNaN(raw)) return 10;
+      const p = Math.max(10, parseFloat(raw));
+      return Math.round(p / 5) * 5;
+    }
+    function cleanCharacter(v) { return (v || "").replace(/\s{2,}/g, " ").trim(); }
+    function keyOf(filename) { return filename.replace(/\./g, "_"); }
+    function currentMode() { return "match_only"; }
+
+    function setLoad(msg) {
+      document.getElementById("loadScreen").style.display = "flex";
+      document.getElementById("loadMsg").textContent = msg;
+    }
+    function hideLoad() { document.getElementById("loadScreen").style.display = "none"; }
+    function showMain() {
+      ["topBar","photoWrap","characterArea","priceChipsTop","candidateHeader","candidateGrid","searchWrap","btnRow","tinyRow"].forEach(id => {
+        document.getElementById(id).style.display = "";
+      });
+      document.getElementById("reviewerDisplay").textContent = reviewer;
+    }
+    function syncModeLabel() {
+      document.getElementById("confirmBtn").textContent = "Confirm";
+    }
+    function initReviewer() {
+      const savedR = localStorage.getItem(LS_REVIEWER);
+      if (savedR) { reviewer = savedR; start(); }
+      else { document.getElementById("reviewerModal").style.display = "flex"; }
+    }
+    document.getElementById("reviewerSaveBtn").addEventListener("click", () => {
+      const val = document.getElementById("reviewerInput").value.trim();
+      if (!val) return;
+      reviewer = val.startsWith("@") ? val : "@" + val;
+      localStorage.setItem(LS_REVIEWER, reviewer);
+      document.getElementById("reviewerModal").style.display = "none";
+      start();
+    });
+
+    async function start() {
+      try {
+        syncModeLabel();
+        setLoad("Loading pending items...");
+        pending = await (await fetch(PENDING_URL)).json();
+        const catalogObj = await (await fetch(CATALOG_URL)).json();
+        catalog = Object.values(catalogObj || {});
+        setLoad("Checking identify progress...");
+        if (db) {
+          const snap = await db.ref(FB_PATH).get();
+          saved = snap.exists() ? snap.val() : {};
+        } else {
+          saved = {};
+        }
+        queue = Object.keys(pending).filter(fn => !saved[keyOf(fn)]);
+        hideLoad();
+        if (queue.length === 0) return showDone(0, 0);
+        showMain();
+        showPin(0);
+      } catch (e) {
+        console.error("Start failed:", e);
+        setLoad("Load error: " + (e && e.message ? e.message : String(e)));
+      }
+    }
+
+    function defaultQueryFromPin(pin) {
+      const base = cleanCharacter(pin.vlm_character || pin.final_character || pin.title || "");
+      return base.split(/\s+/).slice(0, 4).join(" ").trim();
+    }
+    function buildCandidatePool(query, pinFilename) {
+      const q = (query || "").toLowerCase().trim();
+      const tokens = q.split(/\s+/).filter(Boolean);
+      const scored = [];
+      for (const item of catalog) {
+        if (!item || !item.filename || item.filename === pinFilename) continue;
+        const t = (item.title || "").toLowerCase();
+        let score = 0;
+        if (q && t.includes(q)) score += 10;
+        for (const token of tokens) if (t.includes(token)) score += 2;
+        if (score > 0 || !q) scored.push({ score, item });
+      }
+      scored.sort((a, b) => b.score - a.score || (a.item.price || 0) - (b.item.price || 0));
+      let pool = scored.map(x => x.item);
+      // If query is too narrow, fall back to broad catalog so "show more/skip" can rotate.
+      if (pool.length < 10) {
+        const broad = [];
+        for (const item of catalog) {
+          if (!item || !item.filename || item.filename === pinFilename) continue;
+          broad.push(item);
+        }
+        broad.sort((a, b) => (a.price || 0) - (b.price || 0));
+        pool = broad;
+      }
+      return pool;
+    }
+
+    async function fetchJsonWithTimeout(url, ms) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), ms);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        return await res.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchVisualCandidates(filename) {
+      if (visualCache[filename]) return visualCache[filename];
+      try {
+        const data = await fetchJsonWithTimeout(
+          `${EBAY_PROXY}/visual_search?filename=${encodeURIComponent(filename)}&limit=50`,
+          3500
+        );
+        const items = Array.isArray(data.items) ? data.items : [];
+        visualCache[filename] = items;
+        return items;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    async function fetchKeywordCandidates(q) {
+      try {
+        const data = await fetchJsonWithTimeout(
+          `${EBAY_PROXY}/keyword_search?q=${encodeURIComponent(q)}&limit=50`,
+          5000
+        );
+        const items = Array.isArray(data.items) ? data.items : [];
+        return items;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function scoreByTitleMatch(items, query) {
+      const q = (query || "").toLowerCase().trim();
+      const tokens = q.split(/\s+/).filter(Boolean);
+      return (items || []).slice().sort((a, b) => {
+        const at = (a.title || "").toLowerCase();
+        const bt = (b.title || "").toLowerCase();
+        const score = (t) => {
+          let s = 0;
+          if (q && t.includes(q)) s += 100;
+          for (const tok of tokens) if (t.includes(tok)) s += 10;
+          return s;
+        };
+        return score(bt) - score(at);
+      });
+    }
+    function renderCandidates() {
+      const grid = document.getElementById("candidateGrid");
+      grid.innerHTML = "";
+      let chunk = [];
+      if (candidatePool.length > 0) {
+        for (let i = 0; i < Math.min(5, candidatePool.length); i++) {
+          const j = (candidateOffset + i) % candidatePool.length;
+          chunk.push(candidatePool[j]);
+        }
+      }
+      document.getElementById("candidateStatus").textContent = `${chunk.length} shown (${candidatePool.length} total)`;
+      document.getElementById("moreBtn").disabled = candidatePool.length <= 5;
+      if (chunk.length === 0) {
+        grid.innerHTML = "<div style='color:#777;font-size:12px;padding:8px 0;'>No additional listings available.</div>";
+        return;
+      }
+      for (const c of chunk) {
+        const card = document.createElement("div");
+        card.className = "card" + (selectedCandidate && selectedCandidate.filename === c.filename ? " selected" : "");
+        card.innerHTML = `
+          <img src="${c.thumb || c.crop || ""}" alt="">
+          <div class="price">$${c.price ? Math.round(parseFloat(c.price)) : "-"}</div>
+          <div class="title">${(c.title || "Untitled").replace(/</g, "&lt;")}</div>
+          <div class="cardRow">
+            <a class="viewLink" href="${c.source || "#"}" target="_blank" rel="noopener">View Listing</a>
+            <button class="pickBtn" data-file="${c.filename}">Pick</button>
+          </div>`;
+        grid.appendChild(card);
+        card.addEventListener("click", (evt) => {
+          // Ignore direct link click behavior.
+          if (evt.target && evt.target.closest && evt.target.closest(".viewLink")) return;
+          selectedCandidate = c;
+          const suggestedFromCandidate = adjustPrice(c.price || 10);
+          document.getElementById("ourPriceInput").value = suggestedFromCandidate;
+          document.getElementById("selectedStatus").textContent = `Selected: ${c.filename}`;
+          renderCandidates();
+        });
+      }
+      document.querySelectorAll(".pickBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const file = btn.getAttribute("data-file");
+          selectedCandidate = chunk.find(x => x.filename === file) || null;
+          if (selectedCandidate) {
+            document.getElementById("ourPriceInput").value = adjustPrice(selectedCandidate.price || 10);
+          }
+          document.getElementById("selectedStatus").textContent = selectedCandidate ? `Selected: ${selectedCandidate.filename}` : "No selection (optional)";
+          renderCandidates();
+        });
+      });
+    }
+
+    async function showPin(nextIdx) {
+      idx = nextIdx;
+      if (idx >= queue.length) return showDone(sessionCount, 0);
+      selectedCandidate = null;
+      document.getElementById("selectedStatus").textContent = "No selection (optional)";
+      const filename = queue[idx];
+      const pin = pending[filename];
+      document.getElementById("progress").textContent = `${idx + 1} / ${queue.length} (${queue.length - idx} left)`;
+      document.getElementById("characterInput").value = cleanCharacter(pin.vlm_character || pin.final_character || pin.title || "") || "Unknown";
+      const suggested = adjustPrice(pin.price || 10);
+      const existingOurPrice = pin.our_price;
+      document.getElementById("ourPriceInput").value = existingOurPrice ? parseInt(existingOurPrice, 10) : suggested;
+      const photo = document.getElementById("pinPhoto");
+      photo.onerror = () => { photo.onerror = null; photo.src = pin.crop || pin.thumb || ""; };
+      photo.src = `./pins/${encodeURIComponent(filename)}`;
+      const query = defaultQueryFromPin(pin);
+      document.getElementById("searchInput").value = query;
+      const visual = await fetchVisualCandidates(filename);
+      candidatePool = visual.length ? visual : buildCandidatePool(query, filename);
+      const rounds = skipRounds[filename] || 0;
+      candidateOffset = rounds > 0 ? Math.min(rounds * 5, Math.max(0, candidatePool.length - 1)) : 0;
+      renderCandidates();
+      document.getElementById("backBtn").disabled = history.length === 0;
+    }
+
+    async function writeRecord(payload) {
+      const filename = queue[idx];
+      const key = keyOf(filename);
+      if (db) {
+        await db.ref(`${FB_PATH}/${key}`).set(payload);
+        saved[key] = true;
+      } else {
+        saved[key] = true;
+      }
+      sessionCount++;
+      history.push({ idx, saved: true, key });
+      if (history.length > 5) history.shift();
+      showPin(idx + 1);
+    }
+
+    document.getElementById("confirmBtn").addEventListener("click", async () => {
+      const filename = queue[idx];
+      const pin = pending[filename];
+      const character = cleanCharacter(document.getElementById("characterInput").value) || cleanCharacter(pin.vlm_character || pin.final_character || "Unknown");
+      if (currentMode() === "price_now") {
+        document.getElementById("priceModalTitle").textContent = selectedCandidate.title || selectedCandidate.filename;
+        document.getElementById("modalCharacter").value = character;
+        document.getElementById("modalEbayPrice").value = selectedCandidate.price ? `$${Math.round(parseFloat(selectedCandidate.price))}` : "";
+        const baseOurPrice = parseInt(document.getElementById("ourPriceInput").value || "", 10);
+        document.getElementById("modalOurPrice").value = isNaN(baseOurPrice)
+          ? adjustPrice(selectedCandidate.price || pin.price || 10)
+          : Math.max(10, Math.round(baseOurPrice / 5) * 5);
+        document.getElementById("priceModal").style.display = "flex";
+        return;
+      }
+      const ourPriceRaw = parseInt(document.getElementById("ourPriceInput").value || "", 10);
+      const ourPrice = isNaN(ourPriceRaw) ? adjustPrice(pin.price || 10) : Math.max(10, Math.round(ourPriceRaw / 5) * 5);
+      pending[filename].our_price = ourPrice;
+      await writeRecord({
+        filename, mode: "match_only", status: "identified", needs_pricing: true,
+        final_character: character, selected_listing: selectedCandidate || null,
+        final_price: ourPrice, reviewer, timestamp: Date.now()
+      });
+    });
+
+    document.getElementById("modalCancelBtn").addEventListener("click", () => {
+      document.getElementById("priceModal").style.display = "none";
+    });
+    document.getElementById("modalSaveBtn").addEventListener("click", async () => {
+      const filename = queue[idx];
+      const finalCharacter = cleanCharacter(document.getElementById("modalCharacter").value) || "Unknown";
+      const finalPrice = parseInt((document.getElementById("modalOurPrice").value || "10").replace(/[^\d]/g, ""), 10);
+      document.getElementById("priceModal").style.display = "none";
+      pending[filename].our_price = isNaN(finalPrice) ? 10 : Math.max(10, Math.round(finalPrice / 5) * 5);
+      await writeRecord({
+        filename, mode: "price_now", status: "priced", needs_pricing: false,
+        final_character: finalCharacter,
+        ebay_price: selectedCandidate ? (selectedCandidate.price || null) : null,
+        final_price: pending[filename].our_price,
+        selected_listing: selectedCandidate, reviewer, timestamp: Date.now()
+      });
+    });
+
+    document.getElementById("skipBtn").addEventListener("click", () => {
+      const filename = queue[idx];
+      skipRounds[filename] = (skipRounds[filename] || 0) + 1;
+      // Move skipped pin to end so it must be resolved later.
+      queue.splice(idx, 1);
+      queue.push(filename);
+      history.push({ idx, saved: false });
+      if (history.length > 5) history.shift();
+      showPin(idx);
+    });
+    document.getElementById("backBtn").addEventListener("click", async () => {
+      if (history.length === 0) return;
+      const last = history.pop();
+      if (last.saved && db) {
+        await db.ref(`${FB_PATH}/${last.key}`).remove();
+      }
+      if (last.saved) {
+        delete saved[last.key];
+        sessionCount = Math.max(0, sessionCount - 1);
+      }
+      showPin(last.idx);
+    });
+
+    document.getElementById("searchBtn").addEventListener("click", async () => {
+      const filename = queue[idx];
+      const q = document.getElementById("searchInput").value.trim();
+      // Try exact phrase first, then broad phrase, then local fallback.
+      const liveExact = await fetchKeywordCandidates(`"${q}"`);
+      const liveKeyword = liveExact.length ? liveExact : await fetchKeywordCandidates(q);
+      const rankedLive = scoreByTitleMatch(liveKeyword, q);
+      candidatePool = rankedLive.length ? rankedLive : buildCandidatePool(q, filename);
+      candidateOffset = 0;
+      selectedCandidate = null;
+      document.getElementById("selectedStatus").textContent = "No selection";
+      renderCandidates();
+    });
+    document.getElementById("moreBtn").addEventListener("click", () => {
+      if (candidatePool.length > 0) candidateOffset = (candidateOffset + 5) % candidatePool.length;
+      renderCandidates();
+    });
+
+    document.getElementById("priceChipsTop").addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      document.getElementById("ourPriceInput").value = chip.dataset.price;
+    });
+
+    function showDone(identifiedCount, unresolved) {
+      ["topBar","photoWrap","characterArea","candidateHeader","candidateGrid","searchWrap","btnRow","tinyRow"].forEach(id => {
+        document.getElementById(id).style.display = "none";
+      });
+      document.getElementById("doneMsg").textContent = `You identified ${identifiedCount} pins!`;
+      document.getElementById("doneStats").textContent = `${unresolved} skipped pins remain.`;
+      document.getElementById("doneScreen").style.display = "flex";
+    }
+    document.getElementById("reviewAllBtn").addEventListener("click", () => {
+      location.href = "./review_all.html";
+    });
+
+    document.getElementById("pinInfoBtn").addEventListener("click", () => {
+      const filename = queue[idx];
+      const pin = pending[filename] || {};
+      const info = {
+        filename, status: pin.status, source: pin.source, price: pin.price,
+        vlm_character: pin.vlm_character,
+        final_character_input: cleanCharacter(document.getElementById("characterInput").value),
+        selected_listing: selectedCandidate ? selectedCandidate.filename : null,
+        selected_listing_price: selectedCandidate ? selectedCandidate.price : null
+      };
+      document.getElementById("infoBody").textContent = JSON.stringify(info, null, 2);
+      document.getElementById("infoModal").style.display = "flex";
+    });
+    document.getElementById("infoCloseBtn").addEventListener("click", () => {
+      document.getElementById("infoModal").style.display = "none";
+    });
+    document.getElementById("reportBtn").addEventListener("click", () => {
+      document.getElementById("problemText").value = "";
+      document.getElementById("problemModal").style.display = "flex";
+    });
+    document.getElementById("problemCancelBtn").addEventListener("click", () => {
+      document.getElementById("problemModal").style.display = "none";
+    });
+    document.getElementById("problemSaveBtn").addEventListener("click", async () => {
+      const filename = queue[idx];
+      const pin = pending[filename] || {};
+      const note = (document.getElementById("problemText").value || "").trim();
+      const payload = {
+        filename, queue_index: idx, queue_size: queue.length, mode: currentMode(),
+        character_input: cleanCharacter(document.getElementById("characterInput").value),
+        selected_listing: selectedCandidate || null, pin_snapshot: pin,
+        problem_note: note, reviewer, timestamp: Date.now()
+      };
+      if (db) {
+        await db.ref(FB_PROBLEMS).push(payload);
+        document.getElementById("problemModal").style.display = "none";
+        alert("Problem saved.");
+      } else {
+        document.getElementById("problemModal").style.display = "none";
+        alert("Problem captured locally only (Firebase unavailable).");
+      }
+    });
+
+    // Cleaner Lens behavior: opens just the crop image in a new tab.
+    document.getElementById("pinPhoto").addEventListener("dblclick", () => {
+      const filename = queue[idx];
+      window.open(`./pins/${encodeURIComponent(filename)}`, "_blank", "noopener");
+    });
+
+    initReviewer();
+  </script>
+</body>
+</html>
