@@ -56,6 +56,17 @@
       cursor: pointer;
     }
     #skipPageBtn:hover { background: #303030; }
+    #backPageBtn {
+      background: #262626;
+      color: #d2d2d2;
+      border: 1px solid #3b3b3b;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #backPageBtn:hover { background: #303030; }
     #stats { color: #9f9f9f; font-size: 14px; }
     #reviewerDisplay { color: #6fbf7a; font-size: 14px; font-weight: 600; }
     #grid {
@@ -206,6 +217,7 @@
         </select>
         <label for="sizeRange">Size</label>
         <input id="sizeRange" type="range" min="80" max="125" step="5" value="80">
+        <button id="backPageBtn" type="button">Back Page</button>
         <button id="skipPageBtn" type="button">Skip Page</button>
       </div>
       <div id="reviewerDisplay"></div>
@@ -234,6 +246,7 @@
     const PENDING_URL = "../ClickToDescribe20260402/pending_items.json";
     const PINS_BASE = "https://finsandpins.github.io/ClickToClaim/ClickToValidate%2020260402/pins/";
     const LS_REVIEWER = "fp_reviewer_describe_grid_prod_v1";
+    const LS_SESSION = "fp_describe_grid_prod_session_v1";
     const viewState = { cols: 6, rows: 4, scale: 0.8, orderMode: "grouped" };
 
     let reviewer = "";
@@ -266,6 +279,56 @@
 
     function getVisibleFilenamesFromDom() {
       return Array.from(document.querySelectorAll("#grid .card[data-filename]")).map((el) => el.dataset.filename);
+    }
+    function uniquePreserveOrder(items) {
+      const seen = new Set();
+      const out = [];
+      for (const it of items || []) {
+        if (!it || seen.has(it)) continue;
+        seen.add(it);
+        out.push(it);
+      }
+      return out;
+    }
+    function buildSessionQueueSnapshot() {
+      const visible = getVisibleFilenamesFromDom();
+      const remaining = queue.slice(pointer);
+      return { visible: uniquePreserveOrder(visible), remaining: uniquePreserveOrder(remaining) };
+    }
+    function persistSessionState() {
+      if (!queue.length) {
+        localStorage.removeItem(LS_SESSION);
+        return;
+      }
+      const snap = buildSessionQueueSnapshot();
+      const payload = {
+        writePath: WRITE_PATH,
+        reviewer,
+        visible: snap.visible,
+        remaining: snap.remaining,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(LS_SESSION, JSON.stringify(payload));
+    }
+    function restoreSessionQueue(defaultQueue) {
+      const raw = localStorage.getItem(LS_SESSION);
+      if (!raw) return defaultQueue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.writePath !== WRITE_PATH) return defaultQueue;
+        if ((parsed.reviewer || "") !== reviewer) return defaultQueue;
+        const allowed = new Set(defaultQueue);
+        const restored = uniquePreserveOrder([
+          ...((parsed.visible && Array.isArray(parsed.visible)) ? parsed.visible : []),
+          ...((parsed.remaining && Array.isArray(parsed.remaining)) ? parsed.remaining : [])
+        ].filter(fn => allowed.has(fn)));
+        if (!restored.length) return defaultQueue;
+        const restoredSet = new Set(restored);
+        const missing = defaultQueue.filter(fn => !restoredSet.has(fn));
+        return [...restored, ...missing];
+      } catch (_) {
+        return defaultQueue;
+      }
     }
 
     function normalizeCharacter(t) {
@@ -302,6 +365,7 @@
       for (const filename of keep) grid.appendChild(createCard(filename));
       if (!grid.children.length) renderDoneCards();
       updateStats();
+      persistSessionState();
     }
 
     function applyOrderToRemainingQueue() {
@@ -317,7 +381,17 @@
       const visible = getVisibleFilenamesFromDom();
       if (!visible.length) return;
       const remaining = queue.slice(pointer);
-      queue = applyOrdering([...remaining, ...visible]);
+      queue = [...remaining, ...visible];
+      pointer = 0;
+      renderGrid();
+      updateStats();
+    }
+    function backVisiblePage() {
+      const pageSize = Math.max(1, getVisibleFilenamesFromDom().length || visibleSlots());
+      if (queue.length <= pageSize) return;
+      const tail = queue.slice(-pageSize);
+      const head = queue.slice(0, -pageSize);
+      queue = [...tail, ...head];
       pointer = 0;
       renderGrid();
       updateStats();
@@ -328,6 +402,7 @@
       const rowsEl = document.getElementById("rowsSelect");
       const sizeEl = document.getElementById("sizeRange");
       const orderEl = document.getElementById("orderSelect");
+      const backPageBtn = document.getElementById("backPageBtn");
       const skipPageBtn = document.getElementById("skipPageBtn");
       colsEl.value = String(viewState.cols);
       rowsEl.value = String(viewState.rows);
@@ -351,6 +426,9 @@
       orderEl.addEventListener("change", () => {
         viewState.orderMode = orderEl.value === "grouped" ? "grouped" : "mixed";
         applyOrderToRemainingQueue();
+      });
+      backPageBtn.addEventListener("click", () => {
+        backVisiblePage();
       });
       skipPageBtn.addEventListener("click", () => {
         skipVisiblePage();
@@ -394,7 +472,8 @@
         savedMap = sourceSnap.exists() ? sourceSnap.val() : {};
 
         const allKeys = Object.keys(allPins);
-        queue = applyOrdering(allKeys.filter((filename) => !savedMap[sanitizeKey(filename)]));
+        const defaultQueue = applyOrdering(allKeys.filter((filename) => !savedMap[sanitizeKey(filename)]));
+        queue = restoreSessionQueue(defaultQueue);
         pointer = 0;
         totalConfirmed = Object.keys(savedMap).length;
 
@@ -493,8 +572,11 @@
     }
 
     function handleSkip(card, filename) {
-      queue.push(filename);
-      replaceCardWithNext(card);
+      const visible = getVisibleFilenamesFromDom().filter((f) => f !== filename);
+      const remaining = queue.slice(pointer);
+      queue = [...visible, ...remaining, filename];
+      pointer = 0;
+      renderGrid();
       updateStats();
     }
 
@@ -518,6 +600,7 @@
         grid.appendChild(createCard(filename));
       }
       if (!grid.children.length) renderDoneCards();
+      persistSessionState();
     }
 
     function renderDoneCards() {
@@ -528,6 +611,7 @@
       done.style.maxWidth = "460px";
       done.innerHTML = "<h3 style='margin:0;'>All done in production queue</h3><p style='color:#9a9a9a;'>Everything appears confirmed already.</p>";
       grid.appendChild(done);
+      localStorage.removeItem(LS_SESSION);
     }
 
     initControls();
