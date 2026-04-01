@@ -60,7 +60,7 @@
     #btnRow {
       flex-shrink: 0;
       display: flex; gap: 10px;
-      padding: 8px 12px 14px;
+      padding: 4px 12px 14px;
       padding-bottom: max(14px, env(safe-area-inset-bottom));
     }
     #confirmBtn {
@@ -85,20 +85,6 @@
     }
     #nextBtn:active, #backBtn:not(:disabled):active { background: #1a1a1a; color: #aaa; }
     #backBtn:disabled { opacity: 0.25; cursor: default; }
-    #dontKnowRow {
-      flex-shrink: 0;
-      padding: 0 12px 6px;
-    }
-    #dontKnowBtn {
-      width: 100%;
-      background: #2a2a2a; color: #666;
-      border: 1px solid #333; border-radius: 14px;
-      font-size: 15px; font-weight: 500;
-      padding: 12px; cursor: pointer;
-      -webkit-user-select: none; user-select: none;
-    }
-    #dontKnowBtn:active { background: #1a1a1a; color: #888; }
-
     /* ── LOADING / DONE SCREENS ── */
     #loadScreen {
       position: fixed; inset: 0; background: #111;
@@ -193,13 +179,10 @@
   <textarea id="titleInput" rows="2" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"></textarea>
 </div>
 
-<div id="dontKnowRow" style="display:none;">
-  <button id="dontKnowBtn">Don't Know</button>
-</div>
 <div id="btnRow" style="display:none;">
   <button id="backBtn" disabled>← Back</button>
   <button id="confirmBtn">✓ Confirm</button>
-  <button id="nextBtn">Next →</button>
+  <button id="nextBtn">Skip →</button>
 </div>
 
 <!-- Firebase SDK -->
@@ -304,7 +287,7 @@ function setLoad(msg) {
 }
 
 function showMainUI() {
-  ['topBar','photoWrap','titleArea','dontKnowRow','btnRow'].forEach(id => {
+  ['topBar','photoWrap','titleArea','btnRow'].forEach(id => {
     document.getElementById(id).style.display = '';
   });
   document.getElementById('reviewerDisplay').textContent = reviewer;
@@ -346,7 +329,7 @@ function updateBackBtn() {
 }
 
 function showDone(total) {
-  ['topBar','photoWrap','titleArea','dontKnowRow','btnRow'].forEach(id => {
+  ['topBar','photoWrap','titleArea','btnRow'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
   document.getElementById('doneScreen').style.display = 'flex';
@@ -375,26 +358,6 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
     status: 'confirmed'
   });
 
-  confirmed[key] = true;
-  sessionCount++;
-  history.push({ idx: currentIdx, saved: true, key });
-  if (history.length > 3) history.shift();
-  showPin(currentIdx + 1);
-});
-
-// ── DONT KNOW ────────────────────────────────────────────────────────────────
-document.getElementById('dontKnowBtn').addEventListener('click', async () => {
-  const filename = queue[currentIdx];
-  const key = filename.replace(/\./g, '_');
-  await db.ref(`${FB_PATH}/${key}`).set({
-    filename,
-    ai_title: cleanTitle(allPins[filename].final_character || 'Unknown'),
-    final_title: null,
-    was_edited: false,
-    reviewer,
-    timestamp: Date.now(),
-    status: 'dont_know'
-  });
   confirmed[key] = true;
   sessionCount++;
   history.push({ idx: currentIdx, saved: true, key });
