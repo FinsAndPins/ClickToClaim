@@ -44,12 +44,19 @@
       background: #222;
     }
     #characterArea { padding: 6px 10px; flex-shrink: 0; }
+    #charPriceRow {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .charCol { flex: 3; min-width: 0; }
+    .priceCol { flex: 1; min-width: 84px; }
     #characterLabel {
       font-size: 11px;
       color: #666;
       text-transform: uppercase;
       letter-spacing: .6px;
-      margin-bottom: 5px;
+      margin: 0 0 5px;
     }
     #characterInput {
       width: 100%;
@@ -77,7 +84,9 @@
       padding: 10px 12px;
       font-size: 16px;
       outline: none;
+      height: 42px;
     }
+    #characterInput { height: 42px; }
     #priceChipsTop {
       flex-shrink: 0;
       display: flex;
@@ -290,10 +299,16 @@
   <div id="photoWrap" style="display:none;"><img id="pinPhoto" alt="Pin"></div>
 
   <div id="characterArea" style="display:none;">
-    <div id="characterLabel">Character (editable)</div>
-    <input id="characterInput" type="text" autocomplete="off" autocorrect="off" spellcheck="false">
-    <div id="ourPriceLabel">Our Price (editable)</div>
-    <input id="ourPriceInput" type="number" min="10" step="5" inputmode="numeric" placeholder="10">
+    <div id="charPriceRow">
+      <div class="charCol">
+        <div id="characterLabel">Character</div>
+        <input id="characterInput" type="text" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="priceCol">
+        <div id="ourPriceLabel">Price</div>
+        <input id="ourPriceInput" type="number" min="10" step="5" inputmode="numeric" placeholder="10">
+      </div>
+    </div>
   </div>
   <div id="priceChipsTop" style="display:none;">
     <button class="chip" data-price="10">$10</button>
@@ -319,15 +334,14 @@
     <button id="moreBtn" class="secondaryBtn">Show 5 more</button>
   </div>
 
-  <div id="tinyRow" style="display:none;">
-    <button id="pinInfoBtn" class="tinyBtn">Pin Info</button>
-    <button id="reportBtn" class="tinyBtn">Report Problem</button>
-  </div>
-
   <div id="btnRow" style="display:none;">
     <button id="backBtn" disabled>&larr; Back</button>
     <button id="confirmBtn">Confirm</button>
     <button id="skipBtn">Skip &rarr;</button>
+  </div>
+  <div id="tinyRow" style="display:none;">
+    <button id="pinInfoBtn" class="tinyBtn">Pin Info</button>
+    <button id="reportBtn" class="tinyBtn">Report Problem</button>
   </div>
 
   <div id="loadScreen" style="display:flex;">
@@ -564,20 +578,39 @@
       }
     }
 
-    function scoreByTitleMatch(items, query) {
-      const q = (query || "").toLowerCase().trim();
-      const tokens = q.split(/\s+/).filter(Boolean);
-      return (items || []).slice().sort((a, b) => {
-        const at = (a.title || "").toLowerCase();
-        const bt = (b.title || "").toLowerCase();
-        const score = (t) => {
-          let s = 0;
-          if (q && t.includes(q)) s += 100;
-          for (const tok of tokens) if (t.includes(tok)) s += 10;
-          return s;
-        };
-        return score(bt) - score(at);
-      });
+    function normalizeQuery(q) {
+      return String(q || "").toLowerCase().replace(/["']/g, "").replace(/\s+/g, " ").trim();
+    }
+    function scoreByTitle(title, q, tokens) {
+      const t = (title || "").toLowerCase();
+      let s = 0;
+      if (q && t.includes(q)) s += 100;
+      for (const tok of tokens) {
+        if (t.includes(tok)) s += 12;
+      }
+      return s;
+    }
+    function filterAndRankMatches(items, query) {
+      const q = normalizeQuery(query);
+      const tokens = q.split(/\s+/).filter(Boolean).filter(tok => tok.length >= 2);
+      const scored = (items || []).map(item => ({
+        item,
+        score: scoreByTitle(item.title, q, tokens)
+      }));
+      const matched = scored.filter(x => x.score > 0).sort((a, b) => b.score - a.score).map(x => x.item);
+      const unmatched = scored.filter(x => x.score <= 0).map(x => x.item);
+      return { matched, unmatched };
+    }
+    function dedupeCandidates(items) {
+      const seen = new Set();
+      const out = [];
+      for (const it of items || []) {
+        const key = `${it.source || ""}|${(it.title || "").toLowerCase()}|${it.price || ""}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(it);
+      }
+      return out;
     }
     function renderCandidates() {
       const grid = document.getElementById("candidateGrid");
@@ -742,11 +775,23 @@
       // Try exact phrase first, then broad phrase, then local fallback.
       const liveExact = await fetchKeywordCandidates(`"${q}"`);
       const liveKeyword = liveExact.length ? liveExact : await fetchKeywordCandidates(q);
-      const rankedLive = scoreByTitleMatch(liveKeyword, q);
-      candidatePool = rankedLive.length ? rankedLive : buildCandidatePool(q, filename);
+      const localPool = buildCandidatePool(q, filename);
+      const liveRanked = filterAndRankMatches(liveKeyword, q);
+      const localRanked = filterAndRankMatches(localPool, q);
+      // Prefer actual matching-term results first.
+      let merged = dedupeCandidates([
+        ...liveRanked.matched,
+        ...localRanked.matched,
+        ...liveRanked.unmatched,
+        ...localRanked.unmatched
+      ]);
+      if (!merged.length) merged = localPool;
+      candidatePool = merged;
       candidateOffset = 0;
       selectedCandidate = null;
-      document.getElementById("selectedStatus").textContent = "No selection";
+      document.getElementById("selectedStatus").textContent = liveRanked.matched.length
+        ? `Matches first: ${liveRanked.matched.length}`
+        : "No exact term matches, showing closest results";
       renderCandidates();
     });
     document.getElementById("moreBtn").addEventListener("click", () => {
