@@ -48,7 +48,7 @@
         .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: rgba(0,0,0,0.2); border-radius: 8px; }
         .board-img { width: 100%; display: block; border-radius: 8px; }
         .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
-        /* Visitors (live window): selection-before = blue + B badge (≥2 requesters on pin); selection-now = green + N badge (only you). Outside window: plain selection-green. Admin: selection-now = pre-show pin; selection-before = during/after show start. */
+        /* Visitors during+after show: blue = ≥2 requesters, green = 1; B badge = first request pre-show, N = first during show. Before show: plain green. Admin: green = pre-show pin; blue = during/after show start. */
         .pin.selection-before { border: 4px solid rgba(0, 72, 180, 0.95); background: rgba(80, 140, 255, 0.32); }
         .pin.selection-now { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
         .pin.pin-mine { box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.45); z-index: 105; }
@@ -124,7 +124,7 @@
 
 <div id="fuelOverModal">
     <div class="modal-box">
-        <p style="margin:0 0 12px; text-align:left; line-height:1.45;">You are now requesting more pins than we might be able to get to in this show. We’ll do our best. You can keep clicking.</p>
+        <p style="margin:0 0 12px; text-align:left; line-height:1.45;">You are now requesting more pins than we might be able to get to in this show. We will do our best to run every pin but cannot guarantee. You can keep clicking!</p>
         <button type="button" class="primary" onclick="document.getElementById('fuelOverModal').style.display='none'">OK</button>
     </div>
 </div>
@@ -145,7 +145,7 @@
             <h2 id="faqTitle">Click To Request — FAQ</h2>
             <details open>
                 <summary>What is Click To Request?</summary>
-                <p>Click To Request is an easy way for you to express interest in pins you would like to see in a Fins and Pins upcoming show.</p>
+                <p>Click To Request is an easy way for you to express interest in pins you would like to see in an upcoming Fins and Pins show.</p>
             </details>
             <details>
                 <summary>How do I use Click To Request?</summary>
@@ -161,7 +161,7 @@
             </details>
             <details>
                 <summary>How do I purchase my selected pins?</summary>
-                <p>All pins will be run individually over on whatnot in an auction format, starting at their current market value. Show date, time, and link is listed at the top of the Click To Request page. Don’t have a whatnot account yet? <a class="whatnot-invite-link" href="https://www.whatnot.com/" target="_blank" rel="noopener">Click here to sign up now and get $15 off your first purchase!</a></p>
+                <p>All pins will be run individually over on whatnot in an auction format, starting at their current market value. Show date, time, and link are listed at the top of the Click To Request page. Don’t have a whatnot account yet? <a class="whatnot-invite-link" href="https://www.whatnot.com/" target="_blank" rel="noopener">Click here to sign up now and get $15 off your first purchase!</a></p>
             </details>
             <details>
                 <summary>Do I have to purchase the pins through whatnot?</summary>
@@ -169,15 +169,19 @@
             </details>
             <details>
                 <summary>I want to trade. Is Click To Request where I should select what I want to trade for?</summary>
-                <p>No. Click To Request is for pre-requesting pins for Fins and Pins next whatnot show. Whatever doesn’t sell on whatnot will be for trade at upcoming Florida pin events. Refer to Fins and Pins pinned monthly calendar on Instagram to see where and when they’ll be trading!</p>
+                <p>No. Click To Request is for pre-requesting pins for Fins and Pins’ next whatnot show. Whatever doesn’t sell on whatnot will be for trade at upcoming Florida pin events. Refer to Fins and Pins’ pinned monthly calendar on Instagram to see where and when they’ll be trading!</p>
             </details>
             <details>
                 <summary>Do I have to copy and paste my total number of requests over to the Instagram post?</summary>
-                <p>While not necessary it is recommended. Pasting your shared comment on the Fins and Pins instagram post will allow fins and pins to double check and keep track of everything that people have requested and make sure they haven’t missed anything important.</p>
+                <p>While not necessary, it is recommended. Pasting your shared comment on the Fins and Pins Instagram post will allow Fins and Pins to double-check and keep track of everything that people have requested and make sure they haven’t missed anything important.</p>
+            </details>
+            <details>
+                <summary>What do B and N mean on a pin?</summary>
+                <p>During and after the show (not before it starts): <strong>Blue</strong> means more than one person requested that pin; <strong>green</strong> means only one person did. <strong>B</strong> means the <em>first</em> request on that pin was before the show started; <strong>N</strong> means the first request was during the show.</p>
             </details>
             <details>
                 <summary>What is the report issue button for?</summary>
-                <p>The report button is for issues with your ability to use Click To Request. If a pin is not selectable, or a selection overlaps another pin, is something we will want to know about to be able to fix it.</p>
+                <p>The report button is for issues with your ability to use Click To Request—for example, when a pin is not selectable or a selection overlaps another pin. We want to know about those problems so we can fix them.</p>
             </details>
             <details>
                 <summary>Why is the fuel bar not changing as I select pins?</summary>
@@ -195,7 +199,7 @@
 
 <h1>Fins and Pins Click To Request!</h1>
 <h2 id="showTitle">Show Date</h2>
-<p id="introNote">We hope you enjoy clicking the pins you want,<br>rather than typing the board number and description.</p>
+<p id="introNote">We hope you enjoy clicking the pins you want, rather than typing the board number and description 🧜‍♀️</p>
 <div id="socialBar" aria-label="Social links">
     <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
     <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
@@ -224,7 +228,7 @@
     <div id="countdownArea"></div>
     <div id="fuelGaugeArea">
         <div id="fuelBarTrack"><div id="fuelBar"></div></div>
-        <p id="fuelOverNote" role="status">You are now requesting more pins than we might be able to get to in this show. We’ll do our best. You can keep clicking.</p>
+        <p id="fuelOverNote" role="status">You are now requesting more pins than we might be able to get to in this show. We will do our best to run every pin but cannot guarantee. You can keep clicking!</p>
         <div id="spotsLeft"></div>
         <p id="fuelHint"><strong>Total requested</strong> counts each pin once (first request anywhere). <strong>My Requests</strong> includes every pin you select, including pins others already requested.</p>
     </div>
@@ -379,9 +383,26 @@ function isBnWindowActive() {
     return now >= showWindowStartMs && now < showWindowEndMs;
 }
 
+/** Before show: plain green only. During + after show: B/N + blue/green for pins you claimed. */
+function shouldShowVisitorBnStyles() {
+    return getEffectiveShowPhase() !== "pre";
+}
+
+/** True if the first request on this pin was before the scheduled Eastern show start. */
+function pinFirstRequestWasPreShow(users) {
+    const firstMs = earliestClaimTimeMs(users);
+    if (!firstMs || !showWindowStartMs) return false;
+    return firstMs < showWindowStartMs;
+}
+
 function showToast(msg, durationMs = 5000) {
     const host = document.getElementById("toastHost");
     if (!host || !msg) return;
+    let toasts = host.querySelectorAll(".app-toast");
+    while (toasts.length >= 2) {
+        toasts[0].remove();
+        toasts = host.querySelectorAll(".app-toast");
+    }
     const el = document.createElement("div");
     el.className = "app-toast";
     el.textContent = msg;
@@ -407,6 +428,20 @@ function earliestClaimTimeMs(users) {
         if (u && typeof u.time === "number" && u.time > 0) t = Math.min(t, u.time);
     }
     return t === Infinity ? 0 : t;
+}
+
+/** Order pins were first requested (1 = earliest globally); uses current `boardsState`. */
+function queueRankForPinFromState(pinKey) {
+    const entries = [];
+    Object.values(boardsState).forEach(s => {
+        Object.entries(s.allClaims || {}).forEach(([pk, users]) => {
+            const t = earliestClaimTimeMs(users);
+            if (t > 0) entries.push({ pk, t });
+        });
+    });
+    entries.sort((a, b) => a.t - b.t || a.pk.localeCompare(b.pk));
+    const idx = entries.findIndex(e => e.pk === pinKey);
+    return idx >= 0 ? idx + 1 : 0;
 }
 
 /** Admin: green (selection-now) = first request before scheduled show window; blue (selection-before) = during or after. */
@@ -441,27 +476,11 @@ document.querySelectorAll(".whatnot-invite-link").forEach(a => { a.href = WHATNO
 
 const INSTAGRAM_FP = "https://www.instagram.com/fins.and.pins/";
 
-/** Plain-text line(s) from the sticky countdown / show phase banner. */
-function getCountdownPhaseText() {
-    const el = document.getElementById("countdownArea");
-    if (!el) return "";
-    const t = el.innerText.replace(/\s+/g, " ").trim();
-    if (t) return t;
-    const ph = getEffectiveShowPhase();
-    if (ph === "pre") return "Pre-Show";
-    if (ph === "live") return "During Show";
-    if (ph === "post") return "Post Show";
-    return "";
-}
-
 function buildInstagramShareText() {
     const raw = document.getElementById("totalMyClaims").textContent || "0";
     const n = raw.trim() || "0";
     const pinWord = n === "1" ? "pin" : "pins";
-    const requests = `I just requested ${n} ${pinWord} from the Fins And Pins Click To Request website.`;
-    const phase = getCountdownPhaseText();
-    if (phase) return `${phase}\n\n${requests}`;
-    return requests;
+    return `I just requested ${n} ${pinWord} from the Fins And Pins Click To Request.`;
 }
 
 /** iOS / non-HTTPS: must run in the same turn as the tap; Clipboard API often fails on http:// LAN. */
@@ -489,31 +508,10 @@ document.getElementById("shareToIgBtn").addEventListener("click", () => {
         alert("Copied! Opening Instagram…");
         goIg();
     };
-
-    if (navigator.share) {
-        navigator.share({ text: msg, url: INSTAGRAM_FP })
-            .then(goIg)
-            .catch((err) => {
-                if (err && err.name === "AbortError") return;
-                if (copyMessageSync(msg)) afterCopy();
-                else if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(msg).then(afterCopy).catch(() => {
-                        window.prompt("Copy this text, then tap OK to open Instagram:", msg);
-                        goIg();
-                    });
-                } else {
-                    window.prompt("Copy this text, then tap OK to open Instagram:", msg);
-                    goIg();
-                }
-            });
-        return;
-    }
-
     if (copyMessageSync(msg)) {
         afterCopy();
         return;
     }
-
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(msg).then(afterCopy).catch(() => {
             window.prompt("Copy this text, then tap OK to open Instagram:", msg);
@@ -521,7 +519,6 @@ document.getElementById("shareToIgBtn").addEventListener("click", () => {
         });
         return;
     }
-
     window.prompt("Copy this text, then tap OK to open Instagram:", msg);
     goIg();
 });
@@ -723,14 +720,22 @@ function handlePinClick(boardName, idx) {
     });
     if (!isAdmin && isBnWindowActive()) {
         if (hadPriorRequests) {
-            showToast(
-                "This pin has already been selected. Check out our whatnot show and it will be coming up soon!"
-            );
+            const firstMs = earliestClaimTimeMs(existing);
+            const firstWasDuringShow = showWindowStartMs && firstMs >= showWindowStartMs;
+            if (firstWasDuringShow) {
+                const rank = queueRankForPinFromState(pinKey);
+                showToast(
+                    `This pin has already been selected. This pin is ${rank || "?"} in line. Head over to whatnot to purchase!`
+                );
+            } else {
+                showToast(
+                    "This pin has already been selected. Check out our whatnot show and it will be coming up soon!"
+                );
+            }
         } else {
             const queueNum = countClaimedPinsFromState() + 1;
             showToast(
-                "Thank you for your request! This pin had not yet been selected and has now been added to the queue. " +
-                    `Your pin is roughly ${queueNum} in queue. Head over to whatnot to purchase it.`
+                `You are the first person to select this pin! This pin is ${queueNum} in line. Head over to whatnot to purchase!`
             );
         }
     }
@@ -783,13 +788,14 @@ function listenForFirebase() {
                         }
                     } else if (users[userKey]) {
                         pinEl.classList.add("pin-mine");
-                        if (!isBnWindowActive()) {
+                        if (!shouldShowVisitorBnStyles()) {
                             pinEl.classList.add("selection-green");
                         } else {
                             pinEl.classList.add(contested ? "selection-before" : "selection-now");
+                            const preFirst = pinFirstRequestWasPreShow(users);
                             const bn = document.createElement("div");
-                            bn.className = "bn-badge " + (contested ? "is-b" : "is-n");
-                            bn.textContent = contested ? "B" : "N";
+                            bn.className = "bn-badge " + (preFirst ? "is-b" : "is-n");
+                            bn.textContent = preFirst ? "B" : "N";
                             pinEl.appendChild(bn);
                         }
                     }
