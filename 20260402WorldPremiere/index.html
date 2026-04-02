@@ -259,7 +259,7 @@ let showWindowStartMs = 0;
 let showWindowEndMs = 0;
 /** Firebase `showConfig.phase`: auto = use Eastern window; pre/live/post = manual banner & admin pin coloring. */
 let showPhaseOverride = "auto";
-/** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
+/** YYYYMMDD for Eastern window (first 8 digits in folder name). Full folder name → `fbName` for Firebase. */
 const SHOW_DATE_SLUG_FALLBACK = "20260402";
 /** Paste your whatnot invite / referral URL here (shown in FAQ links). */
 const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
@@ -556,15 +556,23 @@ function saveUsername() {
     listenForFirebase();
 }
 
-function parseShowDateSlugFromPath() {
+function parseFolderSegmentFromPath() {
     const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
     const segments = pathClean.split("/").filter(Boolean);
-    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
-    const m = last.match(/(\d{8})/);
+    return segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+}
+function parseEightDigitDateFromSegment(segment) {
+    const m = String(segment || "").match(/(\d{8})/);
     return m ? m[1] : null;
 }
-const showDateSlug = parseShowDateSlugFromPath() || SHOW_DATE_SLUG_FALLBACK;
-const fbName = showDateSlug;
+/** Firebase keys cannot contain . # $ [ ] / */
+function sanitizeFolderKeyForFirebase(segment) {
+    if (!segment) return SHOW_DATE_SLUG_FALLBACK;
+    return String(segment).replace(/[.#$\[\]\/]/g, "_").replace(/\s+/g, "_");
+}
+const folderSegmentFromPath = parseFolderSegmentFromPath();
+const showDateSlug = parseEightDigitDateFromSegment(folderSegmentFromPath) || SHOW_DATE_SLUG_FALLBACK;
+const fbName = sanitizeFolderKeyForFirebase(folderSegmentFromPath);
 
 db.ref(`showConfig/${fbName}`).on("value", snap => {
     const v = snap.val() || {};

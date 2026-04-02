@@ -55,12 +55,18 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 const SHOW_DATE_SLUG_FALLBACK = "20260402";
-function parseShowDateSlugFromPathReports() {
+function parseFolderSegmentFromPathReports() {
     const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
     const segments = pathClean.split("/").filter(Boolean);
-    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
-    const m = last.match(/(\d{8})/);
+    return segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+}
+function parseEightDigitDateFromSegment(segment) {
+    const m = String(segment || "").match(/(\d{8})/);
     return m ? m[1] : null;
+}
+function sanitizeFolderKeyForFirebase(segment) {
+    if (!segment) return SHOW_DATE_SLUG_FALLBACK;
+    return String(segment).replace(/[.#$\[\]\/]/g, "_").replace(/\s+/g, "_");
 }
 const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", authDomain: "fins-and-pins-click-to-claim.firebaseapp.com", databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com", projectId: "fins-and-pins-click-to-claim", storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app", messagingSenderId: "31512845258", appId: "1:31512845258:web:2124fae24cfee229084d33" };
 firebase.initializeApp(firebaseConfig);
@@ -90,10 +96,11 @@ function checkAuth(m=false) {
 checkAuth();
 
 async function loadData() {
-    const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
-    const fbName = showDateSlug;
-    const folder = showDateSlug;
-    document.getElementById("showWindowSlugLabel").textContent = showDateSlug;
+    const folderSegment = parseFolderSegmentFromPathReports();
+    const showDateSlug = parseEightDigitDateFromSegment(folderSegment) || SHOW_DATE_SLUG_FALLBACK;
+    const fbName = sanitizeFolderKeyForFirebase(folderSegment);
+    const folder = fbName;
+    document.getElementById("showWindowSlugLabel").textContent = fbName;
     fillTimeSelect(document.getElementById("cfgStartH"), 23);
     fillTimeSelect(document.getElementById("cfgEndH"), 23);
     fillTimeSelect(document.getElementById("cfgStartM"), 59);
