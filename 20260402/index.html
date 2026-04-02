@@ -31,8 +31,11 @@
         .gc-item { font-size: 13px; }
         .gc-dot { color: var(--fp-muted); font-weight: normal; user-select: none; }
         #syncStatus { font-size: 11px; color: var(--fp-muted); font-weight: normal; }
+        #syncStatus.sync-connected { color: #FC97D4; }
         .global-admin-row { font-size: 11px; color: var(--fp-muted); text-align: center; margin-top: 4px; font-weight: normal; line-height: 1.35; }
         #countdownArea { font-size: 11px; color: var(--fp-muted); margin-top: 5px; font-weight: normal; min-height: 14px; line-height: 1.35; }
+        #countdownArea .countdown-line-accent { color: #FC97D4; }
+        #countdownArea .countdown-line-accent strong { color: #FC97D4; }
         #fuelGaugeArea { margin-top: 6px; padding: 0 2px; font-weight: normal; }
         #fuelBarTrack { background: rgba(0,0,0,0.25); border-radius: 6px; height: 8px; overflow: hidden; }
         #fuelBar { height: 100%; width: 0%; background: #28a745; border-radius: 6px; transition: width 0.5s; }
@@ -90,7 +93,8 @@
         .faq-close-wrap { padding: 8px 18px 18px; flex-shrink: 0; }
         .faq-close { width: 100%; padding: 14px; font-size: 16px; font-weight: bold; border: none; border-radius: 10px; background: #1877f2; color: #fff; cursor: pointer; font-family: inherit; }
         #fuelOverNote { display: none; font-size: 12px; color: var(--fp-text); margin-top: 8px; line-height: 1.4; font-weight: normal; text-align: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; }
-        #fuelHint { font-size: 10px; color: var(--fp-muted); margin-top: 4px; line-height: 1.3; font-weight: normal; text-align: center; }
+        #fuelHint { font-size: 10px; color: #FC97D4; margin-top: 4px; line-height: 1.3; font-weight: normal; text-align: center; }
+        #fuelHint strong { color: #FC97D4; }
         .admin-phase-bar { display: none; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
         .admin-phase-bar .admin-phase-label { font-size: 10px; color: var(--fp-muted); font-weight: normal; width: 100%; text-align: center; margin-bottom: 2px; }
         .admin-phase-btn { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
@@ -437,6 +441,29 @@ document.querySelectorAll(".whatnot-invite-link").forEach(a => { a.href = WHATNO
 
 const INSTAGRAM_FP = "https://www.instagram.com/fins.and.pins/";
 
+/** Plain-text line(s) from the sticky countdown / show phase banner. */
+function getCountdownPhaseText() {
+    const el = document.getElementById("countdownArea");
+    if (!el) return "";
+    const t = el.innerText.replace(/\s+/g, " ").trim();
+    if (t) return t;
+    const ph = getEffectiveShowPhase();
+    if (ph === "pre") return "Pre-Show";
+    if (ph === "live") return "During Show";
+    if (ph === "post") return "Post Show";
+    return "";
+}
+
+function buildInstagramShareText() {
+    const raw = document.getElementById("totalMyClaims").textContent || "0";
+    const n = raw.trim() || "0";
+    const pinWord = n === "1" ? "pin" : "pins";
+    const requests = `I just requested ${n} ${pinWord} from the Fins And Pins Click To Request website.`;
+    const phase = getCountdownPhaseText();
+    if (phase) return `${phase}\n\n${requests}`;
+    return requests;
+}
+
 /** iOS / non-HTTPS: must run in the same turn as the tap; Clipboard API often fails on http:// LAN. */
 function copyMessageSync(text) {
     const ta = document.createElement("textarea");
@@ -456,8 +483,7 @@ function copyMessageSync(text) {
 }
 
 document.getElementById("shareToIgBtn").addEventListener("click", () => {
-    const n = document.getElementById("totalMyClaims").textContent || "0";
-    const msg = `I just requested ${n} pins from the Fins And Pins Click To Request website.`;
+    const msg = buildInstagramShareText();
     const goIg = () => { window.location.href = INSTAGRAM_FP; };
     const afterCopy = () => {
         alert("Copied! Opening Instagram…");
@@ -580,7 +606,7 @@ function updateCountdowns() {
     };
     if (showPhaseOverride !== "auto") {
         if (showPhaseOverride === "pre") {
-            el.innerHTML = "🕛 <strong>Pre-Show</strong> · Request window is not open yet. <span style=\"opacity:.85\">(Manual)</span>";
+            el.innerHTML = "<span class=\"countdown-line-accent\">🕛 <strong>Pre-Show</strong> · Request window is not open yet. <span style=\"opacity:.85\">(Manual)</span></span>";
         } else if (showPhaseOverride === "live") {
             el.innerHTML = "🎬 <strong>During Show</strong> · Request window is open. <span style=\"opacity:.85\">(Manual)</span>";
         } else {
@@ -724,7 +750,9 @@ function submitIssueReport() {
 
 function listenForFirebase() {
     db.ref(`claims/${fbName}`).on("value", snapshot => {
-        document.getElementById("syncStatus").textContent = "✅ Connected & Synced";
+        const syncEl = document.getElementById("syncStatus");
+        syncEl.textContent = "✅ Connected & Synced";
+        syncEl.classList.add("sync-connected");
         const data    = snapshot.val() || {};
         const userKey = sanitizeUserKey(identityKey);
         Object.keys(boardsState).forEach(b => {
