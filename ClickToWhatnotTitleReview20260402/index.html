@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClickToWhatnotTitleReview 20260402</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --photo-size-scale: 0.8;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      overflow-y: auto;
+    }
+    #top {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 10px 12px;
+      border-bottom: 1px solid #2a2a2a;
+      background: #1a1a1a;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    #progress { color: #aaa; font-size: 13px; }
+    #status { color: #6fcf97; font-size: 12px; }
+    #photoWrap {
+      flex: 0 0 auto;
+      height: 24dvh;
+      min-height: 24dvh;
+      max-height: 24dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      overflow: hidden;
+    }
+    #pinPhoto {
+      width: auto;
+      height: auto;
+      max-width: calc(100% * var(--photo-size-scale));
+      max-height: calc(100% * var(--photo-size-scale));
+      object-fit: contain;
+      object-position: center center;
+      border-radius: 12px;
+      background: #222;
+      display: block;
+    }
+    #photoMsg {
+      display: none;
+      color: #aaa;
+      font-size: 12px;
+      text-align: center;
+      padding: 10px 12px 0;
+    }
+    #editor {
+      padding: 10px 12px;
+      border-top: 1px solid #222;
+    }
+    .label {
+      color: #777;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 5px;
+    }
+    #titleInput {
+      width: 100%;
+      background: #1d1d1d;
+      color: #78e08f;
+      border: 1px solid #2b5b39;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 17px;
+      outline: none;
+    }
+    #meta {
+      margin-top: 8px;
+      color: #8a8a8a;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .metaFile {
+      color: #8a8a8a;
+      margin-bottom: 6px;
+    }
+    .metaEbayBox {
+      display: inline-block;
+      width: 100%;
+      background: #000;
+      border: 1px solid #2f2f2f;
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #d8d8d8;
+      line-height: 1.35;
+    }
+    #buttons {
+      display: flex;
+      gap: 8px;
+      padding: 0 12px 14px;
+      padding-bottom: max(14px, env(safe-area-inset-bottom));
+    }
+    button {
+      border: 1px solid #333;
+      border-radius: 10px;
+      background: #262626;
+      color: #ddd;
+      padding: 11px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #confirmBtn { background: #27ae60; border-color: #27ae60; color: #fff; flex: 1; }
+    #downloadBtn { background: #e67e22; border-color: #e67e22; color: #fff; }
+    #loadRow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #fileInput { color: #ccc; font-size: 12px; }
+    #filterSelect {
+      background: #1e1e1e;
+      color: #ddd;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 12px;
+    }
+    #photoSizeRange {
+      width: 110px;
+      accent-color: #4caf50;
+    }
+    #reviewerModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      padding: 16px;
+    }
+    .modalBox {
+      width: 100%;
+      max-width: 380px;
+      background: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .modalBox h3 { margin: 0 0 8px; }
+    .modalBox p { margin: 0 0 10px; color: #9a9a9a; font-size: 13px; }
+    .modalBox input {
+      width: 100%;
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .modalBox button {
+      width: 100%;
+      background: #27ae60;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="reviewerModal">
+    <div class="modalBox">
+      <h3>Who are you?</h3>
+      <p>This saves title edits to a separate Firebase folder.</p>
+      <input id="reviewerInput" type="text" placeholder="@YourHandle" autocomplete="off">
+      <button id="reviewerSaveBtn">Start Review</button>
+    </div>
+  </div>
+
+  <div id="top">
+    <div id="loadRow">
+      <input id="fileInput" type="file" accept=".csv,text/csv">
+      <select id="filterSelect" disabled>
+        <option value="all">All rows</option>
+        <option value="missing_ebay_character">Only missing eBay character</option>
+        <option value="with_ebay_listing">Only rows with eBay listing</option>
+      </select>
+      <label for="photoSizeRange" style="font-size:12px;color:#aaa;">Photo</label>
+      <input id="photoSizeRange" type="range" min="40" max="100" step="5" value="80">
+      <button id="downloadBtn" disabled>Download CSV</button>
+    </div>
+    <div>
+      <div id="progress">Load a CSV to begin</div>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <div id="photoWrap"><img id="pinPhoto" alt="pin" /></div>
+  <div id="photoMsg"></div>
+
+  <div id="editor">
+    <div class="label">Whatnot Title</div>
+    <input id="titleInput" type="text" autocomplete="off" spellcheck="false">
+    <div id="meta"></div>
+  </div>
+
+  <div id="buttons">
+    <button id="backBtn" disabled>&larr; Back</button>
+    <button id="confirmBtn" disabled>Confirm & Next</button>
+    <button id="skipBtn" disabled>Skip &rarr;</button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    const PIN_SOURCES = [
+      "../ClickToIdentify20260402/pins/", // local repo server (best for this review tool)
+      "https://finsandpins.github.io/ClickToClaim/ClickToIdentify20260402/pins/",
+      "https://finsandpins.github.io/ClickToClaim/ClickToValidate%2020260402/pins/"
+    ];
+    const LS_REVIEWER = "fp_whatnot_title_reviewer_20260402";
+    const FB_PATH = "whatnot_title_review/ClickToIdentify20260402_dev";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+      authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+      databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+      projectId: "fins-and-pins-click-to-claim",
+      storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+      messagingSenderId: "31512845258",
+      appId: "1:31512845258:web:2124fae24cfee229084d33"
+    };
+    let db = null;
+    if (window.firebase && typeof firebase.initializeApp === "function") {
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+      } catch (_) {}
+    }
+
+    let headers = [];
+    let rows = [];
+    let idx = 0;
+    let filteredIndices = [];
+    let filteredPos = 0;
+    let loadedName = "whatnot_titles";
+    let draftKey = "";
+    let reviewer = "";
+    const lastSavedTitleByFile = {};
+    const DRAFT_PREFIX = "fp_whatnot_title_review_draft_";
+
+    function parseCsv(text) {
+      const out = [];
+      let row = [];
+      let cell = "";
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (inQuotes) {
+          if (ch === '"' && next === '"') {
+            cell += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            cell += ch;
+          }
+        } else {
+          if (ch === '"') inQuotes = true;
+          else if (ch === ",") {
+            row.push(cell);
+            cell = "";
+          } else if (ch === "\n") {
+            row.push(cell);
+            out.push(row);
+            row = [];
+            cell = "";
+          } else if (ch !== "\r") {
+            cell += ch;
+          }
+        }
+      }
+      row.push(cell);
+      out.push(row);
+      return out.filter(r => r.length > 1 || String(r[0] || "").trim() !== "");
+    }
+
+    function toCsvValue(v) {
+      const s = String(v == null ? "" : v);
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    }
+    function toCsv(rowsArr) {
+      return rowsArr.map(r => r.map(toCsvValue).join(",")).join("\n");
+    }
+
+    function getCell(rowObj, key) {
+      return rowObj[key] == null ? "" : String(rowObj[key]);
+    }
+
+    function setStatus(msg, good = true) {
+      const s = document.getElementById("status");
+      s.textContent = msg;
+      s.style.color = good ? "#6fcf97" : "#ff7675";
+    }
+
+    function keyOf(filename) {
+      return String(filename || "").replace(/\./g, "_");
+    }
+
+    async function writeFirebaseRow(rowObj, rowIndex) {
+      if (!db || !reviewer) return;
+      const filename = getCell(rowObj, "filename").trim();
+      if (!filename) return;
+      const whatnotTitle = getCell(rowObj, "whatnot_title").trim();
+      if (!whatnotTitle) return;
+      if (lastSavedTitleByFile[filename] === whatnotTitle) return;
+      const payload = {
+        filename,
+        whatnot_title: whatnotTitle,
+        ebay_title: getCell(rowObj, "ebay_title"),
+        ebay_link: getCell(rowObj, "ebay_link"),
+        final_character: getCell(rowObj, "final_character"),
+        final_price: getCell(rowObj, "final_price"),
+        reviewer,
+        source_csv: loadedName,
+        row_index: rowIndex,
+        timestamp: Date.now()
+      };
+      try {
+        await db.ref(`${FB_PATH}/${keyOf(filename)}`).update(payload);
+        lastSavedTitleByFile[filename] = whatnotTitle;
+      } catch (e) {
+        setStatus(`Firebase save error: ${e.message || e}`, false);
+      }
+    }
+
+    function getFilterMode() {
+      return document.getElementById("filterSelect").value || "all";
+    }
+
+    function includeByFilter(rowObj, mode) {
+      const ebayChar = getCell(rowObj, "ebay_listing_character").trim();
+      const ebayTitle = getCell(rowObj, "ebay_title").trim();
+      if (mode === "missing_ebay_character") {
+        return ebayTitle !== "" && ebayChar === "";
+      }
+      if (mode === "with_ebay_listing") {
+        return ebayTitle !== "";
+      }
+      return true;
+    }
+
+    function rebuildFilteredIndices() {
+      const mode = getFilterMode();
+      filteredIndices = [];
+      for (let i = 0; i < rows.length; i++) {
+        if (includeByFilter(rows[i], mode)) filteredIndices.push(i);
+      }
+      if (!filteredIndices.length) {
+        filteredPos = 0;
+        return;
+      }
+      if (filteredPos >= filteredIndices.length) filteredPos = filteredIndices.length - 1;
+      if (filteredPos < 0) filteredPos = 0;
+      idx = filteredIndices[filteredPos];
+    }
+
+    function persistDraft() {
+      if (!rows.length || !draftKey) return;
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(rows));
+      } catch (_) {}
+    }
+
+    function tryRestoreDraft() {
+      if (!draftKey) return false;
+      try {
+        const raw = localStorage.getItem(draftKey);
+        if (!raw) return false;
+        const draftRows = JSON.parse(raw);
+        if (!Array.isArray(draftRows) || draftRows.length !== rows.length) return false;
+        for (let i = 0; i < rows.length; i++) {
+          if (getCell(rows[i], "filename") !== getCell(draftRows[i] || {}, "filename")) return false;
+        }
+        rows = draftRows;
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function showFilteredPosition(pos) {
+      if (!rows.length) return;
+      if (!filteredIndices.length) {
+        document.getElementById("progress").textContent = `0 / 0 (filtered) | ${rows.length} total`;
+        document.getElementById("meta").textContent = "No rows match current filter.";
+        document.getElementById("pinPhoto").src = "";
+        document.getElementById("photoMsg").style.display = "block";
+        document.getElementById("photoMsg").textContent = "No photo to display for current filter.";
+        document.getElementById("titleInput").value = "";
+        document.getElementById("backBtn").disabled = true;
+        document.getElementById("skipBtn").disabled = true;
+        document.getElementById("confirmBtn").disabled = true;
+        return;
+      }
+      if (pos < 0) pos = 0;
+      if (pos >= filteredIndices.length) pos = filteredIndices.length - 1;
+      filteredPos = pos;
+      idx = filteredIndices[filteredPos];
+      const r = rows[idx];
+      const filename = getCell(r, "filename");
+      const title = getCell(r, "whatnot_title");
+      const photo = document.getElementById("pinPhoto");
+      const photoMsg = document.getElementById("photoMsg");
+      photoMsg.style.display = "none";
+      let sourceIdx = 0;
+      photo.onerror = () => {
+        sourceIdx += 1;
+        if (sourceIdx < PIN_SOURCES.length) {
+          photo.src = `${PIN_SOURCES[sourceIdx]}${encodeURIComponent(filename)}`;
+          return;
+        }
+        photo.onerror = null;
+        photo.src = "";
+        photoMsg.style.display = "block";
+        photoMsg.textContent = filename
+          ? `Photo not found for ${filename}`
+          : "No filename on this row";
+      };
+      if (!filename) {
+        photo.src = "";
+        photoMsg.style.display = "block";
+        photoMsg.textContent = "No filename on this row";
+      } else {
+        photo.src = `${PIN_SOURCES[sourceIdx]}${encodeURIComponent(filename)}`;
+      }
+      document.getElementById("titleInput").value = title;
+      document.getElementById("progress").textContent = `${filteredPos + 1} / ${filteredIndices.length} (filtered) | row ${idx + 1} / ${rows.length}`;
+      const ebayTitle = getCell(r, "ebay_title").slice(0, 200);
+      document.getElementById("meta").innerHTML =
+        `<div class="metaFile">${filename}</div><div class="metaEbayBox">${ebayTitle || "(no eBay title on this row)"}</div>`;
+      document.getElementById("backBtn").disabled = filteredPos === 0;
+      document.getElementById("skipBtn").disabled = filteredPos >= filteredIndices.length - 1;
+      document.getElementById("confirmBtn").disabled = false;
+    }
+
+    function saveCurrentTitle() {
+      if (!rows.length) return;
+      rows[idx].whatnot_title = document.getElementById("titleInput").value.trim();
+      persistDraft();
+      void writeFirebaseRow(rows[idx], idx);
+    }
+
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      loadedName = f.name.replace(/\.csv$/i, "");
+      draftKey = `${DRAFT_PREFIX}${loadedName}`;
+      const text = await f.text();
+      const parsed = parseCsv(text);
+      if (!parsed.length) return setStatus("CSV appears empty", false);
+      headers = parsed[0].map(h => String(h || "").trim());
+      const dataRows = parsed.slice(1).map(cols => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = cols[i] == null ? "" : cols[i]; });
+        return obj;
+      });
+      if (!headers.includes("whatnot_title")) {
+        headers.push("whatnot_title");
+        dataRows.forEach(r => { r.whatnot_title = getCell(r, "final_character"); });
+      }
+      rows = dataRows;
+      const restored = tryRestoreDraft();
+      document.getElementById("confirmBtn").disabled = rows.length === 0;
+      document.getElementById("skipBtn").disabled = rows.length === 0;
+      document.getElementById("downloadBtn").disabled = rows.length === 0;
+      document.getElementById("filterSelect").disabled = rows.length === 0;
+      filteredPos = 0;
+      rebuildFilteredIndices();
+      showFilteredPosition(0);
+      setStatus(restored ? `Loaded ${rows.length} rows (restored draft edits)` : `Loaded ${rows.length} rows`);
+    });
+
+    document.getElementById("filterSelect").addEventListener("change", () => {
+      saveCurrentTitle();
+      filteredPos = 0;
+      rebuildFilteredIndices();
+      showFilteredPosition(filteredPos);
+      setStatus(`Filter: ${document.getElementById("filterSelect").selectedOptions[0].text}`);
+    });
+    document.getElementById("photoSizeRange").addEventListener("input", (e) => {
+      const pct = parseInt(e.target.value || "100", 10);
+      const scale = Math.max(0.6, Math.min(1.2, pct / 100));
+      document.documentElement.style.setProperty("--photo-size-scale", String(scale));
+    });
+
+    document.getElementById("confirmBtn").addEventListener("click", () => {
+      saveCurrentTitle();
+      if (filteredPos < filteredIndices.length - 1) showFilteredPosition(filteredPos + 1);
+    });
+    document.getElementById("skipBtn").addEventListener("click", () => {
+      saveCurrentTitle();
+      if (filteredPos < filteredIndices.length - 1) showFilteredPosition(filteredPos + 1);
+    });
+    document.getElementById("backBtn").addEventListener("click", () => {
+      saveCurrentTitle();
+      showFilteredPosition(filteredPos - 1);
+    });
+    document.getElementById("titleInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("confirmBtn").click();
+      }
+    });
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      if (!rows.length) return;
+      saveCurrentTitle();
+      const outRows = [headers, ...rows.map(r => headers.map(h => getCell(r, h)))];
+      const csv = toCsv(outRows);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${loadedName}_edited.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      if (draftKey) localStorage.removeItem(draftKey);
+      setStatus("Downloaded updated CSV");
+    });
+
+    function initReviewer() {
+      const saved = localStorage.getItem(LS_REVIEWER);
+      if (saved) {
+        reviewer = saved;
+        return;
+      }
+      document.getElementById("reviewerModal").style.display = "flex";
+      document.getElementById("reviewerInput").focus();
+    }
+    document.getElementById("reviewerSaveBtn").addEventListener("click", () => {
+      const val = (document.getElementById("reviewerInput").value || "").trim();
+      if (!val) return;
+      reviewer = val.startsWith("@") ? val : `@${val}`;
+      localStorage.setItem(LS_REVIEWER, reviewer);
+      document.getElementById("reviewerModal").style.display = "none";
+      setStatus(`Reviewer set: ${reviewer}`);
+    });
+    document.getElementById("reviewerInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("reviewerSaveBtn").click();
+    });
+
+    initReviewer();
+  </script>
+</body>
+</html>
