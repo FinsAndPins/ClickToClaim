@@ -251,7 +251,7 @@
 <script>
 // ── SHOW CONFIGURATION ──────────────────────────────────────────────
 const FUEL_MAX = 250;                        // Max pins that can be selected
-/** Default request window (Eastern). Override from Reports → “Show window” (saved in Firebase). */
+/** Default request window (Eastern). Override from Reports → “Show window” (saved in Firebase). Countdown uses the end time (“Request window closes in …”). */
 const DEFAULT_SHOW_CONFIG = { startHour: 12, startMin: 0, endHour: 18, endMin: 0 };
 const EASTERN_TZ = "America/New_York";
 let activeShowConfig = { ...DEFAULT_SHOW_CONFIG };
@@ -594,7 +594,7 @@ setInterval(updateCountdowns, 1000);
 
 function updateCountdowns() {
     const el = document.getElementById("countdownArea");
-    if (!el || !showWindowStartMs) return;
+    if (!el || !showWindowEndMs) return;
     const fmt = (ms) => {
         const h = Math.floor(ms / 3600000);
         const m = Math.floor((ms % 3600000) / 60000);
@@ -602,27 +602,27 @@ function updateCountdowns() {
         return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
     };
     const now = Date.now();
+    const closesInLine = () =>
+        `🕛 Request window closes in <strong>${fmt(showWindowEndMs - now)}</strong> <span style="opacity:.85">(Eastern)</span>`;
     if (showPhaseOverride !== "auto") {
-        // Before the scheduled Eastern open, manual "Pre-Show" should still show the same
-        // countdown as Schedule mode (times come from Reports → Save Window). After open,
-        // manual Pre-Show keeps the fixed "not open yet" banner for testing/overrides.
-        if (showPhaseOverride === "pre" && now < showWindowStartMs) {
-            el.innerHTML = `🕛 Request window opens in <strong>${fmt(showWindowStartMs - now)}</strong> <span style="opacity:.85">(Eastern)</span>`;
+        if (showPhaseOverride === "live") {
+            el.innerHTML = "🎬 <strong>During Show</strong> · Request window is open. <span style=\"opacity:.85\">(Manual)</span>";
             return;
         }
-        if (showPhaseOverride === "pre") {
-            el.innerHTML = "<span class=\"countdown-line-accent\">🕛 <strong>Pre-Show</strong> · Request window is not open yet. <span style=\"opacity:.85\">(Manual)</span></span>";
-        } else if (showPhaseOverride === "live") {
-            el.innerHTML = "🎬 <strong>During Show</strong> · Request window is open. <span style=\"opacity:.85\">(Manual)</span>";
-        } else {
+        if (showPhaseOverride === "post") {
             el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended. <span style=\"opacity:.85\">(Manual)</span>";
+            return;
         }
+        // manual Pre-Show: countdown to the scheduled *end* time (Reports → End), same as Schedule
+        if (now < showWindowEndMs) {
+            el.innerHTML = closesInLine();
+            return;
+        }
+        el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended for this show.";
         return;
     }
-    if (now < showWindowStartMs) {
-        el.innerHTML = `🕛 Request window opens in <strong>${fmt(showWindowStartMs - now)}</strong> <span style="opacity:.85">(Eastern)</span>`;
-    } else if (now < showWindowEndMs) {
-        el.innerHTML = `🎬 <strong>During Show</strong> · ends in ${fmt(showWindowEndMs - now)} <span style="opacity:.85">(Eastern)</span>`;
+    if (now < showWindowEndMs) {
+        el.innerHTML = closesInLine();
     } else {
         el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended for this show.";
     }
