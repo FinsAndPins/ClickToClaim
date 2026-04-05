@@ -23,6 +23,27 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## “My requested pins” board (in Click To Request)
+
+**Goal:** After someone has requested pins on the live show, show them a **personal board view**: all pins they claimed, similar to pack-out “virtual board” tooling but **organized like real board photos** (per `IMG ####` sections / grid), not only a flat buyer list.
+
+**Building blocks (already in the ecosystem)**
+
+- Firebase claims keyed per show / pin / user (`claims/...`), same identity model as today.
+- Board **`IMG_<board>.jpg`** + **`IMG_<board>.json`** (`predictions` boxes); geometry matches ClickToPull / cropping tools.
+
+**Sketch**
+
+1. For the logged-in user, aggregate claim keys for the current show → list of `(board, pin index)` (or whatever the app uses today for `pinKey`).
+2. For each board they touched, either:
+   - **Collage:** crop each box (same as `build_virtual_pull_board.py` style) and lay out tiles **grouped by board** with board header / aspect like your photos, or
+   - **Annotated full board:** reuse ClickToPull-style overlay but only their pins highlighted.
+3. Surface behind a clear CTA (“See my pins”) from the logged-in area or post-show summary.
+
+**Note:** Pin index must stay aligned with the **same JSON artifact** used when numbering listings (see `project_context_cursor.md` — avoid re-inference changing `predictions` order).
+
+---
+
 ## More ideas (placeholder)
 
 _Add additional bullets here as you go._
