@@ -675,7 +675,9 @@ function updateFuelGauge(requested) {
     if (overNote) overNote.style.display = requested >= FUEL_MAX ? "block" : "none";
 }
 
-fetch("./boards/manifest.json")
+// Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch).
+const BOARDS_MANIFEST_VERSION = "2";
+fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
     .then(r => r.json())
     .then(list => {
         list.sort((a, b) => parseInt(a.match(/\d+/) || 0) - parseInt(b.match(/\d+/) || 0));

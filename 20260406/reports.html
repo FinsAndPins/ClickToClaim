@@ -126,7 +126,9 @@ async function loadData() {
             .catch(e => { st.textContent = "Error: " + e.message; });
     };
 
-    const manifest = await (await fetch("./boards/manifest.json")).json();
+    // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
+    const BOARDS_MANIFEST_VERSION = "2";
+    const manifest = await (await fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
     manifest.sort((a,b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
 
     db.ref(`claims/${fbName}`).on('value', snap => {
