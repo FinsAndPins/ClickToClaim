@@ -601,7 +601,15 @@ function updateCountdowns() {
         const s = Math.floor((ms % 60000) / 1000);
         return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
     };
+    const now = Date.now();
     if (showPhaseOverride !== "auto") {
+        // Before the scheduled Eastern open, manual "Pre-Show" should still show the same
+        // countdown as Schedule mode (times come from Reports → Save Window). After open,
+        // manual Pre-Show keeps the fixed "not open yet" banner for testing/overrides.
+        if (showPhaseOverride === "pre" && now < showWindowStartMs) {
+            el.innerHTML = `🕛 Request window opens in <strong>${fmt(showWindowStartMs - now)}</strong> <span style="opacity:.85">(Eastern)</span>`;
+            return;
+        }
         if (showPhaseOverride === "pre") {
             el.innerHTML = "<span class=\"countdown-line-accent\">🕛 <strong>Pre-Show</strong> · Request window is not open yet. <span style=\"opacity:.85\">(Manual)</span></span>";
         } else if (showPhaseOverride === "live") {
@@ -611,7 +619,6 @@ function updateCountdowns() {
         }
         return;
     }
-    const now = Date.now();
     if (now < showWindowStartMs) {
         el.innerHTML = `🕛 Request window opens in <strong>${fmt(showWindowStartMs - now)}</strong> <span style="opacity:.85">(Eastern)</span>`;
     } else if (now < showWindowEndMs) {
