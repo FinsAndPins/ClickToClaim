@@ -341,6 +341,23 @@ function sanitizeUserKey(id) {
     return String(id).replace(/[.#$\[\]\/]/g, "_");
 }
 
+/** @whatnot / @instagram-style names: one customer per handle regardless of case. Guest_* left as-is. */
+function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+}
+
+/** Distinct “customer” for admin stats: normalized @handle when label exists, else Firebase uid (legacy). */
+function userKeyForPublicStats(uid, meta) {
+    const lab = meta && typeof meta.label === "string" ? meta.label.trim() : "";
+    if (lab) return normalizeUserDisplayName(lab);
+    return uid;
+}
+
 function ensureIdentity() {
     let id = localStorage.getItem("fp_identity");
     if (!id) {
@@ -359,6 +376,13 @@ let displayName = localStorage.getItem("fp_display_name") || "";
 if (!displayName && localStorage.getItem("fp_username")) {
     displayName = localStorage.getItem("fp_username");
     localStorage.setItem("fp_display_name", displayName);
+}
+if (displayName) {
+    const n = normalizeUserDisplayName(displayName);
+    if (n !== displayName) {
+        displayName = n;
+        localStorage.setItem("fp_display_name", displayName);
+    }
 }
 
 /** Shown in the footer; Firebase uses identityKey so others cannot impersonate your name. */
@@ -547,8 +571,8 @@ function saveUsername() {
     if (!raw) {
         displayName = "Guest_" + Math.random().toString(36).substring(2, 6).toUpperCase();
     } else {
-        const v = raw.replace(/^@+/, "");
-        displayName = "@" + v;
+        const v = raw.replace(/^@+/, "").trim();
+        displayName = normalizeUserDisplayName("@" + v);
     }
     localStorage.setItem("fp_display_name", displayName);
     localStorage.removeItem("fp_username");
@@ -868,7 +892,7 @@ function updateBoardDisplay(name) {
             Object.entries(s.allClaims).forEach(([, uMap]) => {
                 const cnt = Object.keys(uMap).length;
                 totalClicks += cnt;
-                Object.keys(uMap).forEach(u => users.add(u));
+                Object.entries(uMap).forEach(([uid, meta]) => users.add(userKeyForPublicStats(uid, meta)));
                 if (cnt === 1) unique++; else contested++;
             });
             if (totalClicks === 0) {
@@ -890,7 +914,7 @@ function calculateGlobals() {
         Object.values(s.allClaims).forEach(uMap => {
             const cnt = Object.keys(uMap).length;
             if (cnt === 1) globalUnique++; else globalContested++;
-            Object.keys(uMap).forEach(u => allUsers.add(u));
+            Object.entries(uMap).forEach(([uid, meta]) => allUsers.add(userKeyForPublicStats(uid, meta)));
         });
     });
     document.getElementById("totalPins").textContent     = total;

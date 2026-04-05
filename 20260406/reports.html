@@ -138,10 +138,19 @@ async function loadData() {
         const fb = snap.val() || {};
         document.getElementById('feedbackContainer').innerHTML = Object.values(fb).reverse().map(f => `
             <div class="feedback-msg">
-                <strong>${f.user}</strong> <small>(${new Date(f.time).toLocaleString()})</small><br>${f.msg}
+                <strong>${normalizeUserDisplayName(String(f.user || "")) || f.user}</strong> <small>(${new Date(f.time).toLocaleString()})</small><br>${f.msg}
             </div>
         `).join('') || "No feedback yet.";
     });
+}
+
+function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
 }
 
 function rowLabel(m) {
@@ -163,24 +172,31 @@ function renderReports() {
         const uList = Object.entries(users).sort((a,b) => rowTime(a[1]) - rowTime(b[1]));
         const isUnique = uList.length === 1;
 
-        const userLabels = uList.map(([u, m]) => rowLabel(m) || u).join(", ");
+        const userLabels = uList.map(([u, m]) => normalizeUserDisplayName(rowLabel(m) || u) || u).join(", ");
         popularity.push({ pin: pk, display: cleanLoc, count: uList.length, users: userLabels });
 
         uList.forEach(([u, m]) => {
             const t = rowTime(m);
-            const pretty = rowLabel(m) || u;
-            if (!userStats[u]) userStats[u] = { last: 0, unique: 0, contested: 0, pretty: pretty };
-            userStats[u].pretty = pretty;
-            if (t > userStats[u].last) userStats[u].last = t;
-            if (isUnique) userStats[u].unique++; else userStats[u].contested++;
-            liveFeed.push({ pin: pk, display: cleanLoc, user: pretty, uid: u, time: t, unique: isUnique });
+            const prettyRaw = rowLabel(m) || u;
+            const canon = normalizeUserDisplayName(prettyRaw) || u;
+            if (!userStats[canon]) userStats[canon] = { last: 0, unique: 0, contested: 0, pretty: canon, repUid: u };
+            if (t > userStats[canon].last) userStats[canon].last = t;
+            if (isUnique) userStats[canon].unique++; else userStats[canon].contested++;
+            liveFeed.push({
+                pin: pk,
+                display: cleanLoc,
+                user: normalizeUserDisplayName(prettyRaw) || prettyRaw,
+                uid: u,
+                time: t,
+                unique: isUnique
+            });
         });
     });
 
     let tU=0, tC=0, tT=0;
-    document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([u, s]) => {
+    document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([canon, s]) => {
         tU+=s.unique; tC+=s.contested; tT+=(s.unique+s.contested);
-        return `<tr><td>${s.pretty || u}<br><small style="color:#888">${u}</small></td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td></tr>`;
+        return `<tr><td>${s.pretty || canon}<br><small style="color:#888">${s.repUid || canon}</small></td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td></tr>`;
     }).join('');
     document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td>`;
 
