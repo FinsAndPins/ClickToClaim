@@ -44,6 +44,25 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Pin visual search — crop quality and matching (PinVisualSearchMVP)
+
+**Goal:** Incrementally improve CLIP matching quality without changing the overall CSV-gated database workflow.
+
+**CLI / pipeline knobs (implement when needed)**
+
+- **`--crop-jpeg-quality`** on `prepare_upload_folder_clip_validate.py` (today hard-coded **92** on `crop.save`). Allow **95–98** or document a one-line change for experiments.
+- **`--crop-format`** (JPEG vs **PNG**) for saved board crops; trade disk size vs lossless crops before CLIP’s internal resize.
+- **`--roboflow-thumb-max`** is already exposed (default **1280**); document tuning (**1600–2048**) for dense boards so detection boxes are sharper—often higher ROI than JPEG quality alone.
+- **`--padding-frac`** tuning notes in REFERENCE or tool help: more padding can include pin edges; too much adds background noise for CLIP.
+
+**Larger follow-ons**
+
+- Optional **stronger vision encoder** (larger CLIP or other embedding model): requires rebuilding `clip_embeddings.npy`, updating `clip_index_matcher` / Space, and re-benchmarking latency on CPU.
+
+**Reminder:** Crops are already cut from **full-resolution** board photos; only the **Roboflow request** is downscaled. Biggest wins are usually **better boxes** and **consistent lighting** vs catalog images, not raw megapixel count.
+
+---
+
 ## More ideas (placeholder)
 
 _Add additional bullets here as you go._
