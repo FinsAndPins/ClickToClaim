@@ -61,30 +61,42 @@ def adjust_price_default_model(raw: Optional[float]) -> int:
     return int(round(p / 5.0) * 5)
 
 
-def load_claims_root(data: Any) -> Dict[str, Any]:
-    """Accept full RTDB export, or `{"claims": {...}}`, or raw `{pinKey: users}`."""
-    if isinstance(data, dict) and "claims" in data and isinstance(data["claims"], dict):
-        return data["claims"]
-    if isinstance(data, dict):
-        first = next(iter(data.values()), None)
-        if isinstance(first, dict):
-            k0 = next(iter(first.keys()), "")
-            if PIN_KEY_RE.match(str(k0)):
-                return data  # type: ignore[return-value]
-    raise SystemExit(
-        "Could not find claims map. Expected top-level 'claims' or a dict of pinKey → users."
-    )
+def _is_pin_keyed_claims_map(d: Dict[str, Any]) -> bool:
+    """True when JSON is a single-show slice: top-level keys are all `IMG_####-#`."""
+    if not d:
+        return False
+    for k in d:
+        if not PIN_KEY_RE.match(str(k)):
+            return False
+    return True
 
 
 def get_show_claims(data: Any, show_slug: str) -> Dict[str, Any]:
-    claims_root = load_claims_root(data)
-    if show_slug not in claims_root:
-        keys = sorted(claims_root.keys())
-        raise SystemExit(f"No claims/{show_slug} in export. Available slugs (sample): {keys[:25]} …")
-    raw = claims_root[show_slug]
-    if not isinstance(raw, dict):
-        raise SystemExit(f"claims/{show_slug} is not an object")
-    return raw
+    """
+    Resolve pinKey → users map for one show.
+
+    Accepts:
+    - Firebase console **slice** export: root is `{ "IMG_3063-0": { users... }, ... }`
+    - Full RTDB JSON: `claims.{showSlug}` is that map
+    """
+    if not isinstance(data, dict):
+        raise SystemExit("JSON root must be an object")
+    if _is_pin_keyed_claims_map(data):
+        return data
+    claims = data.get("claims")
+    if isinstance(claims, dict) and show_slug in claims:
+        raw = claims[show_slug]
+        if not isinstance(raw, dict):
+            raise SystemExit(f"claims/{show_slug} is not an object")
+        return raw
+    if isinstance(claims, dict):
+        keys = sorted(claims.keys())
+        raise SystemExit(
+            f"No claims/{show_slug} in export. Available slugs (sample): {keys[:25]} …"
+        )
+    raise SystemExit(
+        "Could not find claims. Expected pin-keyed slice at root, or full export with claims/{show}."
+    )
 
 
 def display_names_for_users(users: Any) -> List[str]:
