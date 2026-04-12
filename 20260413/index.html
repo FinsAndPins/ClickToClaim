@@ -676,11 +676,10 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch).
-const BOARDS_MANIFEST_VERSION = "2";
+const BOARDS_MANIFEST_VERSION = "3";
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
     .then(r => r.json())
     .then(list => {
-        list.sort((a, b) => parseInt(a.match(/\d+/) || 0) - parseInt(b.match(/\d+/) || 0));
         const boardsList = document.getElementById("boardsList");
         list.forEach((name, index) => {
             const container = document.createElement("div");
