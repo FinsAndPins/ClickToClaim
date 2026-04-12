@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CTR shop queue — price & export</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0; background: #111; color: #eee;
+      display: flex; flex-direction: column; height: 100dvh;
+      overflow: hidden;
+    }
+    #loadBar {
+      padding: 10px 14px; background: #1a1a1a;
+      border-bottom: 1px solid #333; flex-shrink: 0;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    #loadBar input[type="file"] { max-width: 100%; color: #aaa; font-size: 13px; }
+    #loadBar button {
+      background: #2980b9; color: #fff; border: none; border-radius: 8px;
+      padding: 8px 14px; font-weight: 600; cursor: pointer; font-size: 14px;
+    }
+    #loadBar button.secondary { background: #444; }
+    #meta { font-size: 12px; color: #777; flex: 1; min-width: 200px; }
+    #main {
+      display: none; flex: 1; flex-direction: column; min-height: 0;
+    }
+    #topBar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 14px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+    }
+    #progress { font-size: 13px; color: #888; }
+    #titleStrip {
+      padding: 8px 14px; background: #161616; border-bottom: 1px solid #222;
+      font-size: 14px; color: #ccc; line-height: 1.35;
+    }
+    #descStrip {
+      padding: 8px 14px; background: #141414; border-bottom: 1px solid #222;
+      font-size: 12px; color: #888; max-height: 22vh; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    #photoWrap {
+      flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+      padding: 8px; background: #0d0d0d;
+    }
+    #pinPhoto {
+      max-width: 100%; max-height: 100%; object-fit: contain;
+      border-radius: 12px; background: #222;
+    }
+    #priceArea {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; background: #1a1a1a; border-top: 1px solid #333;
+    }
+    #priceLabel { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+    #dollarSign { font-size: 26px; font-weight: 700; color: #f39c12; }
+    #priceInput {
+      width: 120px; background: #1e1e1e; color: #f39c12;
+      border: 1.5px solid #4a3a00; border-radius: 10px;
+      padding: 10px 12px; font-size: 28px; font-weight: 700;
+      text-align: center; outline: none;
+    }
+    #priceInput:focus { border-color: #f39c12; }
+    #priceChips {
+      display: flex; gap: 8px; padding: 8px 14px 10px; overflow-x: auto;
+      background: #1a1a1a; border-bottom: 1px solid #333;
+    }
+    .chip {
+      background: #2a2a2a; color: #ccc; border: 1px solid #333;
+      border-radius: 20px; padding: 6px 14px; font-size: 15px; font-weight: 600;
+      white-space: nowrap; cursor: pointer; flex-shrink: 0;
+    }
+    .chip:active { background: #3a3a1a; color: #f39c12; border-color: #f39c12; }
+    #btnRow {
+      display: flex; gap: 10px; padding: 10px 14px 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      background: #111;
+    }
+    #btnRow button {
+      flex: 1; border: none; border-radius: 14px; font-size: 17px; font-weight: 700;
+      padding: 14px 10px; cursor: pointer;
+    }
+    #backBtn { background: #333; color: #ccc; }
+    #nextBtn { background: #e67e22; color: #fff; }
+    #exportBtn { background: #27ae60; color: #fff; }
+    .hint { font-size: 11px; color: #555; padding: 0 14px 8px; }
+  </style>
+</head>
+<body>
+  <div id="loadBar">
+    <input type="file" id="filePick" accept=".json,application/json" />
+    <button type="button" id="btnExport" class="secondary" disabled>Export priced Whatnot CSV</button>
+    <span id="meta"></span>
+  </div>
+  <p class="hint">Load the <code>*_shop_queue.json</code> from <code>generate_shop_csv.py --harness-json</code>. Default suggested price uses the ClickToPrice rule ($10 floor, round to $5). Image shows when <code>image_url_1</code> is set.</p>
+
+  <div id="main">
+    <div id="topBar">
+      <span id="progress">– / –</span>
+      <span id="clickBadge" style="font-size:12px;color:#888;"></span>
+    </div>
+    <div id="titleStrip"></div>
+    <div id="descStrip"></div>
+    <div id="photoWrap">
+      <img id="pinPhoto" alt="Pin" />
+    </div>
+    <div id="priceArea">
+      <span id="priceLabel">Price</span>
+      <span id="dollarSign">$</span>
+      <input id="priceInput" type="number" min="5" max="9999" step="5" inputmode="numeric" />
+    </div>
+    <div id="priceChips">
+      <div class="chip" data-p="10">$10</div>
+      <div class="chip" data-p="15">$15</div>
+      <div class="chip" data-p="20">$20</div>
+      <div class="chip" data-p="25">$25</div>
+      <div class="chip" data-p="30">$30</div>
+      <div class="chip" data-p="35">$35</div>
+      <div class="chip" data-p="40">$40</div>
+      <div class="chip" data-p="50">$50</div>
+      <div class="chip" data-p="75">$75</div>
+    </div>
+    <div id="btnRow">
+      <button type="button" id="backBtn">← Back</button>
+      <button type="button" id="nextBtn">Next →</button>
+      <button type="button" id="exportBtn">Export CSV</button>
+    </div>
+  </div>
+
+  <script>
+    const WHATNOT_HEADERS = [
+      "Category","Sub Category","Title","Description","Quantity","Type","Price",
+      "Shipping Profile","Offerable","Hazmat","Condition","Cost Per Item","SKU",
+      "Image URL 1","Image URL 2","Image URL 3","Image URL 4",
+      "Image URL 5","Image URL 6","Image URL 7","Image URL 8"
+    ];
+
+    function adjustPrice(raw) {
+      if (raw == null || raw === "" || isNaN(Number(raw))) return 10;
+      const p = Math.max(10, parseFloat(raw));
+      return Math.round(p / 5) * 5;
+    }
+
+    function escapeCSV(v) {
+      const s = String(v ?? "");
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+
+    let queue = [];
+    let idx = 0;
+    /** @type {Record<string, number|string>} */
+    let prices = {};
+
+    function setMeta(m) {
+      document.getElementById("meta").textContent = m
+        ? `show=${m.show} tier≤${m.maxClicks} pins=${queue.length}`
+        : "";
+    }
+
+    function loadPayload(data) {
+      if (!data.pins || !Array.isArray(data.pins)) {
+        alert("Invalid JSON: expected { pins: [...] }");
+        return;
+      }
+      queue = data.pins;
+      prices = {};
+      queue.forEach((p) => {
+        const sug = p.suggestedPrice != null ? p.suggestedPrice : adjustPrice(p.price);
+        const cur = p.price === "" || p.price == null ? sug : adjustPrice(p.price);
+        prices[p.pinKey] = cur;
+      });
+      idx = 0;
+      setMeta(data.meta || {});
+      document.getElementById("main").style.display = "flex";
+      document.getElementById("btnExport").disabled = false;
+      render();
+    }
+
+    function render() {
+      if (queue.length === 0) {
+        document.getElementById("titleStrip").textContent = "No pins in queue.";
+        return;
+      }
+      const p = queue[idx];
+      document.getElementById("progress").textContent = `${idx + 1} / ${queue.length}`;
+      document.getElementById("clickBadge").textContent = `${p.click_count} click(s)`;
+      document.getElementById("titleStrip").textContent = p.title;
+      document.getElementById("descStrip").textContent = p.description;
+      const img = document.getElementById("pinPhoto");
+      if (p.image_url_1) {
+        img.style.display = "";
+        img.src = p.image_url_1;
+        img.onerror = () => { img.style.display = "none"; };
+      } else {
+        img.style.display = "none";
+        img.removeAttribute("src");
+      }
+      document.getElementById("priceInput").value = prices[p.pinKey] ?? 10;
+      document.getElementById("backBtn").disabled = idx === 0;
+    }
+
+    function readPriceFromInput() {
+      const p = queue[idx];
+      let v = parseInt(document.getElementById("priceInput").value, 10);
+      if (isNaN(v)) v = 10;
+      prices[p.pinKey] = adjustPrice(v);
+      document.getElementById("priceInput").value = prices[p.pinKey];
+    }
+
+    function buildCSV() {
+      const lines = [WHATNOT_HEADERS.join(",")];
+      queue.forEach((p) => {
+        const pr = prices[p.pinKey] ?? p.suggestedPrice ?? 10;
+        const row = [
+          "Disneyana",
+          "Disney Pins",
+          escapeCSV(p.title),
+          escapeCSV(p.description),
+          "1",
+          "Buy it Now",
+          String(pr),
+          "0-1 oz",
+          "TRUE",
+          "Not Hazmat",
+          "Used",
+          "",
+          escapeCSV(p.sku),
+          escapeCSV(p.image_url_1 || ""),
+          "","","","","","",""
+        ];
+        lines.push(row.join(","));
+      });
+      return lines.join("\n");
+    }
+
+    function download(name, text) {
+      const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    document.getElementById("filePick").addEventListener("change", (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          loadPayload(JSON.parse(r.result));
+        } catch (err) {
+          alert("Could not parse JSON: " + err);
+        }
+      };
+      r.readAsText(f);
+    });
+
+    document.getElementById("priceInput").addEventListener("change", () => {
+      readPriceFromInput();
+    });
+
+    document.querySelectorAll(".chip").forEach((el) => {
+      el.addEventListener("click", () => {
+        document.getElementById("priceInput").value = el.getAttribute("data-p");
+        readPriceFromInput();
+      });
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      readPriceFromInput();
+      if (idx < queue.length - 1) {
+        idx++;
+        render();
+      } else {
+        alert("End of queue — use Export to download CSV.");
+      }
+    });
+
+    document.getElementById("backBtn").addEventListener("click", () => {
+      readPriceFromInput();
+      if (idx > 0) {
+        idx--;
+        render();
+      }
+    });
+
+    function doExport() {
+      readPriceFromInput();
+      const show = (queue[0] && queue[0].title.match(/Click to Request (\d{8})/)) || [,"show"];
+      const slug = show[1] || "show";
+      download(`whatnot_shop_priced_${slug}.csv`, buildCSV());
+    }
+
+    document.getElementById("exportBtn").addEventListener("click", doExport);
+    document.getElementById("btnExport").addEventListener("click", doExport);
+  </script>
+</body>
+</html>
