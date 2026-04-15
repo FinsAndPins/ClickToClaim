@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v2">
+    <meta name="ctr-countdown" content="closes-to-end-v3-lite">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -97,6 +97,42 @@
         #fuelOverNote { display: none; font-size: 12px; color: var(--fp-text); margin-top: 8px; line-height: 1.4; font-weight: normal; text-align: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; }
         #fuelHint { font-size: 10px; color: #FC97D4; margin-top: 4px; line-height: 1.3; font-weight: normal; text-align: center; }
         #fuelHint strong { color: #FC97D4; }
+        #liteModeControls { margin-top: 8px; display: grid; gap: 8px; }
+        #liteFallbackNudge, #litePager { font-size: 12px; color: var(--fp-text); background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; }
+        #liteFallbackNudge a, #litePager a { color: #FC97D4; font-weight: bold; }
+        #litePager {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .lite-pager-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            width: 100%;
+            min-width: 0;
+        }
+        #liteRangeText { font-weight: bold; white-space: nowrap; }
+        #liteAllBoardsBtn {
+            font: inherit;
+            font-weight: bold;
+            color: #FC97D4;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(252, 151, 212, 0.45);
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            text-align: center;
+            max-width: 100%;
+            align-self: center;
+        }
+        #liteAllBoardsBtn:focus-visible { outline: 2px solid var(--fp-muted); outline-offset: 2px; }
         .admin-phase-bar { display: none; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
         .admin-phase-bar .admin-phase-label { font-size: 10px; color: var(--fp-muted); font-weight: normal; width: 100%; text-align: center; margin-bottom: 2px; }
         .admin-phase-btn { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
@@ -234,6 +270,21 @@
         <div id="spotsLeft"></div>
         <p id="fuelHint"><strong>Total requested</strong> counts each pin once (first request anywhere). <strong>My Requests</strong> includes every pin you select, including pins others already requested.</p>
     </div>
+    <div id="liteModeControls">
+        <div id="liteFallbackNudge">
+            If photos do not load in <strong><span id="liteCountdown">30</span>s</strong>,
+            <a id="liteOpenLink" href="?lite=1&start=0">tap here</a>.
+            <span style="opacity:.9">Identical boards, but 10 at a time for faster loading instead of 101 all at once.</span>
+        </div>
+        <div id="litePager">
+            <div class="lite-pager-nav" aria-label="Board pages">
+                <a id="litePrevLink" href="#">Previous 10</a>
+                <span id="liteRangeText">Boards 1–10 of 101</span>
+                <a id="liteNextLink" href="#">Next 10</a>
+            </div>
+            <button type="button" id="liteAllBoardsBtn" onclick="goToFullBoardView()">Go Back to All Boards at Once</button>
+        </div>
+    </div>
 </div>
 
 <div id="boardsList"></div>
@@ -315,9 +366,22 @@ const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
 const urlParams = new URLSearchParams(window.location.search);
 const providedKey = urlParams.get('admin');
+const LITE_PAGE_SIZE = 10;
+const isLiteMode = urlParams.get("lite") === "1";
+const liteStartRaw = Number.parseInt(urlParams.get("start") || "0", 10);
+const liteStart = Number.isFinite(liteStartRaw) ? Math.max(0, liteStartRaw) : 0;
 
 if (providedKey === ADMIN_KEY) sessionStorage.setItem('fp_admin_active', 'true');
 const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
+
+function goToFullBoardView() {
+    const u = new URL("index.html", window.location.href);
+    u.searchParams.delete("lite");
+    u.searchParams.delete("start");
+    if (isAdmin) u.searchParams.set("admin", ADMIN_KEY);
+    else u.searchParams.delete("admin");
+    window.location.href = u.pathname + u.search + u.hash;
+}
 
 if (isAdmin) {
     const reportBtn = document.getElementById('adminReportBtn');
@@ -390,6 +454,15 @@ let currentUser = displayName;
 
 let boardsState = {};
 let lastMyRequestsCount = 0;
+/** Latest flat claims map from Firebase (`pinKey` → users). Used for global queue math in lite mode. */
+let latestClaimsData = {};
+/** True after first Firebase `claims` snapshot in this session (lite mode uses empty snapshot as real “0 claims”). */
+let claimsSnapshotReceived = false;
+/** Full manifest board names (all boards), even when only a page is rendered in lite mode. */
+let manifestBoardNames = [];
+/** Sum of prediction counts across all boards (computed async in lite mode). */
+let globalAllBoardPinCount = 0;
+let globalAllBoardPinCountReady = false;
 
 function getEffectiveShowPhase() {
     if (showPhaseOverride !== "auto") return showPhaseOverride;
@@ -459,12 +532,19 @@ function earliestClaimTimeMs(users) {
 /** Order pins were first requested (1 = earliest globally); uses current `boardsState`. */
 function queueRankForPinFromState(pinKey) {
     const entries = [];
-    Object.values(boardsState).forEach(s => {
-        Object.entries(s.allClaims || {}).forEach(([pk, users]) => {
+    if (isLiteMode && claimsSnapshotReceived) {
+        Object.entries(latestClaimsData).forEach(([pk, users]) => {
             const t = earliestClaimTimeMs(users);
             if (t > 0) entries.push({ pk, t });
         });
-    });
+    } else {
+        Object.values(boardsState).forEach(s => {
+            Object.entries(s.allClaims || {}).forEach(([pk, users]) => {
+                const t = earliestClaimTimeMs(users);
+                if (t > 0) entries.push({ pk, t });
+            });
+        });
+    }
     entries.sort((a, b) => a.t - b.t || a.pk.localeCompare(b.pk));
     const idx = entries.findIndex(e => e.pk === pinKey);
     return idx >= 0 ? idx + 1 : 0;
@@ -675,13 +755,92 @@ function updateFuelGauge(requested) {
     if (overNote) overNote.style.display = requested >= FUEL_MAX ? "block" : "none";
 }
 
+async function computeAllBoardPinTotals(boardNames) {
+    let sum = 0;
+    const chunk = 12;
+    for (let i = 0; i < boardNames.length; i += chunk) {
+        const slice = boardNames.slice(i, i + chunk);
+        const results = await Promise.all(
+            slice.map(async (name) => {
+                try {
+                    const r = await fetch(`./boards/${name}.json`, { cache: "no-store" });
+                    if (!r.ok) return 0;
+                    const data = await r.json();
+                    const pins = data.predictions || data.output?.predictions || [];
+                    return Array.isArray(pins) ? pins.length : 0;
+                } catch (e) {
+                    return 0;
+                }
+            })
+        );
+        sum += results.reduce((a, b) => a + b, 0);
+    }
+    return sum;
+}
+
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch).
-const BOARDS_MANIFEST_VERSION = "3";
+const BOARDS_MANIFEST_VERSION = "4";
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
     .then(r => r.json())
     .then(list => {
+        manifestBoardNames = list.slice();
+        if (isLiteMode) {
+            globalAllBoardPinCountReady = false;
+            computeAllBoardPinTotals(manifestBoardNames).then((n) => {
+                globalAllBoardPinCount = n;
+                globalAllBoardPinCountReady = true;
+                calculateGlobals();
+            });
+        } else {
+            globalAllBoardPinCountReady = false;
+        }
+        const totalBoards = list.length;
+        const rank = {};
+        list.forEach((name, idx) => { rank[name] = idx; });
+        let start = isLiteMode ? Math.min(liteStart, Math.max(0, totalBoards - LITE_PAGE_SIZE)) : 0;
+        let end = isLiteMode ? Math.min(totalBoards, start + LITE_PAGE_SIZE) : totalBoards;
+        const activeList = isLiteMode ? list.slice(start, end) : list;
+        const nudge = document.getElementById("liteFallbackNudge");
+        const pager = document.getElementById("litePager");
+        const range = document.getElementById("liteRangeText");
+        const prev = document.getElementById("litePrevLink");
+        const next = document.getElementById("liteNextLink");
+        const liteOpen = document.getElementById("liteOpenLink");
+        if (liteOpen) liteOpen.href = `?lite=1&start=0${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+        if (isLiteMode) {
+            if (nudge) nudge.style.display = "none";
+            if (pager) pager.style.display = "flex";
+            if (range) range.textContent = `Boards ${start + 1}–${end} of ${totalBoards}`;
+            if (prev) {
+                if (start <= 0) {
+                    prev.style.opacity = "0.5";
+                    prev.removeAttribute("href");
+                } else {
+                    prev.href = `?lite=1&start=${Math.max(0, start - LITE_PAGE_SIZE)}${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+                }
+            }
+            if (next) {
+                if (end >= totalBoards) {
+                    next.style.opacity = "0.5";
+                    next.removeAttribute("href");
+                } else {
+                    next.href = `?lite=1&start=${start + LITE_PAGE_SIZE}${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+                }
+            }
+        } else {
+            if (pager) pager.style.display = "none";
+            let countdown = 30;
+            const tick = () => {
+                const c = document.getElementById("liteCountdown");
+                if (c) c.textContent = String(countdown);
+                if (countdown > 0) countdown -= 1;
+            };
+            tick();
+            setInterval(tick, 1000);
+        }
         const boardsList = document.getElementById("boardsList");
-        list.forEach((name, index) => {
+        activeList.forEach((name) => {
+            const index = rank[name] ?? 0;
             const container = document.createElement("div");
             container.className = "board-container";
             container.innerHTML = `
@@ -730,6 +889,12 @@ async function setupBoard(name) {
 /** Pins that already have ≥1 request (each pin counted once). Used for “roughly # in queue” on first request. */
 function countClaimedPinsFromState() {
     let n = 0;
+    if (isLiteMode && claimsSnapshotReceived) {
+        Object.values(latestClaimsData).forEach(users => {
+            if (users && Object.keys(users).length > 0) n++;
+        });
+        return n;
+    }
     Object.values(boardsState).forEach(s => {
         Object.values(s.allClaims).forEach(users => {
             if (users && Object.keys(users).length > 0) n++;
@@ -789,10 +954,12 @@ function submitIssueReport() {
 
 function listenForFirebase() {
     db.ref(`claims/${fbName}`).on("value", snapshot => {
+        claimsSnapshotReceived = true;
         const syncEl = document.getElementById("syncStatus");
         syncEl.textContent = "✅ Connected & Synced";
         syncEl.classList.add("sync-connected");
         const data    = snapshot.val() || {};
+        latestClaimsData = data;
         const userKey = sanitizeUserKey(identityKey);
         Object.keys(boardsState).forEach(b => {
             boardsState[b].allClaims = {}; boardsState[b].myClaims = 0; boardsState[b].globalBoardClaims = 0;
@@ -842,9 +1009,9 @@ function listenForFirebase() {
         if (!isAdmin) {
             let myNow = 0;
             let globalRequested = 0;
-            Object.values(boardsState).forEach(s => {
-                myNow += s.myClaims;
-                globalRequested += s.globalBoardClaims;
+            Object.entries(data).forEach(([pinKey, users]) => {
+                if (users && users[userKey]) myNow++;
+                if (users && Object.keys(users).length > 0) globalRequested++;
             });
             if (myNow > lastMyRequestsCount && globalRequested >= FUEL_MAX) {
                 const dayKey = new Date().toDateString();
@@ -908,16 +1075,39 @@ function updateBoardDisplay(name) {
 function calculateGlobals() {
     let total = 0, my = 0, globalRequested = 0, globalUnique = 0, globalContested = 0;
     const allUsers = new Set();
-    Object.values(boardsState).forEach(s => {
-        total += s.totalPins;
-        my    += s.myClaims;
-        globalRequested += s.globalBoardClaims;
-        Object.values(s.allClaims).forEach(uMap => {
-            const cnt = Object.keys(uMap).length;
+    const useGlobalClaims = isLiteMode && claimsSnapshotReceived;
+
+    if (useGlobalClaims) {
+        const userKey = sanitizeUserKey(identityKey);
+        Object.entries(latestClaimsData).forEach(([pinKey, uMap]) => {
+            const cnt = Object.keys(uMap || {}).length;
+            if (cnt <= 0) return;
+            globalRequested++;
             if (cnt === 1) globalUnique++; else globalContested++;
-            Object.entries(uMap).forEach(([uid, meta]) => allUsers.add(userKeyForPublicStats(uid, meta)));
+            Object.entries(uMap).forEach(([uid, meta]) => {
+                allUsers.add(userKeyForPublicStats(uid, meta));
+                if (uid === userKey) my++;
+            });
         });
-    });
+    } else {
+        Object.values(boardsState).forEach(s => {
+            total += s.totalPins;
+            my    += s.myClaims;
+            Object.values(s.allClaims).forEach(uMap => {
+                const cnt = Object.keys(uMap).length;
+                if (cnt === 1) globalUnique++; else globalContested++;
+                Object.entries(uMap).forEach(([uid, meta]) => allUsers.add(userKeyForPublicStats(uid, meta)));
+            });
+            globalRequested += s.globalBoardClaims;
+        });
+    }
+    if (isLiteMode) {
+        if (globalAllBoardPinCountReady) {
+            total = globalAllBoardPinCount;
+        } else {
+            total = Object.values(boardsState).reduce((acc, s) => acc + (s.totalPins || 0), 0);
+        }
+    }
     document.getElementById("totalPins").textContent     = total;
     document.getElementById("totalMyClaims").textContent = my;
     if (isAdmin) {
