@@ -66,3 +66,5 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 ## More ideas (placeholder)
 
 _Add additional bullets here as you go._
+
+- **eBay batch / pricing resilience:** circuit breaker on sustained **429**, honor **`Retry-After`**, jittered backoff, tunable rate profiles in **one** codebase (vs separate “small” and “large” forks). See **`project_context_cursor.md`** → sections **Click To Request `20260416` — lite mode…** (deploy notes) and **Future eBay / batch pricing** (backlog).
