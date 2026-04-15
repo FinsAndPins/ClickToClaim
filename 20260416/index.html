@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v3-lite">
+    <meta name="ctr-countdown" content="closes-to-end-v4-manifest-5">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -274,12 +274,12 @@
         <div id="liteFallbackNudge">
             If photos do not load in <strong><span id="liteCountdown">30</span>s</strong>,
             <a id="liteOpenLink" href="?lite=1&start=0">tap here</a>.
-            <span style="opacity:.9">Identical boards, but 10 at a time for faster loading instead of 101 all at once.</span>
+            <span style="opacity:.9">Identical boards, but 10 at a time for faster loading instead of loading all boards at once.</span>
         </div>
         <div id="litePager">
             <div class="lite-pager-nav" aria-label="Board pages">
                 <a id="litePrevLink" href="#">Previous 10</a>
-                <span id="liteRangeText">Boards 1–10 of 101</span>
+                <span id="liteRangeText">Boards 1–10</span>
                 <a id="liteNextLink" href="#">Next 10</a>
             </div>
             <button type="button" id="liteAllBoardsBtn" onclick="goToFullBoardView()">Go Back to All Boards at Once</button>
@@ -779,7 +779,7 @@ async function computeAllBoardPinTotals(boardNames) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch).
-const BOARDS_MANIFEST_VERSION = "4";
+const BOARDS_MANIFEST_VERSION = "5";
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
     .then(r => r.json())
     .then(list => {
