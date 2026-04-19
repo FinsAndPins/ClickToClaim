@@ -269,11 +269,29 @@ Three variants of `title_cleaner.py` (including `title_cleaner.PinPricingModel.p
 - **OAuth reality:** **`client_credentials`** + scope **`https://api.ebay.com/oauth/api_scope`** is the usual **public catalog** token (matches `ClickToIdentify20260402/ebay_proxy.py`). Long **Authorization code** `sell.*` / `commerce.*` scopes on the app (e.g. **PinPricingTool**) are for **signed-in seller** flows; they do not replace the need to stay under **Browse** rate limits for image/keyword search.
 - **Quota coupling:** the **same eBay application** credentials on Render **and** heavy local pricing runs **share** one throttle bucket.
 
-### Future eBay / batch pricing (backlog)
+### eBay Browse batch pricing (implemented — PinPricingStudyMVP)
 
-- **Prefer one script with knobs** (interval, concurrency, “large run” profile), not two unrelated forks, unless maintenance justifies split.
-- **Circuit breaker:** after many consecutive **429**s, **pause the entire job** for a long window (e.g. 30–90+ minutes); **aggressive retries** can lengthen eBay’s cooldown.
-- **Honor `Retry-After`** when eBay sends it; add **jitter** on backoff sleeps.
+Implemented in [`PinPricingStudyMVP/ebay_api.py`](file:///Users/steve/Library/Mobile%20Documents/com~apple~CloudDocs/Cursor%20Projects/PinPricingStudyMVP/ebay_api.py) (`EbayClient`) and wired from [`PinPricingStudyMVP/run_visual_baseline_pipeline.py`](file:///Users/steve/Library/Mobile%20Documents/com~apple~CloudDocs/Cursor%20Projects/PinPricingStudyMVP/run_visual_baseline_pipeline.py).
+
+**CLI flags (defaults shown):**
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--ebay-browse-min-interval-sec` | `0` | Minimum seconds between **Browse** calls (`search_by_image`, `keyword_bin_search`). `0` means no fixed pacing on the success path. |
+| `--ebay-large-run-threshold` | `1000` | If crop count ≥ this **and** explicit min interval is `0`, auto-use large-run interval (unless disabled). |
+| `--ebay-large-run-min-interval-sec` | `0.15` | Auto pacing for large runs (~6.7 calls/s max from spacing alone). |
+| `--ebay-no-auto-large-run` | off | Disable automatic min-interval for large runs. |
+| `--ebay-max-retries` | `12` | Max attempts per Browse request (429 / 5xx). |
+| `--ebay-backoff-cap-sec` | `120` | Cap on a single exponential backoff wait. |
+| `--ebay-circuit-429-threshold` | `10` | Consecutive **HTTP 429** responses before **circuit breaker** long pause. |
+| `--ebay-circuit-cooldown-sec` | `2700` | Cooldown when circuit trips (~45 min + jitter). |
+
+**Environment overrides** (same names, optional): `EBAY_BROWSE_MIN_INTERVAL_SEC`, `EBAY_LARGE_RUN_THRESHOLD`, `EBAY_LARGE_RUN_MIN_INTERVAL_SEC`, `EBAY_MAX_RETRIES`, `EBAY_BACKOFF_CAP_SEC`, `EBAY_CIRCUIT_429_THRESHOLD`, `EBAY_CIRCUIT_COOLDOWN_SEC`, `EBAY_NO_AUTO_LARGE_RUN=1`.
+
+**Behavior:** honors **`Retry-After`** when present; otherwise exponential backoff with **jitter** on **429** and **5xx**; **circuit breaker** pauses the job after sustained 429s (aggressive tight retries can still lengthen eBay cooldown — defaults are conservative).
+
+**Still backlog / ops**
+
 - **Verify limits** in current eBay **Buy Browse** docs — do not treat chat-suggested fixed rates (e.g. “1 rps”) as authoritative without checking.
 - **Optional:** separate **eBay applications** (batch vs interactive proxy) to isolate quotas if allowed by eBay and worth the ops overhead.
 
@@ -300,5 +318,6 @@ See **`FUTURE.md`** for written-up enhancements, including:
 - **2026-04-08:** Added **shipments show report CSV** to inputs; **ledger vs shipments tie-out** (marketplace + bundle case, five ledger-only IMG lines); **`build_virtual_pull_boards_by_buyer_from_ledger.py`** now uses **`.csv`** as primary buyer source with **reconcile CSV + HTML** (ledger-only vs CSV-only IMG lines).
 - **2026-04-09:** Documented **canonical Roboflow crop pipeline** (`prepare_upload_folder_clip_validate.py`), **reading-order = Roboflow-agnostic post-process**, **single-sort vs optional sidecar JSON**, and **no urgent change** if all **`IMG ####-NN` → box** tools match the crop script.
 - **2026-04-10:** **Pin Pricing study** — documented in iCloud **`PinPricingStudyMVP/STUDY_LEARNINGS_AND_NEXT_STEPS.md`**: **`buildSearchVariants`** (extra keyword searches for `#` queries), why **client-side dedupe** matters after merging responses; **agreement** to align on **evaluation goals** before building more matching automation (pHash vs embeddings vs eBay order). **Consumer backlog (same day):** expanded **`CONSUMER_APP_TODO.md`** (on-device picker + sandbox; **tap pin → X overlay** for sold/traded; **Collection state** section); **`README.md`** in that folder points there; this **`project_context`** Pin Pricing subsection links the same backlog.
-- **2026-04-15:** **Click To Request `20260416` lite mode** shipped in `20260416/index.html` (commit **`a8886e8`**, rollback tag **`ctr-20260416-before-lite-ui`**). **eBay** proxy health OK; Browse **`keyword_search`** observed **429** throttling — see new section **Click To Request `20260416` — lite mode, deploy, rollback** and **Future eBay / batch pricing** bullets above.
+- **2026-04-15:** **Click To Request `20260416` lite mode** shipped in `20260416/index.html` (commit **`a8886e8`**, rollback tag **`ctr-20260416-before-lite-ui`**). **eBay** proxy health OK; Browse **`keyword_search`** observed **429** throttling — see **Click To Request `20260416` — lite mode, deploy, rollback** and **eBay Browse batch pricing (implemented)** above.
+- **2026-04-17:** **PinPricingStudyMVP** — Browse **`search_by_image` / `keyword_bin_search`**: **`Retry-After`**, jittered backoff, optional min interval, large-run auto pacing (default ≥1000 crops → 0.15s spacing), circuit breaker on sustained **429**; flags + `EBAY_*` env documented under **eBay Browse batch pricing (implemented)**.
 - Dated Firebase backups may appear as `firebase-rtdb-backup-*.json` (often gitignored).

@@ -67,4 +67,4 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 _Add additional bullets here as you go._
 
-- **eBay batch / pricing resilience:** circuit breaker on sustained **429**, honor **`Retry-After`**, jittered backoff, tunable rate profiles in **one** codebase (vs separate “small” and “large” forks). See **`project_context_cursor.md`** → sections **Click To Request `20260416` — lite mode…** (deploy notes) and **Future eBay / batch pricing** (backlog).
+- **eBay batch / pricing resilience:** **implemented** in **PinPricingStudyMVP** (`ebay_api.py` + `run_visual_baseline_pipeline.py` flags / `EBAY_*` env). See **`project_context_cursor.md`** → **eBay Browse batch pricing (implemented)** and the same file’s **eBay Browse + proxy** notes for quota coupling with the Render keyword proxy.
