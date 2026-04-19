@@ -69,6 +69,8 @@ High-level notes for AI sessions and humans: what exists, where it lives, and pi
 | **Firebase RTDB path** | `photo_validation/ClickToValidate20260406` and `photo_validation/ClickToValidatePulledBoards20260406` — each folder sets `FB_BUILD_FOLDER` explicitly (not derived from URL). Same Firebase **project** as CTR; CTR uses `claims` / `showConfig` / `feedback` only. |
 | **Also on disk** | `ClickToClaim/ClickToValidate20260406/` — staging copy; large `pins/` + `refs/` should **not** be committed into ClickToClaim unless the user explicitly wants them there. |
 
+**Boards-to-price inbox (same repo, Apr 2026):** `RunBoardsPricing.command` + `price_boards_from_inbox.sh` — git tag **`preparing-inventory-pricing-baseline-2026-04-26`** for rollback; **`README.md`** in the PreparingInventory clone describes recovery, GitHub file-size limits, and **`EBAY_CHECKPOINT_EVERY`**. Pipeline behavior: **`PinPricingStudyMVP/PIPELINE_DECISIONS.md`**.
+
 **Static site files (validator folder)**
 
 - `index.html` — one-at-a-time validator; `GITHUB_PAGES_BASE` for crop JPEGs on Pages.
