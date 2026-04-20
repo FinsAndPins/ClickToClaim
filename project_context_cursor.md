@@ -22,6 +22,14 @@ High-level notes for AI sessions and humans: what exists, where it lives, and pi
 | **Click To Request / Identify (GitHub)** | This repo: `ClickToClaim`. Dated show folders (e.g. `20260402/`) hold `index.html`, `boards/`, Firebase config. |
 | **PinToPull / seller pack-out (iCloud)** | `~/Library/Mobile Documents/com~apple~CloudDocs/PinToPull20260402/` — **not** always committed to git; scripts and outputs live next to each other. |
 | **Older ClickToPull templates** | iCloud: `Create ClickToPull/` (`clicktopull.py`, `pdf_to_whatnot_orders.py`). |
+| **ClickToCollect (iOS, Vegas / Lexi)** | **Canonical Cursor + Xcode tree:** `~/Desktop/ClickToCollectApp/` — **git repo initialized 2026-04-20** at that root (not inside **ClickToClaim**). App sources: `ClickToCollect/ClickToCollect/*.swift`, **`CLAUDE.md`**, **`TOMORROW.md`**, **`SETUP.md`**. |
+
+### ClickToCollect — value pricing handoff (2026-04-20)
+
+- **Shipped in the app:** Labs → **Pricing collections** — on-device **crop + saved sessions**; **import Mac `candidates.json` + `crops/`** into Application Support; **Add** tab supports **camera or Photos** for board capture.
+- **Not in the app:** eBay Browse / visual baseline — still produced by **PinPricingStudyMVP** + **PreparingInventory** (`RunBoardsPricing.command` → `price_boards_from_inbox.sh` → `run_visual_baseline_pipeline.py`). See **PreparingInventory** section below.
+- **Private beta workflow (Option 1):** Lexi captures on phone → sends board photos to Steve → Mac pipeline → return **`candidates.json` + `crops/`** folder (iCloud / AirDrop / Messages) → Lexi **imports JSON from Files** so listing overlays work in-app. **Do not** ship eBay API credentials inside the iOS binary; a future bridge uses **server-held** secrets or the Mac-only path.
+- **Detail doc:** `ClickToCollect/ClickToCollect/CLAUDE.md` → sections **Value pricing (Vegas / Lexi)** and **Progress log** for file-level pointers.
 
 ---
 

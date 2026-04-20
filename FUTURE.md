@@ -68,3 +68,5 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 _Add additional bullets here as you go._
 
 - **eBay batch / pricing resilience:** **implemented** in **PinPricingStudyMVP** (`ebay_api.py` + `run_visual_baseline_pipeline.py` flags / `EBAY_*` env). See **`project_context_cursor.md`** → **eBay Browse batch pricing (implemented)** and the same file’s **eBay Browse + proxy** notes for quota coupling with the Render keyword proxy.
+
+- **ClickToCollect → priced JSON in-app (post–Option 1):** Optional small **HTTPS bridge** (or hosted service) that runs the **same** Python pipeline server-side and returns **`candidates.json`** for merge into Labs sessions; **app never holds eBay root credentials**. Until then, **Option 1** (MacBook pipeline + import folder with JSON + `crops/`) remains the supported path for Lexi + Steve (see **`project_context_cursor.md`** → **ClickToCollect — value pricing handoff**).
