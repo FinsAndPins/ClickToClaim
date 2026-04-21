@@ -22,14 +22,16 @@ High-level notes for AI sessions and humans: what exists, where it lives, and pi
 | **Click To Request / Identify (GitHub)** | This repo: `ClickToClaim`. Dated show folders (e.g. `20260402/`) hold `index.html`, `boards/`, Firebase config. |
 | **PinToPull / seller pack-out (iCloud)** | `~/Library/Mobile Documents/com~apple~CloudDocs/PinToPull20260402/` — **not** always committed to git; scripts and outputs live next to each other. |
 | **Older ClickToPull templates** | iCloud: `Create ClickToPull/` (`clicktopull.py`, `pdf_to_whatnot_orders.py`). |
-| **ClickToCollect (iOS, Vegas / Lexi)** | **Canonical Cursor + Xcode tree:** `~/Desktop/ClickToCollectApp/` — **git repo initialized 2026-04-20** at that root (not inside **ClickToClaim**). App sources: `ClickToCollect/ClickToCollect/*.swift`, **`CLAUDE.md`**, **`TOMORROW.md`**, **`SETUP.md`**. |
+| **ClickToCollect (iOS, Vegas / Lexi)** | **Canonical Cursor + Xcode tree:** `~/Desktop/ClickToCollectApp/` — **git repo initialized 2026-04-20** at that root (not inside **ClickToClaim**). App sources: `ClickToCollect/ClickToCollect/*.swift`, **`CLAUDE.md`**, **`TOMORROW.md`**, **`SETUP.md`**. **2026-04-21:** Progress log + **SETUP §5 (TestFlight)** capture Collection/search polish, **`photoContentLabels`** optional migration fix, commit **`31f5db2`** on **`main`**. |
 
 ### ClickToCollect — value pricing handoff (2026-04-20)
 
 - **Shipped in the app:** Labs → **Pricing collections** — on-device **crop + saved sessions**; **import Mac `candidates.json` + `crops/`** into Application Support; **Add** tab supports **camera or Photos** for board capture.
 - **Not in the app:** eBay Browse / visual baseline — still produced by **PinPricingStudyMVP** + **PreparingInventory** (`RunBoardsPricing.command` → `price_boards_from_inbox.sh` → `run_visual_baseline_pipeline.py`). See **PreparingInventory** section below.
 - **Private beta workflow (Option 1):** Lexi captures on phone → sends board photos to Steve → Mac pipeline → return **`candidates.json` + `crops/`** folder (iCloud / AirDrop / Messages) → Lexi **imports JSON from Files** so listing overlays work in-app. **Do not** ship eBay API credentials inside the iOS binary; a future bridge uses **server-held** secrets or the Mac-only path.
-- **Detail doc:** `ClickToCollect/ClickToCollect/CLAUDE.md` → sections **Value pricing (Vegas / Lexi)** and **Progress log** for file-level pointers.
+- **Overlay (full-board harness):** **`ValuePricingBoardOverlayScrollView`** reads session **`boards/`** (JPEG + matching **`IMG_n.json`** from flattened **`roboflow/`**). Importer (**`ValuePricingSessionStorage.importExternalCollection`**) copies **`IMG_*.jpg`** from **`_staged_boards/`**, else **`board_photos_replay/`** (e.g. iCloud **`…/PreparingInventory/CollectionToPrice1/board_photos_replay/`**), else the folder root. **`PriceCollection_*`** runs typically use **`_staged_boards/`**.
+- **2026-04-20 night:** User still saw **Overlay** do nothing / freeze after re-import — **next session:** verify Xcode build on device, **delete session + re-import**, audit app Container **`…/value_pricing_sessions/<uuid>/boards/`** for **`IMG_*`** + **`.json`**, Console logs (**subsystem** `MyPinCollection.ClickToCollect`, **category** `ValuePricing`). Full checklist: **`ClickToCollect/ClickToCollect/TOMORROW.md`** (*Overlay still “does nothing”*).
+- **Detail doc:** `ClickToCollect/ClickToCollect/CLAUDE.md` → sections **Value pricing (Vegas / Lexi)** and **Progress log** for file-level pointers; **SETUP.md** § product notes links **`TOMORROW.md`** for Overlay troubleshooting.
 
 ---
 
@@ -317,6 +319,7 @@ See **`FUTURE.md`** for written-up enhancements, including:
 
 - Cross-device pairing (username + short code).
 - **“My requested pins” board** in Click To Request (personal board-style view of claims).
+- **ClickToCollect — custom character tagging model** (train / deploy our own pin-subject tagger; see **`FUTURE.md`**).
 
 ---
 
