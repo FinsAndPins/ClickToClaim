@@ -63,6 +63,18 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Character tagging model (ClickToCollect)
+
+**Goal:** Build and ship our **own character / pin-subject tagging** model—trained on labeled pin crops—so ClickToCollect can suggest consistent tags, improve collection search, and support future Labs or pricing flows without relying solely on generic off-the-shelf taggers.
+
+**Direction (non-binding)**
+
+- Start from **curated manifests** (e.g. image path or URL + label); define taxonomy rules (single character vs multi-character vs place/theme) and **label normalization** before training.
+- Prefer **fine-tuning** a compact vision classifier or embedding head over training from scratch; choose **on-device inference** vs a small **hosted model** from latency, binary size, and how often you want to refresh weights.
+- Treat **rights and licensing** for training images the same way you treat any customer or show-derived media you do not own outright.
+
+---
+
 ## More ideas (placeholder)
 
 _Add additional bullets here as you go._

@@ -2,6 +2,3 @@
 
 # Local RTDB exports (may contain user data; do not commit)
 firebase-rtdb-backup*.json
-
-# Generated shop-queue test outputs (large JSON/CSV; may contain requester names)
-tools/ctr_shop_firebase_csv/output_20260406_test/
