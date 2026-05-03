@@ -5,6 +5,9 @@ Regenerate shows_index.json for the GitHub Pages root (Click to request shows).
 Scans top-level repo folders that look like shipped show bundles:
   index.html + boards/
 
+Only includes folders whose bundle is tracked by git (matches GitHub Pages).
+Untracked copies kept locally for archived shows are omitted.
+
 Sort is newest-first by the last git commit that touched each folder
 (`git log -1` on `folder/`). tie-break: folder name. Folders with no commit
 time (e.g. not in git) sort last. Display labels still use YYYYMMDD in the
@@ -76,13 +79,14 @@ def format_label(folder: str, date_yyyymmdd: str | None) -> str:
     return folder
 
 
-def should_skip_dir(name: str) -> bool:
-    if name.startswith("."):
-        return True
-    low = name.lower()
-    if low.startswith("template"):
-        return True
-    return False
+def bundle_tracked(root: Path, folder: str) -> bool:
+    out = subprocess.run(
+        ["git", "ls-files", "--", f"{folder}/index.html"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    return bool(out.stdout.strip())
 
 
 def main() -> int:
@@ -92,14 +96,16 @@ def main() -> int:
     for p in sorted(root.iterdir(), key=lambda x: x.name.lower()):
         if not p.is_dir():
             continue
-        if should_skip_dir(p.name):
+        if p.name.startswith("."):
             continue
         if not (p / "index.html").is_file():
             continue
         if not (p / "boards").is_dir():
             continue
-
         folder = p.name
+        if not bundle_tracked(root, folder):
+            continue
+
         date_str = parse_folder_date(folder)
         label = format_label(folder, date_str)
         seg = quote(folder, safe="")

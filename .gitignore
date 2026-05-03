@@ -1,4 +1,56 @@
 .DS_Store
+.cursor/
 
 # Local RTDB exports (may contain user data; do not commit)
 firebase-rtdb-backup*.json
+
+# Archived show bundles (full boards): kept locally only; too large for GitHub Pages.
+# Policy: only the four newest tracked bundles stay on origin/main; bump paths when rotating.
+/20260209/
+/20260212/
+/20260212BoardNumber/
+/20260216/
+/20260219/
+/20260223/
+/20260309/
+/20260312/
+/20260313/
+/20260314/
+/20260319/
+/20260320/
+/20260321/
+/20260323/
+/20260326/
+/20260330/
+/20260402/
+/20260402FinalTest/
+/20260402WorldPremiere/
+/20260406/
+/20260413/
+/20260416/
+/20260416_lite_test/
+/20720103/
+/20720104/
+/20720105/
+/20720106/
+/20720107/
+/20720108/
+/20720109/
+/20720110/
+/20720201/
+/20720301/
+/20720302/
+/Best multi-user version so far/
+/Best Multi-user with total clicks/
+/Best multi-user, tested, needs to totals/
+/Last working multi-user version/
+/Show 20260112/
+/Show 20260115/
+/Show 20260122/
+/Show 20260126/
+/Show 20260128/
+/Show 20260202/
+/Show 20260204/
+/Show 20260204 Final/
+/Template Local/
+/Template Multi-User not perfect/
