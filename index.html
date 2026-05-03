@@ -44,8 +44,8 @@
 <body>
   <h1>Click to request — show folders</h1>
   <p class="intro">
-    Newest shows first (from folder names). Each entry opens that folder&rsquo;s <strong>index.html</strong> harness.
-    This list is generated from the repo &mdash; no GitHub API at load time.
+    <strong>Newest first</strong> by the last git commit that touched each show folder (then folder name as a tie-breaker).
+    Each link opens that folder&rsquo;s <strong>index.html</strong> harness. The list is built from the repo &mdash; no GitHub API at load time.
   </p>
   <div id="status">Loading…</div>
   <div class="panel">
@@ -61,7 +61,7 @@
   </div>
   <footer>
     Repo: <a href="https://github.com/FinsAndPins/ClickToClaim">FinsAndPins/ClickToClaim</a>
-    · After adding a new dated folder with <code>boards/</code>, run <code>python3 update_shows_index.py</code> and commit <code>shows_index.json</code>.
+    · After adding a new show folder with <code>boards/</code>, run <code>python3 update_shows_index.py</code> and commit <code>shows_index.json</code> (order uses <code>git log</code> on each folder).
   </footer>
   <script>
     const rowsEl = document.getElementById("rows");
@@ -83,8 +83,12 @@
           fail("No show folders were listed yet.");
           return;
         }
-        statusEl.textContent =
+        var line =
           list.length + " show folder(s) · index updated " + (data.updated_iso || "");
+        if (data.ordered_by) {
+          line += " · order: " + data.ordered_by;
+        }
+        statusEl.textContent = line;
         rowsEl.innerHTML = list
           .map(
             (s) =>
