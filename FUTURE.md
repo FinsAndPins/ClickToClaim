@@ -4,6 +4,18 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Post Show thank-you page (admin)
+
+**Target:** Before the next **Monday** show (when you are rested), add a dedicated page that matches the **May 2026 mockup**: soft blue → purple/pink gradient background with faint wave/topography lines, centered **frosted white** card, **dark magenta** body copy, short thank-you and schedule line (**live Mondays and Thursdays at 12 noon Eastern**), reminder to check **Instagram @Fins.And.Pins**, large **QR code** in the middle (logo in center if desired), footer line **“Scan this QR code to access all of our socials.”**
+
+**Today’s behavior:** On each show’s `index.html`, **admin** unlock (`?admin=…`) exposes the phase bar; **Post Show** sets Firebase `showConfig.phase` to **`post`** and shows the **Post Show** banner to everyone (see existing `admin-phase-btn` / phase logic).
+
+**Goal:** When you choose **Post Show** (or a sibling control), also open or link to this thank-you page—e.g. `post-show.html` beside `index.html`, or same-tab navigation—so viewers see the full treatment, not only the banner.
+
+**Implementation notes for next session:** Keep paths **relative** so GitHub Pages works under `/ClickToClaim/<show>/`; host QR asset under `boards/` or `icons/` as you prefer; optional query param to reuse one HTML across shows.
+
+---
+
 ## Cross-device “My requests” (username + short pairing code)
 
 **Goal:** Let someone see the same pin selections on a second phone or tablet without losing their queue, using their whatnot username plus a short code tied to their existing anonymous id.

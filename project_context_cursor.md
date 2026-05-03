@@ -19,7 +19,14 @@ High-level notes for AI sessions and humans: what exists, where it lives, and pi
 
 | Area | Path / notes |
 |------|----------------|
-| **Click To Request / Identify (GitHub)** | This repo: `ClickToClaim`. Dated show folders (e.g. `20260402/`) hold `index.html`, `boards/`, Firebase config. |
+| **Click To Request / Identify (GitHub)** | This repo: `ClickToClaim`. Dated show folders (e.g. `20260507/`) hold `index.html`, `boards/`, Firebase config. |
+
+### ClickToClaim — GitHub Pages and show retention (May 2026)
+
+- **Root landing:** `https://finsandpins.github.io/ClickToClaim/` — `index.html` loads **`shows_index.json`** (no GitHub Contents API). **`update_shows_index.py`** lists only **git-tracked** show bundles (`index.html` + `boards/`). Sort order: **last commit time** on each folder (tie-break: folder name). Regenerate after rotating shows: `python3 update_shows_index.py`, commit `shows_index.json`.
+- **Why May 2026 builds failed / 404s:** GitHub Pages **legacy** builds returned **“Page build failed”** when the published tree was **too large** (~1 GB soft limit). The live site stayed on an **older successful build**, so new folders existed on `main` but **not** on `github.io` → **404** until the tree shrank.
+- **Policy on `main`:** Keep only the **four newest** full show bundles on GitHub (as of May 2026: `20260507`, `20260504`, `20260430`, `20260426`). Older bundles: **`git rm -r --cached <folder>`** (files **stay on disk**), then add **`/<folder>/`** to **`.gitignore`** so they are not re-added. See **`README.md`** for the short version.
+- **Lexi / pricing (other repo):** `FinsAndPins/PreparingInventory` — `https://finsandpins.github.io/PreparingInventory/` with **`pricing_index.json`** + **`update_pricing_index.py`** for **PriceCollection_*** harnesses.
 | **PinToPull / seller pack-out (iCloud)** | `~/Library/Mobile Documents/com~apple~CloudDocs/PinToPull20260402/` — **not** always committed to git; scripts and outputs live next to each other. |
 | **Older ClickToPull templates** | iCloud: `Create ClickToPull/` (`clicktopull.py`, `pdf_to_whatnot_orders.py`). |
 | **ClickToCollect (iOS, Vegas / Lexi)** | **Canonical Cursor + Xcode tree:** `~/Desktop/ClickToCollectApp/` — **git repo initialized 2026-04-20** at that root (not inside **ClickToClaim**). App sources: `ClickToCollect/ClickToCollect/*.swift`, **`CLAUDE.md`**, **`TOMORROW.md`**, **`SETUP.md`**. **2026-04-21:** Progress log + **SETUP §5 (TestFlight)** capture Collection/search polish, **`photoContentLabels`** optional migration fix, commit **`31f5db2`** on **`main`**. |
