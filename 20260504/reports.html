@@ -22,6 +22,13 @@
         .show-window-form select { font-size: 15px; padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; }
         .tz-colon { margin: 0 2px; }
         .show-config-status { font-size: 13px; color: #333; min-width: 120px; }
+        .reports-phase-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px solid #ddd; }
+        .reports-phase-wrap > p { font-size: 13px; color: #555; margin: 0 0 10px; line-height: 1.45; }
+        .reports-phase-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .reports-phase-btn { font-size: 12px; font-weight: bold; padding: 8px 12px; border-radius: 8px; border: 1px solid #999; background: #e8e8e8; color: #222; cursor: pointer; font-family: inherit; }
+        .reports-phase-btn:hover { background: #ddd; }
+        .reports-phase-btn.reports-phase-active { background: #0066aa; border-color: #004a80; color: #fff; }
+        .reports-phase-status { font-size: 12px; color: #333; margin-left: 4px; }
     </style>
 </head>
 <body>
@@ -36,6 +43,16 @@
             <label>End <select id="cfgEndH"></select><span class="tz-colon">:</span><select id="cfgEndM"></select></label>
             <button type="button" class="btn" id="saveShowConfigBtn">Save Window</button>
             <span id="showConfigStatus" class="show-config-status"></span>
+        </div>
+        <div class="reports-phase-wrap" id="reportsPhaseBar">
+            <p>Show state (same as boards page; visible to everyone). <strong>Post Show</strong> turns on the full-screen “show ended” on the boards URL. Use <strong>Schedule</strong>, <strong>Pre-Show</strong>, or <strong>During Show</strong> here or on boards to turn that screen off.</p>
+            <div class="reports-phase-row">
+                <button type="button" class="reports-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="post" title="Force Post Show banner + full-screen ended">Post Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
+                <span id="reportsPhaseStatus" class="reports-phase-status" aria-live="polite"></span>
+            </div>
         </div>
     </section>
 
@@ -125,6 +142,33 @@ async function loadData() {
             .then(() => { st.textContent = "Saved. Open boards page refreshes the countdown automatically."; })
             .catch(e => { st.textContent = "Error: " + e.message; });
     };
+
+    const phaseStatusEl = document.getElementById("reportsPhaseStatus");
+    function writeShowPhaseReports(phase) {
+        if (!["auto", "pre", "live", "post"].includes(phase)) return;
+        if (phaseStatusEl) phaseStatusEl.textContent = "Saving phase…";
+        const payload = {
+            phase,
+            phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP,
+            endedFullscreen: phase === "post"
+        };
+        db.ref(`showConfig/${fbName}`).update(payload)
+            .then(() => {
+                if (phaseStatusEl) phaseStatusEl.textContent = "Phase saved.";
+                setTimeout(() => { if (phaseStatusEl && phaseStatusEl.textContent === "Phase saved.") phaseStatusEl.textContent = ""; }, 3000);
+            })
+            .catch(e => { if (phaseStatusEl) phaseStatusEl.textContent = "Error: " + e.message; });
+    }
+    document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(btn => {
+        btn.addEventListener("click", () => writeShowPhaseReports(btn.getAttribute("data-phase")));
+    });
+    db.ref(`showConfig/${fbName}`).on("value", snap => {
+        const v = snap.val() || {};
+        const ph = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+        document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(b => {
+            b.classList.toggle("reports-phase-active", b.getAttribute("data-phase") === ph);
+        });
+    });
 
     // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
     const BOARDS_MANIFEST_VERSION = "3";

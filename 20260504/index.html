@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v8-ended-fullscreen-post-only-1">
+    <meta name="ctr-countdown" content="closes-to-end-v9-ended-overlay-social-reports-phase-1">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -147,16 +147,55 @@
             z-index: 6000;
             background: #000;
             display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            padding: 10px 10px 14px;
             margin: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
-        #showEndedOverlay img {
+        #showEndedSocial {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            padding: 4px 0 10px;
+            pointer-events: auto;
+        }
+        #showEndedSocial a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: var(--fp-chunk);
+            border-radius: 10px;
+            text-decoration: none;
+        }
+        #showEndedSocial a .social-icon {
+            width: 24px;
+            height: 24px;
+            display: block;
+            object-fit: contain;
+        }
+        #showEndedSocial a .social-icon.inv {
+            filter: brightness(0) invert(1);
+        }
+        #showEndedOverlay .show-ended-main {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 100%;
-            height: 100%;
+        }
+        #showEndedOverlay .show-ended-main img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
             object-position: center;
             display: block;
@@ -201,7 +240,14 @@
 </div>
 
 <div id="showEndedOverlay" aria-hidden="true" aria-label="Today's show has ended. Nothing to request here.">
-    <img src="./show-ended-splash.png" alt="" decoding="async">
+    <nav id="showEndedSocial" aria-label="Social links">
+        <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
+        <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
+        <a href="https://linktr.ee/finsandpins" target="_blank" rel="noopener noreferrer" title="Linktree" aria-label="Linktree"><img class="social-icon inv" src="./icons/linktree.svg" width="24" height="24" alt=""></a>
+    </nav>
+    <div class="show-ended-main">
+        <img src="./show-ended-splash.png" alt="" decoding="async">
+    </div>
 </div>
 
 <div id="faqOverlay" onclick="if(event.target===this) closeFaq()">
@@ -284,7 +330,7 @@
         Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
-        <span class="admin-phase-label">Show state (visible to everyone). <strong>Post Show</strong> turns on the full-screen “show ended” for everyone. <strong>Schedule</strong>, <strong>Pre-Show</strong>, or <strong>During Show</strong> turns it off.</span>
+        <span class="admin-phase-label">Show state (visible to everyone). <strong>Post Show</strong> turns on the full-screen “show ended” for everyone. <strong>Schedule</strong>, <strong>Pre-Show</strong>, or <strong>During Show</strong> turns it off — or use the same buttons on <strong>Reports</strong> → Show window.</span>
         <button type="button" class="admin-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
         <button type="button" class="admin-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
         <button type="button" class="admin-phase-btn" data-phase="post" title="Force Post Show banner">Post Show</button>
