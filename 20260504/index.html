@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v4-manifest-5">
+    <meta name="ctr-countdown" content="closes-to-end-v5-ended-fullscreen-1">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -140,6 +140,29 @@
         .admin-phase-btn:focus-visible { outline: 2px solid var(--fp-muted); outline-offset: 2px; }
         @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
         .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.35) !important; }
+        /* Full-screen “show ended” (Firebase `showConfig/…/endedFullscreen`; admin turns on via Schedule). */
+        #showEndedOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 6000;
+            background: #000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #showEndedOverlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            display: block;
+            pointer-events: none;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -175,6 +198,10 @@
         <button type="button" class="primary" onclick="submitIssueReport()">Submit Report</button>
         <button type="button" class="secondary" onclick="document.getElementById('reportIssueOverlay').style.display='none'">Cancel</button>
     </div>
+</div>
+
+<div id="showEndedOverlay" aria-hidden="true" aria-label="Today's show has ended. Nothing to request here.">
+    <img src="./show-ended-splash.png" alt="" decoding="async">
 </div>
 
 <div id="faqOverlay" onclick="if(event.target===this) closeFaq()">
@@ -257,7 +284,7 @@
         Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
-        <span class="admin-phase-label">Show state (visible to everyone; use Schedule for Eastern clock)</span>
+        <span class="admin-phase-label">Show state (visible to everyone). <strong>Schedule</strong> = Eastern clock; after the scheduled end time it also turns on the full-screen “show ended” for everyone. <strong>Pre/During/Post</strong> clears that screen.</span>
         <button type="button" class="admin-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
         <button type="button" class="admin-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
         <button type="button" class="admin-phase-btn" data-phase="post" title="Force Post Show banner">Post Show</button>
@@ -312,6 +339,8 @@ let showWindowStartMs = 0;
 let showWindowEndMs = 0;
 /** Firebase `showConfig.phase`: auto = use Eastern window; pre/live/post = manual banner & admin pin coloring. */
 let showPhaseOverride = "auto";
+/** Firebase `showConfig/…/endedFullscreen`: full-screen “show ended” art; admin sets true by clicking Schedule, clears on Pre/During/Post. */
+let showEndedFullscreenActive = false;
 /** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
 const SHOW_DATE_SLUG_FALLBACK = "20260406";
 /** Paste your whatnot invite / referral URL here (shown in FAQ links). */
@@ -565,12 +594,34 @@ function refreshAdminPhaseButtons() {
     });
 }
 
+function syncShowEndedOverlay() {
+    const el = document.getElementById("showEndedOverlay");
+    if (!el) return;
+    const on = !!showEndedFullscreenActive;
+    el.style.display = on ? "flex" : "none";
+    el.setAttribute("aria-hidden", on ? "false" : "true");
+    if (on) {
+        document.body.style.overflow = "hidden";
+    } else {
+        const faq = document.getElementById("faqOverlay");
+        if (!faq || faq.style.display !== "flex") document.body.style.overflow = "";
+    }
+}
+
 function writeShowPhase(phase) {
     if (!["auto", "pre", "live", "post"].includes(phase)) return;
-    db.ref(`showConfig/${fbName}`).update({
+    const payload = {
         phase,
         phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP
-    }).catch(e => alert(e.message));
+    };
+    if (phase === "auto") {
+        const now = Date.now();
+        recomputeShowWindows();
+        payload.endedFullscreen = !!(showWindowEndMs && now >= showWindowEndMs);
+    } else {
+        payload.endedFullscreen = false;
+    }
+    db.ref(`showConfig/${fbName}`).update(payload).catch(e => alert(e.message));
 }
 
 if (displayName) {
@@ -685,8 +736,10 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
         activeShowConfig = { ...DEFAULT_SHOW_CONFIG };
     }
     showPhaseOverride = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+    showEndedFullscreenActive = v.endedFullscreen === true || v.endedFullscreen === 1 || String(v.endedFullscreen) === "true";
     recomputeShowWindows();
     refreshAdminPhaseButtons();
+    syncShowEndedOverlay();
 });
 
 (function() {
