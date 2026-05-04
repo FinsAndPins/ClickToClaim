@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v11-ended-overlay-layout-copy-1">
+    <meta name="ctr-countdown" content="closes-to-end-v12-ended-overlay-tight-social-noon-est-1">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -161,7 +161,7 @@
             gap: 14px;
             flex-wrap: wrap;
             flex-shrink: 0;
-            padding: 4px 0 14px;
+            padding: 4px 0 4px;
             pointer-events: auto;
         }
         #showEndedSocial a {
@@ -188,7 +188,7 @@
             min-height: 0;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             width: 100%;
         }
         #showEndedOverlay .show-ended-message {
@@ -226,6 +226,9 @@
             color: var(--fp-muted);
             font-weight: bold;
             text-decoration: underline;
+        }
+        #showEndedOverlay .show-ended-message .show-ended-noon-est {
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -273,7 +276,7 @@
     <div class="show-ended-main">
         <div class="show-ended-message" role="document">
             <p class="show-ended-open">Thank you for using<br><span class="show-ended-brand">Click To Request!</span></p>
-            <p>Today's show has ended, but we're live<br><strong>Mondays and Thursdays at 12 noon EST</strong><br>on <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer">Whatnot</a>!</p>
+            <p>Today's show has ended, but we're live<br><strong>Mondays and Thursdays at <span class="show-ended-noon-est">12 noon EST</span></strong><br>on <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer">Whatnot</a>!</p>
             <p>Be sure to check our Instagram<br><a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer">@Fins.And.Pins</a> for important updates.</p>
         </div>
     </div>
