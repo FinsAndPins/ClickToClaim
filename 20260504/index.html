@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v10-ended-overlay-html-message-1">
+    <meta name="ctr-countdown" content="closes-to-end-v11-ended-overlay-layout-copy-1">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -161,7 +161,7 @@
             gap: 14px;
             flex-wrap: wrap;
             flex-shrink: 0;
-            padding: 8px 0 4px;
+            padding: 4px 0 14px;
             pointer-events: auto;
         }
         #showEndedSocial a {
@@ -205,11 +205,15 @@
             line-height: 1.45;
             pointer-events: auto;
         }
-        #showEndedOverlay .show-ended-message .show-ended-lead {
+        #showEndedOverlay .show-ended-message .show-ended-brand {
+            display: inline-block;
+            margin-top: 4px;
             font-size: 1.25em;
             font-weight: bold;
-            margin: 0 0 16px;
             color: var(--fp-text);
+        }
+        #showEndedOverlay .show-ended-message .show-ended-open {
+            margin: 0 0 18px;
         }
         #showEndedOverlay .show-ended-message p {
             margin: 0 0 14px;
@@ -261,18 +265,18 @@
 </div>
 
 <div id="showEndedOverlay" aria-hidden="true" aria-label="Today's show has ended. Nothing to request here.">
-    <div class="show-ended-main">
-        <div class="show-ended-message" role="document">
-            <p class="show-ended-lead">Thank you for using Click To Request!</p>
-            <p>Today's show has ended, but we're live <strong>Mondays and Thursdays at 12 noon EST</strong> on <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer">Whatnot</a>!</p>
-            <p>Be sure to check our Instagram <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer">@Fins.And.Pins</a> for important updates.</p>
-        </div>
-    </div>
     <nav id="showEndedSocial" aria-label="Social links">
         <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
         <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
         <a href="https://linktr.ee/finsandpins" target="_blank" rel="noopener noreferrer" title="Linktree" aria-label="Linktree"><img class="social-icon inv" src="./icons/linktree.svg" width="24" height="24" alt=""></a>
     </nav>
+    <div class="show-ended-main">
+        <div class="show-ended-message" role="document">
+            <p class="show-ended-open">Thank you for using<br><span class="show-ended-brand">Click To Request!</span></p>
+            <p>Today's show has ended, but we're live<br><strong>Mondays and Thursdays at 12 noon EST</strong><br>on <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer">Whatnot</a>!</p>
+            <p>Be sure to check our Instagram<br><a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer">@Fins.And.Pins</a> for important updates.</p>
+        </div>
+    </div>
 </div>
 
 <div id="faqOverlay" onclick="if(event.target===this) closeFaq()">
