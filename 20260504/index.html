@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v5-ended-fullscreen-1">
+    <meta name="ctr-countdown" content="closes-to-end-v6-ended-fullscreen-post-1">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -140,7 +140,7 @@
         .admin-phase-btn:focus-visible { outline: 2px solid var(--fp-muted); outline-offset: 2px; }
         @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
         .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.35) !important; }
-        /* Full-screen “show ended” (Firebase `showConfig/…/endedFullscreen`; admin turns on via Schedule). */
+        /* Full-screen “show ended” (Firebase `showConfig/…/endedFullscreen`; admin turns on via Post Show). */
         #showEndedOverlay {
             position: fixed;
             inset: 0;
@@ -284,7 +284,7 @@
         Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
-        <span class="admin-phase-label">Show state (visible to everyone). <strong>Schedule</strong> = Eastern clock; after the scheduled end time it also turns on the full-screen “show ended” for everyone. <strong>Pre/During/Post</strong> clears that screen.</span>
+        <span class="admin-phase-label">Show state (visible to everyone). <strong>Post Show</strong> turns on the full-screen “show ended” for everyone. <strong>Schedule</strong>, <strong>Pre-Show</strong>, or <strong>During Show</strong> removes that screen.</span>
         <button type="button" class="admin-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
         <button type="button" class="admin-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
         <button type="button" class="admin-phase-btn" data-phase="post" title="Force Post Show banner">Post Show</button>
@@ -339,7 +339,7 @@ let showWindowStartMs = 0;
 let showWindowEndMs = 0;
 /** Firebase `showConfig.phase`: auto = use Eastern window; pre/live/post = manual banner & admin pin coloring. */
 let showPhaseOverride = "auto";
-/** Firebase `showConfig/…/endedFullscreen`: full-screen “show ended” art; admin sets true by clicking Schedule, clears on Pre/During/Post. */
+/** Firebase `showConfig/…/endedFullscreen`: full-screen “show ended” art; admin sets true with Post Show; Schedule / Pre / During clear it. */
 let showEndedFullscreenActive = false;
 /** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
 const SHOW_DATE_SLUG_FALLBACK = "20260406";
@@ -614,13 +614,8 @@ function writeShowPhase(phase) {
         phase,
         phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP
     };
-    if (phase === "auto") {
-        const now = Date.now();
-        recomputeShowWindows();
-        payload.endedFullscreen = !!(showWindowEndMs && now >= showWindowEndMs);
-    } else {
-        payload.endedFullscreen = false;
-    }
+    if (phase === "post") payload.endedFullscreen = true;
+    else payload.endedFullscreen = false;
     db.ref(`showConfig/${fbName}`).update(payload).catch(e => alert(e.message));
 }
 
