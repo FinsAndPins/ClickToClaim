@@ -248,6 +248,29 @@ Three variants of `title_cleaner.py` (including `title_cleaner.PinPricingModel.p
 
 ---
 
+## Click To Request `20260504` — Post Show fullscreen overlay (May 2026)
+
+**Purpose:** After a Whatnot show, viewers see a clear **“show ended”** full-screen layer instead of only the small Post Show banner — **nothing to tap** on the boards beneath until an admin clears it.
+
+**Firebase**
+
+- Path: **`showConfig/<showDateSlug>/`** (same as phase window times).
+- **`endedFullscreen`:** **`true`** when **`phase`** is updated via **Post Show** (boards `index.html` or **`reports.html`**). **`false`** when admin chooses **Schedule**, **Pre-Show**, or **During Show** (same `writeShowPhase` logic in both pages).
+
+**UI (`20260504/index.html`)**
+
+- **`#showEndedOverlay`:** Fixed inset, **`display: flex`** when active (`syncShowEndedOverlay`), **`z-index: 6000`** (above login/modals).
+- **`.show-ended-stack`:** Wraps **social icon row** + **`.show-ended-message`** card; overlay **`justify-content: center; align-items: center`** so the **whole column** is centered on phone / tablet / desktop (avoid anchoring a full-width flex child that looks left-aligned on wide screens).
+- **Copy:** Linked **Whatnot** (invite URL) and **Instagram @Fins.And.Pins**; **`span.show-ended-noon-est`** uses **`white-space: nowrap`** so **EST** does not wrap alone on iPhone.
+- **Cache:** Bump **`meta name="ctr-countdown"`** when changing overlay markup so Pages clients refresh.
+
+**Ops**
+
+- If the overlay is on and boards controls are unreachable: open **`reports.html?admin=…`** → **Show window** → **Schedule** (or Pre/During).
+- **Revert references:** **`FUTURE.md`** → Session log 2026-05-04.
+
+---
+
 ## ClickToClaim app behavior (reference)
 
 - Live board UIs iterate `predictions` with **array index** as the pin key (e.g. `forEach((pin, idx) => …)`). That index must match listing numbering and ClickToPull.
@@ -340,4 +363,5 @@ See **`FUTURE.md`** for written-up enhancements, including:
 - **2026-04-10:** **Pin Pricing study** — documented in iCloud **`PinPricingStudyMVP/STUDY_LEARNINGS_AND_NEXT_STEPS.md`**: **`buildSearchVariants`** (extra keyword searches for `#` queries), why **client-side dedupe** matters after merging responses; **agreement** to align on **evaluation goals** before building more matching automation (pHash vs embeddings vs eBay order). **Consumer backlog (same day):** expanded **`CONSUMER_APP_TODO.md`** (on-device picker + sandbox; **tap pin → X overlay** for sold/traded; **Collection state** section); **`README.md`** in that folder points there; this **`project_context`** Pin Pricing subsection links the same backlog.
 - **2026-04-15:** **Click To Request `20260416` lite mode** shipped in `20260416/index.html` (commit **`a8886e8`**, rollback tag **`ctr-20260416-before-lite-ui`**). **eBay** proxy health OK; Browse **`keyword_search`** observed **429** throttling — see **Click To Request `20260416` — lite mode, deploy, rollback** and **eBay Browse batch pricing (implemented)** above.
 - **2026-04-17:** **PinPricingStudyMVP** — Browse **`search_by_image` / `keyword_bin_search`**: **`Retry-After`**, jittered backoff, optional min interval, large-run auto pacing (default ≥1000 crops → 0.15s spacing), circuit breaker on sustained **429**; flags + `EBAY_*` env documented under **eBay Browse batch pricing (implemented)**.
+- **2026-05-04:** Click To Request **20260504** — Post Show **fullscreen ended overlay** (`endedFullscreen`, centered stack layout), **Reports** phase buttons, HTML vs PNG learnings — see **`FUTURE.md`** (session log) and the **20260504 Post Show fullscreen overlay** subsection above.
 - Dated Firebase backups may appear as `firebase-rtdb-backup-*.json` (often gitignored).

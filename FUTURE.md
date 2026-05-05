@@ -4,15 +4,36 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
-## Post Show thank-you page (admin)
+## Session log — 2026-05-04 (`20260504` show bundle)
 
-**Target:** Before the next **Monday** show (when you are rested), add a dedicated page that matches the **May 2026 mockup**: soft blue → purple/pink gradient background with faint wave/topography lines, centered **frosted white** card, **dark magenta** body copy, short thank-you and schedule line (**live Mondays and Thursdays at 12 noon Eastern**), reminder to check **Instagram @Fins.And.Pins**, large **QR code** in the middle (logo in center if desired), footer line **“Scan this QR code to access all of our socials.”**
+**Shipped**
 
-**Today’s behavior:** On each show’s `index.html`, **admin** unlock (`?admin=…`) exposes the phase bar; **Post Show** sets Firebase `showConfig.phase` to **`post`** and shows the **Post Show** banner to everyone (see existing `admin-phase-btn` / phase logic).
+- **Full-screen “show’s over” layer** (`#showEndedOverlay`, `z-index` above modals) driven by Firebase **`showConfig/<YYYYMMDD>/endedFullscreen`**: **`true`** when admin taps **Post Show** on boards or Reports; **`false`** on **Schedule**, **Pre-Show**, or **During Show** (same writes as the existing phase bar).
+- **Content:** HTML + CSS using existing CTR tokens (`--fp-bg`, `--fp-chunk`, `--fp-text`, `--fp-muted`) — not a static photo — so **Whatnot** and **Instagram @Fins.And.Pins** are real links; copy stresses **Mondays & Thursdays · 12 noon EST · Whatnot**.
+- **Layout evolution:** Social icons + message card wrapped in **`.show-ended-stack`** (max-width 520px); overlay uses **`justify-content: center; align-items: center`** so **Mac / iPad / iPhone** all center the block; **`white-space: nowrap`** on **`12 noon EST`** fixes orphan **EST** on narrow phones.
+- **`reports.html`:** Same four phase buttons under **Show window** so you can clear **`endedFullscreen`** when the boards page is fully covered (admin-only page).
 
-**Goal:** When you choose **Post Show** (or a sibling control), also open or link to this thank-you page—e.g. `post-show.html` beside `index.html`, or same-tab navigation—so viewers see the full treatment, not only the banner.
+**Learned**
 
-**Implementation notes for next session:** Keep paths **relative** so GitHub Pages works under `/ClickToClaim/<show>/`; host QR asset under `boards/` or `icons/` as you prefer; optional query param to reuse one HTML across shows.
+- **PNG splash:** Sharp on one screen but awkward cross-device; hard to edit copy (e.g. missing Whatnot). **HTML overlay** wins for accessibility, links, and iteration.
+- **Flex pitfalls:** Icons at top + **`flex: 1`** main with **`justify-content: flex-start`** left odd vertical gaps; **`justify-content: center`** on the overlay without a single centered **stack** made iPad/Mac look **left-aligned** (`width: 100%` child filled the row). Fix: one wrapper column centered as a unit.
+- **Keyword search “broken”:** Often empty results + long proxy cold-start — looks like a spinner hang; retry / wait helps.
+
+**Git anchors (if reverting or diffing)**
+
+- Photo-era splash + social-on-overlay (before HTML message): **`214fa38`** (includes `show-ended-splash.png`, later removed).
+- HTML message, no PNG: **`32e38d1`**.
+- Centered stack layout: **`e0f1c8d`**.
+
+---
+
+## Post Show thank-you page (admin) — extended mockup / QR (optional)
+
+**Shipped May 2026 (minimal path):** On **`20260504/index.html`**, **Post Show** turns on a **full-screen overlay** with thank-you copy, schedule line, Whatnot + Instagram links, and social icon row — see **Session log — 2026-05-04** above. **`reports.html`** mirrors the phase buttons so admins can turn the overlay off.
+
+**Still optional (original mockup):** A **separate** page matching the **May 2026** visual: soft gradient, **frosted** card, **QR code** in the center (“Scan… socials”), if you want that in addition to or instead of the overlay someday.
+
+**Implementation notes if you add it later:** Keep paths **relative** under `/ClickToClaim/<show>/`; host QR under `boards/` or `icons/`; optional query param to reuse one HTML across shows.
 
 ---
 
