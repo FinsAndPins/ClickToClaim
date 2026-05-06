@@ -108,6 +108,30 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Overlapping regions across multiple board photos (ClickToCollect) — v2 / v3
+
+**Vocabulary:** In the app, a **Board** is one **photo** of many pins (often on a PinFolio-sized panel). In the field, a collector may call **“the board”** a **large wall** made of several cork or PinFolio panels. They take **multiple photos of different regions** of that wall; **overlapping frames** are common.
+
+**Problem (Lexi use case):** The **same physical pin** appears in the overlap between two (or more) **Board** photos. Detection + collection import can create **separate pin records** for that one pin—not because the pin is a duplicate design, but because it was captured twice across photos. This is **cross-photo overlap**, not primarily “double boxes on one image.”
+
+**Constraint:** Prefer **on-device** processing; **no internet** required for this flow.
+
+**Product direction (agreed in principle):** Help the user **clean up redundant coverage** rather than pretending homography will auto-merge everything on day one.
+
+- **Primary fix:** On the “secondary” photo(s), **remove the detection boxes** (and thus collection entries) for pins that belong to the overlap, keeping the **canonical** instance on the photo that should “own” that region.
+- **Optional:** **Crop** the board image so pins that were removed from the data are no longer visible—stronger visually, but touches assets (reversible workflow should favor **box removal first**).
+- **UX:** **Review + accept** only—no silent deletes. Consider scoping as **Settings / Advanced** or **Labs** until defaults feel safe.
+
+**Implementation tiers (time vs payoff):**
+
+- **v2 (proportionate):** **Manual or semi-guided** flow: user picks **two boards** (or a “same wall session”) and marks **which photo is secondary**, then **multi-selects pins/boxes to remove** (or region-based selection later). No requirement for automatic overlap detection in the first version.
+- **Enhancement:** **Cheap hints** only if they help—e.g. boards imported within **N minutes**, or user-flagged **“same wall”** grouping—then run **visual duplicate suggestions** (embeddings) **restricted to that group** to speed review. Still not proof of geometric overlap.
+- **v3 (heavier):** **Geometry** (feature matching / homography) to **paint overlapping regions** and suggest redundant boxes—higher engineering and QA cost; defer until manual workflows prove the need.
+
+**Explicit non-goal for early versions:** Full **cloud** embedding catalogs, PinPics-scale retrieval, or **automatic** merge without confirmation.
+
+---
+
 ## More ideas (placeholder)
 
 _Add additional bullets here as you go._
