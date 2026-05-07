@@ -27,6 +27,23 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Session log — 2026-05-06 (`20260507` boards)
+
+**Shipped**
+
+- **More boards** for live **`20260507`**: added **`IMG_*`**.**`JPG`** + matching **`.json`** under **`20260507/boards/`**, updated **`manifest.json`**, bumped **`BOARDS_MANIFEST_VERSION`** to **`6`** in **`index.html`** and **`reports.html`** (must match).
+
+**Learned**
+
+- **`manifest.json` must be strict JSON** — a **trailing comma** after the last array element breaks **`fetch(...).json()`** in the browser and the show page stops loading boards until fixed.
+- **`reports.html`** had fallen behind **`index.html`** on **`BOARDS_MANIFEST_VERSION`** before this round; out-of-sync versions mean Reports can silently use a **cached older manifest**.
+
+**Git anchor**
+
+- Boards + manifest fix + version sync: **`9f4e48d`**.
+
+---
+
 ## Post Show thank-you page (admin) — extended mockup / QR (optional)
 
 **Shipped May 2026 (minimal path):** On **`20260504/index.html`**, **Post Show** turns on a **full-screen overlay** with thank-you copy, schedule line, Whatnot + Instagram links, and social icon row — see **Session log — 2026-05-04** above. **`reports.html`** mirrors the phase buttons so admins can turn the overlay off.
@@ -105,6 +122,8 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 - Start from **curated manifests** (e.g. image path or URL + label); define taxonomy rules (single character vs multi-character vs place/theme) and **label normalization** before training.
 - Prefer **fine-tuning** a compact vision classifier or embedding head over training from scratch; choose **on-device inference** vs a small **hosted model** from latency, binary size, and how often you want to refresh weights.
 - Treat **rights and licensing** for training images the same way you treat any customer or show-derived media you do not own outright.
+
+**On-device import timing:** Wall-clock import comparisons for **old vs new model** builds (with pins/s and run-protocol notes) live in `detection_eval/ON_DEVICE_IMPORT_BENCHMARKS.md`.
 
 ---
 

@@ -271,6 +271,20 @@ Three variants of `title_cleaner.py` (including `title_cleaner.PinPricingModel.p
 
 ---
 
+## Click To Request `20260507` — manifest hygiene (May 2026)
+
+**Ops**
+
+- **`boards/manifest.json`** must be **strict JSON** (no trailing commas). Invalid JSON prevents the manifest fetch from parsing — boards may not appear at all.
+- When bumping **`BOARDS_MANIFEST_VERSION`**, set the **same value** in **`index.html`** and **`reports.html`** so admin Reports loads the same board list as the public page (both append `?v=` for cache bust).
+
+**Pointers**
+
+- **`FUTURE.md`** → Session log 2026-05-06.
+- Example fix + board adds: **`9f4e48d`**.
+
+---
+
 ## ClickToClaim app behavior (reference)
 
 - Live board UIs iterate `predictions` with **array index** as the pin key (e.g. `forEach((pin, idx) => …)`). That index must match listing numbering and ClickToPull.
@@ -301,7 +315,7 @@ Three variants of `title_cleaner.py` (including `title_cleaner.PinPricingModel.p
 ### Adding boards mid-show (operational)
 
 - **Append-only:** add new `IMG_*` `.JPG` + `.json`, **append** filenames to **`manifest.json`**. Do **not** rename or replace stems for boards that already have claims (pin keys are `boardStem-index`; renames misalign clicks vs images).
-- After any manifest change, **bump `BOARDS_MANIFEST_VERSION`** in `index.html` again so clients refetch `manifest.json`.
+- After any manifest change, **bump `BOARDS_MANIFEST_VERSION`** in **`index.html`** **and** **`reports.html`** to the **same** string so clients (and Reports) refetch `manifest.json`.
 
 ### eBay Browse + proxy (Apr 2026)
 
@@ -364,4 +378,5 @@ See **`FUTURE.md`** for written-up enhancements, including:
 - **2026-04-15:** **Click To Request `20260416` lite mode** shipped in `20260416/index.html` (commit **`a8886e8`**, rollback tag **`ctr-20260416-before-lite-ui`**). **eBay** proxy health OK; Browse **`keyword_search`** observed **429** throttling — see **Click To Request `20260416` — lite mode, deploy, rollback** and **eBay Browse batch pricing (implemented)** above.
 - **2026-04-17:** **PinPricingStudyMVP** — Browse **`search_by_image` / `keyword_bin_search`**: **`Retry-After`**, jittered backoff, optional min interval, large-run auto pacing (default ≥1000 crops → 0.15s spacing), circuit breaker on sustained **429**; flags + `EBAY_*` env documented under **eBay Browse batch pricing (implemented)**.
 - **2026-05-04:** Click To Request **20260504** — Post Show **fullscreen ended overlay** (`endedFullscreen`, centered stack layout), **Reports** phase buttons, HTML vs PNG learnings — see **`FUTURE.md`** (session log) and the **20260504 Post Show fullscreen overlay** subsection above.
+- **2026-05-06:** Click To Request **20260507** — added boards + manifest update; **strict JSON** for `manifest.json` (no trailing comma); **`BOARDS_MANIFEST_VERSION`** bumped and **matched** in **`index.html`** / **`reports.html`** — see **`FUTURE.md`** (session log 2026-05-06) and **Click To Request `20260507` — manifest hygiene** above.
 - Dated Firebase backups may appear as `firebase-rtdb-backup-*.json` (often gitignored).

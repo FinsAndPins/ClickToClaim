@@ -22,4 +22,4 @@ Details: **`project_context_cursor.md`** → **ClickToClaim — GitHub Pages and
 | File | Purpose |
 |------|---------|
 | **`project_context_cursor.md`** | Architecture, iCloud vs GitHub, pipelines, Firebase notes |
-| **`FUTURE.md`** | Planned features, **session logs** (e.g. May 2026 Post Show overlay on `20260504`) |
+| **`FUTURE.md`** | Planned features, **session logs** (e.g. `20260504` Post Show overlay, `20260507` manifest / cache-bust notes) |
