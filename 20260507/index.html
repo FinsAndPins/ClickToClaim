@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v4-manifest-5">
+    <meta name="ctr-countdown" content="closes-to-end-v6-board-files-7">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -755,6 +755,9 @@ function updateFuelGauge(requested) {
     if (overNote) overNote.style.display = requested >= FUEL_MAX ? "block" : "none";
 }
 
+// Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
+const BOARDS_MANIFEST_VERSION = "7";
+
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
     const chunk = 12;
@@ -763,7 +766,7 @@ async function computeAllBoardPinTotals(boardNames) {
         const results = await Promise.all(
             slice.map(async (name) => {
                 try {
-                    const r = await fetch(`./boards/${name}.json`, { cache: "no-store" });
+                    const r = await fetch(`./boards/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
                     if (!r.ok) return 0;
                     const data = await r.json();
                     const pins = data.predictions || data.output?.predictions || [];
@@ -778,8 +781,6 @@ async function computeAllBoardPinTotals(boardNames) {
     return sum;
 }
 
-// Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch).
-const BOARDS_MANIFEST_VERSION = "6";
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
     .then(r => r.json())
     .then(list => {
@@ -849,7 +850,7 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
                     <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
                 </div>
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
-                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG"></div>`;
+                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}"></div>`;
             boardsList.appendChild(container);
             boardsState[name] = { totalPins: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
             setupBoard(name);
@@ -858,7 +859,7 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
     });
 
 async function setupBoard(name) {
-    const response = await fetch(`./boards/${name}.json`);
+    const response = await fetch(`./boards/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
     const data = await response.json();
     const pins = data.predictions || data.output?.predictions || [];
     boardsState[name].totalPins = pins.length;
