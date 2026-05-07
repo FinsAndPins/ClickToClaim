@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v6-board-files-7">
+    <meta name="ctr-countdown" content="closes-to-end-v8-post-show-overlay">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -140,6 +140,100 @@
         .admin-phase-btn:focus-visible { outline: 2px solid var(--fp-muted); outline-offset: 2px; }
         @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
         .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.35) !important; }
+        /* Full-screen “show ended” (Firebase `showConfig/…/endedFullscreen`; admin Post Show only). */
+        #showEndedOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 6000;
+            background: var(--fp-bg);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            margin: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #showEndedOverlay .show-ended-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 520px;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        #showEndedSocial {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            padding: 0;
+            width: 100%;
+            pointer-events: auto;
+        }
+        #showEndedSocial a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: var(--fp-chunk);
+            border-radius: 10px;
+            text-decoration: none;
+        }
+        #showEndedSocial a .social-icon {
+            width: 24px;
+            height: 24px;
+            display: block;
+            object-fit: contain;
+        }
+        #showEndedSocial a .social-icon.inv {
+            filter: brightness(0) invert(1);
+        }
+        #showEndedOverlay .show-ended-message {
+            max-width: none;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 22px 20px 24px;
+            border-radius: 16px;
+            background: rgba(198, 89, 165, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: var(--fp-text);
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.45;
+            pointer-events: auto;
+        }
+        #showEndedOverlay .show-ended-message .show-ended-brand {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 1.25em;
+            font-weight: bold;
+            color: var(--fp-text);
+        }
+        #showEndedOverlay .show-ended-message .show-ended-open {
+            margin: 0 0 18px;
+        }
+        #showEndedOverlay .show-ended-message p {
+            margin: 0 0 14px;
+            font-weight: normal;
+        }
+        #showEndedOverlay .show-ended-message p:last-child {
+            margin-bottom: 0;
+        }
+        #showEndedOverlay .show-ended-message a {
+            color: var(--fp-muted);
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        #showEndedOverlay .show-ended-message .show-ended-noon-est {
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -174,6 +268,21 @@
         <textarea id="reportIssueText" placeholder="Describe the issue…" rows="4"></textarea>
         <button type="button" class="primary" onclick="submitIssueReport()">Submit Report</button>
         <button type="button" class="secondary" onclick="document.getElementById('reportIssueOverlay').style.display='none'">Cancel</button>
+    </div>
+</div>
+
+<div id="showEndedOverlay" aria-hidden="true" aria-label="Today's show has ended. Nothing to request here.">
+    <div class="show-ended-stack">
+        <nav id="showEndedSocial" aria-label="Social links">
+            <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
+            <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
+            <a href="https://linktr.ee/finsandpins" target="_blank" rel="noopener noreferrer" title="Linktree" aria-label="Linktree"><img class="social-icon inv" src="./icons/linktree.svg" width="24" height="24" alt=""></a>
+        </nav>
+        <div class="show-ended-message" role="document">
+            <p class="show-ended-open">Thank you for using<br><span class="show-ended-brand">Click To Request!</span></p>
+            <p>Today's show has ended, but we're live<br><strong>Mondays and Thursdays at <span class="show-ended-noon-est">12 noon EST</span></strong><br>on <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer">Whatnot</a>!</p>
+            <p>Be sure to check our Instagram<br><a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer">@Fins.And.Pins</a> for important updates.</p>
+        </div>
     </div>
 </div>
 
@@ -312,8 +421,10 @@ let showWindowStartMs = 0;
 let showWindowEndMs = 0;
 /** Firebase `showConfig.phase`: auto = use Eastern window; pre/live/post = manual banner & admin pin coloring. */
 let showPhaseOverride = "auto";
+/** Firebase `showConfig/…/endedFullscreen`: full-screen “show ended” — true only on Post Show; false on Schedule, Pre, or During. */
+let showEndedFullscreenActive = false;
 /** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
-const SHOW_DATE_SLUG_FALLBACK = "20260406";
+const SHOW_DATE_SLUG_FALLBACK = "20260507";
 /** Paste your whatnot invite / referral URL here (shown in FAQ links). */
 const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
 
@@ -565,12 +676,28 @@ function refreshAdminPhaseButtons() {
     });
 }
 
+function syncShowEndedOverlay() {
+    const el = document.getElementById("showEndedOverlay");
+    if (!el) return;
+    const on = !!showEndedFullscreenActive;
+    el.style.display = on ? "flex" : "none";
+    el.setAttribute("aria-hidden", on ? "false" : "true");
+    if (on) {
+        document.body.style.overflow = "hidden";
+    } else {
+        const faq = document.getElementById("faqOverlay");
+        if (!faq || faq.style.display !== "flex") document.body.style.overflow = "";
+    }
+}
+
 function writeShowPhase(phase) {
     if (!["auto", "pre", "live", "post"].includes(phase)) return;
-    db.ref(`showConfig/${fbName}`).update({
+    const payload = {
         phase,
         phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP
-    }).catch(e => alert(e.message));
+    };
+    payload.endedFullscreen = phase === "post";
+    db.ref(`showConfig/${fbName}`).update(payload).catch(e => alert(e.message));
 }
 
 if (displayName) {
@@ -685,8 +812,10 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
         activeShowConfig = { ...DEFAULT_SHOW_CONFIG };
     }
     showPhaseOverride = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+    showEndedFullscreenActive = v.endedFullscreen === true || v.endedFullscreen === 1 || String(v.endedFullscreen) === "true";
     recomputeShowWindows();
     refreshAdminPhaseButtons();
+    syncShowEndedOverlay();
 });
 
 (function() {
