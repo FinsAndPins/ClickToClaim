@@ -779,7 +779,7 @@ async function computeAllBoardPinTotals(boardNames) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch).
-const BOARDS_MANIFEST_VERSION = "5";
+const BOARDS_MANIFEST_VERSION = "6";
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
     .then(r => r.json())
     .then(list => {
