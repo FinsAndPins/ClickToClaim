@@ -44,6 +44,41 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Session log — 2026-05-08 (ClickToCollect detection + local character-training prep)
+
+**Shipped / recorded (app — `ClickToCollectApp` `main`)**
+
+- **Deferred “second pass” false positives (stars / specks / huge edge boxes):** iterative tightening on **`PinBoxPostProcessor`** and **`DeferredBoardDenseScanService`** — higher non-dense tile confidence, per-tile **top‑K** clamp, deferred-only pixel-size confidence ramps and edge-hugging huge-rect drops, with **DEBUG** drop-reason logging. Earlier pass added shared post-processing for viewport + deferred paths. Commits include **`6eb9f4c`**, **`aaebe81`** (see app repo history for exact diffs).
+- **Build fix:** **`PinBoxPostProcessor.swift`** — **`import Foundation`** for **`String(format:)`** (Swift 6 / strict module visibility).
+
+**Recorded (local — Cursor Projects, not the app repo)**
+
+- **`TrainCharacterDetector/labeler/` — cluster labeler:** seed palette from **`TopCharacterLabels.txt`**; **live autosave** to a user-picked **`labels_autosave.csv`** (File System Access API + IndexedDB handle, debounced writes); fixed **assign shortcut buttons** storing `"4  Mickey"` instead of **`Mickey Mouse`**; progress bars show **crop counts** where possible; **`README_LABELING.md`** updated. Starter file **`labels_autosave.csv`** (header only). **`python` vs `python3`:** pyenv users may need **`python3 -m http.server`** for the local server one-liner.
+
+**Learned (character / set labeling for future classifiers)**
+
+- **CLIP clusters often follow “set” or shape language** (e.g. ducks, castles), not a single character — labeling a **mixed** duck cluster as **one** character poisons a **character-ID** model. Leave mixed clusters **unlabeled** or split/re-cluster until homogeneous.
+- **Single-label character training:** for **Mickey+Minnie** on one pin, pick a **primary** subject or defer; **multi-label** is valid only if the **training objective** and loss are multi-label end-to-end — don’t mix arbitrarily.
+- **Set-centric vs character-centric** are **different tasks** — see **Set-centric pin / series classification (future)** below.
+
+---
+
+## Set-centric pin / series classification (future)
+
+**Intent (product / ML):** A **separate** labeling and model path from **character identity**. Examples: **duck-series mold**, **castle / frame**, **Loungefly silhouette**, **Snack Attack** lineup, etc. — orthogonal to “this pin is primarily **Stitch** vs **Donald**.”
+
+**Why separate:** Users may want **both** signals (character + series shape), but a single softmax head forced to choose one collapses orthogonal attributes; training **“everything duck-colored ⇒ Stitch”** breaks character IDs.
+
+**Direction when prioritized**
+
+1. **Taxonomy:** Define stable **series / shape / set** labels (small curated list at first).
+2. **Data:** Same crop pipeline (`crops/` from detector); labels may overlap **characters** — use **multi-label** or **two lightweight heads** (character + series) if both ship in-product.
+3. **UX:** Tie into **ClickToIdentify** / in-app suggestions only after thresholds feel safe; optional second pass like today’s deferred detection (fast first, refine later).
+
+**Explicitly later than:** first shipped **character** suggestion loop (needs clean per-character crops first).
+
+---
+
 ## Post Show thank-you page (admin) — extended mockup / QR (optional)
 
 **Shipped May 2026 (minimal path):** On **`20260504/index.html`**, **Post Show** turns on a **full-screen overlay** with thank-you copy, schedule line, Whatnot + Instagram links, and social icon row — see **Session log — 2026-05-04** above. **`reports.html`** mirrors the phase buttons so admins can turn the overlay off.
