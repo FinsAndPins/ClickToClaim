@@ -29,7 +29,7 @@ High-level notes for AI sessions and humans: what exists, where it lives, and pi
 - **Lexi / pricing (other repo):** `FinsAndPins/PreparingInventory` — `https://finsandpins.github.io/PreparingInventory/` with **`pricing_index.json`** + **`update_pricing_index.py`** for **PriceCollection_*** harnesses.
 | **PinToPull / seller pack-out (iCloud)** | `~/Library/Mobile Documents/com~apple~CloudDocs/PinToPull20260402/` — **not** always committed to git; scripts and outputs live next to each other. |
 | **Older ClickToPull templates** | iCloud: `Create ClickToPull/` (`clicktopull.py`, `pdf_to_whatnot_orders.py`). |
-| **ClickToCollect (iOS, Vegas / Lexi)** | **Canonical Cursor + Xcode tree:** `~/Desktop/ClickToCollectApp/` — **git repo initialized 2026-04-20** at that root (not inside **ClickToClaim**). App sources: `ClickToCollect/ClickToCollect/*.swift`, **`CLAUDE.md`**, **`TOMORROW.md`**, **`SETUP.md`**. **2026-04-21:** Progress log + **SETUP §5 (TestFlight)** capture Collection/search polish, **`photoContentLabels`** optional migration fix, commit **`31f5db2`** on **`main`**. **2026-05-06:** Labs tab **hidden on App Store production** (`labsTabAllowedForInstall` + sandbox receipt for TestFlight); import board **sparkle FX** tuning; Labs **DEBUG delete-all**; see **`CLAUDE.md`** progress log. **ClickToClaim `FUTURE.md`:** cross-photo / same-wall overlap cleanup (v2/v3 roadmap). |
+| **ClickToCollect (iOS, Vegas / Lexi)** | **Canonical Cursor + Xcode tree:** `~/Desktop/ClickToCollectApp/` — **git repo initialized 2026-04-20** at that root (not inside **ClickToClaim**). App sources: `ClickToCollect/ClickToCollect/*.swift`, **`CLAUDE.md`**, **`TOMORROW.md`**, **`SETUP.md`**. **2026-04-21:** Progress log + **SETUP §5 (TestFlight)** capture Collection/search polish, **`photoContentLabels`** optional migration fix, commit **`31f5db2`** on **`main`**. **2026-05-06:** Labs tab **hidden on App Store production** (`labsTabAllowedForInstall` + sandbox receipt for TestFlight); import board **sparkle FX** tuning; Labs **DEBUG delete-all**; see **`CLAUDE.md`** progress log. **2026-05-08:** Pin delete safety (**dismiss → delete by ID**, notifier refresh), **boards** launch overlay perf (scoped fetch + gate), sticky Collection chrome (**`safeAreaInset`** + **`.searchable` always**), pin landing (**pan when zoomed**, toolbar / **`PinStandardQuickTags`** / **`#DEBUG:`** strip), crop editor scale vs zoom — details in Desktop **`CLAUDE.md`** → *Progress log*. **2026-05-08 (eve):** **`customTags`** migration **no SQL `COUNT` predicate**; import sparkles (**full-bleed processing**, **`softLight`** on photo FX, outline-only box trace); **Find Similar Pins** toolbar leading vs **Done**; **Trade**/**Sell** filters; **`AppFeatureFlags`** post-import tag sheet default off — see **`CLAUDE.md`** *Progress log (short)*. **ClickToClaim `FUTURE.md`:** cross-photo / same-wall overlap cleanup (v2/v3 roadmap). |
 
 ### ClickToCollect — value pricing handoff (2026-04-20)
 
@@ -206,11 +206,62 @@ Three variants of `title_cleaner.py` (including `title_cleaner.PinPricingModel.p
 
 **Path:** `~/Library/Mobile Documents/com~apple~CloudDocs/Cursor Projects/PinPricingStudyMVP/`
 
-**Purpose:** Compare eBay visual search, pHash rerank, and Gemini-keyword retrieval for pin crops; label thumbnail matches in a local HTML UI; persist labels under Firebase RTDB `pin_pricing_study/<run_id>`.
+**Purpose:** Compare eBay visual search, pHash rerank, and Gemini-keyword retrieval for pin crops; label thumbnail matches in a local HTML UI; collaborate on **pricing harness** overlays in Firebase.
 
-**Authoritative write-up:** **`STUDY_LEARNINGS_AND_NEXT_STEPS.md`** in that folder — 100-crop run conclusions, Firebase/eval dashboard usage, **`pin_dedupe_nms_v1`** (IoU NMS before crop numbering), Gemini fix notes, labeling interpretation (thumbnail-only), next steps, and **dated session notes** (e.g. **2026-04-10:** keyword **`buildSearchVariants`** / multi-call dedupe rationale; agreement to **discuss then test** pHash vs embedding-style matching). **Not** a shipped tool in this repo; promote to git only when Steve says it is done.
+**Firebase RTDB — two different roots (do not confuse them):**
+
+| UI / workflow | RTDB root | Typical shape |
+|---------------|-----------|----------------|
+| **Study** page from `run_study.py` (per-run top-level `index.html`) | `pin_pricing_study/<run_id>` | Labels under `…/labels/<crop>/<approach>/<candidate>` — eval / ground-truth labeling. |
+| **Pricing collection harness** from `build_testing_ui.py` (`testing_ui_visual_baseline/`, `PriceCollection_*` on Mac / PreparingInventory Pages) | `pin_pricing_tests/<test_run_id>/<approach_id>` | Pin state under `…/pins/<pin_dom_id>` (e.g. `visual_baseline`). **`test_run_id`** comes from that folder’s `ui_data.json`. |
+
+**Authoritative write-up:** **`STUDY_LEARNINGS_AND_NEXT_STEPS.md`** in that folder — 100-crop run conclusions, Firebase/eval dashboard usage, **`pin_dedupe_nms_v1`** (IoU NMS before crop numbering), Gemini fix notes, labeling interpretation (thumbnail-only), next steps, and **dated session notes** (e.g. **2026-04-10:** keyword **`buildSearchVariants`** / multi-call dedupe rationale; agreement to **discuss then test** pHash vs embedding-style matching). Harness Firebase details: **`PIN_PRICING_HARNESS.md`**. **Not** a shipped tool in this repo; promote to git only when Steve says it is done.
+
+---
+
+## Session log — 2026-05-07 (PreparingInventory pricing + RF‑DETR + “our price first” prototype)
+
+**Context (workflow):** Lexi prices a collection with the tool; later, for show boards, Steve photographs the pulled/display boards and runs the Mac pricing script so Lexi can correct final auction prices.
+
+### Goal (new request)
+
+Prefer **our own previously decided price** (Lexi’s collection pricing) as **rank 1** in ClickToPrice when a pin visually matches something we priced recently; still run **eBay Browse** so ranks 2+ are eBay comps.
+
+### Prototype (manual only; not wired into automatic pricing)
+
+- Added an **optional** “local visual library” mode in `PinPricingStudyMVP/run_visual_baseline_pipeline.py`:
+  - Index recent `PreparingInventory/PriceCollection_*` pins by reading `testing_ui_visual_baseline/ui_data.json` + `crops/`
+  - Use **pHash** nearest neighbor to match each new crop against the index
+  - If within threshold, inject a synthetic FIXED candidate with `source.api=pin_tooling.local_visual_library` as **rank 1**
+  - **eBay still runs** and remains available as `ebay_full_pool_candidates`; FIXED comps follow unchanged
+
+**Important testing lesson:** exclude the **current** collection folder from the library index; otherwise you’re matching a crop to itself and learning nothing.
+
+### RF‑DETR harness test (manual)
+
+- Manual run using a temp local inbox + `SKIP_GIT=1` produced `PriceCollection_20260507_2223` and confirmed `testing_ui_visual_baseline/index.html` exists. The pipeline output showed Core ML RF‑DETR inference and then continued to crop + eBay + harness.
+
+### Automatic pricing status
+
+- The LaunchAgent watcher (`PreparingInventory/board_inbox_watcher.sh`) still defaults to **RF‑DETR** (`PIN_PRICING_USE_RFDETR` defaults to `1`) and points at `PinPricingStudyMVP_RFDETR_TEST`. Visual-search experiments were run manually and were not connected to the watcher flow.
 
 **Consumer app backlog (same folder):** **`CONSUMER_APP_TODO.md`** — product migration notes including **on-device photos** (picker + sandbox), **staged progress / demo (phone → laptop)**, harness **`--firebase-collab`**, and **click/tap pin → X overlay** to mark sold/traded and keep the collection view current (soft state + optional undo).
+
+---
+
+## Session log — 2026-05-08 (Firebase paths, authority, read-only export)
+
+### What we did
+
+- **Documented** how pricing work maps to Realtime Database: **Lexi’s collection / ClickToPrice harness** state lives under **`pin_pricing_tests/<test_run_id>/<approach_id>/pins/…`** (from `build_testing_ui.py`). The separate **study** UI still uses **`pin_pricing_study/<run_id>/labels/…`** — same repo folder can contain both HTML bundles; they are **different RTDB trees**.
+- **Aligned** mental model with code: `build_testing_ui.py` sets `fbRoot = pin_pricing_tests/${test_run_id}/${approach_id}`; `run_study.py` / study `index.html` uses `pin_pricing_study/${runId}`.
+- **No ClickToClaim code changes** in this session; context is for automation, rules, and future export tooling.
+
+### What we learned / decisions to carry forward
+
+- **Truth for “our price first”:** On-disk **`PriceCollection_*`** / `ui_data.json` reflects pipeline defaults and embedded candidates; **Lexi’s accepted prices and match decisions** for the harness are **in Firebase** under **`pin_pricing_tests`** when the harness sync is used. Any **freeze file** for indexing (e.g. post-review export) should be built from **Firebase export** (or an explicit export step), not assumed from folder JSON alone.
+- **Read-only automation identity:** Prefer a **dedicated Firebase Auth user** + **RTDB rules** that allow **read** only on the subtrees you need (e.g. `pin_pricing_tests/...`). The **Firebase Admin SDK bypasses security rules** — do not rely on it as a “read-only” guarantee unless the service account and code paths are strictly non-write.
+- **Product constraint:** Pricing automation should **fail open** — if library/export/indexing fails, behavior should fall back to the **current eBay-only** path so show pricing is never blocked by this feature.
 
 ---
 
