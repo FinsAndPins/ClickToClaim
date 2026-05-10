@@ -887,7 +887,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "12";
+const BOARDS_MANIFEST_VERSION = "13";
 
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
@@ -1001,7 +1001,14 @@ async function setupBoard(name) {
         let ORIG_H = data.image?.height || img.naturalHeight;
         const rotated = (ORIG_W > ORIG_H) !== (img.clientWidth > img.clientHeight);
         const scale = img.clientWidth / (rotated ? ORIG_H : ORIG_W);
-        pins.forEach((pin, idx) => {
+        /* Bottom pins (larger y) render last so they win overlaps — stacks like D+D+D / tall packs. */
+        const pinsOrdered = pins
+            .map((pin, idx) => ({ pin, idx }))
+            .sort((a, b) => {
+                const dy = (Number(a.pin.y) || 0) - (Number(b.pin.y) || 0);
+                return dy !== 0 ? dy : (Number(a.pin.x) || 0) - (Number(b.pin.x) || 0);
+            });
+        pinsOrdered.forEach(({ pin, idx }) => {
             const div = document.createElement("div");
             div.className = "pin";
             div.style.left   = ((rotated ? (ORIG_H - pin.y) : pin.x) - (rotated ? pin.height : pin.width)  / 2) * scale + "px";
