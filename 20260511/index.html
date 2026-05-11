@@ -411,6 +411,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/user_filter.js?v=15"></script>
 
 <script>
 // ── SHOW CONFIGURATION ──────────────────────────────────────────────
@@ -887,7 +888,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "14";
+const BOARDS_MANIFEST_VERSION = "15";
 
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
@@ -1103,6 +1104,8 @@ function listenForFirebase() {
         const data    = snapshot.val() || {};
         latestClaimsData = data;
         const userKey = sanitizeUserKey(identityKey);
+        const adminExcluded =
+            isAdmin && typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(showDateSlug) : new Set();
         Object.keys(boardsState).forEach(b => {
             boardsState[b].allClaims = {}; boardsState[b].myClaims = 0; boardsState[b].globalBoardClaims = 0;
             document.querySelectorAll(`[id^="pin-${b}-"]`).forEach(el => {
@@ -1114,14 +1117,18 @@ function listenForFirebase() {
             const [bName] = pinKey.split("-");
             if (boardsState[bName]) {
                 boardsState[bName].allClaims[pinKey] = users;
-                boardsState[bName].globalBoardClaims++;
+                const usersOverlay =
+                    isAdmin && adminExcluded.size > 0 && typeof CtrUserFilter !== "undefined"
+                        ? CtrUserFilter.filterUsersOnPin(users, adminExcluded)
+                        : users;
+                if (Object.keys(usersOverlay).length > 0) boardsState[bName].globalBoardClaims++;
                 const pinEl = document.getElementById(`pin-${pinKey}`);
-                const count = Object.keys(users).length;
+                const count = Object.keys(usersOverlay).length;
                 if (users[userKey]) boardsState[bName].myClaims++;
                 if (pinEl && count > 0) {
                     const contested = count >= 2;
                     if (isAdmin) {
-                        pinEl.classList.add(adminPinIsPreShow(users) ? "selection-now" : "selection-before");
+                        pinEl.classList.add(adminPinIsPreShow(usersOverlay) ? "selection-now" : "selection-before");
                         if (users[userKey]) pinEl.classList.add("pin-mine");
                         if (count >= 2) {
                             const tally = document.createElement("div");
@@ -1199,10 +1206,14 @@ function updateBoardDisplay(name) {
         if (adminEl) {
             let unique = 0, contested = 0, totalClicks = 0;
             const users = new Set();
+            const ex =
+                typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(showDateSlug) : new Set();
             Object.entries(s.allClaims).forEach(([, uMap]) => {
-                const cnt = Object.keys(uMap).length;
+                const uEff = isAdmin && ex.size > 0 ? CtrUserFilter.filterUsersOnPin(uMap, ex) : uMap;
+                const cnt = Object.keys(uEff || {}).length;
+                if (cnt === 0) return;
                 totalClicks += cnt;
-                Object.entries(uMap).forEach(([uid, meta]) => users.add(userKeyForPublicStats(uid, meta)));
+                Object.entries(uEff).forEach(([uid, meta]) => users.add(userKeyForPublicStats(uid, meta)));
                 if (cnt === 1) unique++; else contested++;
             });
             if (totalClicks === 0) {
@@ -1219,14 +1230,17 @@ function calculateGlobals() {
     const allUsers = new Set();
     const useGlobalClaims = isLiteMode && claimsSnapshotReceived;
 
+    const adminEx =
+        isAdmin && typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(showDateSlug) : new Set();
     if (useGlobalClaims) {
         const userKey = sanitizeUserKey(identityKey);
         Object.entries(latestClaimsData).forEach(([pinKey, uMap]) => {
-            const cnt = Object.keys(uMap || {}).length;
+            const uEff = isAdmin && adminEx.size > 0 ? CtrUserFilter.filterUsersOnPin(uMap, adminEx) : uMap;
+            const cnt = Object.keys(uEff || {}).length;
             if (cnt <= 0) return;
             globalRequested++;
             if (cnt === 1) globalUnique++; else globalContested++;
-            Object.entries(uMap).forEach(([uid, meta]) => {
+            Object.entries(uEff).forEach(([uid, meta]) => {
                 allUsers.add(userKeyForPublicStats(uid, meta));
                 if (uid === userKey) my++;
             });
@@ -1236,9 +1250,11 @@ function calculateGlobals() {
             total += s.totalPins;
             my    += s.myClaims;
             Object.values(s.allClaims).forEach(uMap => {
-                const cnt = Object.keys(uMap).length;
+                const uEff = isAdmin && adminEx.size > 0 ? CtrUserFilter.filterUsersOnPin(uMap, adminEx) : uMap;
+                const cnt = Object.keys(uEff || {}).length;
+                if (cnt === 0) return;
                 if (cnt === 1) globalUnique++; else globalContested++;
-                Object.entries(uMap).forEach(([uid, meta]) => allUsers.add(userKeyForPublicStats(uid, meta)));
+                Object.entries(uEff).forEach(([uid, meta]) => allUsers.add(userKeyForPublicStats(uid, meta)));
             });
             globalRequested += s.globalBoardClaims;
         });

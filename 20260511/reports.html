@@ -29,6 +29,16 @@
         .reports-phase-btn:hover { background: #ddd; }
         .reports-phase-btn.reports-phase-active { background: #0066aa; border-color: #004a80; color: #fff; }
         .reports-phase-status { font-size: 12px; color: #333; margin-left: 4px; }
+        .user-filter-panel { font-size: 14px; color: #333; }
+        .user-filter-panel > p { margin: 0 0 10px; line-height: 1.45; color: #555; }
+        .user-filter-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+        .user-filter-actions button { font-size: 13px; padding: 8px 12px; border-radius: 6px; border: 1px solid #999; background: #e8e8e8; cursor: pointer; font-family: inherit; }
+        .user-filter-actions button:hover { background: #ddd; }
+        .user-filter-list { max-height: 280px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 10px; background: #fafafa; }
+        .user-filter-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid #eee; }
+        .user-filter-row:last-child { border-bottom: none; }
+        .user-filter-row label { cursor: pointer; flex: 1; line-height: 1.35; }
+        .user-filter-row small { display: block; color: #888; font-size: 11px; margin-top: 2px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -56,6 +66,16 @@
         </div>
     </section>
 
+    <section id="userFilterSection" class="user-filter-panel">
+        <h2>Include users in reports</h2>
+        <p>Checked = included in all tables below. Uncheck to exclude a Firebase user key from aggregations (client-only; not saved to Firebase). Same list applies to <strong>admin</strong> overlays on the boards page in this browser. Storage: <code>ctr_user_filter_excluded_keys_</code> + show folder date.</p>
+        <div class="user-filter-actions">
+            <button type="button" id="userFilterSelectAll">Select all</button>
+            <button type="button" id="userFilterExcludeAll">Exclude all listed</button>
+        </div>
+        <div id="userFilterList" class="user-filter-list" aria-label="Per-user include toggles"></div>
+    </section>
+
     <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
 
     <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
@@ -70,8 +90,10 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/user_filter.js?v=15"></script>
 <script>
 const SHOW_DATE_SLUG_FALLBACK = "20260507";
+let reportsShowSlug = SHOW_DATE_SLUG_FALLBACK;
 function parseShowDateSlugFromPathReports() {
     const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
     const segments = pathClean.split("/").filter(Boolean);
@@ -108,6 +130,7 @@ checkAuth();
 
 async function loadData() {
     const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
+    reportsShowSlug = showDateSlug;
     const fbName = showDateSlug;
     const folder = showDateSlug;
     document.getElementById("showWindowSlugLabel").textContent = showDateSlug;
@@ -171,8 +194,20 @@ async function loadData() {
     });
 
     // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
-    const BOARDS_MANIFEST_VERSION = "14";
+    const BOARDS_MANIFEST_VERSION = "15";
     const manifest = await (await fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+
+    document.getElementById("userFilterSelectAll").onclick = () => {
+        if (typeof CtrUserFilter === "undefined") return;
+        CtrUserFilter.saveExcludedKeysSet(reportsShowSlug, new Set());
+        renderReports();
+    };
+    document.getElementById("userFilterExcludeAll").onclick = () => {
+        if (typeof CtrUserFilter === "undefined" || !globalData) return;
+        const keys = CtrUserFilter.collectUniqueUsers(globalData.raw).map(u => u.userKey);
+        CtrUserFilter.saveExcludedKeysSet(reportsShowSlug, new Set(keys));
+        renderReports();
+    };
 
     db.ref(`claims/${fbName}`).on('value', snap => {
         globalData = { raw: snap.val() || {}, boardList: manifest, showName: folder };
@@ -208,9 +243,55 @@ function rowTime(m) {
     return 0;
 }
 
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function renderUserFilterPanel(excluded) {
+    const host = document.getElementById("userFilterList");
+    if (!host || typeof CtrUserFilter === "undefined") {
+        if (host) host.innerHTML = "<p style=\"color:#999;margin:0\">User filter script failed to load.</p>";
+        return;
+    }
+    const rows = CtrUserFilter.collectUniqueUsers(globalData.raw);
+    if (rows.length === 0) {
+        host.innerHTML = "<p style=\"color:#999;margin:0\">No claimants yet.</p>";
+        return;
+    }
+    host.innerHTML = rows
+        .map((u, i) => {
+            const id = "uf_row_" + i;
+            const checked = !excluded.has(u.userKey);
+            const enc = encodeURIComponent(u.userKey);
+            return `<div class="user-filter-row"><input type="checkbox" id="${id}" data-user-key="${enc}" ${checked ? "checked" : ""} /><label for="${id}">${escapeHtml(u.label)}<small>${escapeHtml(u.userKey)}</small></label></div>`;
+        })
+        .join("");
+    host.querySelectorAll("input[type=checkbox][data-user-key]").forEach((cb) => {
+        cb.addEventListener("change", () => {
+            const key = decodeURIComponent(cb.getAttribute("data-user-key") || "");
+            const set = CtrUserFilter.getExcludedKeysSet(reportsShowSlug);
+            if (cb.checked) set.delete(key);
+            else set.add(key);
+            CtrUserFilter.saveExcludedKeysSet(reportsShowSlug, set);
+            renderReports();
+        });
+    });
+}
+
 function renderReports() {
+    if (!globalData) return;
+    const excluded =
+        typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(reportsShowSlug) : new Set();
+    renderUserFilterPanel(excluded);
+    const aggRaw =
+        typeof CtrUserFilter !== "undefined" ? CtrUserFilter.filterClaims(globalData.raw, excluded) : globalData.raw;
+
     const userStats = {}; const liveFeed = []; const popularity = [];
-    Object.entries(globalData.raw).forEach(([pk, users]) => {
+    Object.entries(aggRaw).forEach(([pk, users]) => {
         const [bName, pIdx] = pk.split("-");
         const bNum = globalData.boardList.indexOf(bName) + 1;
         const cleanLoc = `Board ${bNum} (Pin ${parseInt(pIdx)+1})`;
