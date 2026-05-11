@@ -171,7 +171,7 @@ async function loadData() {
     });
 
     // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
-    const BOARDS_MANIFEST_VERSION = "13";
+    const BOARDS_MANIFEST_VERSION = "14";
     const manifest = await (await fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
 
     db.ref(`claims/${fbName}`).on('value', snap => {
