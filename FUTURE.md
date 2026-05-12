@@ -79,6 +79,27 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Session log — 2026-05-11 (`20260511` show day)
+
+**Shipped**
+
+- **Admin / reports user filter (client-side only):** `20260511/js/user_filter.js` — excluded Firebase **user child keys** stored under **`localStorage`** key **`ctr_user_filter_excluded_keys_20260511`** (JSON array). Uncheck a user to drop their clicks from **reports** and from **admin** overlays / tallies on **`index.html`**; full claims stay in memory for writes. **`reports.html`:** “Include users in reports” panel + **Select all** (include everyone). **`BOARDS_MANIFEST_VERSION`** → **`15`** on `index.html` and `reports.html`; load script as **`user_filter.js?v=15`**.
+- **Git:** **`8953696`** on **`main`** — `feat(20260511): client-side user filter for reports and admin overlay`.
+
+**Learned**
+
+- **`file://`** often yields **no Firebase data**; validate on **GitHub Pages** (or **`http://localhost`** with Firebase console allowing that origin + normal sign-in). Push was the practical path before the live show; **filter worked as intended** on the web after deploy.
+- **Rollback:** prior **`main`** commits remain; **`git revert`** (or reset + force-push only if solo) restores the pre-filter build. Tag good states before risky deploys.
+- **UX follow-up (template for future shows):** Steve prefers **checkboxes inline** next to the **existing** Section 1 user list rather than a **separate** name box above — same **`user_filter.js` API**; only DOM placement changes when someone has time to refactor safely.
+- **Offline testing (not built):** optional future **`?claimsFixture=…json`** on **Reports** could load a downloaded RTDB export without Firebase — only if we need local QA without push.
+
+**Planned (Whatnot CSV / pricing alignment — see also Cursor Projects playbook)**
+
+- Single **Mac ingest**: one detector output → **`pin_id` / crop stem** → CTR JSON + Lexi pricing on **those** crops; avoid Roboflow (phone) vs RF-DETR (Mac) **split inventories**.
+- **Order nuance:** “CTR first then price **those crops**” is the easy mental model; “pricing first” is fine only if CTR is **generated from** that inventory — not from a second detector pass. Full write-up: **`Cursor Projects/Whatnot show 20260511/WHATNOT_CTR_PLAYBOOK.md`** (session addendum + Option B).
+
+---
+
 ## Post Show thank-you page (admin) — extended mockup / QR (optional)
 
 **Shipped May 2026 (minimal path):** On **`20260504/index.html`**, **Post Show** turns on a **full-screen overlay** with thank-you copy, schedule line, Whatnot + Instagram links, and social icon row — see **Session log — 2026-05-04** above. **`reports.html`** mirrors the phase buttons so admins can turn the overlay off.
