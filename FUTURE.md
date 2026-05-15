@@ -125,6 +125,31 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Session log — 2026-05-15 (ClickToCollect — Labs trim, filters, overlap, search, ship sync)
+
+**Shipped / recorded (app — `ClickToCollectApp` / `FinsAndPins/ClickToCollectApp`, `main` @ `7290237`)**
+
+- **Build / TestFlight:** Xcode **`CURRENT_PROJECT_VERSION` → 6** (commit **`7290237`**) — version bump for store iteration; no Swift source changes in that commit.
+- **PinVlm:** Removed from **Labs** UI and **dropped** the bundled classifier from the shipping story (aligns with **2026-05-14** “no v1 auto-tagging” decision); treat any revive as a deliberate v2 spike, not a silent dependency.
+- **Copy / chrome:** **Collection**, **Cleanup**, and **Add** flows trimmed for clarity (less noise, same actions).
+- **Filters:** Multi-select behaves as **OR** across chosen tags/criteria where applicable (easier “any of these” narrowing).
+- **Overlap (same-wall / cross-photo):** Refresh and **progress** feedback tightened so long merges or rescans do not feel stuck (see **`FUTURE.md`** → *Overlapping regions across multiple board photos* for the longer product roadmap).
+- **SearchView:** Filter API / wiring adjusted so search + filters compose predictably (details live in app **`CLAUDE.md`** progress log on Desktop).
+- **Safety:** Board delete path already surfaces **“Don’t Delete”** (destructive action guard — no change required beyond confirming it stays in the flow).
+
+**Learned**
+
+- **Doc handoff:** When the app repo only bumps **`project.pbxproj`**, ClickToClaim still benefits from a **dated anchor** (`HEAD` + one paragraph) so planning docs and eval checkpoints stay aligned with what Lexi/TestFlight actually has.
+- **Filters:** **OR** semantics for multi-select match real “I want any of these tags” collection mental models; **AND**-everywhere is easy to implement but feels broken for messy personal taxonomies.
+
+**Plan next**
+
+- **Overlap:** Keep investing in **review + progress** before any automatic merge fantasy; optional embedding hints stay scoped to user-flagged “same wall” groups until geometry v3 is justified.
+- **Search / filters:** Watch for edge cases (empty states, slow devices); add **DEBUG** breadcrumbs only where they help repro, not in production strings.
+- **PinVlm / character:** No product re-entry until there is a real **abstention** story (thresholds, “other,” or multi-head) — see **2026-05-14** session notes.
+
+---
+
 ## Post Show thank-you page (admin) — extended mockup / QR (optional)
 
 **Shipped May 2026 (minimal path):** On **`20260504/index.html`**, **Post Show** turns on a **full-screen overlay** with thank-you copy, schedule line, Whatnot + Instagram links, and social icon row — see **Session log — 2026-05-04** above. **`reports.html`** mirrors the phase buttons so admins can turn the overlay off.
@@ -211,7 +236,7 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 ## PinVlm 19-way character classifier — v1 scope
 
 - **Deferred for v1:** no time investment in the PinVlm / 19-way character classifier for the first ship.
-- **Labs-only:** keep it in **Labs** for experimentation; **Labs does not ship** in the App Store production build.
+- **2026-05-15:** PinVlm **removed from Labs** and the **bundled model dropped** from the app (see *Session log — 2026-05-15*). Earlier plan was **Labs-only** experimentation; **Labs does not ship** in the App Store production build.
 - **Post-v1 (optional):** try **abstention / confidence thresholds** (no tag unless margin or max probability clears a bar) without a full retrain; or **v2/v3** with a richer VLM or eBay-style signals if we pursue that.
 - **Product direction for v1:** ship on the app’s **strong visual capabilities** and keep leaning into them.
 
