@@ -10,6 +10,7 @@ This file records **known-good documentation checkpoints** and how they pair wit
 |------|---------|
 | **`detection_eval/ON_DEVICE_IMPORT_BENCHMARKS.md`** | Wall-clock import comparisons (old vs new builds), **pins/s**, run protocol, and perf UX notes. |
 | **Tag `docs-import-benchmarks-2026-05-06`** | Anchors the benchmark tables + this checkpoint doc. |
+| **`336cfa2` area (`main`)** | Docs checkpoint: unified show pipeline agreements + pricing/visual-search context; PinVlm **Labs-only / v1** scope lives in root **`FUTURE.md`** (related earlier anchor: **`d62ad96`** area). |
 
 This repo does **not** contain the iOS binary or Core ML package; use the app repo tag below for code rollback.
 

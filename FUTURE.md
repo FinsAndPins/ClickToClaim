@@ -104,6 +104,27 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Session log — 2026-05-14 (PinVlm scope, docs batch, K-way learnings)
+
+**ClickToClaim (this repo)**
+
+- **PinVlm / Labs v1** policy and deferred ideas are in **`FUTURE.md`** → **PinVlm 19-way character classifier — v1 scope** (commit area **`d62ad96`**); avoid duplicating that block here.
+- **Docs / context on `main`:** **`336cfa2`** — `docs/UNIFIED_SHOW_PIPELINE_AGREEMENTS.md`, `docs/FUTURE_PRICING_VISUAL_SEARCH_IDEAS.md`, `20260511/README_ADMIN_USER_FILTER.md`, `detection_eval/GIT_CHECKPOINTS.md`, `project_context_cursor.md`.
+
+**ClickToCollect** (sibling app — **`~/Desktop/ClickToCollectApp/`** on **`main`**; full history stays in that repo)
+
+- **`47edd9a`:** `MyCollectionView` type-checker refactor.
+- **`8ef2c5f`:** PinVlm diagnose — larger thumbnails in **Labs**.
+- **`b05eddc`** (lineage): Swift 6 / **MainActor** — default arguments cannot close over **`PinVlmCharacterLabelingService.shared`**; **`summarize`** takes an explicit **`service:`** parameter.
+- **`PinCanonicalDuplicateLinking`:** `let desc` warnings addressed.
+
+**Learned (product + ML)**
+
+- A small **K-way** softmax classifier has **no built-in “none”** — it always emits one label — so **out-of-distribution** pins (Marvel, attractions, etc.) can **collapse** to a wrong frequent class (e.g. Cinderella) unless the **app** adds **abstention** (max-probability / margin thresholds), an **“other”** bucket, or similar; some of that is possible **without a full retrain** by changing how logits are interpreted at inference.
+- **v1 decision:** no product investment in character **auto-tagging** now; keep **PinVlm** in **Labs** only; **Labs does not ship** in the App Store production build; prioritize **visual** capabilities the app already does well.
+
+---
+
 ## Post Show thank-you page (admin) — extended mockup / QR (optional)
 
 **Shipped May 2026 (minimal path):** On **`20260504/index.html`**, **Post Show** turns on a **full-screen overlay** with thank-you copy, schedule line, Whatnot + Instagram links, and social icon row — see **Session log — 2026-05-04** above. **`reports.html`** mirrors the phase buttons so admins can turn the overlay off.
