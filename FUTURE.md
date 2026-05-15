@@ -98,6 +98,10 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 - Single **Mac ingest**: one detector output → **`pin_id` / crop stem** → CTR JSON + Lexi pricing on **those** crops; avoid Roboflow (phone) vs RF-DETR (Mac) **split inventories**.
 - **Order nuance:** “CTR first then price **those crops**” is the easy mental model; “pricing first” is fine only if CTR is **generated from** that inventory — not from a second detector pass. Full write-up: **`Cursor Projects/Whatnot show 20260511/WHATNOT_CTR_PLAYBOOK.md`** (session addendum + Option B).
 
+### Unified pipeline agreements (discussion before build)
+
+- Consolidated decisions/open questions for unified CTR + pricing + Whatnot flow: `docs/UNIFIED_SHOW_PIPELINE_AGREEMENTS.md`.
+
 ---
 
 ## Post Show thank-you page (admin) — extended mockup / QR (optional)
@@ -180,6 +184,15 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 - Treat **rights and licensing** for training images the same way you treat any customer or show-derived media you do not own outright.
 
 **On-device import timing:** Wall-clock import comparisons for **old vs new model** builds (with pins/s and run-protocol notes) live in `detection_eval/ON_DEVICE_IMPORT_BENCHMARKS.md`.
+
+---
+
+## PinVlm 19-way character classifier — v1 scope
+
+- **Deferred for v1:** no time investment in the PinVlm / 19-way character classifier for the first ship.
+- **Labs-only:** keep it in **Labs** for experimentation; **Labs does not ship** in the App Store production build.
+- **Post-v1 (optional):** try **abstention / confidence thresholds** (no tag unless margin or max probability clears a bar) without a full retrain; or **v2/v3** with a richer VLM or eBay-style signals if we pursue that.
+- **Product direction for v1:** ship on the app’s **strong visual capabilities** and keep leaning into them.
 
 ---
 
