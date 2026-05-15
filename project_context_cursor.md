@@ -40,6 +40,14 @@ High-level notes for AI sessions and humans: what exists, where it lives, and pi
 - **2026-04-20 night:** User still saw **Overlay** do nothing / freeze after re-import — **next session:** verify Xcode build on device, **delete session + re-import**, audit app Container **`…/value_pricing_sessions/<uuid>/boards/`** for **`IMG_*`** + **`.json`**, Console logs (**subsystem** `MyPinCollection.ClickToCollect`, **category** `ValuePricing`). Full checklist: **`ClickToCollect/ClickToCollect/TOMORROW.md`** (*Overlay still “does nothing”*).
 - **Detail doc:** `ClickToCollect/ClickToCollect/CLAUDE.md` → sections **Value pricing (Vegas / Lexi)** and **Progress log** for file-level pointers; **SETUP.md** § product notes links **`TOMORROW.md`** for Overlay troubleshooting.
 
+### ClickToCollect — iCloud / sync (deferred) (May 2026)
+
+- Sync / iCloud architecture discussion is **tabled for now**. **Tier A** (Apple-native **CloudKit** and other persistent Apple cloud patterns) is the **long-term** direction because the team does **not** want to maintain custom backend infrastructure.
+- **Too complicated for the current milestone**; revisit as a **focused second project** after **local + export** confidence.
+- **Identity:** no app-managed login for personal sync — rely on **Apple ID / iCloud** for “my data on my devices.”
+- **Expectation (one line):** **Personal sync = Apple ID**; **marketplace**, **family-wide sharing**, or a **web dashboard** later may need **more than CloudKit alone** (e.g. **Sign in with Apple** + server) **when / if** those ship.
+- **When revisiting:** treat CloudKit as **deliberate** work with a **narrow MVP** — e.g. **metadata** + an **explicit photo / sync policy** before “everything syncs magically.”
+
 ---
 
 ## PinToPull20260402 (Apr 2026 seller workflow)
@@ -416,6 +424,8 @@ See **`FUTURE.md`** for written-up enhancements, including:
 - **“My requested pins” board** in Click To Request (personal board-style view of claims).
 - **ClickToCollect — custom character tagging model** (train / deploy our own pin-subject tagger; see **`FUTURE.md`**).
 
+Related discussion doc for the unified ClickToRequest + pin pricing + Whatnot workflow (decisions so far, open items, explicit non-goals; implementation deferred): **`docs/UNIFIED_SHOW_PIPELINE_AGREEMENTS.md`**.
+
 ---
 
 ## Maintenance
@@ -431,4 +441,5 @@ See **`FUTURE.md`** for written-up enhancements, including:
 - **2026-05-04:** Click To Request **20260504** — Post Show **fullscreen ended overlay** (`endedFullscreen`, centered stack layout), **Reports** phase buttons, HTML vs PNG learnings — see **`FUTURE.md`** (session log) and the **20260504 Post Show fullscreen overlay** subsection above.
 - **2026-05-06:** Click To Request **20260507** — added boards + manifest update; **strict JSON** for `manifest.json` (no trailing comma); **`BOARDS_MANIFEST_VERSION`** bumped and **matched** in **`index.html`** / **`reports.html`** — see **`FUTURE.md`** (session log 2026-05-06) and **Click To Request `20260507` — manifest hygiene** above.
 - **2026-05-11:** Click To Request **`20260511`** — **admin user filter** (client-side exclusions in `localStorage`, **`js/user_filter.js`**), **`BOARDS_MANIFEST_VERSION` → 15** on **`index.html`** / **`reports.html`**; **`8953696`** on **`main`**. Ops + UX notes + Whatnot pipeline follow-up: **`FUTURE.md`** (session log 2026-05-11) and **`20260511/README_ADMIN_USER_FILTER.md`**. Cross-repo playbook: **`Cursor Projects/Whatnot show 20260511/WHATNOT_CTR_PLAYBOOK.md`**.
+- **2026-05-13:** **ClickToCollect** — **iCloud / sync** architecture deferred; long-term **Tier A (CloudKit / Apple-native)**; revisit after local + export confidence; identity via **Apple ID**; see **ClickToCollect — iCloud / sync (deferred)** above.
 - Dated Firebase backups may appear as `firebase-rtdb-backup-*.json` (often gitignored).

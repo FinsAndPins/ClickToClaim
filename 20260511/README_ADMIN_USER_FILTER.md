@@ -34,3 +34,4 @@ Consider moving checkboxes **into** the existing Section 1 user table (same logi
 
 What we learned about **bulk CSV**, **`pin_match_review.html`** pitfalls (same URL twice), and **locking CTR ↔ pricing** with one detector / `pin_id` is in the Cursor Projects playbook:  
 **`Whatnot show 20260511/WHATNOT_CTR_PLAYBOOK.md`** (includes a **show-day session addendum** after deploy).
+For unified CTR + pricing + Whatnot decisions/open questions (discussion notes), see `docs/UNIFIED_SHOW_PIPELINE_AGREEMENTS.md`.
