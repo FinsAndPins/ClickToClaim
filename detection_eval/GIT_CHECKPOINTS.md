@@ -25,6 +25,7 @@ This repo does **not** contain the iOS binary or Core ML package; use the app re
 | **Legacy path (keep)** | Optional Ultralytics / Vision flow behind **`INCLUDE_LEGACY_ULTRAYOLO_PIN_DETECTOR`** and **`AppFeatureFlags.pinDetectorBackendResolved`** — see `AppFeatureFlags.swift` and `SETUP.md`. **Do not remove** until the team explicitly drops support. |
 | **Tag `rf-detr-baseline-2026-05-06`** | Checkpoint: RF‑DETR integration, Collection perf UX batch, Core ML concurrency fixes, bundled model on the order of **~50 MB** in the tree (expect larger **.ipa** than the legacy-only era). |
 | **`7290237` (`main`, 2026-05-15)** | Doc sync anchor: **`CURRENT_PROJECT_VERSION` → 6**; recent UX batch (PinVlm removed from Labs + model dropped, Collection/Cleanup/Add copy, OR filters, Overlap progress, SearchView filters, delete copy). Pair with **`FUTURE.md`** *Session log — 2026-05-15*. |
+| **`0bb892c` (`main`, 2026-05-16)** | Doc sync anchor: **`CURRENT_PROJECT_VERSION` → 7**; batch since **`7290237`**: View on Board, Collection filter UX, **`CleanupScanProgressOverlay`**, Home Screen/Spotlight shortcuts, security Phases 1–2, archived ML models, Swift 6 **`CoreMLDetectionService`**. Pair with **`FUTURE.md`** *Session log — 2026-05-16*. |
 | **Perf implementation plan** | See `~/Desktop/ClickToCollectApp/PERF_RECOMMENDATIONS.md` (phased perf plan for <1k typical, ~10k heavier; deprioritizes 100k+ for now). |
 
 ### Rollback / comparison (app repo)

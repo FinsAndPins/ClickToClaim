@@ -185,7 +185,34 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 - [x] **Async model load** + one-time **“preparing detection…”** UX
 - [x] Release target ships **`RfDetrPinDetector.mlpackage` only** (archived models off bundle May 2026)
 
-**App anchor:** ClickToCollect `main` @ **`9767e28`** (Phase 1 **`e63baf1`**, Phase 2 **`9767e28`**, 2026-05-16).
+**App anchor:** ClickToCollect `main` @ **`0bb892c`** (Phase 1 **`e63baf1`**, Phase 2 **`9767e28`**, 2026-05-16).
+
+---
+
+## Session log — 2026-05-16 (ClickToCollect — UX, security, ship sync)
+
+**Did (ClickToCollect, `main` `8611e44`..`0bb892c`)**
+
+- **Collection:** **View on Board** (shared **`PinViewOnBoardNavigation`**); filter UX — **Show All Pins** on top, stay on Pins/Boards subfolder (**`e8da4ec`**, **`eb4250e`**, **`bff86f8`**).
+- **Cleanup:** shared **`CleanupScanProgressOverlay`** (Partial Pins, Tag Ideas, Duplicates, Overlap) — **`7dfe425`**.
+- **Home Screen + Spotlight:** quick actions for Add, Trade, Collection — **`53fd633`**.
+- **Security phases:** **`SECURITY.md`**, async model load, first-launch prep sheet — encryption still manual Xcode step (**`e63baf1`**, **`9767e28`**); see *ClickToCollect — security (v1 vs App Store)* above.
+- **Models:** archived unused Core ML bundles — **`8611e44`**; PinVlm removed earlier (2026-05-15).
+- **Swift 6:** **`CoreMLDetectionService`** concurrency fix — **`4383455`**.
+- **Build:** **`CURRENT_PROJECT_VERSION` → 7** — **`0bb892c`**.
+
+**Learned**
+
+- Quick actions + Spotlight share **`MainTabLaunchRouter`**.
+- Filter changes shouldn't force subtab switch.
+- Model encryption not active until the Xcode **`.mlmodelkey`** + **`--encrypt`** step.
+
+**Still need / Plan next**
+
+- **LAUNCH BLOCKER:** Core ML encrypt **`RfDetrPinDetector`** before App Store (**`SHIPPING_MODELS.md`** steps).
+- Optional: tutorial video during first model load.
+- CloudKit rules review when sync enabled (v1 still local-only).
+- Search tab placeholder trim if still long.
 
 ---
 
