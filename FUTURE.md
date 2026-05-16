@@ -157,36 +157,35 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 - On-device **RF-DETR / Core ML** models can be extracted from unencrypted **`.ipa`** bundles; Swift source is not in the IPA but binaries can be reverse-engineered.
 - Perfect secrecy on-client is not possible — goal is **raise the bar** + **protect user data** (credentials, collection photos, pricing sessions).
 
-**Do now (cheap, high value)**
+**Session — 2026-05-16 (phased commits on `ClickToCollectApp` `main`)**
 
-- [ ] Audit / remove **hardcoded secrets** (API keys, tokens in strings)
-- [ ] **Keychain** for credentials; **Data Protection** for sensitive files on disk
-- [ ] Keep **ATS** enabled (HTTPS only)
-- [ ] **App Sandbox** — don’t weaken entitlements casually
-- [ ] **Firebase / CloudKit** security rules reviewed early (before wide beta)
-- [ ] Document which **`.mlpackage` / Core ML** assets ship in the **Release** target and approximate sizes; encryption before public release is **deliberate**, not accidental omission
+| Phase | Commit | What shipped |
+|-------|--------|----------------|
+| **1 — Do now** | **`e63baf1`** | Secrets audit (none in app); **`SECURITY.md`** (ATS, entitlements, CloudKit checklist); **`Models/SHIPPING_MODELS.md`** (RfDetr ~52 MB only); **`KeychainCredentialStore`** stub; **`ProtectedFileIO`** on pin/pricing writes; **`.gitignore`** `*.mlmodelkey` |
+| **2 — Before App Store (code)** | **`9767e28`** | Async **`CoreMLDetectionService.ensureModelLoaded()`**; first-launch **“Preparing pin detection…”** overlay + **`hasPreparedDetectionModel`**; encryption **manual Xcode steps** in **`SHIPPING_MODELS.md`** (key + `--encrypt` — Steve one-time) |
+
+**Still open**
+
+- [ ] **Steve:** Create **`RfDetrPinDetector.mlmodelkey`** in Xcode + **`--encrypt`** compiler flag (cannot be fully automated headless)
+- [ ] **CloudKit Dashboard** manual review per **`SECURITY.md`** (no `firestore.rules` in repo — Firebase N/A for app)
+- [ ] Optional later: **SSL pinning**; code obfuscation low priority
+
+**Do now (cheap, high value)** — *implemented Phase 1*
+
+- [x] Audit / remove **hardcoded secrets** (API keys, tokens in strings) — none found
+- [x] **Keychain** stub; **Data Protection** for sensitive files on disk
+- [x] Keep **ATS** enabled (HTTPS only) — verified
+- [x] **Entitlements** documented — CloudKit private container only
+- [x] **Firebase / CloudKit** — checklist in **`SECURITY.md`** (manual CloudKit review)
+- [x] Document shipping **`.mlpackage`** sizes; archived models noted
 
 **Do before App Store / public beta**
 
-- [ ] **Core ML model encryption** for RF-DETR and other proprietary bundled models (Apple compile-time encryption + team key)
-- [ ] **Async model load** + one-time **“preparing detection…”** UX (first launch may need network for decryption key, then offline)
-- [ ] Confirm **Labs-only / experimental** models are **not** in the Release target (PinVlm removal is the precedent)
-- [ ] Optional later: **SSL pinning** when API surface is stable; code obfuscation **low priority**
+- [ ] **Core ML model encryption** — manual Xcode (documented); runtime load path ready
+- [x] **Async model load** + one-time **“preparing detection…”** UX
+- [x] Release target ships **`RfDetrPinDetector.mlpackage` only** (archived models off bundle May 2026)
 
-**Offline / UX**
-
-- Prefer **encrypted bundled model** over **Model Deployment** if that yields the simplest offline story after first key cache.
-- Use **Model Deployment** if a smaller IPA + OTA model updates matter more than single-binary simplicity.
-
-**Plan next** (inclined to implement **Do now** + **Before App Store** in order)
-
-1. Secrets audit + Keychain / Data Protection (**Do now**)
-2. ATS + sandbox + backend rules review (**Do now**)
-3. Inventory Release-target **`.mlpackage`** sizes in app docs (**Do now**)
-4. Core ML encryption + async first-launch UX (**Before App Store**)
-5. Release-target vs Labs model audit (**Before App Store**)
-
-**App anchor:** ClickToCollect `main` @ **`7290237`** (2026-05-15; clean on `origin/main` as of 2026-05-16).
+**App anchor:** ClickToCollect `main` @ **`9767e28`** (Phase 1 **`e63baf1`**, Phase 2 **`9767e28`**, 2026-05-16).
 
 ---
 
