@@ -271,6 +271,8 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 **On-device import timing:** Wall-clock import comparisons for **old vs new model** builds (with pins/s and run-protocol notes) live in `detection_eval/ON_DEVICE_IMPORT_BENCHMARKS.md`.
 
+**2026-05-16 — Archived from Release bundle:** `PinDetector` (Ultralytics YOLO), `PinCharacterClassifier`, `PinHiddenDisneyClassifier`, `PinManufacturerClassifier` → iCloud `Cursor Projects/ClickToCollect-archived-models/`; app ships **`RfDetrPinDetector` only** until post-import classifiers are product-ready (UserDefaults flags, default off).
+
 ---
 
 ## PinVlm 19-way character classifier — v1 scope
