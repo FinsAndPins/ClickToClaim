@@ -975,7 +975,7 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
             container.className = "board-container";
             container.innerHTML = `
                 <div class="board-header">
-                    <span class="board-title">Board #${index + 1} | ${name}</span>
+                    <span class="board-title">Board ${index + 1}</span>
                     <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
                 </div>
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
