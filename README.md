@@ -23,3 +23,5 @@ Details: **`project_context_cursor.md`** → **ClickToClaim — GitHub Pages and
 |------|---------|
 | **`project_context_cursor.md`** | Architecture, iCloud vs GitHub, pipelines, Firebase notes |
 | **`FUTURE.md`** | Planned features, **session logs** (e.g. `20260504` Post Show overlay, `20260507` manifest / cache-bust notes) |
+| **`docs/SHOW_20260518_RUNBOOK.md`** | Show-night operating flow, batch review default, zero-price policy, safeguards, artifact paths |
+| **`docs/UNIFIED_SHOW_PIPELINE_AGREEMENTS.md`** | Cross-show agreements and validated 20260518 alignment decisions |

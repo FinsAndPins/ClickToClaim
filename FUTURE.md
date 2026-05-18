@@ -101,6 +101,8 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 ### Unified pipeline agreements (discussion before build)
 
 - Consolidated decisions/open questions for unified CTR + pricing + Whatnot flow: `docs/UNIFIED_SHOW_PIPELINE_AGREEMENTS.md`.
+- New interim validation notes from Show 20260518 now live in that same doc under **Validated by Show 20260518 (interim two-script path)**.
+- Use that section as the carry-forward checklist for one-script design decisions vs intentionally deferred items.
 
 ---
 
