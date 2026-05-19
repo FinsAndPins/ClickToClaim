@@ -3,6 +3,7 @@
 Last updated: 2026-05-19
 
 This captures the agreed direction for automating future ClickToRequest and pricing prep. It is a plan, not the current production workflow.
+It also captures decisions made on 2026-05-19 so future-Steve and future-AI can continue without re-litigating core choices.
 
 ## Goal
 
@@ -17,13 +18,17 @@ Whatnot CSV export remains a separate workflow.
 ## Proposed Trigger
 
 - Use dated subfolders, for example `ClickToRequest/20260521/`.
-- Prefer a sentinel file such as `READY.txt` inside the show folder when the photos are complete.
+- Do not use a sentinel file.
+- Before implementing the watcher, inspect Lexi's existing pricing watcher on Steve's MacBook and mirror that pattern for how runs are detected and started.
 - The watcher should process one show at a time using a lock file, so multiple dated folders can exist but RF-DETR runs serially.
 - Early automated runs should use one show folder at a time to keep logs and messages easy to follow.
+- Confirmed log file path format for both pipelines:
+  - `~/Library/Logs/show-automation/{YYYYMMDD}-{stage}.log`
+  - `{stage}` is `ctr` or `pricing`.
 
 ## ClickToRequest Workflow
 
-1. Detect a ready show folder.
+1. Detect a new show folder using the mirrored watcher pattern from Lexi's pricing flow.
 2. Refuse to run if the target show folder already exists in `ClickToClaim` with board outputs.
 3. Bootstrap `ClickToClaim/YYYYMMDD/` by copying the most recent prior show folder as the template.
    - Copy `index.html`, `reports.html`, `icons/`, and expected static files.
@@ -52,6 +57,17 @@ Whatnot CSV export remains a separate workflow.
 6. Send iMessage with a clear prefix, for example:
    - `Pricing for whatnot show 20260521 is ready`
    - include Lexi's URL and log path.
+
+## Notifications
+
+- Steve receives all iMessage notifications:
+  - start (run kicked off)
+  - done (success)
+  - errors (include the log path)
+- Lexi receives only start and done (success), and does not receive error notifications.
+- Keep the existing message prefix format:
+  - `ClickToRequest for show YYYYMMDD ...`
+  - `Pricing for whatnot show YYYYMMDD ...`
 
 ## CTR Click Overlay Agreement
 
@@ -86,15 +102,13 @@ Whatnot CSV export remains a separate workflow.
 
 ## Implementation Phases
 
+0. Inspect Lexi's existing pricing watcher on Steve's MacBook and document the local detection/trigger pattern to mirror.
 1. Parameterize the current manual scripts with `--show-id`, `--input-dir`, and output paths.
 2. Add a bootstrap script that creates a new show folder from the most recent prior show template.
 3. Add a manual one-command orchestrator for CTR, then pricing.
-4. After another clean show, add the MacBook watcher and `READY.txt` trigger.
+4. After another clean show, add the MacBook watcher using Lexi's mirrored pattern (no sentinel file).
 5. Add polished iMessage notifications and operator logs.
 
 ## Open Items
 
-- Confirm exact sentinel filename (`READY.txt` is the current recommendation).
-- Confirm log directory. Recommended:
-  - `~/Library/Logs/show-automation/`
-- Inspect Lexi's existing pricing watcher before implementing so the new watcher follows the same local pattern.
+- Confirm the exact mechanics of Lexi's pricing watcher so the show watcher can mirror it as implementation step 0.
