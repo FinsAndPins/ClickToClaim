@@ -91,6 +91,42 @@ See also (Cursor Projects): [Show20260518 README](file:///Users/steve/Library/Mo
 - **Template requirement:** single-document HTML with `const REVIEW_ROWS = /*__REVIEW_ROWS__*/;` plus embed validation script.
 - **Outcome:** side-by-side batch review validated all `230` matches quickly and is now preferred for future shows.
 
+## May 18 operational addendum (future-show default)
+
+- **Delta export agreement:** support new-pin-only Whatnot uploads between snapshots as first-class workflow.
+  - Source scripts: `build_whatnot_delta_20260518.py` and new delta flags on `build_whatnot_20260518.py` (`--delta-from-export`, `--only-pin-keys-file`, `--click-json-path`, `--out-csv-basename`).
+  - Validated today: `279` latest vs `230` prior -> `49` net-new pins -> `whatnot_upload_20260518_delta.csv`.
+  - Operating use case: mid-show or end-of-show top-up without re-uploading full inventory.
+- **Lexi review agreement:** default to `testing_ui_visual_baseline_with_ctr_clicks/index.html` for pricing QA.
+  - Must remain an exact copy of `testing_ui_visual_baseline/` behavior plus overlay-only additions (`.clicked` highlight and count badge > 1).
+  - Inputs include `ctr_claims_<show>.json` and optional `../pin_uid_map.json` fallback.
+  - Pin label includes board prefix (`Board N · img####_pinNN`) to reduce operator ambiguity.
+- **Pages discovery compatibility:** existing Pages workflow path discovery already picks up `testing_ui_visual_baseline*` subpaths; keep this pattern for future collections.
+
+## May 18 safety lessons (hard rules)
+
+- **Protect live CTR folders while editing pricing harnesses.**
+  - Mistaken ClickToClaim board change (`2c2f245`) required explicit revert (`203c50d`).
+  - Treat `ClickToClaim/20260518` as production during show operations.
+- **Path-limited commits are mandatory in dirty repos.**
+  - In large noisy trees (e.g., PreparingInventory), use only `git add <explicit path>` and verify `git status` before every commit.
+- **"Identical page + one feature" means clone-first, then minimal overlay changes.**
+  - Rebuilds from scratch dropped totals/rounding/data-path parity.
+- **Parent-relative fetches can fail on Pages despite repo presence.**
+  - Optional files like `../pin_uid_map.json` must be non-fatal via tolerant fetch fallback logic.
+- **Do not trust filename/path assumptions.**
+  - Confirm the exact deployed file path before editing (PreparingInventory vs ClickToClaim).
+
+## Commit trail reference (May 18)
+
+- PreparingInventory harness work:
+  - `4e492a3` (initial overlay)
+  - `9133fe9` (board prefix)
+  - `54fd840` (harness rebase to baseline parity)
+  - `236fb56` and `6e011a9` (click overlay fixes)
+- ClickToClaim protection:
+  - `203c50d` (revert accidental `2c2f245`, confirming CTR show left untouched)
+
 See also:
 - `docs/SHOW_20260518_RUNBOOK.md`
 - [Show20260518 README](file:///Users/steve/Library/Mobile%20Documents/com~apple~CloudDocs/Cursor%20Projects/Show20260518/README.md)

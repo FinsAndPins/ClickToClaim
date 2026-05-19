@@ -1,6 +1,10 @@
 .DS_Store
 .cursor/
 
+# Local Python environments and scratch folders; keep out of GitHub.
+.venv*/
+_tmp_*/
+
 # Local RTDB exports (may contain user data; do not commit)
 firebase-rtdb-backup*.json
 

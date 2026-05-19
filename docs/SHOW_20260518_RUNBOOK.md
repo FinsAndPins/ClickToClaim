@@ -71,6 +71,55 @@ Batch review is the default format because it keeps board crop, board bbox, labe
 - **Pin mapping rule:** `pin_key` is 0-based (`IMG_####-k`), while crop labels/titles are human-facing 1-based (`pin_n = k + 1`); keep this translation explicit in all exports.
 - **Review format rule:** batch review JSON + embedded HTML is the primary operator workflow for this show and future parity runs.
 
+## May 18 additions: delta top-up workflow (validated)
+
+- Purpose: generate a **delta Whatnot CSV** containing only newly requested pins between two exports (mid-show or end-of-show top-up).
+- Script path: `/Users/steve/Library/Mobile Documents/com~apple~CloudDocs/Cursor Projects/Show20260518/build_whatnot_delta_20260518.py`.
+- Builder flags added in `build_whatnot_20260518.py` for repeatability:
+  - `--click-json-path`
+  - `--only-pin-keys-file`
+  - `--delta-from-export`
+  - `--out-csv-basename`
+  - (plus related delta/output controls)
+- Today's validated counts:
+  - latest export rows: `279`
+  - prior export rows: `230`
+  - computed new pins: `49`
+  - output CSV: `whatnot_upload_20260518_delta.csv`
+- Operator rule: run this as the default top-up method instead of re-uploading the full set.
+
+## May 18 additions: Lexi pricing harness with CTR clicks overlay
+
+- Default pricing review page for this show now includes CTR click visibility:
+  - `PriceCollection_*/testing_ui_visual_baseline_with_ctr_clicks/index.html`
+- Live validated URL:
+  - `https://finsandpins.github.io/PreparingInventory/PriceCollection_20260517_1514/testing_ui_visual_baseline_with_ctr_clicks/index.html`
+- Non-negotiable implementation constraint:
+  - keep an exact copy of `testing_ui_visual_baseline/` behavior (totals, rounding checkbox, controls, pricing state)
+  - layer only CTR-click UX on top
+- Overlay additions only:
+  - green `.clicked` highlight on selected pins
+  - count badge when click count > 1 (matching ClickToRequest admin pattern)
+- Inputs:
+  - `ctr_claims_<show>.json`
+  - optional fallback `../pin_uid_map.json`
+- Labeling requirement: board prefix in-row, e.g. `Board 19 · img4696_pin27`.
+- Pages compatibility note: existing workflow already discovers `testing_ui_visual_baseline*` paths.
+
+## Critical gotchas from May 18
+
+- **Never modify live CTR show assets while working pricing harnesses.**
+  - We accidentally changed ClickToClaim board labels in `2c2f245` and had to revert in `203c50d`.
+  - Hard rule: path-limit all commits and stage only target files.
+- **When asked for "identical X + Y", clone X first, then add Y.**
+  - Re-implementing from scratch caused missing totals/rounding/data-path behavior.
+- **GitHub Pages parent-relative fetch can 404 unexpectedly.**
+  - `../pin_uid_map.json` may fail even if present in repo; optional fetches must be tolerant (`try/catch` + fallback data).
+- **Dirty repo safety: never use broad staging in PreparingInventory-scale trees.**
+  - Use `git add <explicit path>` only; never `git add .` or `git add -A`; verify with `git status` before commit.
+- **Verify target file path before editing.**
+  - Confirm the file being changed is the exact page the user is viewing (PreparingInventory vs ClickToClaim split).
+
 ## Embed script safeguards (batch HTML generation)
 
 `embed_review_batch.py` now enforces:
@@ -95,12 +144,16 @@ These checks are intentional guardrails so bad template edits fail fast instead 
 - Final CSV lineage example:
   - `whatnot_upload_20260518_v4.csv` (builder output with flags)
   - `whatnot_upload_20260518_final.csv` (manual fixed publish file)
+- Delta top-up lineage:
+  - `whatnot_upload_20260518_delta.csv` (new pins only between exports)
 
 ## See also
 
 - [Show20260518 README](file:///Users/steve/Library/Mobile%20Documents/com~apple~CloudDocs/Cursor%20Projects/Show20260518/README.md)
 - [Show 20260518 lessons](file:///Users/steve/Library/Mobile%20Documents/com~apple~CloudDocs/Cursor%20Projects/Show20260518/SHOW_20260518_LESSONS.md)
 - `docs/UNIFIED_SHOW_PIPELINE_AGREEMENTS.md`
+- `docs/SHOW_AUTOMATION_PLAN.md`
+- `LESSONS_20260518_ZERO_ROW_FIXES.md` (in `Show20260518`)
 
 ## Future split (explicit)
 
