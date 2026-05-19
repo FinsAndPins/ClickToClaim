@@ -218,6 +218,69 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## ClickToCollect — detection pipeline + cleanup tools redesign (proposed) — 2026-05-18
+
+Discussion-stage notes from an internal read-only investigation 2026-05-18. **Nothing implemented yet** — capture for tomorrow's follow-up.
+
+**Product framing (do not lose this)**
+
+- Goal: **fast ingest** of board photos with **many pins**.
+- Tags are **optional**; **visual search** is the primary find-pins-by-look path.
+- “Search by how it **looks**, not by **tags**.”
+
+**Current detection passes (for reference)**
+
+- **Pass A — immediate full-board RF-DETR** (confidence **0.25** + dedupe). Weak quality gates; most “bad crops” enter here.
+- **Pass B — deferred full-board re-detect** (**`BoardImportViewportSecondPassService`**). Strong: **`PinBoxPostProcessor`**, stricter net-new gates (**~0.57 conf**, min area, min pixel side).
+- **Pass C — deferred dense scan** (**`DeferredBoardDenseScanService`**). Crop-union around existing pins + tile grids (**2×2 / 4×3 / 4×4** boosted). Medium gates. **Tile grid was the previously-too-aggressive component.**
+- **Manual re-detect** uses **`runRedetectionPipeline`** (additive / confirm / replace). Net-new boxes use **weak** gates today.
+
+**Tools — status and intended job**
+
+- **Partial Pins** — *should be:* “these crops probably aren’t pins” (inverse of **`isSearchablePin`**). *Today:* geometry-only heuristic; surfaces whole pins by accident.
+- **Tag Ideas** — *should be:* bulk-tag groups of similar **real** pins. *Today:* no quality filter; clusters slivers.
+- **Duplicates** — *should be:* “you own multiple copies of the same pin **design**.” *Today:* doesn’t distinguish **same-board** vs **cross-board**; conflates with Overlap.
+- **Overlap** — same **physical pin** across photos / boards. Already strict; keep as the reference quality bar.
+
+**Proposed direction (for discussion, not yet implemented)**
+
+1. **Pin provenance + quality flags** at every insert: **`detectionConfidence`**, **`passOrigin`** (`initial` / `deferred-viewport` / `deferred-tile` / `manual`), **`edgeTouchesBoard`**, **`normalizedArea`**, **`aspectRatio`**. **Insert with flags; do not auto-delete.**
+2. **Define `isSearchablePin`** = pass-B-confirmed **OR** manual-promote **OR** passes shared geometry / confidence bar.
+3. **Index embeddings only for `isSearchablePin`** so Tag Ideas / Duplicates / Search consume clean inputs.
+4. **Promote Pass B to canonical quality gate.** Pass A boxes B doesn’t confirm stay in library but are **not in the search index** until reviewed.
+5. **Replace Pass C tile grid with density-hotspot re-detect** — detect dense clusters from Pass A pin centers, re-run detection on merged regions with Pass B gates. Avoid global tile spam.
+6. **Optional Pass D (gap fill)** — only if hotspot pass leaves obvious lattice gaps; defer until B+C reworked.
+7. **Manual re-detect appends** should apply Pass B net-new gates.
+8. **Cleanup tool split:**
+   - **Duplicates:** separate **same-board** vs **cross-board** with different thresholds; same-board duplicates remain valid only when truly different pins.
+   - **Overlap:** keep strict cross-board same-physical-pin detection.
+   - **Tag Ideas:** filter input to **`isSearchablePin`** only.
+   - **Partial Pins:** surface **inverse** of **`isSearchablePin`** with reasons.
+
+**Risks / what I would NOT do first**
+
+- Auto-delete suspect crops at import.
+- More global tile passes.
+- Tuning four cleanup screens independently before fixing ingest quality.
+
+**Suggested rollout order (still proposed)**
+
+1. Provenance + quality flags.
+2. Embeddings restricted to **`isSearchablePin`**.
+3. Pass B confirmation gate for searchable status.
+4. Density-hotspot Pass C (replace tile grid).
+5. Cleanup tool input filters + Duplicates same-board vs cross-board split.
+6. Partial Pins UI / heuristics tightened.
+
+**Open questions for tomorrow**
+
+- Should Pass B confirmation be **required** before a pin is searchable, or just **preferred**?
+- For Duplicates, when a user truly owns **two of the same pin on the same board**, how do they flag that intentionally?
+- How aggressive should the density-hotspot pass be? Hotspot count cap? Area threshold?
+- Auto-promote pass for **legacy** pins that pre-date provenance flags?
+
+---
+
 ## Post Show thank-you page (admin) — extended mockup / QR (optional)
 
 **Shipped May 2026 (minimal path):** On **`20260504/index.html`**, **Post Show** turns on a **full-screen overlay** with thank-you copy, schedule line, Whatnot + Instagram links, and social icon row — see **Session log — 2026-05-04** above. **`reports.html`** mirrors the phase buttons so admins can turn the overlay off.
