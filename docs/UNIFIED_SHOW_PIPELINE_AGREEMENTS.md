@@ -52,6 +52,7 @@ Lessons from **PreparingInventory** + Pages deploys apply directly when we wire 
 - Optional future decisions:
   - Public price visibility flag in CTR.
   - CI steps that touch Firebase.
+  - Not Pin pricing-harness design and rollout reference: `docs/NOT_PIN_FEATURE_PLAN.md`.
 
 ## Explicit non-goals for now
 

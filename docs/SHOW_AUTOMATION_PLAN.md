@@ -112,3 +112,7 @@ Whatnot CSV export remains a separate workflow.
 ## Open Items
 
 - Confirm the exact mechanics of Lexi's pricing watcher so the show watcher can mirror it as implementation step 0.
+
+## Future work
+
+- Not Pin pricing-harness design reference: `docs/NOT_PIN_FEATURE_PLAN.md`.
