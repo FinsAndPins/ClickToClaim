@@ -218,6 +218,48 @@ Ideas and planned enhancements for Click To Request (and related tools). Not com
 
 ---
 
+## Session log — 2026-05-18 (ClickToCollect — Coach Walkthrough + Add/Board polish)
+
+**Shipped / recorded (app — `FinsAndPins/ClickToCollectApp` `main`, latest `e2c8986`)**
+
+- **Coach Walkthrough overlay (Collete the pig):** First-launch onboarding driven by **`Assets/Onboarding/CoachAppWalkthrough.md`** — 17 script steps materialized as **30 Next-driven beats** + Yes/No fork at step 5 + Finish → Coming Soon. Engine in **`ClickToCollect/Onboarding/`** (**`WalkthroughStep`**, **`WalkthroughSteps`**, **`CoachTarget` / `CoachTargetRegistration`**, **`WalkthroughCoachOverlay`**, **`WalkthroughCoordinator`**, UserDefaults flag **`walkthrough.hasSeen.v1`**). **10 pose imagesets** under **`Assets.xcassets/WalkthroughPig/`** (1x/2x/3x).
+- **Walkthrough iteration (`e2c8986`):**
+  - **Back** button alongside Next/Finish (history stack covers the Yes/No fork; disabled on step 1).
+  - **Bubble copy is the exact quoted phrase** from the script — no paraphrasing, no em-dashes.
+  - **Interactive beats** (upload, press-and-hold tag, crop editor) set **`interactive: true`** so the tap-absorber drops hit-testing and the bubble adds **“Try it. Tap Next when done.”** hint; user drives the real UI.
+  - **Per-step `pigAnchor`** lets the pig pin to a side independent of the spotlight target (Step 24 right / Step 25 left).
+  - **Step 23** forces **Collection → Pins** by writing the **`@AppStorage`** key through **`UserDefaults`** (no nav hook required).
+  - **Pig sprite ~1.4×** (max 252 / min 168, 0.46 of canvas width).
+- **Companion app polish** (same session, separate commits):
+  - **`a71ff1f`** Board re-detect dedupes overlapping boxes + **Undo** button.
+  - **`96e3fd6`** / **`e8eb163`** Board viewport re-detect uses the same pipeline (and crop box) as edit mode when zoomed.
+  - **`89b0adb`** Pin-level duplicate detection during import + cleaner labels.
+  - **`70e561b`** / **`3457555`** Quick actions + Spotlight route to **Add / Collection / Trade** correctly via **`MainTabLaunchRouter`**.
+  - **`341ca60`** Paw-print trail replaces glitter on import movie; **`8ecabe7`** prints rotate with direction of travel.
+  - **`8f3e380`** / **`a80a8b6`** Import footer renders below the board photo (no overlay over imagery).
+  - **`e85654f`** / **`a295828`** / **`820f2fd`** / **`d84ed62`** AccentColor → **`#44B9EA`** applied across remaining views.
+  - **`c53b1cc`** **Coming Soon** tab with roadmap list + **Replay Walkthrough** button.
+
+**Limitations / what is intentionally not in v1**
+
+- **No programmatic entry into `BoardDetailView` → Edit Crop Boxes from the overlay.** Step 20 is passthrough only; the user opens the editor themselves while the bubble narrates. A small typed nav hook on `BoardDetailView` is the right fix (tracked in app **`TOMORROW.md`** → *Coach walkthrough — open items*).
+- **Try-it beats do not auto-advance.** Interactive beats correctly drop hit-testing, but `Next` is still the only way forward; no upload / press-and-hold / crop-edit completion signal is wired into the coordinator yet.
+- **Cleanup / Trade highlights dropped.** Card anchors registered unreliably across orientation + scroll; today those steps are **text-only with a tab switch**. Better than a wrong highlight.
+- **Tab-bar targets** use a geometry fallback because **`TabView`** items don’t emit anchors easily.
+
+**Learned (carry forward for any future guided experience)**
+
+- **Onboarding scripts should separate displayed quoted copy from stage directions.** Mixing “insert pose / redirect / wait” notes with the visible sentence in the same line forced the re-parser to walk the script twice; the second pass exists because the first conflated the two. Keep the two strands separable from the start (or codify with a tiny YAML-ish format).
+- **Interactive walkthrough steps should not block user gestures.** A scrim/tap-absorber feels right for narrative beats but is a lie the moment the instruction is “try it.” Per-step hit-testing is cheap once the engine knows which beats are interactive.
+- **Semantic `CoachTarget` anchors beat hard-coded coordinates — but only when the target reliably registers.** Anchors that depend on scroll position / lazy mounting will silently misplace highlights. Prefer **dropping** a target over highlighting the wrong region; text + tab switch reads better.
+- **Per-step mascot anchor decouples placement from spotlight target.** One-line override on Steps 24/25 beat fighting the auto-placement.
+- **Programmatic flow control without a nav hook is unreliable.** Step 23 works only because `MyCollectionView` listens to UserDefaults. Step 20 has no equivalent and is currently passthrough-only. Lesson: surface a tiny typed coordinator hook per route you want the walkthrough to deep-link into; do not chain ad-hoc UserDefaults writes for anything richer than a folder/tab toggle.
+- **Coach sprite scale matters.** 1.0× felt apologetic on iPhone; 1.4× (capped 252 / floored 168) read like a real coach without crowding the bubble.
+
+**App anchor:** ClickToCollect `main` @ **`e2c8986`** (walkthrough iteration); base shipped at **`7e9aa1e`** (initial Coach Walkthrough). Companion Board/Add/Congrats polish landed in surrounding commits on the same `main` (see CLAUDE.md *Progress log (short)* **2026-05-18**).
+
+---
+
 ## ClickToCollect — detection pipeline + cleanup tools redesign (proposed) — 2026-05-18
 
 Discussion-stage notes from an internal read-only investigation 2026-05-18. **Nothing implemented yet** — capture for tomorrow's follow-up.
