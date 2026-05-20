@@ -116,3 +116,28 @@ Whatnot CSV export remains a separate workflow.
 ## Future work
 
 - Not Pin pricing-harness design reference: `docs/NOT_PIN_FEATURE_PLAN.md`.
+
+## Post-20260521 security backlog
+
+- Firebase RTDB security is currently open (`.read: true` and `.write: true`) and was confirmed in-console before show day.
+- Risk: anyone with database access knowledge can read/write live claim data, pricing collaboration state, and related operational data.
+- Plan after show `20260521`:
+  - tighten RTDB rules (do not leave public read/write),
+  - test rule changes on a staging copy first,
+  - then roll to production with an explicit rollback note.
+- Important reminder: Firebase console password alone does not protect the live database; security rules are the actual guardrail.
+
+### Data pull and analysis path (for Steve and assistant)
+
+- Keep documented export naming so future analysis scripts can auto-locate exports:
+  - `fins-and-pins-click-to-claim-default-rtdb-*-export.json`
+- Pricing harness data reference path to keep stable:
+  - `pin_pricing_tests/test_PriceCollection_*__build_*/visual_baseline/pins/`
+- CTR claims path lesson from live overlay debugging:
+  - claims are stored per board stem, for example `claims/IMG_4731/...`,
+  - do not assume a show-date-only node such as `claims/20260521` is complete.
+- Overlay/fetch behavior requirement:
+  - subscribe by board entries from `manifest.json`, then read corresponding `claims/{boardStem}/...`.
+- Export/access options to implement after show:
+  - manual Firebase console export workflow for periodic snapshots, or
+  - a read-only service account / authenticated-export path for scripted assistant analysis.

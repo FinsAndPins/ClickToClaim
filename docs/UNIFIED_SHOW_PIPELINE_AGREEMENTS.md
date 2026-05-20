@@ -1,6 +1,6 @@
 # Unified Show Pipeline Agreements
 
-Last updated: 2026-05-18
+Last updated: 2026-05-19
 
 Discussion notes only. Implementation is deferred until we explicitly decide to build.
 
@@ -53,6 +53,7 @@ Lessons from **PreparingInventory** + Pages deploys apply directly when we wire 
   - Public price visibility flag in CTR.
   - CI steps that touch Firebase.
   - Not Pin pricing-harness design and rollout reference: `docs/NOT_PIN_FEATURE_PLAN.md`.
+  - Post-`20260521` security backlog: tighten public RTDB rules after staging validation and establish a documented export/read-only access path for assistant analysis.
 
 ## Explicit non-goals for now
 
