@@ -571,6 +571,8 @@ let latestClaimsData = {};
 let claimsSnapshotReceived = false;
 /** Full manifest board names (all boards), even when only a page is rendered in lite mode. */
 let manifestBoardNames = [];
+/** Manifest order index by board name (0-based). */
+let manifestBoardOrder = {};
 /** Sum of prediction counts across all boards (computed async in lite mode). */
 let globalAllBoardPinCount = 0;
 let globalAllBoardPinCountReady = false;
@@ -914,6 +916,8 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
     .then(r => r.json())
     .then(list => {
         manifestBoardNames = list.slice();
+        manifestBoardOrder = {};
+        list.forEach((name, idx) => { manifestBoardOrder[name] = idx; });
         if (isLiteMode) {
             globalAllBoardPinCountReady = false;
             computeAllBoardPinTotals(manifestBoardNames).then((n) => {
@@ -1170,6 +1174,14 @@ function updateAllBoardDisplays() {
     Object.keys(boardsState).forEach(updateBoardDisplay);
 }
 
+function formatAdminBoardHeader(name, statsText) {
+    const rawOrder = manifestBoardOrder[name];
+    const boardNumber = Number.isInteger(rawOrder) ? (rawOrder + 1) : "?";
+    const imgDigits = String(name || "").replace(/^IMG[_\s-]*/i, "").trim();
+    const imgLabel = imgDigits ? `IMG ${imgDigits}` : String(name || "").replace(/_/g, " ");
+    return `Board ${boardNumber} · ${imgLabel} | ${statsText}`;
+}
+
 function updateBoardDisplay(name) {
     const s  = boardsState[name];
     const el = document.getElementById(`count-${name}`);
@@ -1194,9 +1206,12 @@ function updateBoardDisplay(name) {
                 if (cnt === 1) unique++; else contested++;
             });
             if (totalClicks === 0) {
-                adminEl.textContent = 'No requests yet';
+                adminEl.textContent = formatAdminBoardHeader(name, "No requests yet");
             } else {
-                adminEl.textContent = `${unique} Unique · ${contested} Contested · ${totalClicks} Clicks · ${users.size} Users`;
+                adminEl.textContent = formatAdminBoardHeader(
+                    name,
+                    `${unique} Unique · ${contested} Contested · ${totalClicks} Clicks · ${users.size} Users`
+                );
             }
         }
     }
