@@ -1,0 +1,35 @@
+{
+  "predictions": [
+    {
+      "x": 518.125,
+      "y": 402.1875,
+      "width": 741.875,
+      "height": 561.875,
+      "confidence": 0.9501341581344604,
+      "class": "pin",
+      "crop_stem": "img5448_pin01"
+    },
+    {
+      "x": 712.5,
+      "y": 921.875,
+      "width": 306.875,
+      "height": 281.09375,
+      "confidence": 0.9330658316612244,
+      "class": "pin",
+      "crop_stem": "img5448_pin02"
+    },
+    {
+      "x": 331.25,
+      "y": 940.625,
+      "width": 485.625,
+      "height": 500.3125,
+      "confidence": 0.9619649052619934,
+      "class": "pin",
+      "crop_stem": "img5448_pin03"
+    }
+  ],
+  "image": {
+    "width": 960,
+    "height": 1280
+  }
+}
