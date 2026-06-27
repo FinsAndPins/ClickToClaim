@@ -234,9 +234,39 @@
         #showEndedOverlay .show-ended-message .show-ended-noon-est {
             white-space: nowrap;
         }
+        #collectionAppPromo {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 2100;
+            display: block;
+            line-height: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+            -webkit-tap-highlight-color: transparent;
+        }
+        #collectionAppPromo:focus-visible {
+            outline: 3px solid var(--fp-muted);
+            outline-offset: 2px;
+        }
+        #collectionAppPromo img {
+            display: block;
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+        }
+        @media (min-width: 540px) {
+            #collectionAppPromo img {
+                width: 96px;
+                height: 96px;
+            }
+        }
     </style>
 </head>
 <body>
+
+<a id="collectionAppPromo" href="https://apple.co/4f8gaE8" target="_blank" rel="noopener noreferrer" title="Collection Detection App on the App Store" aria-label="Collection Detection App on the App Store"><img src="./collection-detection-app-square.png" width="96" height="96" alt="Collection Detection App"></a>
 
 <div id="loginOverlay" style="display: flex;">
     <div class="login-box modal-box">
