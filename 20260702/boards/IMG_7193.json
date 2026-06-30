@@ -1,0 +1,341 @@
+{
+  "predictions": [
+    {
+      "x": 837.5,
+      "y": 145.703125,
+      "width": 145.78125,
+      "height": 136.640625,
+      "confidence": 0.9343951344490051,
+      "class": "pin",
+      "crop_stem": "img7193_pin01"
+    },
+    {
+      "x": 136.09375,
+      "y": 147.8125,
+      "width": 136.25,
+      "height": 139.921875,
+      "confidence": 0.9242786765098572,
+      "class": "pin",
+      "crop_stem": "img7193_pin02"
+    },
+    {
+      "x": 406.875,
+      "y": 148.984375,
+      "width": 145.390625,
+      "height": 144.21875,
+      "confidence": 0.9382373094558716,
+      "class": "pin",
+      "crop_stem": "img7193_pin03"
+    },
+    {
+      "x": 266.5625,
+      "y": 149.921875,
+      "width": 138.28125,
+      "height": 129.609375,
+      "confidence": 0.9393594861030579,
+      "class": "pin",
+      "crop_stem": "img7193_pin04"
+    },
+    {
+      "x": 688.75,
+      "y": 150.9375,
+      "width": 165.15625,
+      "height": 132.34375,
+      "confidence": 0.9362850189208984,
+      "class": "pin",
+      "crop_stem": "img7193_pin05"
+    },
+    {
+      "x": 543.75,
+      "y": 152.65625,
+      "width": 148.671875,
+      "height": 125.625,
+      "confidence": 0.9249592423439026,
+      "class": "pin",
+      "crop_stem": "img7193_pin06"
+    },
+    {
+      "x": 120.9375,
+      "y": 292.03125,
+      "width": 145.390625,
+      "height": 145.3125,
+      "confidence": 0.9300780892372131,
+      "class": "pin",
+      "crop_stem": "img7193_pin07"
+    },
+    {
+      "x": 264.6875,
+      "y": 296.40625,
+      "width": 137.890625,
+      "height": 145.78125,
+      "confidence": 0.9333093762397766,
+      "class": "pin",
+      "crop_stem": "img7193_pin08"
+    },
+    {
+      "x": 861.25,
+      "y": 297.1875,
+      "width": 150.9375,
+      "height": 160.9375,
+      "confidence": 0.9417614340782166,
+      "class": "pin",
+      "crop_stem": "img7193_pin09"
+    },
+    {
+      "x": 713.125,
+      "y": 301.71875,
+      "width": 153.515625,
+      "height": 157.890625,
+      "confidence": 0.9391365647315979,
+      "class": "pin",
+      "crop_stem": "img7193_pin10"
+    },
+    {
+      "x": 406.56248474121094,
+      "y": 312.5,
+      "width": 160.62496948242188,
+      "height": 172.65625,
+      "confidence": 0.9307105541229248,
+      "class": "pin",
+      "crop_stem": "img7193_pin11"
+    },
+    {
+      "x": 563.125,
+      "y": 314.375,
+      "width": 173.75,
+      "height": 190.15625,
+      "confidence": 0.9401335716247559,
+      "class": "pin",
+      "crop_stem": "img7193_pin12"
+    },
+    {
+      "x": 93.59375,
+      "y": 456.25,
+      "width": 145.9375,
+      "height": 175.9375,
+      "confidence": 0.9471859931945801,
+      "class": "pin",
+      "crop_stem": "img7193_pin13"
+    },
+    {
+      "x": 853.125,
+      "y": 464.0625,
+      "width": 150.234375,
+      "height": 180.15625,
+      "confidence": 0.9447912573814392,
+      "class": "pin",
+      "crop_stem": "img7193_pin14"
+    },
+    {
+      "x": 250.3125,
+      "y": 473.75,
+      "width": 148.671875,
+      "height": 170.9375,
+      "confidence": 0.9313377141952515,
+      "class": "pin",
+      "crop_stem": "img7193_pin15"
+    },
+    {
+      "x": 704.375,
+      "y": 480.9375,
+      "width": 152.734375,
+      "height": 159.84375,
+      "confidence": 0.9466953873634338,
+      "class": "pin",
+      "crop_stem": "img7193_pin16"
+    },
+    {
+      "x": 390.0,
+      "y": 490.3125,
+      "width": 151.171875,
+      "height": 158.671875,
+      "confidence": 0.9383503198623657,
+      "class": "pin",
+      "crop_stem": "img7193_pin17"
+    },
+    {
+      "x": 550.0,
+      "y": 499.6875,
+      "width": 155.390625,
+      "height": 166.5625,
+      "confidence": 0.9453993439674377,
+      "class": "pin",
+      "crop_stem": "img7193_pin18"
+    },
+    {
+      "x": 119.375,
+      "y": 637.5,
+      "width": 180.15625,
+      "height": 180.46875,
+      "confidence": 0.9210741519927979,
+      "class": "pin",
+      "crop_stem": "img7193_pin19"
+    },
+    {
+      "x": 780.0,
+      "y": 646.25,
+      "width": 160.625,
+      "height": 181.875,
+      "confidence": 0.9124361872673035,
+      "class": "pin",
+      "crop_stem": "img7193_pin20"
+    },
+    {
+      "x": 275.9375,
+      "y": 655.625,
+      "width": 166.25,
+      "height": 174.6875,
+      "confidence": 0.9240047931671143,
+      "class": "pin",
+      "crop_stem": "img7193_pin21"
+    },
+    {
+      "x": 435.0,
+      "y": 668.125,
+      "width": 155.859375,
+      "height": 192.8125,
+      "confidence": 0.897335946559906,
+      "class": "pin",
+      "crop_stem": "img7193_pin22"
+    },
+    {
+      "x": 616.25,
+      "y": 676.25,
+      "width": 175.15625,
+      "height": 177.8125,
+      "confidence": 0.8136088848114014,
+      "class": "pin",
+      "crop_stem": "img7193_pin23"
+    },
+    {
+      "x": 112.65625,
+      "y": 802.5,
+      "width": 149.921875,
+      "height": 162.8125,
+      "confidence": 0.9362850189208984,
+      "class": "pin",
+      "crop_stem": "img7193_pin24"
+    },
+    {
+      "x": 888.125,
+      "y": 811.25,
+      "width": 87.03125,
+      "height": 184.375,
+      "confidence": 0.9156582355499268,
+      "class": "pin",
+      "crop_stem": "img7193_pin25"
+    },
+    {
+      "x": 280.9375,
+      "y": 831.875,
+      "width": 170.0,
+      "height": 170.15625,
+      "confidence": 0.9473810195922852,
+      "class": "pin",
+      "crop_stem": "img7193_pin26"
+    },
+    {
+      "x": 536.25,
+      "y": 847.5,
+      "width": 158.28125,
+      "height": 162.8125,
+      "confidence": 0.9323301911354065,
+      "class": "pin",
+      "crop_stem": "img7193_pin27"
+    },
+    {
+      "x": 783.75,
+      "y": 853.75,
+      "width": 162.5,
+      "height": 175.625,
+      "confidence": 0.942294716835022,
+      "class": "pin",
+      "crop_stem": "img7193_pin28"
+    },
+    {
+      "x": 426.87498474121094,
+      "y": 855.0,
+      "width": 121.64059448242188,
+      "height": 162.5,
+      "confidence": 0.836821436882019,
+      "class": "pin",
+      "crop_stem": "img7193_pin29"
+    },
+    {
+      "x": 652.5,
+      "y": 869.375,
+      "width": 87.890625,
+      "height": 180.46875,
+      "confidence": 0.8875949382781982,
+      "class": "pin",
+      "crop_stem": "img7193_pin30"
+    },
+    {
+      "x": 103.28125,
+      "y": 968.125,
+      "width": 157.8125,
+      "height": 165.46875,
+      "confidence": 0.9381240010261536,
+      "class": "pin",
+      "crop_stem": "img7193_pin31"
+    },
+    {
+      "x": 224.6875,
+      "y": 1006.25,
+      "width": 82.03125,
+      "height": 177.5,
+      "confidence": 0.8873999118804932,
+      "class": "pin",
+      "crop_stem": "img7193_pin32"
+    },
+    {
+      "x": 561.25,
+      "y": 1019.375,
+      "width": 160.625,
+      "height": 166.5625,
+      "confidence": 0.9381240010261536,
+      "class": "pin",
+      "crop_stem": "img7193_pin33"
+    },
+    {
+      "x": 333.75000762939453,
+      "y": 1020.625,
+      "width": 156.87498474121094,
+      "height": 173.59375,
+      "confidence": 0.9300780892372131,
+      "class": "pin",
+      "crop_stem": "img7193_pin34"
+    },
+    {
+      "x": 444.37501525878906,
+      "y": 1038.125,
+      "width": 83.04690551757812,
+      "height": 176.875,
+      "confidence": 0.8790429830551147,
+      "class": "pin",
+      "crop_stem": "img7193_pin35"
+    },
+    {
+      "x": 778.125,
+      "y": 1042.5,
+      "width": 132.8125,
+      "height": 181.25,
+      "confidence": 0.933552086353302,
+      "class": "pin",
+      "crop_stem": "img7193_pin36"
+    },
+    {
+      "x": 675.0,
+      "y": 1050.0,
+      "width": 87.734375,
+      "height": 180.3125,
+      "confidence": 0.9289263486862183,
+      "class": "pin",
+      "crop_stem": "img7193_pin37"
+    }
+  ],
+  "image": {
+    "width": 960,
+    "height": 1280
+  }
+}
