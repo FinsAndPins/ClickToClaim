@@ -709,7 +709,7 @@ function refreshAdminPhaseButtons() {
 function syncShowEndedOverlay() {
     const el = document.getElementById("showEndedOverlay");
     if (!el) return;
-    const on = !!showEndedFullscreenActive;
+    const on = !!showEndedFullscreenActive && !isAdmin;
     el.style.display = on ? "flex" : "none";
     el.setAttribute("aria-hidden", on ? "false" : "true");
     if (on) {
