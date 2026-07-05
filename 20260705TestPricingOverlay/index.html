@@ -1411,9 +1411,14 @@ _pinClsObs.observe(document.body, { attributes: true, subtree: true, attributeFi
       const raw = pin.display_price != null ? pin.display_price : null;
       if (raw == null || !isFinite(Number(raw))) continue;
       const price = Number(raw);
-      // Index by pin_key (crop_stem) AND by dom_key (sanitized version)
-      if (pin.pin_key) _stemToPrice[pin.pin_key] = price;
+      // Index by full dom_key and pin_key
       _stemToPrice[domKey] = price;
+      if (pin.pin_key) _stemToPrice[pin.pin_key] = price;
+      // Also index by crop_stem: strip file extension + hash suffix
+      // e.g. "img7263_pin01.jpg__0cfcadaad98a" → "img7263_pin01"
+      const pinKey = pin.pin_key || domKey;
+      const stem = pinKey.replace(/\.[a-zA-Z]+__[a-f0-9]+$/, '').replace(/[^A-Za-z0-9_-]/g, '_');
+      if (stem) _stemToPrice[stem] = price;
     }
     // Badge pins already rendered before fetch completed
     document.querySelectorAll('.pin').forEach(_addPriceBadge);
