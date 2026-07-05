@@ -100,6 +100,17 @@ Whatnot CSV export remains a separate workflow.
 - If output already exists, refuse and notify rather than overwriting.
 - On errors, log to a known file and iMessage Steve with the log path. Do not auto-revert.
 
+## Agent Edit Safety
+
+- Cross-repo boundary is strict:
+  - PreparingInventory/PriceCollection/live CTR harness requests must not modify `ClickToClaim/**`.
+  - ClickToClaim show-page requests must not modify PreparingInventory paths unless explicitly asked.
+- Show-folder guard: do not edit `ClickToClaim/YYYYMMDD/` unless the user explicitly names ClickToClaim in the request.
+- Path-limited commit protocol:
+  - restate allowed paths before editing,
+  - stage only explicit paths with `git add <path>`,
+  - never use broad staging (`git add -A`, `git add .`, `git commit -a`).
+
 ## Implementation Phases
 
 0. Inspect Lexi's existing pricing watcher on Steve's MacBook and document the local detection/trigger pattern to mirror.
