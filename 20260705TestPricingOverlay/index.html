@@ -1362,6 +1362,12 @@ function _refreshAllBadges() {
   document.querySelectorAll('.pin').forEach(_updateBadgeViz);
 }
 
+function _roundWhatnot(raw) {
+  if (!raw || raw <= 0) return 0;
+  const r = Math.round(raw / 5) * 5;
+  return Math.max(10, r);
+}
+
 function _addPriceBadge(pinEl) {
   if (pinEl.querySelector('.pin-pb')) return;  // already done
   const m = pinEl.id && pinEl.id.match(/^pin-(.+)-(\d+)$/);
@@ -1374,9 +1380,11 @@ function _addPriceBadge(pinEl) {
   let price = _stemToPrice[stem];
   if (price == null) price = _stemToPrice[stem.replace(/[^A-Za-z0-9_-]/g, '_')];
   if (price == null) return;
+  const rounded = _roundWhatnot(price);
+  if (rounded === 0) return;  // skip 0-price (incorrect detections)
   const badge = document.createElement('span');
   badge.className = 'pin-pb';
-  badge.textContent = '$' + (price >= 1 ? Math.round(price) : price.toFixed(2));
+  badge.textContent = rounded;
   pinEl.appendChild(badge);
   _updateBadgeViz(pinEl);
 }
