@@ -1,0 +1,179 @@
+{
+  "predictions": [
+    {
+      "x": 935.625,
+      "y": 68.125,
+      "width": 187.5,
+      "height": 131.71875,
+      "confidence": 0.9310875535011292,
+      "class": "pin",
+      "crop_stem": "img7407_pin01"
+    },
+    {
+      "x": 578.125,
+      "y": 74.21875,
+      "width": 144.609375,
+      "height": 130.078125,
+      "confidence": 0.9197867512702942,
+      "class": "pin",
+      "crop_stem": "img7407_pin02"
+    },
+    {
+      "x": 190.0,
+      "y": 90.78125,
+      "width": 140.3125,
+      "height": 138.671875,
+      "confidence": 0.9287972450256348,
+      "class": "pin",
+      "crop_stem": "img7407_pin03"
+    },
+    {
+      "x": 763.75,
+      "y": 99.375,
+      "width": 178.90625,
+      "height": 138.828125,
+      "confidence": 0.9304582476615906,
+      "class": "pin",
+      "crop_stem": "img7407_pin04"
+    },
+    {
+      "x": 616.5625,
+      "y": 190.62499237060547,
+      "width": 111.25,
+      "height": 122.49998474121094,
+      "confidence": 0.6863700151443481,
+      "class": "pin",
+      "crop_stem": "img7407_pin05"
+    },
+    {
+      "x": 802.5,
+      "y": 287.5,
+      "width": 201.875,
+      "height": 190.9375,
+      "confidence": 0.9439706206321716,
+      "class": "pin",
+      "crop_stem": "img7407_pin06"
+    },
+    {
+      "x": 163.28125,
+      "y": 322.8125,
+      "width": 167.96875,
+      "height": 210.46875,
+      "confidence": 0.934035062789917,
+      "class": "pin",
+      "crop_stem": "img7407_pin07"
+    },
+    {
+      "x": 642.5,
+      "y": 334.0625,
+      "width": 145.859375,
+      "height": 158.59375,
+      "confidence": 0.934035062789917,
+      "class": "pin",
+      "crop_stem": "img7407_pin08"
+    },
+    {
+      "x": 1087.5,
+      "y": 344.375,
+      "width": 299.53125,
+      "height": 435.625,
+      "confidence": 0.9553191661834717,
+      "class": "pin",
+      "crop_stem": "img7407_pin09"
+    },
+    {
+      "x": 394.375,
+      "y": 365.625,
+      "width": 326.25,
+      "height": 492.8125,
+      "confidence": 0.964655876159668,
+      "class": "pin",
+      "crop_stem": "img7407_pin10"
+    },
+    {
+      "x": 891.25,
+      "y": 469.0625,
+      "width": 127.890625,
+      "height": 155.15625,
+      "confidence": 0.9263036847114563,
+      "class": "pin",
+      "crop_stem": "img7407_pin11"
+    },
+    {
+      "x": 773.75,
+      "y": 485.625,
+      "width": 142.109375,
+      "height": 125.078125,
+      "confidence": 0.9086179733276367,
+      "class": "pin",
+      "crop_stem": "img7407_pin12"
+    },
+    {
+      "x": 643.125,
+      "y": 495.625,
+      "width": 141.40625,
+      "height": 176.5625,
+      "confidence": 0.9323301911354065,
+      "class": "pin",
+      "crop_stem": "img7407_pin13"
+    },
+    {
+      "x": 183.125,
+      "y": 524.375,
+      "width": 183.75,
+      "height": 233.59375,
+      "confidence": 0.9382373094558716,
+      "class": "pin",
+      "crop_stem": "img7407_pin14"
+    },
+    {
+      "x": 175.0,
+      "y": 725.0,
+      "width": 194.21875,
+      "height": 150.078125,
+      "confidence": 0.9463988542556763,
+      "class": "pin",
+      "crop_stem": "img7407_pin15"
+    },
+    {
+      "x": 941.25,
+      "y": 751.875,
+      "width": 420.0,
+      "height": 410.3125,
+      "confidence": 0.9417614340782166,
+      "class": "pin",
+      "crop_stem": "img7407_pin16"
+    },
+    {
+      "x": 606.5625,
+      "y": 762.5,
+      "width": 248.75,
+      "height": 376.5625,
+      "confidence": 0.9640516638755798,
+      "class": "pin",
+      "crop_stem": "img7407_pin17"
+    },
+    {
+      "x": 366.5625,
+      "y": 780.0,
+      "width": 201.875,
+      "height": 333.4375,
+      "confidence": 0.9552357196807861,
+      "class": "pin",
+      "crop_stem": "img7407_pin18"
+    },
+    {
+      "x": 174.0625,
+      "y": 855.625,
+      "width": 169.375,
+      "height": 107.1875,
+      "confidence": 0.9362850189208984,
+      "class": "pin",
+      "crop_stem": "img7407_pin19"
+    }
+  ],
+  "image": {
+    "width": 1280,
+    "height": 960
+  }
+}
