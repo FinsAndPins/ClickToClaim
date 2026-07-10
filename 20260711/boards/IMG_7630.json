@@ -1,0 +1,179 @@
+{
+  "predictions": [
+    {
+      "x": 861.25,
+      "y": 108.75,
+      "width": 137.109375,
+      "height": 191.25,
+      "confidence": 0.94629967212677,
+      "class": "pin",
+      "crop_stem": "img7630_pin01"
+    },
+    {
+      "x": 182.8125,
+      "y": 128.59375190734863,
+      "width": 217.1875,
+      "height": 132.34374618530273,
+      "confidence": 0.9428234100341797,
+      "class": "pin",
+      "crop_stem": "img7630_pin02"
+    },
+    {
+      "x": 425.0,
+      "y": 198.4375,
+      "width": 209.84375,
+      "height": 344.375,
+      "confidence": 0.9567152261734009,
+      "class": "pin",
+      "crop_stem": "img7630_pin03"
+    },
+    {
+      "x": 648.75,
+      "y": 220.3125,
+      "width": 268.90625,
+      "height": 390.9375,
+      "confidence": 0.9566342234611511,
+      "class": "pin",
+      "crop_stem": "img7630_pin04"
+    },
+    {
+      "x": 1088.75,
+      "y": 230.0,
+      "width": 249.53125,
+      "height": 378.75,
+      "confidence": 0.9610249400138855,
+      "class": "pin",
+      "crop_stem": "img7630_pin05"
+    },
+    {
+      "x": 891.25,
+      "y": 247.8125,
+      "width": 184.21875,
+      "height": 98.203125,
+      "confidence": 0.9336731433868408,
+      "class": "pin",
+      "crop_stem": "img7630_pin06"
+    },
+    {
+      "x": 236.875,
+      "y": 278.75,
+      "width": 152.8125,
+      "height": 187.1875,
+      "confidence": 0.8942365646362305,
+      "class": "pin",
+      "crop_stem": "img7630_pin07"
+    },
+    {
+      "x": 130.234375,
+      "y": 288.75,
+      "width": 107.96875,
+      "height": 192.65625,
+      "confidence": 0.7846492528915405,
+      "class": "pin",
+      "crop_stem": "img7630_pin08"
+    },
+    {
+      "x": 905.0,
+      "y": 380.9375,
+      "width": 154.140625,
+      "height": 160.78125,
+      "confidence": 0.95123291015625,
+      "class": "pin",
+      "crop_stem": "img7630_pin09"
+    },
+    {
+      "x": 292.5,
+      "y": 446.25,
+      "width": 156.09375,
+      "height": 172.5,
+      "confidence": 0.9466953873634338,
+      "class": "pin",
+      "crop_stem": "img7630_pin10"
+    },
+    {
+      "x": 138.75,
+      "y": 450.3125,
+      "width": 160.0,
+      "height": 136.71875,
+      "confidence": 0.9280183911323547,
+      "class": "pin",
+      "crop_stem": "img7630_pin11"
+    },
+    {
+      "x": 945.0,
+      "y": 513.125,
+      "width": 126.953125,
+      "height": 115.546875,
+      "confidence": 0.9127477407455444,
+      "class": "pin",
+      "crop_stem": "img7630_pin12"
+    },
+    {
+      "x": 1113.75,
+      "y": 594.375,
+      "width": 225.0,
+      "height": 340.0,
+      "confidence": 0.95735764503479,
+      "class": "pin",
+      "crop_stem": "img7630_pin13"
+    },
+    {
+      "x": 788.125,
+      "y": 676.875,
+      "width": 182.8125,
+      "height": 194.21875,
+      "confidence": 0.3241284191608429,
+      "class": "pin",
+      "crop_stem": "img7630_pin14"
+    },
+    {
+      "x": 963.125,
+      "y": 682.5,
+      "width": 85.9375,
+      "height": 153.671875,
+      "confidence": 0.9274948239326477,
+      "class": "pin",
+      "crop_stem": "img7630_pin15"
+    },
+    {
+      "x": 628.125,
+      "y": 691.875,
+      "width": 540.0,
+      "height": 531.25,
+      "confidence": 0.9583821892738342,
+      "class": "pin",
+      "crop_stem": "img7630_pin16"
+    },
+    {
+      "x": 175.15625,
+      "y": 709.3749847412109,
+      "width": 267.34375,
+      "height": 398.1250305175781,
+      "confidence": 0.9475754499435425,
+      "class": "pin",
+      "crop_stem": "img7630_pin17"
+    },
+    {
+      "x": 1155.0,
+      "y": 838.125,
+      "width": 141.328125,
+      "height": 147.8125,
+      "confidence": 0.9381240010261536,
+      "class": "pin",
+      "crop_stem": "img7630_pin18"
+    },
+    {
+      "x": 1009.375,
+      "y": 852.5,
+      "width": 150.0,
+      "height": 190.9375,
+      "confidence": 0.9441768527030945,
+      "class": "pin",
+      "crop_stem": "img7630_pin19"
+    }
+  ],
+  "image": {
+    "width": 1280,
+    "height": 960
+  }
+}

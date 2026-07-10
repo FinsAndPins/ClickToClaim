@@ -1,0 +1,179 @@
+{
+  "predictions": [
+    {
+      "x": 1155.625,
+      "y": 120.78125,
+      "width": 118.4375,
+      "height": 103.75,
+      "confidence": 0.8504685759544373,
+      "class": "pin",
+      "crop_stem": "img7629_pin01"
+    },
+    {
+      "x": 333.75,
+      "y": 223.203125,
+      "width": 450.625,
+      "height": 446.40625,
+      "confidence": 0.9378969073295593,
+      "class": "pin",
+      "crop_stem": "img7629_pin02"
+    },
+    {
+      "x": 1160.625,
+      "y": 229.375,
+      "width": 130.0,
+      "height": 110.46875,
+      "confidence": 0.9322068691253662,
+      "class": "pin",
+      "crop_stem": "img7629_pin03"
+    },
+    {
+      "x": 800.625,
+      "y": 256.71875,
+      "width": 540.625,
+      "height": 513.4375,
+      "confidence": 0.9610980749130249,
+      "class": "pin",
+      "crop_stem": "img7629_pin04"
+    },
+    {
+      "x": 1168.75,
+      "y": 350.625,
+      "width": 101.71875,
+      "height": 141.953125,
+      "confidence": 0.9386884570121765,
+      "class": "pin",
+      "crop_stem": "img7629_pin05"
+    },
+    {
+      "x": 155.46875,
+      "y": 445.0,
+      "width": 223.59375,
+      "height": 67.9296875,
+      "confidence": 0.7934262752532959,
+      "class": "pin",
+      "crop_stem": "img7629_pin06"
+    },
+    {
+      "x": 134.921875,
+      "y": 558.1250152587891,
+      "width": 164.21875,
+      "height": 155.23434448242188,
+      "confidence": 0.936168372631073,
+      "class": "pin",
+      "crop_stem": "img7629_pin07"
+    },
+    {
+      "x": 306.25,
+      "y": 592.5,
+      "width": 165.9375,
+      "height": 149.0625,
+      "confidence": 0.9442797303199768,
+      "class": "pin",
+      "crop_stem": "img7629_pin08"
+    },
+    {
+      "x": 495.9375,
+      "y": 632.5,
+      "width": 265.3125,
+      "height": 391.875,
+      "confidence": 0.963161289691925,
+      "class": "pin",
+      "crop_stem": "img7629_pin09"
+    },
+    {
+      "x": 1104.375,
+      "y": 635.6250152587891,
+      "width": 170.78125,
+      "height": 296.4062194824219,
+      "confidence": 0.9442797303199768,
+      "class": "pin",
+      "crop_stem": "img7629_pin10"
+    },
+    {
+      "x": 919.375,
+      "y": 647.4999847412109,
+      "width": 164.53125,
+      "height": 291.7187805175781,
+      "confidence": 0.9323301911354065,
+      "class": "pin",
+      "crop_stem": "img7629_pin11"
+    },
+    {
+      "x": 725.0,
+      "y": 650.0,
+      "width": 168.125,
+      "height": 290.3125,
+      "confidence": 0.9284088015556335,
+      "class": "pin",
+      "crop_stem": "img7629_pin12"
+    },
+    {
+      "x": 216.25,
+      "y": 811.8359375,
+      "width": 277.8125,
+      "height": 296.328125,
+      "confidence": 0.9508692026138306,
+      "class": "pin",
+      "crop_stem": "img7629_pin13"
+    },
+    {
+      "x": 1190.625,
+      "y": 838.75,
+      "width": 110.234375,
+      "height": 121.640625,
+      "confidence": 0.9312127232551575,
+      "class": "pin",
+      "crop_stem": "img7629_pin14"
+    },
+    {
+      "x": 810.0,
+      "y": 861.875,
+      "width": 84.765625,
+      "height": 120.078125,
+      "confidence": 0.8984106183052063,
+      "class": "pin",
+      "crop_stem": "img7629_pin15"
+    },
+    {
+      "x": 1082.5,
+      "y": 861.875,
+      "width": 118.515625,
+      "height": 163.75,
+      "confidence": 0.9284088015556335,
+      "class": "pin",
+      "crop_stem": "img7629_pin16"
+    },
+    {
+      "x": 973.75,
+      "y": 867.5,
+      "width": 124.375,
+      "height": 115.3125,
+      "confidence": 0.9244152307510376,
+      "class": "pin",
+      "crop_stem": "img7629_pin17"
+    },
+    {
+      "x": 696.875,
+      "y": 868.125,
+      "width": 128.359375,
+      "height": 144.453125,
+      "confidence": 0.9270997643470764,
+      "class": "pin",
+      "crop_stem": "img7629_pin18"
+    },
+    {
+      "x": 414.6875,
+      "y": 894.375,
+      "width": 181.71875,
+      "height": 120.46875,
+      "confidence": 0.9345147609710693,
+      "class": "pin",
+      "crop_stem": "img7629_pin19"
+    }
+  ],
+  "image": {
+    "width": 1280,
+    "height": 960
+  }
+}

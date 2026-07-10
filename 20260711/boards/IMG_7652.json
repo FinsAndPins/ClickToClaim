@@ -1,0 +1,179 @@
+{
+  "predictions": [
+    {
+      "x": 462.1875,
+      "y": 154.5703125,
+      "width": 206.71875,
+      "height": 309.140625,
+      "confidence": 0.9433475732803345,
+      "class": "pin",
+      "crop_stem": "img7652_pin01"
+    },
+    {
+      "x": 663.75,
+      "y": 158.28125,
+      "width": 216.5625,
+      "height": 316.5625,
+      "confidence": 0.9517737030982971,
+      "class": "pin",
+      "crop_stem": "img7652_pin02"
+    },
+    {
+      "x": 880.625,
+      "y": 158.671875,
+      "width": 199.21875,
+      "height": 317.34375,
+      "confidence": 0.9557340741157532,
+      "class": "pin",
+      "crop_stem": "img7652_pin03"
+    },
+    {
+      "x": 1069.375,
+      "y": 164.921875,
+      "width": 211.40625,
+      "height": 329.84375,
+      "confidence": 0.9587699174880981,
+      "class": "pin",
+      "crop_stem": "img7652_pin04"
+    },
+    {
+      "x": 211.40625,
+      "y": 214.0625,
+      "width": 303.28125,
+      "height": 428.125,
+      "confidence": 0.9428234100341797,
+      "class": "pin",
+      "crop_stem": "img7652_pin05"
+    },
+    {
+      "x": 1106.25,
+      "y": 482.5,
+      "width": 217.96875,
+      "height": 328.125,
+      "confidence": 0.9525741338729858,
+      "class": "pin",
+      "crop_stem": "img7652_pin06"
+    },
+    {
+      "x": 911.25,
+      "y": 483.125,
+      "width": 211.25,
+      "height": 335.3125,
+      "confidence": 0.9565531015396118,
+      "class": "pin",
+      "crop_stem": "img7652_pin07"
+    },
+    {
+      "x": 480.3125,
+      "y": 493.125,
+      "width": 243.125,
+      "height": 341.25,
+      "confidence": 0.9558166265487671,
+      "class": "pin",
+      "crop_stem": "img7652_pin08"
+    },
+    {
+      "x": 184.0625,
+      "y": 645.0,
+      "width": 302.65625,
+      "height": 490.3125,
+      "confidence": 0.9586926698684692,
+      "class": "pin",
+      "crop_stem": "img7652_pin09"
+    },
+    {
+      "x": 1122.5,
+      "y": 691.25,
+      "width": 177.1875,
+      "height": 185.15625,
+      "confidence": 0.9429286122322083,
+      "class": "pin",
+      "crop_stem": "img7652_pin10"
+    },
+    {
+      "x": 916.25,
+      "y": 715.0,
+      "width": 217.8125,
+      "height": 126.796875,
+      "confidence": 0.9421884417533875,
+      "class": "pin",
+      "crop_stem": "img7652_pin11"
+    },
+    {
+      "x": 391.875,
+      "y": 739.375,
+      "width": 98.90625,
+      "height": 129.921875,
+      "confidence": 0.9167081117630005,
+      "class": "pin",
+      "crop_stem": "img7652_pin12"
+    },
+    {
+      "x": 536.5625,
+      "y": 740.625,
+      "width": 168.125,
+      "height": 149.84375,
+      "confidence": 0.9434518814086914,
+      "class": "pin",
+      "crop_stem": "img7652_pin13"
+    },
+    {
+      "x": 719.375,
+      "y": 743.75,
+      "width": 219.375,
+      "height": 172.1875,
+      "confidence": 0.9374402165412903,
+      "class": "pin",
+      "crop_stem": "img7652_pin14"
+    },
+    {
+      "x": 1101.25,
+      "y": 841.25,
+      "width": 140.703125,
+      "height": 149.375,
+      "confidence": 0.9336731433868408,
+      "class": "pin",
+      "crop_stem": "img7652_pin15"
+    },
+    {
+      "x": 955.0,
+      "y": 851.875,
+      "width": 167.8125,
+      "height": 172.03125,
+      "confidence": 0.9441768527030945,
+      "class": "pin",
+      "crop_stem": "img7652_pin16"
+    },
+    {
+      "x": 400.625,
+      "y": 864.375,
+      "width": 126.71875,
+      "height": 112.1875,
+      "confidence": 0.9058233499526978,
+      "class": "pin",
+      "crop_stem": "img7652_pin17"
+    },
+    {
+      "x": 778.75,
+      "y": 873.75,
+      "width": 171.40625,
+      "height": 142.1875,
+      "confidence": 0.9323301911354065,
+      "class": "pin",
+      "crop_stem": "img7652_pin18"
+    },
+    {
+      "x": 559.6875,
+      "y": 879.375,
+      "width": 162.34375,
+      "height": 132.5,
+      "confidence": 0.9214990139007568,
+      "class": "pin",
+      "crop_stem": "img7652_pin19"
+    }
+  ],
+  "image": {
+    "width": 1280,
+    "height": 960
+  }
+}

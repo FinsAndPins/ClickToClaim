@@ -1,0 +1,179 @@
+{
+  "predictions": [
+    {
+      "x": 222.8125,
+      "y": 121.640625,
+      "width": 143.28125,
+      "height": 157.734375,
+      "confidence": 0.8838388919830322,
+      "class": "pin",
+      "crop_stem": "img7724_pin01"
+    },
+    {
+      "x": 640.625,
+      "y": 264.375,
+      "width": 150.625,
+      "height": 162.03125,
+      "confidence": 0.9393594861030579,
+      "class": "pin",
+      "crop_stem": "img7724_pin02"
+    },
+    {
+      "x": 870.625,
+      "y": 273.125,
+      "width": 102.1875,
+      "height": 84.0625,
+      "confidence": 0.8617710471153259,
+      "class": "pin",
+      "crop_stem": "img7724_pin03"
+    },
+    {
+      "x": 225.3125,
+      "y": 459.0625,
+      "width": 187.96875,
+      "height": 246.40625,
+      "confidence": 0.9440738558769226,
+      "class": "pin",
+      "crop_stem": "img7724_pin04"
+    },
+    {
+      "x": 752.5,
+      "y": 464.0625,
+      "width": 172.1875,
+      "height": 117.265625,
+      "confidence": 0.9352282881736755,
+      "class": "pin",
+      "crop_stem": "img7724_pin05"
+    },
+    {
+      "x": 538.125,
+      "y": 605.0,
+      "width": 166.40625,
+      "height": 152.265625,
+      "confidence": 0.9425067901611328,
+      "class": "pin",
+      "crop_stem": "img7724_pin06"
+    },
+    {
+      "x": 194.68749618530273,
+      "y": 649.375,
+      "width": 147.81250762939453,
+      "height": 141.796875,
+      "confidence": 0.9319595694541931,
+      "class": "pin",
+      "crop_stem": "img7724_pin07"
+    },
+    {
+      "x": 788.125,
+      "y": 768.75,
+      "width": 182.65625,
+      "height": 178.125,
+      "confidence": 0.9001793265342712,
+      "class": "pin",
+      "crop_stem": "img7724_pin08"
+    },
+    {
+      "x": 615.0,
+      "y": 791.875,
+      "width": 164.84375,
+      "height": 202.03125,
+      "confidence": 0.9440738558769226,
+      "class": "pin",
+      "crop_stem": "img7724_pin09"
+    },
+    {
+      "x": 256.25,
+      "y": 811.25,
+      "width": 184.6875,
+      "height": 172.34375,
+      "confidence": 0.938010573387146,
+      "class": "pin",
+      "crop_stem": "img7724_pin10"
+    },
+    {
+      "x": 729.375,
+      "y": 932.5,
+      "width": 110.546875,
+      "height": 122.109375,
+      "confidence": 0.9012274742126465,
+      "class": "pin",
+      "crop_stem": "img7724_pin11"
+    },
+    {
+      "x": 838.125,
+      "y": 943.125,
+      "width": 164.0625,
+      "height": 173.4375,
+      "confidence": 0.9343951344490051,
+      "class": "pin",
+      "crop_stem": "img7724_pin12"
+    },
+    {
+      "x": 434.375,
+      "y": 953.125,
+      "width": 179.0625,
+      "height": 170.46875,
+      "confidence": 0.9419752359390259,
+      "class": "pin",
+      "crop_stem": "img7724_pin13"
+    },
+    {
+      "x": 592.5,
+      "y": 955.625,
+      "width": 153.828125,
+      "height": 108.203125,
+      "confidence": 0.9233161807060242,
+      "class": "pin",
+      "crop_stem": "img7724_pin14"
+    },
+    {
+      "x": 257.1875,
+      "y": 988.125,
+      "width": 177.34375,
+      "height": 170.9375,
+      "confidence": 0.9462003111839294,
+      "class": "pin",
+      "crop_stem": "img7724_pin15"
+    },
+    {
+      "x": 781.875,
+      "y": 1076.25,
+      "width": 135.625,
+      "height": 129.140625,
+      "confidence": 0.9278878569602966,
+      "class": "pin",
+      "crop_stem": "img7724_pin16"
+    },
+    {
+      "x": 556.2500152587891,
+      "y": 1080.0,
+      "width": 89.37496948242188,
+      "height": 123.125,
+      "confidence": 0.9048188328742981,
+      "class": "pin",
+      "crop_stem": "img7724_pin17"
+    },
+    {
+      "x": 113.125,
+      "y": 1094.375,
+      "width": 176.5625,
+      "height": 171.25,
+      "confidence": 0.9267027974128723,
+      "class": "pin",
+      "crop_stem": "img7724_pin18"
+    },
+    {
+      "x": 459.0625,
+      "y": 1118.75,
+      "width": 122.109375,
+      "height": 145.0,
+      "confidence": 0.9269675612449646,
+      "class": "pin",
+      "crop_stem": "img7724_pin19"
+    }
+  ],
+  "image": {
+    "width": 960,
+    "height": 1280
+  }
+}
