@@ -312,7 +312,7 @@
 
 <div id="pricingTestBanner">
     Pricing overlay test — same live clicks as <a href="index.html">today’s show page</a>.
-    Default shows prices on <strong>every pin</strong> that has a price (not click-only). $0 slots = not a pin, no badge.
+    Prices: Firebase when set, else pricing harness <code>ui_data</code> (read-only). $0 not-a-pin = no badge.
 </div>
 <select id="_po-sel" aria-label="Price visibility">
   <option value="all">💰 Show all prices</option>
@@ -1336,13 +1336,15 @@ function calculateGlobals() {
 }
 </script>
 <script id="_ctcPriceOverlay">
-// Price overlay test page — read-only on pricing; clicks use same claims/20260713 as index.html.
+// Price overlay test page — read-only. Clicks use same claims/20260713 as index.html.
 const _PO_DB = 'https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com';
 const _PO_TR = 'test_PriceCollection_20260712_1423__build_20700_visual_baseline';
 const _PO_AP = 'visual_baseline';
+const _UI_DATA_URL = 'https://finsandpins.github.io/PreparingInventory/PriceCollection_20260712_1423/testing_ui_visual_baseline/ui_data.json';
 
 let _priceMode = localStorage.getItem('_ctcPriceMode_20260713_test_v2') || 'all';
 const _stemToPrice = {};
+const _stemSkipZero = new Set();
 
 (function() {
     const sel = document.getElementById('_po-sel');
@@ -1378,18 +1380,64 @@ function _roundForShow(raw) {
     return Math.round(raw);
 }
 
-function _indexPrice(stem, price) {
+function _normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, '_') : '';
+}
+
+function _indexStem(stem, price) {
     if (!stem || !isFinite(price) || price <= 0) return;
     _stemToPrice[stem] = price;
-    _stemToPrice[stem.replace(/[^A-Za-z0-9_-]/g, '_')] = price;
+    const norm = _normStem(stem);
+    if (norm) _stemToPrice[norm] = price;
+}
+
+function _markSkipZero(stem) {
+    if (!stem) return;
+    _stemSkipZero.add(stem);
+    const norm = _normStem(stem);
+    if (norm) _stemSkipZero.add(norm);
+}
+
+function _stemFromFbPin(domKey, pin) {
+    const cf = pin.crop_filename || '';
+    const cropStem = cf.replace(/\.(jpe?g|png)$/i, '');
+    if (cropStem) return cropStem;
+    const pk = pin.pin_key || domKey;
+    if (pk.includes('.jpg__')) return pk.split('.jpg__')[0];
+    if (domKey.includes('_jpg__')) return domKey.split('_jpg__')[0].replace(/_jpg$/, '');
+    return null;
+}
+
+function _ingestFirebasePin(domKey, pin) {
+    const stem = _stemFromFbPin(domKey, pin);
+    const raw = pin.display_price;
+    if (raw != null && isFinite(Number(raw)) && Number(raw) === 0) {
+        if (stem) _markSkipZero(stem);
+        return;
+    }
+    if (raw == null || !isFinite(Number(raw))) return;
+    const price = Number(raw);
+    if (price <= 0) return;
+    if (stem) _indexStem(stem, price);
+    _indexStem(domKey, price);
+    if (pin.pin_key) _indexStem(pin.pin_key, price);
+}
+
+function _ingestUiPin(pin) {
+    const stem = (pin.crop_filename || '').replace(/\.(jpe?g|png)$/i, '');
+    if (!stem || _stemSkipZero.has(stem) || _stemSkipZero.has(_normStem(stem))) return;
+    if (_stemToPrice[stem] != null || _stemToPrice[_normStem(stem)] != null) return;
+    const raw = pin.display_price;
+    if (raw == null || !isFinite(Number(raw)) || Number(raw) <= 0) return;
+    _indexStem(stem, Number(raw));
 }
 
 function _addPriceBadge(pinEl) {
     if (pinEl.querySelector('.pin-pb')) return;
     const stem = pinEl.dataset.cropStem;
-    if (!stem) return;
+    if (!stem || _stemSkipZero.has(stem) || _stemSkipZero.has(_normStem(stem))) return;
     let price = _stemToPrice[stem];
-    if (price == null) price = _stemToPrice[stem.replace(/[^A-Za-z0-9_-]/g, '_')];
+    if (price == null) price = _stemToPrice[_normStem(stem)];
     if (price == null) return;
     const rounded = _roundForShow(price);
     if (rounded === 0) return;
@@ -1417,32 +1465,37 @@ const _pinClsObs = new MutationObserver(muts => {
 _pinClsObs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
 
 (async function _loadPrices() {
+    let fbCount = 0;
+    let uiCount = 0;
     try {
-        const url = `${_PO_DB}/pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins.json`;
-        const r = await fetch(url);
-        const all = await r.json();
+        const fbUrl = `${_PO_DB}/pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins.json`;
+        const fbRes = await fetch(fbUrl);
+        const all = await fbRes.json();
         for (const [domKey, pin] of Object.entries(all || {})) {
-            const raw = pin.display_price;
-            if (raw == null || !isFinite(Number(raw))) continue;
-            const price = Number(raw);
-            if (price <= 0) continue;
-            _indexPrice(domKey, price);
-            if (pin.pin_key) _indexPrice(pin.pin_key, price);
-            const cf = pin.crop_filename || '';
-            const cropStem = cf.replace(/\.(jpe?g|png)$/i, '');
-            if (cropStem) _indexPrice(cropStem, price);
-            const pk = pin.pin_key || domKey;
-            const stemFromKey = pk.replace(/\.[a-zA-Z]+__[a-f0-9]+$/, '').replace(/\.(jpe?g|png)$/i, '');
-            if (stemFromKey) _indexPrice(stemFromKey, price);
-            if (domKey.startsWith('img') && domKey.includes('_pin')) {
-                const base = domKey.split('_jpg__')[0].replace(/_jpg$/, '');
-                if (base) _indexPrice(base, price);
+            const stem = _stemFromFbPin(domKey, pin);
+            const had = stem && _stemToPrice[stem] != null;
+            _ingestFirebasePin(domKey, pin);
+            if (!had && stem && _stemToPrice[stem] != null) fbCount++;
+        }
+    } catch (e) {
+        console.warn('[PriceOverlay] Firebase load failed:', e);
+    }
+    try {
+        const uiRes = await fetch(_UI_DATA_URL);
+        const ui = await uiRes.json();
+        for (const board of ui.boards || []) {
+            for (const pin of board.pins || []) {
+                const stem = (pin.crop_filename || '').replace(/\.(jpe?g|png)$/i, '');
+                const had = stem && _stemToPrice[stem] != null;
+                _ingestUiPin(pin);
+                if (!had && stem && _stemToPrice[stem] != null) uiCount++;
             }
         }
-        document.querySelectorAll('.pin').forEach(_addPriceBadge);
     } catch (e) {
-        console.warn('[PriceOverlay] Failed to load prices from Firebase:', e);
+        console.warn('[PriceOverlay] ui_data fallback load failed:', e);
     }
+    console.info(`[PriceOverlay] ${_stemSkipZero.size} not-a-pin skips; ${fbCount} Firebase; ${uiCount} ui_data fallback`);
+    document.querySelectorAll('.pin').forEach(_addPriceBadge);
 })();
 </script>
 </body>
