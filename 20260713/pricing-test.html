@@ -312,7 +312,7 @@
 
 <div id="pricingTestBanner">
     Pricing overlay test — same live clicks as <a href="index.html">today’s show page</a>.
-    Not linked for visitors; bookmark this URL only.
+    Default shows prices on <strong>every pin</strong> that has a price (not click-only). $0 slots = not a pin, no badge.
 </div>
 <select id="_po-sel" aria-label="Price visibility">
   <option value="all">💰 Show all prices</option>
@@ -1341,7 +1341,7 @@ const _PO_DB = 'https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com
 const _PO_TR = 'test_PriceCollection_20260712_1423__build_20700';
 const _PO_AP = 'visual_baseline';
 
-let _priceMode = localStorage.getItem('_ctcPriceMode_20260713_test') || 'all';
+let _priceMode = localStorage.getItem('_ctcPriceMode_20260713_test_v2') || 'all';
 const _stemToPrice = {};
 
 (function() {
@@ -1350,7 +1350,7 @@ const _stemToPrice = {};
     sel.value = _priceMode;
     sel.addEventListener('change', () => {
         _priceMode = sel.value;
-        localStorage.setItem('_ctcPriceMode_20260713_test', _priceMode);
+        localStorage.setItem('_ctcPriceMode_20260713_test_v2', _priceMode);
         _refreshAllBadges();
     });
 })();
@@ -1371,15 +1371,15 @@ function _refreshAllBadges() {
     document.querySelectorAll('.pin').forEach(_updateBadgeViz);
 }
 
-/** Pins under $10 → $10; $10+ show actual rounded price. */
+/** $0 = not a pin (no badge). Under $10 → $10; $10+ show actual rounded price. */
 function _roundForShow(raw) {
-    if (!raw || raw <= 0) return 0;
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
     if (raw < 10) return 10;
     return Math.round(raw);
 }
 
 function _indexPrice(stem, price) {
-    if (!stem || !isFinite(price)) return;
+    if (!stem || !isFinite(price) || price <= 0) return;
     _stemToPrice[stem] = price;
     _stemToPrice[stem.replace(/[^A-Za-z0-9_-]/g, '_')] = price;
 }
@@ -1425,6 +1425,7 @@ _pinClsObs.observe(document.body, { attributes: true, subtree: true, attributeFi
             const raw = pin.display_price;
             if (raw == null || !isFinite(Number(raw))) continue;
             const price = Number(raw);
+            if (price <= 0) continue;
             _indexPrice(domKey, price);
             if (pin.pin_key) _indexPrice(pin.pin_key, price);
             const cf = pin.crop_filename || '';
