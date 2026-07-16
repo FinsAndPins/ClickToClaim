@@ -57,21 +57,20 @@
     </section>
 
     <section>
-        <h2>Board Heat — Total Requesters</h2>
-        <p style="font-size:13px;color:#555;margin:0 0 12px;">Sum of requesters across all pins on each board (contested pins count more). Sorted high → low.</p>
-        <table id="boardHeatTotalTable"><thead><tr><th>Board</th><th>Total Requesters</th></tr></thead><tbody></tbody></table>
-    </section>
-
-    <section>
-        <h2>Board Heat — Pins Requested</h2>
-        <p style="font-size:13px;color:#555;margin:0 0 12px;">How many pins on each board have at least one request. Sorted high → low.</p>
-        <table id="boardHeatPinsTable"><thead><tr><th>Board</th><th>Pins Requested</th></tr></thead><tbody></tbody></table>
-    </section>
-
-    <section>
-        <h2>Board Heat — Unique Users</h2>
-        <p style="font-size:13px;color:#555;margin:0 0 12px;">How many distinct people requested anything on each board. Sorted high → low.</p>
-        <table id="boardHeatUsersTable"><thead><tr><th>Board</th><th>Unique Users</th></tr></thead><tbody></tbody></table>
+        <h2>Board Heat</h2>
+        <p style="font-size:13px;color:#555;margin:0 0 12px;line-height:1.45;">Sorted by <strong>Total Requesters</strong> (then Contested Pins) for competitive-bidding order. <strong>Total Requesters</strong> = sum of people on every pin. <strong>Contested Pins</strong> = pins with 2+ requesters. <strong>Pins Requested</strong> = pins with ≥1 request. <strong>Unique Users</strong> = distinct people who touched the board.</p>
+        <table id="boardHeatTable">
+            <thead>
+                <tr>
+                    <th>Board</th>
+                    <th>Total Requesters</th>
+                    <th>Contested Pins</th>
+                    <th>Pins Requested</th>
+                    <th>Unique Users</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </section>
 
     <section><h2>Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
@@ -230,7 +229,7 @@ function renderReports() {
     const userStats = {}; const liveFeed = []; const popularity = [];
     const boardHeat = {};
     (globalData.boardList || []).forEach((bName, i) => {
-        boardHeat[bName] = { bNum: i + 1, totalRequesters: 0, pinsRequested: 0, users: new Set() };
+        boardHeat[bName] = { bNum: i + 1, totalRequesters: 0, contestedPins: 0, pinsRequested: 0, users: new Set() };
     });
 
     Object.entries(globalData.raw).forEach(([pk, users]) => {
@@ -240,10 +239,11 @@ function renderReports() {
         const uList = Object.entries(users).sort((a,b) => rowTime(a[1]) - rowTime(b[1]));
         const isUnique = uList.length === 1;
 
-        if (!boardHeat[bName]) boardHeat[bName] = { bNum: bNum || 0, totalRequesters: 0, pinsRequested: 0, users: new Set() };
+        if (!boardHeat[bName]) boardHeat[bName] = { bNum: bNum || 0, totalRequesters: 0, contestedPins: 0, pinsRequested: 0, users: new Set() };
         if (uList.length > 0) {
             boardHeat[bName].pinsRequested++;
             boardHeat[bName].totalRequesters += uList.length;
+            if (uList.length >= 2) boardHeat[bName].contestedPins++;
             uList.forEach(([u]) => boardHeat[bName].users.add(u));
         }
 
@@ -273,22 +273,19 @@ function renderReports() {
         bNum: s.bNum,
         display: s.bNum > 0 ? `Board ${s.bNum}` : bName,
         totalRequesters: s.totalRequesters,
+        contestedPins: s.contestedPins,
         pinsRequested: s.pinsRequested,
         uniqueUsers: s.users.size
     }));
-    const emptyBoard = '<tr><td colspan="2" style="color:#999;">No board data yet.</td></tr>';
-    document.querySelector("#boardHeatTotalTable tbody").innerHTML = boardRows.length
-        ? boardRows.slice().sort((a, b) => b.totalRequesters - a.totalRequesters || a.bNum - b.bNum).map(r =>
-            `<tr><td>${r.display}</td><td>${r.totalRequesters}</td></tr>`).join('')
-        : emptyBoard;
-    document.querySelector("#boardHeatPinsTable tbody").innerHTML = boardRows.length
-        ? boardRows.slice().sort((a, b) => b.pinsRequested - a.pinsRequested || a.bNum - b.bNum).map(r =>
-            `<tr><td>${r.display}</td><td>${r.pinsRequested}</td></tr>`).join('')
-        : emptyBoard;
-    document.querySelector("#boardHeatUsersTable tbody").innerHTML = boardRows.length
-        ? boardRows.slice().sort((a, b) => b.uniqueUsers - a.uniqueUsers || a.bNum - b.bNum).map(r =>
-            `<tr><td>${r.display}</td><td>${r.uniqueUsers}</td></tr>`).join('')
-        : emptyBoard;
+    document.querySelector("#boardHeatTable tbody").innerHTML = boardRows.length
+        ? boardRows.slice().sort((a, b) =>
+            b.totalRequesters - a.totalRequesters ||
+            b.contestedPins - a.contestedPins ||
+            a.bNum - b.bNum
+        ).map(r =>
+            `<tr><td>${r.display}</td><td>${r.totalRequesters}</td><td>${r.contestedPins}</td><td>${r.pinsRequested}</td><td>${r.uniqueUsers}</td></tr>`
+        ).join('')
+        : '<tr><td colspan="5" style="color:#999;">No board data yet.</td></tr>';
 
     // Popularity: only show pins with 2+ clicks
     document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).filter(p => p.count > 1).map(p => `
