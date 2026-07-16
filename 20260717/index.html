@@ -20,6 +20,9 @@
         #socialBar a .social-icon { width: 24px; height: 24px; display: block; object-fit: contain; }
         #socialBar a .social-icon.inv { filter: brightness(0) invert(1); }
         #introNote { text-align: center; font-size: 14px; color: var(--fp-muted); margin: 0 auto 14px; line-height: 1.4; max-width: 520px; }
+        #introNote p { margin: 0 0 8px; }
+        #introNote p:last-child { margin-bottom: 0; }
+        #introNote .intro-hero { font-size: 20px; font-weight: bold; color: var(--fp-text); line-height: 1.25; }
         h1 { text-align: center; margin-bottom: 6px; margin-top: 0; font-size: 22px; line-height: 1.2; }
         h2 { text-align: center; margin-top: 0; margin-bottom: 12px; font-size: 15px; color: var(--fp-muted); font-weight: normal; }
         .login-welcome { display: flex; flex-direction: column; gap: 6px; text-align: center; margin: 0 0 14px; font-weight: normal; font-size: 15px; line-height: 1.25; color: var(--fp-text); }
@@ -376,7 +379,12 @@
 
 <h1>Fins and Pins Click To Request!</h1>
 <h2 id="showTitle">Show Date</h2>
-<p id="introNote">We hope you enjoy clicking the pins you want, rather than typing the board number and description 🧜‍♀️</p>
+<div id="introNote">
+    <p class="intro-hero">Our largest $1 start show EVER!!!</p>
+    <p class="intro-hero">Over 2000 pins on 41 boards</p>
+    <p>Click what you like so you’ll know what’s available</p>
+    <p>We will run all the boards, rather than pre-pull pins</p>
+</div>
 <div id="socialBar" aria-label="Social links">
     <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
     <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
