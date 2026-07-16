@@ -1,6 +1,13 @@
 {
   "shows": [
     {
+      "folder": "20260713",
+      "label": "Jul 13, 2026",
+      "sort_key": "1783876325",
+      "last_commit_iso": "2026-07-12T17:12:05+00:00",
+      "show_url": "https://finsandpins.github.io/ClickToClaim/20260713/index.html"
+    },
+    {
       "folder": "20260711",
       "label": "Jul 11, 2026",
       "sort_key": "1783655717",
@@ -43,7 +50,7 @@
       "show_url": "https://finsandpins.github.io/ClickToClaim/20260629/index.html"
     }
   ],
-  "updated_iso": "2026-07-12T13:12:05-04:00",
+  "updated_iso": "2026-07-16T10:34:29-04:00",
   "base_url": "https://finsandpins.github.io/ClickToClaim",
   "ordered_by": "last_git_commit_desc"
 }
