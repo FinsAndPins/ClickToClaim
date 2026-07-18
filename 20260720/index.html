@@ -1284,6 +1284,8 @@ function calculateGlobals() {
 }
 </script>
 <style id="_ctcPriceOverlayCss">
+/* Fixed dropdown sits above the page; push the title down so they don't overlap. */
+body > h1:first-of-type { padding-top: 38px; }
 #_po-sel {
     position: fixed;
     top: 8px;
