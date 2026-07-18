@@ -1446,33 +1446,31 @@ function _stemFromFbPin(domKey, pin) {
 }
 
 (async function _loadPrices() {
-    let fbOk = false;
+    // Base: prices.json — complete resolved map baked at build time (all live pins).
+    try {
+        const res = await fetch('./prices.json', { cache: 'no-store' });
+        const snap = await res.json();
+        for (const [stem, raw] of Object.entries(snap || {})) _indexStem(stem, Number(raw));
+        console.info(`[PriceOverlay] prices.json base: ${Object.keys(snap || {}).length} prices`);
+    } catch (e) {
+        console.warn('[PriceOverlay] prices.json load failed:', e);
+    }
+    // Overlay: live Firebase confirmed prices (listing picks / manual overrides) win.
     try {
         const fbUrl = `${_PO_DB}/pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins.json`;
         const fbRes = await fetch(fbUrl);
         const all = await fbRes.json();
         let n = 0;
         for (const [domKey, pin] of Object.entries(all || {})) {
-            if (!pin || pin.match_status !== 'match') continue;  // confirmed pins only
+            if (!pin || pin.match_status !== 'match') continue;
             const raw = Number(pin.display_price);
             if (!isFinite(raw) || raw <= 0) continue;
             const stem = _stemFromFbPin(domKey, pin);
             if (stem) { _indexStem(stem, raw); n++; }
         }
-        fbOk = n > 0;
-        console.info(`[PriceOverlay] Firebase: ${n} confirmed match prices`);
+        console.info(`[PriceOverlay] Firebase overlay: ${n} confirmed prices`);
     } catch (e) {
-        console.warn('[PriceOverlay] Firebase load failed:', e);
-    }
-    if (!fbOk) {
-        try {
-            const res = await fetch('./prices.json', { cache: 'no-store' });
-            const snap = await res.json();
-            for (const [stem, raw] of Object.entries(snap || {})) _indexStem(stem, Number(raw));
-            console.info(`[PriceOverlay] prices.json snapshot: ${Object.keys(snap || {}).length} prices`);
-        } catch (e) {
-            console.warn('[PriceOverlay] prices.json fallback failed:', e);
-        }
+        console.warn('[PriceOverlay] Firebase overlay failed (using snapshot only):', e);
     }
     document.querySelectorAll('.pin').forEach(_addPriceBadge);
 })();

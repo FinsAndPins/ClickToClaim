@@ -219,7 +219,14 @@ async function loadAuctionValues(manifest, ver) {
             });
         } catch (e) { console.warn('boards json load failed for auction values:', name, e); }
     }));
-    let ok = false;
+    // Base: prices.json (complete resolved map), then live Firebase confirmed prices win.
+    try {
+        const snap = await (await fetch('./prices.json', { cache: 'no-store' })).json();
+        for (const [stem, raw] of Object.entries(snap || {})) {
+            if (isFinite(Number(raw)) && Number(raw) > 0) stemToPrice[stem] = Number(raw);
+        }
+        console.info(`[AuctionValue] prices.json base: ${Object.keys(snap || {}).length} prices`);
+    } catch (e) { console.warn('[AuctionValue] prices.json load failed:', e); }
     try {
         const snap = await db.ref(`pin_pricing_tests/${PRICING_RUN_ID}/visual_baseline/pins`).once('value');
         const all = snap.val() || {};
@@ -231,18 +238,8 @@ async function loadAuctionValues(manifest, ver) {
             const stem = String(pin.crop_filename || '').replace(/\.(jpe?g|png)$/i, '');
             if (stem) { stemToPrice[stem] = raw; n++; }
         }
-        ok = n > 0;
-        console.info(`[AuctionValue] Firebase: ${n} confirmed match prices`);
-    } catch (e) { console.warn('[AuctionValue] Firebase load failed:', e); }
-    if (!ok) {
-        try {
-            const snap = await (await fetch('./prices.json', { cache: 'no-store' })).json();
-            for (const [stem, raw] of Object.entries(snap || {})) {
-                if (isFinite(Number(raw)) && Number(raw) > 0) stemToPrice[stem] = Number(raw);
-            }
-            console.info(`[AuctionValue] prices.json snapshot: ${Object.keys(snap || {}).length} prices`);
-        } catch (e) { console.warn('[AuctionValue] prices.json fallback failed:', e); }
-    }
+        console.info(`[AuctionValue] Firebase overlay: ${n} confirmed prices`);
+    } catch (e) { console.warn('[AuctionValue] Firebase overlay failed (using snapshot only):', e); }
 }
 
 function normalizeUserDisplayName(raw) {
