@@ -56,11 +56,11 @@
         </div>
     </section>
 
-    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
+    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>Auction Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
 
-    <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>2. Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
 
-    <section><h2>3. Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>3. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
 
     <section><h2>4. Click Summary</h2><table id="summaryTable"><thead><tr><th>Clicks</th><th>Pins</th></tr></thead><tbody></tbody></table></section>
 
@@ -71,7 +71,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-const SHOW_DATE_SLUG_FALLBACK = "20260713";
+const SHOW_DATE_SLUG_FALLBACK = "20260720";
 function parseShowDateSlugFromPathReports() {
     const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
     const segments = pathClean.split("/").filter(Boolean);
@@ -179,6 +179,12 @@ async function loadData() {
         renderReports();
     });
 
+    // Auction values: claim key IMG_XXXX-idx → crop_stem (boards JSONs) → confirmed price
+    // (same sources as the boards-page overlay: Firebase match pins, prices.json fallback).
+    loadAuctionValues(manifest, BOARDS_MANIFEST_VERSION).then(() => {
+        if (globalData) renderReports();
+    });
+
     db.ref(`feedback/${fbName}`).on('value', snap => {
         const fb = snap.val() || {};
         document.getElementById('feedbackContainer').innerHTML = Object.values(fb).reverse().map(f => `
@@ -187,6 +193,56 @@ async function loadData() {
             </div>
         `).join('') || "No feedback yet.";
     });
+}
+
+// ── Auction value support ────────────────────────────────────────────────
+const PRICING_RUN_ID = 'test_PriceCollection_20260716_1203__build_20311_visual_baseline';
+const pinKeyToStem = {};   // "IMG_7954-3" → "img1_pin04"
+const stemToPrice = {};    // stem → raw confirmed price
+
+/** Same rule as the boards-page badges: <$10 → $10, else round UP to nearest $5; auction = 80%. */
+function auctionValueForPk(pk) {
+    const stem = pinKeyToStem[pk];
+    if (!stem) return 0;
+    const raw = stemToPrice[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    const rounded = raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
+    return Math.round(rounded * 0.8);
+}
+
+async function loadAuctionValues(manifest, ver) {
+    await Promise.all(manifest.map(async name => {
+        try {
+            const data = await (await fetch(`./boards/${name}.json?v=${ver}`, { cache: "no-store" })).json();
+            (data.predictions || []).forEach((p, idx) => {
+                if (p.crop_stem) pinKeyToStem[`${name}-${idx}`] = p.crop_stem;
+            });
+        } catch (e) { console.warn('boards json load failed for auction values:', name, e); }
+    }));
+    let ok = false;
+    try {
+        const snap = await db.ref(`pin_pricing_tests/${PRICING_RUN_ID}/visual_baseline/pins`).once('value');
+        const all = snap.val() || {};
+        let n = 0;
+        for (const pin of Object.values(all)) {
+            if (!pin || pin.match_status !== 'match') continue;
+            const raw = Number(pin.display_price);
+            if (!isFinite(raw) || raw <= 0) continue;
+            const stem = String(pin.crop_filename || '').replace(/\.(jpe?g|png)$/i, '');
+            if (stem) { stemToPrice[stem] = raw; n++; }
+        }
+        ok = n > 0;
+        console.info(`[AuctionValue] Firebase: ${n} confirmed match prices`);
+    } catch (e) { console.warn('[AuctionValue] Firebase load failed:', e); }
+    if (!ok) {
+        try {
+            const snap = await (await fetch('./prices.json', { cache: 'no-store' })).json();
+            for (const [stem, raw] of Object.entries(snap || {})) {
+                if (isFinite(Number(raw)) && Number(raw) > 0) stemToPrice[stem] = Number(raw);
+            }
+            console.info(`[AuctionValue] prices.json snapshot: ${Object.keys(snap || {}).length} prices`);
+        } catch (e) { console.warn('[AuctionValue] prices.json fallback failed:', e); }
+    }
 }
 
 function normalizeUserDisplayName(raw) {
@@ -224,9 +280,10 @@ function renderReports() {
             const t = rowTime(m);
             const prettyRaw = rowLabel(m) || u;
             const canon = normalizeUserDisplayName(prettyRaw) || u;
-            if (!userStats[canon]) userStats[canon] = { last: 0, unique: 0, contested: 0, pretty: canon, repUid: u };
+            if (!userStats[canon]) userStats[canon] = { last: 0, unique: 0, contested: 0, value: 0, pretty: canon, repUid: u };
             if (t > userStats[canon].last) userStats[canon].last = t;
             if (isUnique) userStats[canon].unique++; else userStats[canon].contested++;
+            userStats[canon].value += auctionValueForPk(pk);
             liveFeed.push({
                 pin: pk,
                 display: cleanLoc,
@@ -238,12 +295,12 @@ function renderReports() {
         });
     });
 
-    let tU=0, tC=0, tT=0;
+    let tU=0, tC=0, tT=0, tV=0;
     document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([canon, s]) => {
-        tU+=s.unique; tC+=s.contested; tT+=(s.unique+s.contested);
-        return `<tr><td>${s.pretty || canon}<br><small style="color:#888">${s.repUid || canon}</small></td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td></tr>`;
+        tU+=s.unique; tC+=s.contested; tT+=(s.unique+s.contested); tV+=s.value;
+        return `<tr><td>${s.pretty || canon}<br><small style="color:#888">${s.repUid || canon}</small></td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td><td>$${s.value}</td></tr>`;
     }).join('');
-    document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td>`;
+    document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td><td>$${tV}</td>`;
 
     document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `
         <tr>
