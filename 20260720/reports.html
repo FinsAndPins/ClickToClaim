@@ -295,12 +295,22 @@ function renderReports() {
         });
     });
 
-    let tU=0, tC=0, tT=0, tV=0;
+    let tU=0, tC=0, tT=0;
     document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([canon, s]) => {
-        tU+=s.unique; tC+=s.contested; tT+=(s.unique+s.contested); tV+=s.value;
+        tU+=s.unique; tC+=s.contested; tT+=(s.unique+s.contested);
         return `<tr><td>${s.pretty || canon}<br><small style="color:#888">${s.repUid || canon}</small></td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td><td>$${s.value}</td></tr>`;
     }).join('');
-    document.getElementById("userTallyFooter").innerHTML = `<td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td><td>$${tV}</td>`;
+    // Revenue total counts each clicked pin ONCE (a contested pin sells to one winner),
+    // unlike the per-user column where the same pin appears under every user who clicked it.
+    let revTotal = 0, pinsPriced = 0;
+    const pinsClicked = Object.keys(globalData.raw).length;
+    Object.keys(globalData.raw).forEach(pk => {
+        const v = auctionValueForPk(pk);
+        if (v > 0) { revTotal += v; pinsPriced++; }
+    });
+    document.getElementById("userTallyFooter").innerHTML =
+        `<tr><td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td><td>$${revTotal}</td></tr>` +
+        `<tr><td colspan="6" style="font-weight:normal; color:#333;">If every clicked pin sells at auction price: <strong>$${revTotal}</strong> from <strong>${pinsClicked}</strong> pins (${pinsPriced} priced, each counted once even when contested). Per-user rows above count contested pins under every clicker, so they can sum higher.</td></tr>`;
 
     document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `
         <tr>
