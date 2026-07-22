@@ -1067,8 +1067,8 @@ function countClaimedPinsFromState() {
 
 function handlePinClick(boardName, idx) {
     const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
-    if (pinEl && pinEl.classList.contains("pin-unpriced")) return;
-    if (typeof window._ctcPinHasPrice === "function" && pinEl && !window._ctcPinHasPrice(pinEl)) return;
+    // NaP pins are live-disabled by the price overlay; never gate claims on price.
+    if (pinEl && pinEl.classList.contains("pin-nap")) return;
     const pinKey = `${boardName}-${idx}`;
     const userKey = sanitizeUserKey(identityKey);
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
@@ -1301,22 +1301,26 @@ function calculateGlobals() {
     z-index: 101;
     line-height: 1.4;
 }
-.pin.pin-unpriced {
+/* not_a_pin only — unpriced / no_match pins stay claimable without a badge */
+.pin.pin-nap {
     visibility: hidden;
     pointer-events: none;
 }
 </style>
 <script id="_ctcPriceOverlay">
-// Price overlay — 20260723. Rounded list/show price only (no auction discount).
-// Visibility mode is controlled from reports.html (localStorage); default = hidden.
+// Price overlay — 20260723. Badges ONLY for Firebase match + positive price.
+// Live RTDB listener (no refresh). Rounded list/show price only (no 20% discount).
+// Visibility mode from reports.html (localStorage); default = hidden.
 (function() {
-const _PO_DB = 'https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com';
 const _PO_TR = 'test_PriceCollection_20260721_2320__build_4960_visual_baseline';
 const _PO_AP = 'visual_baseline';
 const _PO_MODE_KEY = '_ctcPriceMode_20260723';
+const _PO_PINS_PATH = `pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins`;
 
 let _priceMode = localStorage.getItem(_PO_MODE_KEY) || 'none';
-const _stemToPrice = {};
+const _pricesSnap = {};   // stem -> raw (match-only snapshot; fallback when FB match lacks display_price)
+const _stemToPrice = {};  // stem -> raw confirmed show price
+const _napStems = new Set();
 
 function _roundForShow(raw) {
     if (raw == null || !isFinite(raw) || raw <= 0) return 0;
@@ -1328,11 +1332,30 @@ function _normStem(stem) {
     return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, '_') : '';
 }
 
+function _rememberSnap(stem, price) {
+    if (!stem || !isFinite(price) || price <= 0) return;
+    _pricesSnap[stem] = price;
+    const norm = _normStem(stem);
+    if (norm) _pricesSnap[norm] = price;
+}
+
 function _indexStem(stem, price) {
     if (!stem || !isFinite(price) || price <= 0) return;
     _stemToPrice[stem] = price;
     const norm = _normStem(stem);
     if (norm) _stemToPrice[norm] = price;
+}
+
+function _clearLiveMaps() {
+    for (const k of Object.keys(_stemToPrice)) delete _stemToPrice[k];
+    _napStems.clear();
+}
+
+function _snapForStem(stem) {
+    if (!stem) return null;
+    let p = _pricesSnap[stem];
+    if (p == null) p = _pricesSnap[_normStem(stem)];
+    return (p != null && isFinite(p) && p > 0) ? p : null;
 }
 
 function _rawForPin(pinEl) {
@@ -1343,15 +1366,11 @@ function _rawForPin(pinEl) {
     return (price != null && isFinite(price) && price > 0) ? price : null;
 }
 
-window._ctcPinHasPrice = function(pinEl) {
-    return _rawForPin(pinEl) != null;
-};
-
-window._ctcApplyPinPriceGate = function(pinEl) {
-    if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
-    const priced = _rawForPin(pinEl) != null;
-    pinEl.classList.toggle('pin-unpriced', !priced);
-};
+function _isNapPin(pinEl) {
+    const stem = pinEl && pinEl.dataset.cropStem;
+    if (!stem) return false;
+    return _napStems.has(stem) || _napStems.has(_normStem(stem));
+}
 
 function _badgeVisible(pinEl) {
     if (_priceMode === 'none') return false;
@@ -1369,16 +1388,27 @@ function _refreshAllBadges() {
     document.querySelectorAll('.pin').forEach(_updateBadgeViz);
 }
 
-function _addPriceBadge(pinEl) {
+function _applyPin(pinEl) {
+    if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
+    const nap = _isNapPin(pinEl);
+    pinEl.classList.toggle('pin-nap', nap);
+    if (nap) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
     const raw = _rawForPin(pinEl);
-    window._ctcApplyPinPriceGate(pinEl);
     if (raw == null) {
         const old = pinEl.querySelector('.pin-pb');
         if (old) old.remove();
         return;
     }
     const rounded = _roundForShow(raw);
-    if (rounded === 0) return;
+    if (rounded === 0) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
     let badge = pinEl.querySelector('.pin-pb');
     if (!badge) {
         badge = document.createElement('span');
@@ -1387,6 +1417,10 @@ function _addPriceBadge(pinEl) {
     }
     badge.textContent = '$' + rounded;
     _updateBadgeViz(pinEl);
+}
+
+function _applyAllPins() {
+    document.querySelectorAll('.pin').forEach(_applyPin);
 }
 
 function _applyMode(mode) {
@@ -1399,8 +1433,6 @@ window.addEventListener('storage', (e) => {
     if (e.key === _PO_MODE_KEY) _applyMode(e.newValue || 'none');
 });
 
-// Same-tab sync when reports opens in another tab is via storage; also poll lightly
-// in case reports sets localStorage from same browsing context via BroadcastChannel.
 try {
     const bc = new BroadcastChannel('ctc_price_mode_20260723');
     bc.onmessage = (ev) => {
@@ -1410,7 +1442,7 @@ try {
 
 const _pinAddObs = new MutationObserver(muts => {
     muts.forEach(m => m.addedNodes.forEach(n => {
-        if (n.nodeType === 1 && n.classList && n.classList.contains('pin')) _addPriceBadge(n);
+        if (n.nodeType === 1 && n.classList && n.classList.contains('pin')) _applyPin(n);
     }));
 });
 _pinAddObs.observe(document.body, { childList: true, subtree: true });
@@ -1434,37 +1466,75 @@ function _stemFromFbPin(domKey, pin) {
     return null;
 }
 
-(async function _loadPrices() {
+function _priceFromMatchPin(pin, stem) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === 'object') {
+        const sp = Number(sc.price != null ? sc.price : sc.total_price);
+        if (isFinite(sp) && sp > 0) return sp;
+    }
+    return _snapForStem(stem);
+}
+
+function _ingestFirebasePins(all) {
+    _clearLiveMaps();
+    let nMatch = 0, nPriced = 0, nNap = 0;
+    for (const [domKey, pin] of Object.entries(all || {})) {
+        if (!pin) continue;
+        const stem = _stemFromFbPin(domKey, pin);
+        if (!stem) continue;
+        const status = pin.match_status || '';
+        if (status === 'not_a_pin') {
+            _napStems.add(stem);
+            _napStems.add(_normStem(stem));
+            nNap++;
+            continue;
+        }
+        if (status !== 'match') continue;
+        nMatch++;
+        const raw = _priceFromMatchPin(pin, stem);
+        if (raw != null) { _indexStem(stem, raw); nPriced++; }
+    }
+    console.info(`[PriceOverlay] live FB: match=${nMatch} priced=${nPriced} nap=${nNap}`);
+    _applyAllPins();
+    _applyMode(_priceMode);
+}
+
+(async function _bootPriceOverlay() {
     try {
         const res = await fetch('./prices.json', { cache: 'no-store' });
         const snap = await res.json();
-        for (const [stem, raw] of Object.entries(snap || {})) _indexStem(stem, Number(raw));
-        console.info(`[PriceOverlay] prices.json base: ${Object.keys(snap || {}).length} prices`);
+        for (const [stem, raw] of Object.entries(snap || {})) _rememberSnap(stem, Number(raw));
+        console.info(`[PriceOverlay] prices.json fallback map: ${Object.keys(snap || {}).length}`);
     } catch (e) {
         console.warn('[PriceOverlay] prices.json load failed:', e);
     }
+
+    // Prefer live listener so Lexi/Steve Match + price writes appear without refresh.
     try {
-        const fbUrl = `${_PO_DB}/pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins.json`;
-        const fbRes = await fetch(fbUrl);
-        const all = await fbRes.json();
-        let n = 0;
-        for (const [domKey, pin] of Object.entries(all || {})) {
-            if (!pin) continue;
-            if (pin.match_status === 'not_a_pin') continue;
-            const raw = Number(pin.display_price);
-            if (!isFinite(raw) || raw <= 0) continue;
-            if (pin.match_status && pin.match_status !== 'match' && pin.match_status !== 'unreviewed') {
-                // keep other statuses only if they still carry a positive display_price
-            }
-            const stem = _stemFromFbPin(domKey, pin);
-            if (stem) { _indexStem(stem, raw); n++; }
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            firebase.database().ref(_PO_PINS_PATH).on('value', snap => {
+                _ingestFirebasePins(snap.val() || {});
+            }, err => {
+                console.warn('[PriceOverlay] Firebase listener failed:', err);
+            });
+            return;
         }
-        console.info(`[PriceOverlay] Firebase overlay: ${n} prices`);
     } catch (e) {
-        console.warn('[PriceOverlay] Firebase overlay failed (using snapshot only):', e);
+        console.warn('[PriceOverlay] Firebase listener setup failed:', e);
     }
-    document.querySelectorAll('.pin').forEach(_addPriceBadge);
-    _applyMode(_priceMode);
+
+    // Fallback: one-shot REST fetch if SDK unavailable.
+    try {
+        const fbUrl = `https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/${_PO_PINS_PATH}.json`;
+        const fbRes = await fetch(fbUrl);
+        _ingestFirebasePins(await fbRes.json());
+    } catch (e) {
+        console.warn('[PriceOverlay] Firebase REST fallback failed:', e);
+        _applyAllPins();
+        _applyMode(_priceMode);
+    }
 })();
 })();
 </script>
