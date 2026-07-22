@@ -29,6 +29,18 @@
         .reports-phase-btn:hover { background: #ddd; }
         .reports-phase-btn.reports-phase-active { background: #0066aa; border-color: #004a80; color: #fff; }
         .reports-phase-status { font-size: 12px; color: #333; margin-left: 4px; }
+        .reports-price-wrap { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; }
+        .reports-price-wrap label { font-size: 13px; color: #333; font-weight: 600; }
+        #_po-sel-reports {
+            font-size: 13px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            border: 1px solid #999;
+            background: #fff;
+            color: #222;
+            cursor: pointer;
+            font-family: inherit;
+        }
     </style>
 </head>
 <body>
@@ -51,6 +63,14 @@
                 <button type="button" class="reports-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
                 <button type="button" class="reports-phase-btn" data-phase="post" title="Force Post Show banner + full-screen ended">Post Show</button>
                 <button type="button" class="reports-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
+                <span class="reports-price-wrap" title="Controls price badges on the boards page">
+                    <label for="_po-sel-reports">Prices</label>
+                    <select id="_po-sel-reports" aria-label="Price visibility on boards page">
+                        <option value="none">Hide prices (default)</option>
+                        <option value="all">Show all prices</option>
+                        <option value="clicked">Prices on clicked pins only</option>
+                    </select>
+                </span>
                 <span id="reportsPhaseStatus" class="reports-phase-status" aria-live="polite"></span>
             </div>
         </div>
@@ -170,8 +190,30 @@ async function loadData() {
         });
     });
 
+    // Price overlay control for boards page (shared localStorage + BroadcastChannel).
+    const _PO_MODE_KEY = "_ctcPriceMode_20260723";
+    const priceSel = document.getElementById("_po-sel-reports");
+    if (priceSel) {
+        const cur = localStorage.getItem(_PO_MODE_KEY) || "none";
+        priceSel.value = ["all", "clicked", "none"].includes(cur) ? cur : "none";
+        if (!localStorage.getItem(_PO_MODE_KEY)) localStorage.setItem(_PO_MODE_KEY, "none");
+        let bc = null;
+        try { bc = new BroadcastChannel("ctc_price_mode_20260723"); } catch (_) {}
+        priceSel.addEventListener("change", () => {
+            const mode = priceSel.value;
+            localStorage.setItem(_PO_MODE_KEY, mode);
+            if (bc) bc.postMessage({ mode });
+            if (phaseStatusEl) {
+                phaseStatusEl.textContent = mode === "none" ? "Prices hidden on boards." : "Price display updated on boards.";
+                setTimeout(() => {
+                    if (phaseStatusEl && /Prices/.test(phaseStatusEl.textContent)) phaseStatusEl.textContent = "";
+                }, 2500);
+            }
+        });
+    }
+
     // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
-    const BOARDS_MANIFEST_VERSION = "1";
+    const BOARDS_MANIFEST_VERSION = "2";
     const manifest = await (await fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
 
     db.ref(`claims/${fbName}`).on('value', snap => {

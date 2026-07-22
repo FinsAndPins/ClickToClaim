@@ -1,17 +1,17 @@
 {
-  "predictions": [
-    {
-      "x": 474.6875,
-      "y": 688.75,
-      "width": 637.1875,
-      "height": 525.0,
-      "confidence": 0.9688562154769897,
-      "class": "pin",
-      "crop_stem": "img8132_pin01"
-    }
-  ],
-  "image": {
-    "width": 960,
-    "height": 1280
+ "predictions": [
+  {
+   "x": 474.69,
+   "y": 688.75,
+   "width": 638.12,
+   "height": 525.62,
+   "confidence": 1.0,
+   "class": "pin",
+   "crop_stem": "img17_pin01"
   }
+ ],
+ "image": {
+  "width": 960,
+  "height": 1280
+ }
 }
