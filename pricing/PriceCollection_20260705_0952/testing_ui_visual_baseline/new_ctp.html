@@ -126,9 +126,10 @@ body{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
   <a href="new_ctm.html">ClickToMatch v2</a>
   <a href="https://finsandpins.github.io/PreparingInventory/PriceCollection_20260705_0952/testing_ui_visual_baseline/nts_review.html">Slot Review</a>
   <a href="new_ctp.html" class="current">ClickToPrice v2</a>
+  <a href="new_ctp.html?filter=available_nomatch">CTP · Still Available No Match</a>
   <a href="available.html">Available pins (CTR)</a>
-  <a href="https://finsandpins.github.io/PreparingInventory/PriceCollection_20260705_0952/testing_ui_visual_baseline/contact_sheet.html">Contact Sheet</a>
-  <a href="https://finsandpins.github.io/PreparingInventory/PriceCollection_20260705_0952/testing_ui_visual_baseline/index.html">Overlay</a>
+  <a href="contact_sheet.html">Contact Sheet</a>
+  <a href="overlay.html">Overlay (available only)</a>
 </div>
 <div id="prog-wrap"><div id="prog-fill"></div></div>
 
@@ -158,7 +159,8 @@ body{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 <div id="bottom-nav">
   <div class="filter-bar">
     <span class="bar-label">Filter:</span>
-    <button class="fb filt-btn active" data-filter="nomatch">No Match<span class="fb-cnt"></span></button>
+    <button class="fb filt-btn" data-filter="avail_nomatch">Still Available No Match<span class="fb-cnt"></span></button>
+  <button class="fb filt-btn active" data-filter="nomatch">No Match<span class="fb-cnt"></span></button>
     <button class="fb filt-btn" data-filter="unrev">Unreviewed<span class="fb-cnt"></span></button>
     <button class="fb filt-btn" data-filter="all">All<span class="fb-cnt"></span></button>
     <button class="fb filt-btn" data-filter="wdi">WDI</button>
@@ -647,10 +649,53 @@ document.getElementById('manual-btn').addEventListener('click', () => {
   renderPin(selPin);
 });
 
+
+// --- Still Available (Connie CTR clicks) ---------------------------------
+const AVAILABLE_CLAIMS_PATH = 'claims/connie_available_20260705';
+let availableStems = new Set();
+function _normStemAvail(stem) {
+  return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, '_') : '';
+}
+function _stemFromPin(p) {
+  if (!p) return null;
+  const crop = String(p.crop || '').replace(/\.(jpe?g|png)$/i, '');
+  if (crop) return crop;
+  const pk = String(p.pk || '');
+  if (pk.includes('.jpg__')) return pk.split('.jpg__')[0];
+  return null;
+}
+function _isStillAvailable(p) {
+  const stem = _stemFromPin(p);
+  if (!stem) return false;
+  return availableStems.has(stem) || availableStems.has(_normStemAvail(stem));
+}
+async function _loadAvailableStems() {
+  try {
+    const url = _DB_BASE + '/' + AVAILABLE_CLAIMS_PATH + '.json';
+    const resp = await fetch(url, { cache: 'no-store' });
+    const data = await resp.json();
+    const next = new Set();
+    for (const [k, users] of Object.entries(data || {})) {
+      if (!users || typeof users !== 'object' || !Object.keys(users).length) continue;
+      let stem = k;
+      for (const u of Object.values(users)) {
+        if (u && u.crop_stem) { stem = u.crop_stem; break; }
+      }
+      next.add(stem);
+      next.add(_normStemAvail(stem));
+    }
+    availableStems = next;
+    console.log('CTP: loaded', availableStems.size, 'available stem keys');
+  } catch (e) {
+    console.warn('CTP: available claims load failed', e);
+  }
+}
+
 function applyFilter() {
   const SKIP = ['match','no_match','auto_match','priced','not_a_pin'];
   let pins = [...PINS];
-  if (curFilter === 'nomatch')    pins = pins.filter(p => p.ms === 'no_match');
+  if (curFilter === 'avail_nomatch') pins = pins.filter(p => p.ms === 'no_match' && _isStillAvailable(p));
+  else if (curFilter === 'nomatch')    pins = pins.filter(p => p.ms === 'no_match');
   else if (curFilter === 'unrev') pins = pins.filter(p => !SKIP.includes(p.ms));
   else if (curFilter !== 'all')   pins = pins.filter(p => (p.cats||[]).includes(curFilter));
   displayPins = pins;
@@ -670,6 +715,7 @@ function updateFilterCounts() {
     const f = btn.dataset.filter;
     let cnt;
     if (f === 'all')          cnt = PINS.length;
+    else if (f === 'avail_nomatch') cnt = PINS.filter(p => p.ms === 'no_match' && _isStillAvailable(p)).length;
     else if (f === 'nomatch') cnt = PINS.filter(p => p.ms === 'no_match').length;
     else if (f === 'unrev')   cnt = PINS.filter(p => !SKIP.includes(p.ms)).length;
     else                      cnt = null;
@@ -689,14 +735,28 @@ document.querySelectorAll('.filt-btn').forEach(btn => {
 
 applyFilter();
 
+// Load Still Available clicks, then refresh filter counts / queue
+(async function(){
+  await _loadAvailableStems();
+  updateFilterCounts();
+  applyFilter();
+})();
+
 // Open with ?filter=no_match (or nomatch) from ClickToMatch done link
 (function(){
   const urlFilter = new URLSearchParams(window.location.search).get('filter');
-  if (urlFilter !== 'no_match' && urlFilter !== 'nomatch') return;
-  curFilter = 'nomatch';
+  if (!urlFilter) return;
+  const map = {
+    no_match: 'nomatch', nomatch: 'nomatch',
+    available_nomatch: 'avail_nomatch', avail_nomatch: 'avail_nomatch',
+    still_available_no_match: 'avail_nomatch'
+  };
+  const mapped = map[urlFilter];
+  if (!mapped) return;
+  curFilter = mapped;
   sessionStorage.removeItem(STORE_KEY);
   document.querySelectorAll('.filt-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.querySelector('.filt-btn[data-filter="nomatch"]');
+  const btn = document.querySelector('.filt-btn[data-filter="' + mapped + '"]');
   if (btn) btn.classList.add('active');
   applyFilter();
 })();

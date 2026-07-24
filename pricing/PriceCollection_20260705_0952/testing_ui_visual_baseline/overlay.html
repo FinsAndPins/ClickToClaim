@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Available pins · PriceCollection_20260705_0952</title>
+<title>Overlay · available only · PriceCollection_20260705_0952</title>
 <style>
   :root {
     --bg: #111;
@@ -104,10 +104,10 @@
 <body>
 <header>
   <button id="menu-btn" type="button" aria-label="Open menu">☰</button>
-  <h1>Available pins<span class="sub">Tap keepers · prices from Connie run</span></h1>
+  <h1>Overlay (available only)<span class="sub">Boxes + prices for still-available pins</span></h1>
   <select id="po-sel" aria-label="Price visibility">
-    <option value="clicked">Prices on clicked only</option>
     <option value="all">Show all prices</option>
+    <option value="clicked">Prices on clicked only</option>
     <option value="none">Hide prices</option>
   </select>
 </header>
@@ -119,9 +119,9 @@
     <a href="https://finsandpins.github.io/PreparingInventory/PriceCollection_20260705_0952/testing_ui_visual_baseline/nts_review.html">Slot Review</a>
     <a href="new_ctp.html">ClickToPrice v2</a>
     <a href="new_ctp.html?filter=available_nomatch">CTP · Still Available No Match</a>
-    <a href="available.html" class="current">Available pins (CTR)</a>
+    <a href="available.html">Available pins (CTR)</a>
     <a href="contact_sheet.html">Contact Sheet</a>
-    <a href="overlay.html">Overlay (available only)</a>
+    <a href="overlay.html" class="current">Overlay (available only)</a>
 </div>
 </div>
 
@@ -131,7 +131,7 @@
   <div class="row"><span>Total price</span><span id="tot-price">$0</span></div>
 </div>
 
-<p id="hint">Tap a pin to mark it still available (tap again to clear). Default shows prices only on clicked pins. No Firebase JSON download needed — prices load live (Firebase confirmed price when present, otherwise the pipeline suggested price).</p>
+<p id="hint">Shows only pins marked Still Available on the Available CTR page. Prices load live (Firebase confirmed price when present, otherwise pipeline suggested). Tap a box to clear availability if needed.</p>
 <div id="boards"></div>
 <div id="toast"></div>
 
@@ -152,7 +152,7 @@
   const APPROACH_ID = "visual_baseline";
   const CLAIMS_ROOT = "claims/connie_available_20260705";
   const BOARD_IMG_BASE = "https://finsandpins.github.io/PreparingInventory/PriceCollection_20260705_0952/testing_ui_visual_baseline/assets/boards/";
-  const MODE_KEY = "_ctcPriceMode_connie_available_20260705";
+  const MODE_KEY = "_ctcPriceMode_connie_overlay_available_20260705";
 
   firebase.initializeApp(FB_CFG);
   const db = firebase.database();
@@ -162,7 +162,7 @@
   const menu = document.getElementById("nav-menu");
   const toast = document.getElementById("toast");
 
-  let priceMode = localStorage.getItem(MODE_KEY) || "clicked";
+  let priceMode = localStorage.getItem(MODE_KEY) || "all";
   if (!["all", "clicked", "none"].includes(priceMode)) priceMode = "clicked";
   sel.value = priceMode;
 
@@ -334,15 +334,15 @@
       const scale = img.clientWidth / (board.thumb_w || img.naturalWidth || 1);
       wrap.querySelectorAll(".pin").forEach((el) => el.remove());
       board.predictions.forEach((pin, idx) => {
+        if (!availableStems.has(pin.crop_stem) && !availableStems.has(normStem(pin.crop_stem))) return;
         const div = document.createElement("div");
-        div.className = "pin";
+        div.className = "pin selection-green";
         div.style.left = (pin.x - pin.width / 2) * scale + "px";
         div.style.top = (pin.y - pin.height / 2) * scale + "px";
         div.style.width = pin.width * scale + "px";
         div.style.height = pin.height * scale + "px";
         div.dataset.cropStem = pin.crop_stem;
         div.id = `pin-${board.board_num}-${idx}`;
-        if (availableStems.has(pin.crop_stem)) div.classList.add("selection-green");
         div.addEventListener("click", (e) => {
           e.preventDefault();
           togglePin(div);
@@ -350,6 +350,8 @@
         wrap.appendChild(div);
         applyPin(div);
       });
+      const cardEl = wrap.closest(".board-card");
+      if (cardEl) cardEl.style.display = wrap.querySelectorAll(".pin").length ? "" : "none";
     };
 
     img.addEventListener("load", placePins);
@@ -406,9 +408,7 @@
       }
       availableStems.add(stem);
     }
-    document.querySelectorAll(".pin").forEach((el) => {
-      setAvailableClass(el, availableStems.has(el.dataset.cropStem));
-    });
+    boardPlaceFns.forEach((fn) => fn());
     refreshTotals();
   }
 
