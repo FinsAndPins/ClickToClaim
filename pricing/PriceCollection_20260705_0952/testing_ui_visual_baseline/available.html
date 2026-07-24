@@ -16,8 +16,9 @@
     --green-border: rgba(0, 200, 0, 0.95);
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  body { padding-bottom: 24px; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  body { padding-bottom: 28px; }
   header {
     position: sticky; top: 0; z-index: 50;
     display: flex; align-items: center; gap: 10px;
@@ -33,11 +34,17 @@
     height: 36px; border-radius: 8px; border: 1px solid #333;
     background: #222; color: var(--text); font-size: 13px; max-width: 46vw;
   }
-  #stats {
-    display: flex; gap: 10px; flex-wrap: wrap; padding: 10px 12px;
-    font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line);
+  #totals {
+    margin: 12px 12px 0;
+    display: inline-flex; flex-direction: column; gap: 4px;
+    min-width: 160px; max-width: calc(100% - 24px);
+    padding: 10px 14px; border-radius: 12px;
+    background: #152238; border: 1px solid #2a4a73;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
   }
-  #stats b { color: var(--text); }
+  #totals .label { font-size: 11px; color: #9ec8ff; text-transform: uppercase; letter-spacing: 0.04em; }
+  #totals .row { display: flex; justify-content: space-between; gap: 16px; font-size: 18px; font-weight: 700; }
+  #totals .row span:last-child { color: #fff; }
   #hint {
     padding: 8px 12px 0; font-size: 13px; color: var(--muted); line-height: 1.35;
   }
@@ -50,7 +57,7 @@
     padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--line);
   }
   .board-wrap { position: relative; width: 100%; background: #000; }
-  .board-wrap img { display: block; width: 100%; height: auto; vertical-align: top; }
+  .board-wrap img { display: block; width: 100%; height: auto; }
   .pin {
     position: absolute; border: 2px solid rgba(255,255,255,0.35);
     border-radius: 4px; cursor: pointer; touch-action: manipulation;
@@ -88,7 +95,8 @@
   #toast {
     position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
     background: #1a5e1a; color: #fff; padding: 8px 14px; border-radius: 20px;
-    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 10000;
+    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .25s;
+    pointer-events: none; z-index: 10000;
   }
   #toast.show { opacity: 1; }
 </style>
@@ -117,12 +125,13 @@
   </div>
 </div>
 
-<div id="stats">
-  <span>Available: <b id="stat-available">0</b></span>
-  <span>Priced matches: <b id="stat-priced">0</b></span>
-  <span>Boards: <b id="stat-boards">0</b></span>
+<div id="totals" aria-live="polite">
+  <div class="label">Selected available</div>
+  <div class="row"><span>Pins clicked</span><span id="tot-count">0</span></div>
+  <div class="row"><span>Total price</span><span id="tot-price">$0</span></div>
 </div>
-<p id="hint">Tap a pin to mark it still available (tap again to clear). Use <b>Prices on clicked only</b> so sold pins stay blank without NaP’ing them. Does not change ClickToMatch / ClickToPrice reviews.</p>
+
+<p id="hint">Tap a pin to mark it still available (tap again to clear). Default shows prices only on clicked pins. No Firebase JSON download needed — prices load live (Firebase confirmed price when present, otherwise the pipeline suggested price).</p>
 <div id="boards"></div>
 <div id="toast"></div>
 
@@ -152,14 +161,19 @@
   const sel = document.getElementById("po-sel");
   const menu = document.getElementById("nav-menu");
   const toast = document.getElementById("toast");
+
   let priceMode = localStorage.getItem(MODE_KEY) || "clicked";
   if (!["all", "clicked", "none"].includes(priceMode)) priceMode = "clicked";
   sel.value = priceMode;
 
-  const stemToPrice = {};
+  // stem -> pipeline suggested price (from available_boards.json)
+  const pipelinePrice = Object.create(null);
+  // stem -> Firebase confirmed price (match/priced with display_price)
+  const fbPrice = Object.create(null);
   const napStems = new Set();
   const availableStems = new Set();
   let reviewer = localStorage.getItem("fpins_reviewer") || "";
+  const boardPlaceFns = [];
 
   function toastMsg(msg, ok) {
     toast.textContent = msg;
@@ -185,6 +199,24 @@
 
   function claimKey(stem) {
     return String(stem || "").replace(/[^A-Za-z0-9_-]/g, "_");
+  }
+
+  function indexPrice(map, stem, price) {
+    if (!stem || !isFinite(price) || price <= 0) return;
+    map[stem] = price;
+    map[normStem(stem)] = price;
+  }
+
+  function lookupPrice(map, stem) {
+    if (!stem) return null;
+    let p = map[stem];
+    if (p == null) p = map[normStem(stem)];
+    return (p != null && isFinite(p) && p > 0) ? p : null;
+  }
+
+  function rawForStem(stem) {
+    // Prefer Firebase confirmed price; else pipeline suggested price.
+    return lookupPrice(fbPrice, stem) || lookupPrice(pipelinePrice, stem);
   }
 
   function roundForShow(raw) {
@@ -213,15 +245,18 @@
       if (old) old.remove();
       return;
     }
-    let price = stemToPrice[stem];
-    if (price == null) price = stemToPrice[normStem(stem)];
-    if (price == null || !isFinite(price) || price <= 0) {
+    const raw = rawForStem(stem);
+    if (raw == null) {
       const old = pinEl.querySelector(".pin-pb");
       if (old) old.remove();
       return;
     }
-    const rounded = roundForShow(price);
-    if (!rounded) return;
+    const rounded = roundForShow(raw);
+    if (!rounded) {
+      const old = pinEl.querySelector(".pin-pb");
+      if (old) old.remove();
+      return;
+    }
     let badge = pinEl.querySelector(".pin-pb");
     if (!badge) {
       badge = document.createElement("span");
@@ -236,13 +271,16 @@
     document.querySelectorAll(".pin").forEach(applyPin);
   }
 
-  function refreshStats() {
-    document.getElementById("stat-available").textContent = String(availableStems.size);
-    let n = 0;
-    for (const k of Object.keys(stemToPrice)) {
-      if (/^img\d+_pin\d+$/i.test(k)) n++;
+  function refreshTotals() {
+    let count = 0;
+    let total = 0;
+    for (const stem of availableStems) {
+      count++;
+      const raw = rawForStem(stem);
+      if (raw != null) total += roundForShow(raw);
     }
-    document.getElementById("stat-priced").textContent = String(n);
+    document.getElementById("tot-count").textContent = String(count);
+    document.getElementById("tot-price").textContent = "$" + total.toLocaleString("en-US");
   }
 
   function setAvailableClass(pinEl, on) {
@@ -273,7 +311,7 @@
         setAvailableClass(pinEl, true);
         toastMsg("Marked available");
       }
-      refreshStats();
+      refreshTotals();
     } catch (e) {
       console.warn(e);
       toastMsg("Save failed", false);
@@ -315,15 +353,13 @@
     };
 
     img.addEventListener("load", placePins);
-    window.addEventListener("resize", () => {
-      if (img.complete) placePins();
-    });
+    boardPlaceFns.push(() => { if (img.complete) placePins(); });
     card.appendChild(wrap);
     boardsEl.appendChild(card);
   }
 
   function ingestPricing(all) {
-    for (const k of Object.keys(stemToPrice)) delete stemToPrice[k];
+    for (const k of Object.keys(fbPrice)) delete fbPrice[k];
     napStems.clear();
     for (const [domKey, pin] of Object.entries(all || {})) {
       if (!pin) continue;
@@ -332,8 +368,9 @@
       if (cf) stem = cf.replace(/\.(jpe?g|png)$/i, "");
       if (!stem) {
         const pk = pin.pin_key || domKey;
-        if (pk.includes(".jpg__")) stem = pk.split(".jpg__")[0];
-        else if (domKey.includes("_jpg__")) stem = domKey.split("_jpg__")[0].replace(/_jpg$/, "");
+        if (String(pk).includes(".jpg__")) stem = String(pk).split(".jpg__")[0];
+        else if (String(domKey).includes("_jpg__")) stem = String(domKey).split("_jpg__")[0].replace(/_jpg$/, "");
+        else if (String(domKey).includes(".jpg__")) stem = String(domKey).split(".jpg__")[0];
       }
       if (!stem) continue;
       const status = pin.match_status || "";
@@ -342,7 +379,7 @@
         napStems.add(normStem(stem));
         continue;
       }
-      if (status !== "match" && status !== "priced") continue;
+      // Confirmed Firebase price when present (match or priced).
       let raw = Number(pin.display_price);
       if (!isFinite(raw) || raw <= 0) {
         const sc = pin.selected_candidate;
@@ -350,12 +387,12 @@
           raw = Number(sc.price != null ? sc.price : sc.total_price);
         }
       }
-      if (!isFinite(raw) || raw <= 0) continue;
-      stemToPrice[stem] = raw;
-      stemToPrice[normStem(stem)] = raw;
+      if ((status === "match" || status === "priced") && isFinite(raw) && raw > 0) {
+        indexPrice(fbPrice, stem, raw);
+      }
     }
     applyAllPins();
-    refreshStats();
+    refreshTotals();
   }
 
   function ingestClaims(all) {
@@ -363,7 +400,6 @@
     for (const [stemKey, users] of Object.entries(all || {})) {
       if (!users || typeof users !== "object") continue;
       if (Object.keys(users).length === 0) continue;
-      // recover original stem from any child, else stemKey
       let stem = stemKey;
       for (const u of Object.values(users)) {
         if (u && u.crop_stem) { stem = u.crop_stem; break; }
@@ -371,10 +407,9 @@
       availableStems.add(stem);
     }
     document.querySelectorAll(".pin").forEach((el) => {
-      const on = availableStems.has(el.dataset.cropStem);
-      setAvailableClass(el, on);
+      setAvailableClass(el, availableStems.has(el.dataset.cropStem));
     });
-    refreshStats();
+    refreshTotals();
   }
 
   document.getElementById("menu-btn").addEventListener("click", () => {
@@ -391,19 +426,26 @@
       menu.setAttribute("aria-hidden", "true");
     }
   });
-
   sel.addEventListener("change", () => {
     priceMode = sel.value;
     localStorage.setItem(MODE_KEY, priceMode);
     document.querySelectorAll(".pin").forEach(updateBadgeViz);
   });
+  window.addEventListener("resize", () => boardPlaceFns.forEach((fn) => fn()));
 
   (async function boot() {
     const res = await fetch("./available_boards.json", { cache: "no-store" });
     const payload = await res.json();
     const boards = payload.boards || [];
-    document.getElementById("stat-boards").textContent = String(boards.length);
-    boards.forEach(renderBoard);
+    for (const b of boards) {
+      for (const p of b.predictions || []) {
+        if (p.pipeline_price != null) indexPrice(pipelinePrice, p.crop_stem, Number(p.pipeline_price));
+      }
+      renderBoard(b);
+    }
+    // Pipeline prices alone should already show badges (all/clicked).
+    applyAllPins();
+    refreshTotals();
 
     db.ref(`pin_pricing_tests/${TEST_RUN_ID}/${APPROACH_ID}/pins`).on("value", (snap) => {
       ingestPricing(snap.val() || {});

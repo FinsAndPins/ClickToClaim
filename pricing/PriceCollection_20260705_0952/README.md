@@ -29,3 +29,5 @@ Do **not** re-run the pricing pipeline and do **not** change `TEST_RUN_ID`.
 Uses a separate Firebase claims path (`claims/connie_available_20260705`) and reads
 prices from the existing Connie pricing run. Does not modify CTM/CTP match history.
 Default overlay mode: **Prices on clicked only**.
+
+Prices on Available CTR: live Firebase when `display_price` exists; otherwise pipeline suggested price from `available_boards.json`. No manual Firebase JSON download needed.
