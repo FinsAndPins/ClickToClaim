@@ -131,7 +131,7 @@
   <div class="row"><span>Total price</span><span id="tot-price">$0</span></div>
 </div>
 
-<p id="hint">Shows only pins marked Still Available on the Available CTR page. Prices load live (Firebase confirmed price when present, otherwise pipeline suggested). Tap a box to clear availability if needed.</p>
+<p id="hint">Shows only pins marked Still Available on the Available CTR page. Prices load live (Firebase confirmed price when present, otherwise pipeline suggested). Tap a box to open ClickToPrice for that pin. Use Available pins (CTR) to add/clear keepers.</p>
 <div id="boards"></div>
 <div id="toast"></div>
 
@@ -172,7 +172,8 @@
   const fbPrice = Object.create(null);
   const napStems = new Set();
   const availableStems = new Set();
-  let reviewer = localStorage.getItem("fpins_reviewer") || "";
+  // crop_stem -> pin_key for CTP deep links
+  const stemToPk = Object.create(null);
   const boardPlaceFns = [];
 
   function toastMsg(msg, ok) {
@@ -183,22 +184,8 @@
     toast._t = setTimeout(() => toast.classList.remove("show"), 1600);
   }
 
-  function ensureReviewer() {
-    if (reviewer) return reviewer;
-    try {
-      reviewer = (window.prompt("Your name (saved for available-pin clicks):") || "").trim().slice(0, 30);
-    } catch (_) { reviewer = ""; }
-    if (!reviewer) reviewer = "operator";
-    localStorage.setItem("fpins_reviewer", reviewer);
-    return reviewer;
-  }
-
   function normStem(stem) {
     return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, "_") : "";
-  }
-
-  function claimKey(stem) {
-    return String(stem || "").replace(/[^A-Za-z0-9_-]/g, "_");
   }
 
   function indexPrice(map, stem, price) {
@@ -283,39 +270,17 @@
     document.getElementById("tot-price").textContent = "$" + total.toLocaleString("en-US");
   }
 
-  function setAvailableClass(pinEl, on) {
-    pinEl.classList.toggle("selection-green", !!on);
-    updateBadgeViz(pinEl);
-  }
-
-  async function togglePin(pinEl) {
+  function openCtpForPin(pinEl) {
     const stem = pinEl.dataset.cropStem;
     if (!stem) return;
-    const user = ensureReviewer();
-    const path = `${CLAIMS_ROOT}/${claimKey(stem)}/${user}`;
-    const isOn = pinEl.classList.contains("selection-green");
-    try {
-      if (isOn) {
-        await db.ref(path).set(null);
-        availableStems.delete(stem);
-        setAvailableClass(pinEl, false);
-        toastMsg("Cleared");
-      } else {
-        await db.ref(path).set({
-          at: new Date().toISOString(),
-          available: true,
-          crop_stem: stem,
-          reviewed_by: user
-        });
-        availableStems.add(stem);
-        setAvailableClass(pinEl, true);
-        toastMsg("Marked available");
-      }
-      refreshTotals();
-    } catch (e) {
-      console.warn(e);
-      toastMsg("Save failed", false);
+    const pk = stemToPk[stem] || stemToPk[normStem(stem)];
+    if (pk) {
+      window.location.href = "new_ctp.html?pin=" + encodeURIComponent(pk);
+      return;
     }
+    // Pricing rows may still be loading; stem deep-link still lands on the pin after hydrate.
+    window.location.href =
+      "new_ctp.html?filter=available_nomatch&stem=" + encodeURIComponent(stem);
   }
 
   function renderBoard(board) {
@@ -345,7 +310,7 @@
         div.id = `pin-${board.board_num}-${idx}`;
         div.addEventListener("click", (e) => {
           e.preventDefault();
-          togglePin(div);
+          openCtpForPin(div);
         });
         wrap.appendChild(div);
         applyPin(div);
@@ -375,6 +340,18 @@
         else if (String(domKey).includes(".jpg__")) stem = String(domKey).split(".jpg__")[0];
       }
       if (!stem) continue;
+      if (pin.pin_key) {
+        stemToPk[stem] = pin.pin_key;
+        stemToPk[normStem(stem)] = pin.pin_key;
+      } else if (String(domKey).includes(".jpg__")) {
+        stemToPk[stem] = String(domKey);
+        stemToPk[normStem(stem)] = String(domKey);
+      } else if (String(domKey).includes("_jpg__")) {
+        // RTDB key is sanitized (dots -> underscores); recover pin_key shape.
+        const recovered = String(domKey).replace("_jpg__", ".jpg__");
+        stemToPk[stem] = recovered;
+        stemToPk[normStem(stem)] = recovered;
+      }
       const status = pin.match_status || "";
       if (status === "not_a_pin") {
         napStems.add(stem);

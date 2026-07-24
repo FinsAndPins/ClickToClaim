@@ -671,7 +671,11 @@ function _isStillAvailable(p) {
 }
 async function _loadAvailableStems() {
   try {
-    const url = _DB_BASE + '/' + AVAILABLE_CLAIMS_PATH + '.json';
+    // _DB_BASE may be defined in a later script tag; fall back so this never no-ops.
+    const base = (typeof _DB_BASE !== 'undefined' && _DB_BASE)
+      ? String(_DB_BASE).replace(/\/+$/, '')
+      : 'https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com';
+    const url = base + '/' + AVAILABLE_CLAIMS_PATH + '.json';
     const resp = await fetch(url, { cache: 'no-store' });
     const data = await resp.json();
     const next = new Set();
@@ -895,12 +899,24 @@ async function _fbReadAllPins() {
     }
   }
   console.log('CTP: hydrated ' + updated + ' pins from Firebase (' + keys.length + ' entries found)');
-  // Re-apply filter with updated statuses then re-check ?pin= param
-  const urlPk = new URLSearchParams(window.location.search).get('pin');
+  // Claims must load after statuses exist (avail_nomatch needs ms === no_match).
+  await _loadAvailableStems();
+  // Re-apply filter with updated statuses then re-check ?pin= / ?stem= param
+  const _params = new URLSearchParams(window.location.search);
+  const urlPk = _params.get('pin');
+  const urlStem = _params.get('stem');
   applyFilter();
   if (urlPk) {
     const i = displayPins.findIndex(p => p.pk === urlPk);
-    if (i >= 0) { selPin = i; renderPin(i); }
+    if (i >= 0) { selPin = i; sessionStorage.setItem(STORE_KEY, i); renderPin(i); }
+  } else if (urlStem) {
+    const want = String(urlStem);
+    const wantN = _normStemAvail(want);
+    const i = displayPins.findIndex(p => {
+      const s = _stemFromPin(p);
+      return s === want || _normStemAvail(s) === wantN;
+    });
+    if (i >= 0) { selPin = i; sessionStorage.setItem(STORE_KEY, i); renderPin(i); }
   }
 })();
 </script>
