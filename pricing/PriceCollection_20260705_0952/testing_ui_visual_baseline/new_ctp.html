@@ -292,8 +292,8 @@ function renderPin(pi) {
   document.getElementById('pd-title').textContent = p.title || p.pk;
   document.getElementById('undo-btn').style.display =
     (lastUndo && lastUndo.pk === p.pk) ? 'inline' : 'none';
-  const ei = document.getElementById('ebay-input');
-  if (ei && !ei.dataset.edited) ei.value = p.title || '';
+  // Leave eBay search empty by default. navigate() clears it on pin change;
+  // users type a query only when they need keyword search.
   renderTiles(p);
   document.getElementById('tile-area').scrollTop = 0;
 }
