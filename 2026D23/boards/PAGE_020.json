@@ -28,22 +28,13 @@
       "crop_stem": "img020_pin03"
     },
     {
-      "x": 767.25,
-      "y": 950.0,
-      "width": 167.5,
-      "height": 130.546875,
-      "confidence": 0.47002196311950684,
-      "class": "pin",
-      "crop_stem": "img020_pin04"
-    },
-    {
       "x": 219.125,
       "y": 996.875,
       "width": 217.8125,
       "height": 289.0625,
       "confidence": 0.9144436717033386,
       "class": "pin",
-      "crop_stem": "img020_pin05"
+      "crop_stem": "img020_pin04"
     },
     {
       "x": 483.5,
@@ -52,16 +43,16 @@
       "height": 262.5,
       "confidence": 0.9444848895072937,
       "class": "pin",
-      "crop_stem": "img020_pin06"
+      "crop_stem": "img020_pin05"
     },
     {
       "x": 770.375,
-      "y": 1063.125,
+      "y": 1012.87109375,
       "width": 183.75,
-      "height": 155.78125,
+      "height": 256.2890625,
       "confidence": 0.4912804663181305,
       "class": "pin",
-      "crop_stem": "img020_pin07"
+      "crop_stem": "img020_pin06"
     }
   ],
   "image": {
@@ -77,6 +68,14 @@
       "raw": 7,
       "actions": [],
       "cleaned": 7
+    },
+    "board20_penny_merge_20260731": {
+      "merged_split_boxes": [
+        3,
+        6
+      ],
+      "raw_count": 7,
+      "cleaned_count": 6
     }
   }
 }
