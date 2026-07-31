@@ -1,15 +1,5 @@
 {
-  "predictions": [
-    {
-      "x": 274.75,
-      "y": 562.8125,
-      "width": 472.5,
-      "height": 731.25,
-      "confidence": 0.6570984721183777,
-      "class": "pin",
-      "crop_stem": "img001_pin01"
-    }
-  ],
+  "predictions": [],
   "image": {
     "width": 989,
     "height": 1280
@@ -17,6 +7,13 @@
   "_cleanup": {
     "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
     "raw_count": 2,
-    "cleaned_count": 1
+    "cleaned_count": 1,
+    "flyer_fp_v2": {
+      "page": "PAGE_001",
+      "raw": 1,
+      "actions": [
+        "blank_cover max_area=0.273"
+      ]
+    }
   }
 }
