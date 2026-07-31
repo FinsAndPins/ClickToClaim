@@ -89,6 +89,15 @@
       "confidence": 0.9367494583129883,
       "class": "pin",
       "crop_stem": "img039_pin10"
+    },
+    {
+      "x": 588.65625,
+      "y": 425.625,
+      "width": 214.21875,
+      "height": 206.875,
+      "confidence": 0.93,
+      "class": "pin",
+      "crop_stem": "img039_pin11"
     }
   ],
   "image": {
@@ -105,7 +114,7 @@
       "actions": [
         "drop_header_logo area=0.078 rest_med=0.035 y=0.29"
       ],
-      "cleaned": 10
+      "cleaned": 11
     }
   }
 }
