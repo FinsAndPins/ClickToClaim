@@ -1033,7 +1033,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "3";
+const BOARDS_MANIFEST_VERSION = "4";
 
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
@@ -1141,37 +1141,81 @@ async function setupBoard(name) {
     const pins = data.predictions || data.output?.predictions || [];
     boardsState[name].totalPins = pins.length;
     const img = document.getElementById(`img-${name}`);
+    const wrapper = document.getElementById(`wrapper-${name}`);
+    let placedOnce = false;
+    let resizeTimer = null;
+
     const render = () => {
-        const wrapper = document.getElementById(`wrapper-${name}`);
-        let ORIG_W = data.image?.width || img.naturalWidth;
-        let ORIG_H = data.image?.height || img.naturalHeight;
-        const rotated = (ORIG_W > ORIG_H) !== (img.clientWidth > img.clientHeight);
-        const scale = img.clientWidth / (rotated ? ORIG_H : ORIG_W);
+        if (!img || !wrapper) return;
+        // Wait until the image has a real laid-out size (avoids iPhone/iPad drift
+        // when render runs from cache before layout finishes).
+        const ORIG_W = Number(data.image?.width) || img.naturalWidth;
+        const ORIG_H = Number(data.image?.height) || img.naturalHeight;
+        const dispW = img.clientWidth;
+        const dispH = img.clientHeight;
+        if (!ORIG_W || !ORIG_H || !dispW || !dispH) {
+            requestAnimationFrame(render);
+            return;
+        }
+
+        // Flyer pages are already upright. The old "rotated" heuristic compared
+        // JSON aspect to client aspect and could mis-fire across devices, shifting
+        // every box. Map detection coords onto the displayed <img> box instead.
+        const ox = img.offsetLeft;
+        const oy = img.offsetTop;
+        const sx = dispW / ORIG_W;
+        const sy = dispH / ORIG_H;
+
         pins.forEach((pin, idx) => {
-            const div = document.createElement("div");
-            div.className = "pin";
-            div.style.left   = ((rotated ? (ORIG_H - pin.y) : pin.x) - (rotated ? pin.height : pin.width)  / 2) * scale + "px";
-            div.style.top    = ((rotated ? pin.x : pin.y)             - (rotated ? pin.width  : pin.height) / 2) * scale + "px";
-            div.style.width  = ((rotated ? pin.height : pin.width)  * scale) + "px";
-            div.style.height = ((rotated ? pin.width  : pin.height) * scale) + "px";
-            div.id = `pin-${name}-${idx}`;
-            if (pin.crop_stem) div.dataset.cropStem = pin.crop_stem;
+            const pinId = `pin-${name}-${idx}`;
+            let div = document.getElementById(pinId);
+            const creating = !div;
+            if (creating) {
+                div = document.createElement("div");
+                div.className = "pin";
+                div.id = pinId;
+                if (pin.crop_stem) div.dataset.cropStem = pin.crop_stem;
+                div.onclick = (e) => {
+                    e.preventDefault();
+                    if (isAdmin && boxCleanupMode) {
+                        toggleHiddenPin(name, idx);
+                        return;
+                    }
+                    handlePinClick(name, idx);
+                };
+                wrapper.appendChild(div);
+                if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
+            }
+            div.style.left = (ox + (Number(pin.x) - Number(pin.width) / 2) * sx) + "px";
+            div.style.top = (oy + (Number(pin.y) - Number(pin.height) / 2) * sy) + "px";
+            div.style.width = (Number(pin.width) * sx) + "px";
+            div.style.height = (Number(pin.height) * sy) + "px";
             applyHiddenToPinEl(div, pinKeyOf(name, idx));
-            div.onclick = (e) => {
-                e.preventDefault();
-                if (isAdmin && boxCleanupMode) {
-                    toggleHiddenPin(name, idx);
-                    return;
-                }
-                handlePinClick(name, idx);
-            };
-            wrapper.appendChild(div);
-            if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
         });
-        updateBoardDisplay(name);
-        calculateGlobals();
+
+        if (!placedOnce) {
+            placedOnce = true;
+            updateBoardDisplay(name);
+            calculateGlobals();
+        }
     };
-    if (img.complete) render(); else img.onload = render;
+
+    const scheduleRender = () => {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(render, 50);
+    };
+
+    if (img.complete && img.naturalWidth) render();
+    else img.onload = render;
+
+    // Re-place after rotation / Safari chrome / split-view width changes.
+    // Update geometry in place so claim highlight classes stay attached.
+    if (typeof ResizeObserver === "function") {
+        const ro = new ResizeObserver(scheduleRender);
+        ro.observe(img);
+    } else {
+        window.addEventListener("resize", scheduleRender);
+    }
 }
 
 /** Pins that already have ≥1 request (each pin counted once). Used for “roughly # in queue” on first request. */
