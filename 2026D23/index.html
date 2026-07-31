@@ -416,7 +416,7 @@
         Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
-        <span class="admin-phase-label">Show state (visible to everyone; use Schedule for Eastern clock)</span>
+        <span class="admin-phase-label">Admin only — show state &amp; box cleanup (not shown to visitors)</span>
         <button type="button" class="admin-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
         <button type="button" class="admin-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
         <button type="button" class="admin-phase-btn" data-phase="post" title="Force Post Show banner">Post Show</button>
@@ -581,8 +581,18 @@ if (isAdmin) {
         });
     }
 } else {
+    // Public: My Requests + sync only. Show-ops chrome stays admin.
     document.getElementById('fuelStatBlock').style.display = 'none';
     document.getElementById('dotAfterSync').style.display = 'none';
+    document.getElementById('adminGlobalDisplay').style.display = 'none';
+    document.getElementById('adminPhaseBar').style.display = 'none';
+    const cleanupBar = document.getElementById('boxCleanupBar');
+    if (cleanupBar) cleanupBar.style.display = 'none';
+    // This page is the D23 interest catalog (not a Whatnot show night).
+    const countdown = document.getElementById('countdownArea');
+    const fuelGauge = document.getElementById('fuelGaugeArea');
+    if (countdown) countdown.style.display = 'none';
+    if (fuelGauge) fuelGauge.style.display = 'none';
 }
 
 function sanitizeUserKey(id) {
@@ -1033,7 +1043,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "4";
+const BOARDS_MANIFEST_VERSION = "5";
 
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
@@ -1350,14 +1360,7 @@ function listenForFirebase() {
                 if (users && users[userKey]) myNow++;
                 if (users && Object.keys(users).length > 0) globalRequested++;
             });
-            if (myNow > lastMyRequestsCount && globalRequested >= FUEL_MAX) {
-                const dayKey = new Date().toDateString();
-                const flagKey = "fp_fuel250_" + fbName + "_" + dayKey;
-                if (!localStorage.getItem(flagKey)) {
-                    localStorage.setItem(flagKey, "1");
-                    document.getElementById("fuelOverModal").style.display = "flex";
-                }
-            }
+            // Skip show-night "250 spots" modal on this D23 interest catalog.
             lastMyRequestsCount = myNow;
         }
 
