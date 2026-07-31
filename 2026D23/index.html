@@ -1556,7 +1556,8 @@ function refreshIsoBoardExportFab(myCount) {
         fab.disabled = true;
         return;
     }
-    fab.style.display = "";
+    // Must set an explicit display — clearing inline style falls back to CSS display:none.
+    fab.style.display = "block";
     const n = myCount != null ? myCount : Number(document.getElementById("totalMyClaims")?.textContent || 0);
     fab.disabled = isoExportRunning || !(n > 0);
 }
