@@ -96,6 +96,14 @@
         .login-disclaimer { font-size: 12px; color: var(--fp-muted); line-height: 1.35; text-align: left; margin: 0 0 14px; font-weight: normal; }
         #reportIssueFab { position: fixed; bottom: 72px; right: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; }
         #reportIssueFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
+        /* ISO virtual board export FAB (left). Toggle via ISO_VIRTUAL_BOARD_EXPORT_ENABLED. */
+        #isoBoardExportFab { position: fixed; bottom: 72px; left: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; display: none; }
+        #isoBoardExportFab:disabled { opacity: 0.45; cursor: not-allowed; }
+        #isoBoardExportFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
+        #isoBoardExportOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        #isoBoardExportOverlay .iso-progress-track { width: 100%; height: 12px; background: rgba(255,255,255,0.15); border-radius: 8px; overflow: hidden; margin: 14px 0 8px; }
+        #isoBoardExportOverlay .iso-progress-fill { height: 100%; width: 0%; background: #1877f2; border-radius: 8px; transition: width 0.2s ease; }
+        #isoBoardExportOverlay .iso-eta { font-size: 12px; color: var(--fp-muted); margin: 0 0 12px; }
         #toastHost { position: fixed; bottom: 130px; left: 12px; right: 12px; z-index: 4400; pointer-events: none; display: flex; flex-direction: column; gap: 8px; align-items: center; }
         .app-toast { background: rgba(26, 26, 42, 0.96); color: #fff; padding: 12px 16px; border-radius: 12px; max-width: 420px; font-size: 14px; line-height: 1.4; box-shadow: 0 6px 24px rgba(0,0,0,0.35); text-align: center; opacity: 0; transform: translateY(10px); transition: opacity 0.25s ease, transform 0.25s ease; border: 1px solid rgba(255,255,255,0.12); }
         .app-toast.show { opacity: 1; transform: translateY(0); }
@@ -391,7 +399,17 @@
     </div>
 </div>
 
+<button type="button" id="isoBoardExportFab" disabled title="Save Photo of ISO virtual pin board" aria-label="Save Photo of ISO virtual pin board">Save Photo of ISO virtual pin board</button>
 <button type="button" id="reportIssueFab" onclick="document.getElementById('reportIssueOverlay').style.display='flex'" title="Report Issue" aria-label="Report Issue">Report Issue</button>
+<div id="isoBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="isoBoardExportTitle">
+    <div class="modal-box" style="max-width:360px;">
+        <h3 id="isoBoardExportTitle">Building ISO board photo</h3>
+        <p class="modal-sub" id="isoBoardExportStatus" style="margin-top:0;">Preparing…</p>
+        <div class="iso-progress-track" aria-hidden="true"><div class="iso-progress-fill" id="isoBoardExportBar"></div></div>
+        <p class="iso-eta" id="isoBoardExportEta">Estimating time…</p>
+        <button type="button" class="secondary" id="isoBoardExportCancelBtn">Cancel</button>
+    </div>
+</div>
 <div id="toastHost" aria-live="polite"></div>
 
 <h1>Fins and Pins Click To Request!</h1>
@@ -484,6 +502,12 @@ const SHOW_DATE_SLUG_FALLBACK = "2026D23";
 const IS_D23_INTEREST = true;
 /** Paste your whatnot invite / referral URL here (shown in FAQ links). */
 const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
+/**
+ * ISO virtual board photo export (Save Photo of ISO virtual pin board).
+ * Set false (or add ?isoExport=0) to hide/disable without removing code.
+ * Safe for clicks: export never runs inside handlePinClick.
+ */
+const ISO_VIRTUAL_BOARD_EXPORT_ENABLED = true;
 
 /** Calendar time in `timeZone` → UTC milliseconds (handles DST). */
 function wallTimeToUtc(year, month, day, hour, minute, timeZone) {
@@ -1499,7 +1523,318 @@ function calculateGlobals() {
         document.getElementById("adminTotalUsers").textContent     = allUsers.size;
     }
     updateFuelGauge(globalRequested);
+    if (typeof refreshIsoBoardExportFab === "function") refreshIsoBoardExportFab(my);
 }
+
+// ── ISO virtual board photo export (feature-flagged; removable) ─────────
+const ISO_EXPORT_THUMB = 200;
+const ISO_EXPORT_GAP = 28;
+const ISO_EXPORT_MARGIN = 36;
+const ISO_EXPORT_COLS = 6;
+const ISO_EXPORT_MAX_PER_PAGE = 42; // 6×7 — detection-friendly soft cap
+const ISO_EXPORT_BG = "#ebe6dc";
+const ISO_EXPORT_PAD_FRAC = 0.1;
+let isoExportCancelRequested = false;
+let isoExportRunning = false;
+const isoBoardImageCache = new Map();
+const isoBoardJsonCache = new Map();
+
+function isoExportFeatureOn() {
+    if (!ISO_VIRTUAL_BOARD_EXPORT_ENABLED) return false;
+    try {
+        const q = new URLSearchParams(location.search).get("isoExport");
+        if (q === "0" || q === "false" || q === "off") return false;
+    } catch (e) { /* ignore */ }
+    return true;
+}
+
+function refreshIsoBoardExportFab(myCount) {
+    const fab = document.getElementById("isoBoardExportFab");
+    if (!fab) return;
+    if (!isoExportFeatureOn()) {
+        fab.style.display = "none";
+        fab.disabled = true;
+        return;
+    }
+    fab.style.display = "";
+    const n = myCount != null ? myCount : Number(document.getElementById("totalMyClaims")?.textContent || 0);
+    fab.disabled = isoExportRunning || !(n > 0);
+}
+
+function parseIsoPinKey(pinKey) {
+    const m = String(pinKey).match(/^(PAGE_\d+)-(\d+)$/i) || String(pinKey).match(/^(.+)-(\d+)$/);
+    if (!m) return null;
+    return { board: m[1], idx: Number(m[2]) };
+}
+
+function collectMyIsoPinKeys() {
+    const userKey = sanitizeUserKey(identityKey);
+    const keys = [];
+    const source = (latestClaimsData && Object.keys(latestClaimsData).length)
+        ? latestClaimsData
+        : null;
+    if (source) {
+        Object.entries(source).forEach(([pinKey, uMap]) => {
+            if (uMap && uMap[userKey]) keys.push(pinKey);
+        });
+    } else {
+        Object.entries(boardsState).forEach(([, s]) => {
+            Object.entries(s.allClaims || {}).forEach(([pinKey, uMap]) => {
+                if (uMap && uMap[userKey]) keys.push(pinKey);
+            });
+        });
+    }
+    const boardOrder = new Map((manifestBoardNames || []).map((n, i) => [n, i]));
+    keys.sort((a, b) => {
+        const pa = parseIsoPinKey(a);
+        const pb = parseIsoPinKey(b);
+        if (!pa || !pb) return String(a).localeCompare(String(b));
+        const oa = boardOrder.has(pa.board) ? boardOrder.get(pa.board) : 9999;
+        const ob = boardOrder.has(pb.board) ? boardOrder.get(pb.board) : 9999;
+        if (oa !== ob) return oa - ob;
+        return pa.idx - pb.idx;
+    });
+    return keys;
+}
+
+function yieldToUi() {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function loadIsoBoardJson(boardName) {
+    if (isoBoardJsonCache.has(boardName)) return isoBoardJsonCache.get(boardName);
+    const r = await fetch(`./boards/${boardName}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(`Missing board JSON ${boardName}`);
+    const data = await r.json();
+    isoBoardJsonCache.set(boardName, data);
+    return data;
+}
+
+function loadIsoBoardImage(boardName) {
+    if (isoBoardImageCache.has(boardName)) return isoBoardImageCache.get(boardName);
+    const p = new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Missing board image ${boardName}`));
+        img.src = `./boards/${boardName}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+    });
+    isoBoardImageCache.set(boardName, p);
+    return p;
+}
+
+function cropIsoPinCanvas(boardImg, pin, origW, origH) {
+    const sx = Math.max(0, Number(pin.x) - Number(pin.width) / 2);
+    const sy = Math.max(0, Number(pin.y) - Number(pin.height) / 2);
+    const sw = Math.min(Number(pin.width), (origW || boardImg.naturalWidth) - sx);
+    const sh = Math.min(Number(pin.height), (origH || boardImg.naturalHeight) - sy);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(sw));
+    c.height = Math.max(1, Math.round(sh));
+    const ctx = c.getContext("2d");
+    ctx.drawImage(boardImg, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+}
+
+function buildIsoPageCanvas(cropCanvases) {
+    const n = cropCanvases.length;
+    const cols = ISO_EXPORT_COLS;
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const cell = ISO_EXPORT_THUMB;
+    const gap = ISO_EXPORT_GAP;
+    const margin = ISO_EXPORT_MARGIN;
+    const w = margin * 2 + cols * cell + (cols - 1) * gap;
+    const h = margin * 2 + rows * cell + (rows - 1) * gap;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = ISO_EXPORT_BG;
+    ctx.fillRect(0, 0, w, h);
+    cropCanvases.forEach((crop, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x0 = margin + col * (cell + gap);
+        const y0 = margin + row * (cell + gap);
+        const pad = Math.round(cell * ISO_EXPORT_PAD_FRAC);
+        const inner = cell - pad * 2;
+        const scale = Math.min(inner / crop.width, inner / crop.height);
+        const dw = Math.max(1, Math.round(crop.width * scale));
+        const dh = Math.max(1, Math.round(crop.height * scale));
+        const dx = x0 + Math.round((cell - dw) / 2);
+        const dy = y0 + Math.round((cell - dh) / 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x0 + 2, y0 + 2, cell - 4, cell - 4);
+        ctx.drawImage(crop, dx, dy, dw, dh);
+    });
+    return canvas;
+}
+
+function canvasToJpegBlob(canvas, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("JPEG encode failed"))), "image/jpeg", quality);
+    });
+}
+
+async function saveIsoJpegBlob(blob, filename) {
+    const file = new File([blob], filename, { type: "image/jpeg" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: filename });
+            return "shared";
+        } catch (e) {
+            if (e && e.name === "AbortError") return "aborted";
+        }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return "download";
+}
+
+function setIsoExportProgress(done, total, status, startedAt) {
+    const bar = document.getElementById("isoBoardExportBar");
+    const st = document.getElementById("isoBoardExportStatus");
+    const eta = document.getElementById("isoBoardExportEta");
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    if (bar) bar.style.width = pct + "%";
+    if (st && status) st.textContent = status;
+    if (eta) {
+        if (!startedAt || done <= 0) {
+            eta.textContent = "Estimating time…";
+        } else {
+            const elapsed = (Date.now() - startedAt) / 1000;
+            const rate = done / elapsed;
+            const remain = Math.max(0, Math.ceil((total - done) / Math.max(rate, 0.05)));
+            eta.textContent = remain <= 1 ? "Almost done…" : `About ${remain}s remaining`;
+        }
+    }
+}
+
+function openIsoExportOverlay() {
+    const el = document.getElementById("isoBoardExportOverlay");
+    if (el) el.style.display = "flex";
+}
+
+function closeIsoExportOverlay() {
+    const el = document.getElementById("isoBoardExportOverlay");
+    if (el) el.style.display = "none";
+}
+
+async function runIsoVirtualBoardExport() {
+    if (!isoExportFeatureOn() || isoExportRunning) return;
+    const keys = collectMyIsoPinKeys();
+    if (!keys.length) {
+        showToast("Select at least one pin first.");
+        return;
+    }
+    isoExportRunning = true;
+    isoExportCancelRequested = false;
+    refreshIsoBoardExportFab(keys.length);
+    openIsoExportOverlay();
+    const startedAt = Date.now();
+    const pagesNeeded = Math.max(1, Math.ceil(keys.length / ISO_EXPORT_MAX_PER_PAGE));
+    const totalUnits = keys.length + pagesNeeded;
+    let doneUnits = 0;
+    try {
+        const crops = [];
+        for (let i = 0; i < keys.length; i++) {
+            if (isoExportCancelRequested) throw new Error("cancelled");
+            const parsed = parseIsoPinKey(keys[i]);
+            if (!parsed) {
+                doneUnits++;
+                setIsoExportProgress(doneUnits, totalUnits, `Skipping unknown pin ${keys[i]}…`, startedAt);
+                await yieldToUi();
+                continue;
+            }
+            setIsoExportProgress(
+                doneUnits,
+                totalUnits,
+                `Cropping pin ${i + 1} of ${keys.length} (board ${parsed.board})…`,
+                startedAt
+            );
+            const data = await loadIsoBoardJson(parsed.board);
+            const pins = data.predictions || data.output?.predictions || [];
+            const pin = pins[parsed.idx];
+            if (!pin) {
+                doneUnits++;
+                await yieldToUi();
+                continue;
+            }
+            const boardImg = await loadIsoBoardImage(parsed.board);
+            const origW = Number(data.image?.width) || boardImg.naturalWidth;
+            const origH = Number(data.image?.height) || boardImg.naturalHeight;
+            crops.push(cropIsoPinCanvas(boardImg, pin, origW, origH));
+            doneUnits++;
+            setIsoExportProgress(doneUnits, totalUnits, `Cropped ${i + 1} of ${keys.length}…`, startedAt);
+            await yieldToUi();
+        }
+        if (!crops.length) throw new Error("No pin images could be cropped.");
+        const pageCount = Math.ceil(crops.length / ISO_EXPORT_MAX_PER_PAGE);
+        for (let p = 0; p < pageCount; p++) {
+            if (isoExportCancelRequested) throw new Error("cancelled");
+            const slice = crops.slice(p * ISO_EXPORT_MAX_PER_PAGE, (p + 1) * ISO_EXPORT_MAX_PER_PAGE);
+            setIsoExportProgress(
+                doneUnits,
+                totalUnits,
+                `Building photo ${p + 1} of ${pageCount}…`,
+                startedAt
+            );
+            await yieldToUi();
+            const canvas = buildIsoPageCanvas(slice);
+            const blob = await canvasToJpegBlob(canvas, 0.92);
+            const filename = `2026D23-ISO-${p + 1}of${pageCount}.jpg`;
+            setIsoExportProgress(
+                doneUnits,
+                totalUnits,
+                `Saving ${filename}…`,
+                startedAt
+            );
+            const how = await saveIsoJpegBlob(blob, filename);
+            if (how === "aborted") throw new Error("cancelled");
+            doneUnits++;
+            setIsoExportProgress(doneUnits, totalUnits, `Saved ${filename}`, startedAt);
+            await yieldToUi();
+        }
+        setIsoExportProgress(totalUnits, totalUnits, `Done — ${pageCount} photo${pageCount > 1 ? "s" : ""} ready.`, startedAt);
+        const eta = document.getElementById("isoBoardExportEta");
+        if (eta) eta.textContent = "Upload in the app: Trade → Add ISO Pins";
+        showToast(`Saved ${pageCount} ISO board photo${pageCount > 1 ? "s" : ""}.`);
+        setTimeout(() => closeIsoExportOverlay(), 900);
+    } catch (e) {
+        if (String(e && e.message) === "cancelled") {
+            showToast("ISO photo export cancelled.");
+        } else {
+            console.warn("[ISO export]", e);
+            showToast("Could not build ISO photos. Please try again.");
+        }
+        closeIsoExportOverlay();
+    } finally {
+        isoExportRunning = false;
+        refreshIsoBoardExportFab();
+    }
+}
+
+(function initIsoVirtualBoardExport() {
+    const fab = document.getElementById("isoBoardExportFab");
+    const cancelBtn = document.getElementById("isoBoardExportCancelBtn");
+    if (!fab) return;
+    refreshIsoBoardExportFab(0);
+    fab.addEventListener("click", () => {
+        if (fab.disabled || isoExportRunning) return;
+        runIsoVirtualBoardExport();
+    });
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
+            isoExportCancelRequested = true;
+            if (!isoExportRunning) closeIsoExportOverlay();
+        });
+    }
+})();
 </script>
 <style id="_ctcPriceOverlayCss">
 .pin-pb {
