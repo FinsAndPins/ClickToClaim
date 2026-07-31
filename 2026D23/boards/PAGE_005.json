@@ -1,20 +1,20 @@
 {
   "predictions": [
     {
-      "x": 460.6875,
-      "y": 390.3125,
-      "width": 400.0,
-      "height": 415.9375,
-      "confidence": 0.3961265981197357,
+      "x": 358.0,
+      "y": 488.0,
+      "width": 188.0,
+      "height": 178.0,
+      "confidence": 1.0,
       "class": "pin",
       "crop_stem": "img005_pin01"
     },
     {
-      "x": 796.625,
-      "y": 400.625,
-      "width": 291.71875,
-      "height": 300.78125,
-      "confidence": 0.77390056848526,
+      "x": 552.0,
+      "y": 488.0,
+      "width": 188.0,
+      "height": 178.0,
+      "confidence": 1.0,
       "class": "pin",
       "crop_stem": "img005_pin02"
     },
@@ -124,6 +124,12 @@
         "drop_header_logo area=0.074 rest_med=0.023 y=0.29"
       ],
       "cleaned": 12
+    },
+    "board5_manual_20260731": {
+      "removed_zoom_in_ariel": true,
+      "split_ariel_belle_without_header_text": true,
+      "raw_count": 12,
+      "cleaned_count": 12
     }
   }
 }
