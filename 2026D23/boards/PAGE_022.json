@@ -1,11 +1,11 @@
 {
   "predictions": [
     {
-      "x": 778.5,
-      "y": 563.75,
-      "width": 291.5625,
-      "height": 282.5,
-      "confidence": 0.9475754499435425,
+      "x": 240.0,
+      "y": 580.0,
+      "width": 300.0,
+      "height": 270.0,
+      "confidence": 1.0,
       "class": "pin",
       "crop_stem": "img022_pin01"
     },
@@ -19,22 +19,31 @@
       "crop_stem": "img022_pin02"
     },
     {
-      "x": 658.5,
-      "y": 975.625,
-      "width": 333.125,
-      "height": 330.3125,
-      "confidence": 0.32734566926956177,
+      "x": 778.5,
+      "y": 563.75,
+      "width": 291.5625,
+      "height": 282.5,
+      "confidence": 0.9475754499435425,
       "class": "pin",
       "crop_stem": "img022_pin03"
     },
     {
-      "x": 802.25,
-      "y": 1046.875,
-      "width": 107.578125,
-      "height": 165.46875,
-      "confidence": 0.4546840488910675,
+      "x": 270.0,
+      "y": 985.0,
+      "width": 360.0,
+      "height": 330.0,
+      "confidence": 1.0,
       "class": "pin",
       "crop_stem": "img022_pin04"
+    },
+    {
+      "x": 673.98828125,
+      "y": 975.625,
+      "width": 364.1015625,
+      "height": 330.3125,
+      "confidence": 0.4546840488910675,
+      "class": "pin",
+      "crop_stem": "img022_pin05"
     }
   ],
   "image": {
@@ -53,6 +62,15 @@
         "drop_text_block idx=4 area=0.062 right_af=0.087 x=0.32"
       ],
       "cleaned": 4
+    },
+    "board22_manual_20260731": {
+      "added": [
+        "lilo_stitch_32",
+        "robin_hood_35"
+      ],
+      "merged_snow_white_36": true,
+      "raw_count": 4,
+      "cleaned_count": 5
     }
   }
 }
