@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>Fins and Pins — Click To Request (Reports)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { padding: 10px 15px; background: #0066aa; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
+        section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
+        th { background: #f9f9f9; position: sticky; top: 0; }
+        tr:hover { background: #f1f7ff; }
+        .badge-pull { background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .badge-wait { background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .feedback-msg { background: #fff9c4; padding: 10px; border-radius: 4px; margin-bottom: 5px; border-left: 4px solid #fbc02d; }
+        #summaryTable td:first-child { font-weight: bold; color: #333; font-size: 16px; }
+        #summaryTable td:last-child { color: #0066aa; font-size: 15px; }
+        .show-window-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 8px; }
+        .show-window-form label { font-size: 14px; }
+        .show-window-form select { font-size: 15px; padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; }
+        .tz-colon { margin: 0 2px; }
+        .show-config-status { font-size: 13px; color: #333; min-width: 120px; }
+        .reports-phase-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px solid #ddd; }
+        .reports-phase-wrap > p { font-size: 13px; color: #555; margin: 0 0 10px; line-height: 1.45; }
+        .reports-phase-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .reports-phase-btn { font-size: 12px; font-weight: bold; padding: 8px 12px; border-radius: 8px; border: 1px solid #999; background: #e8e8e8; color: #222; cursor: pointer; font-family: inherit; }
+        .reports-phase-btn:hover { background: #ddd; }
+        .reports-phase-btn.reports-phase-active { background: #0066aa; border-color: #004a80; color: #fff; }
+        .reports-phase-status { font-size: 12px; color: #333; margin-left: 4px; }
+        .reports-price-wrap { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; }
+        .reports-price-wrap label { font-size: 13px; color: #333; font-weight: 600; }
+        #_po-sel-reports {
+            font-size: 13px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            border: 1px solid #999;
+            background: #fff;
+            color: #222;
+            cursor: pointer;
+            font-family: inherit;
+        }
+    </style>
+</head>
+<body>
+<div id="authContent" style="display:none;">
+    <div class="header"><h1>Reports</h1><div><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
+
+    <section id="showWindowSection">
+        <h2>Show window (Eastern Time)</h2>
+        <p style="font-size:14px;color:#555;margin:0 0 12px;">Applies to folder date <strong id="showWindowSlugLabel"></strong> (America/New_York). The banner counts down to the <strong>End</strong> time (“Request window closes in …”). <strong>Start</strong> still controls when the request window opens for B/N badges and phase logic. Click <strong>Save Window</strong> after changes. On the boards page, <strong>Schedule</strong> uses this clock; <strong>Pre-Show</strong> shows the same close countdown until the end time passes.</p>
+        <div class="show-window-form">
+            <label>Start <select id="cfgStartH"></select><span class="tz-colon">:</span><select id="cfgStartM"></select></label>
+            <label>End <select id="cfgEndH"></select><span class="tz-colon">:</span><select id="cfgEndM"></select></label>
+            <button type="button" class="btn" id="saveShowConfigBtn">Save Window</button>
+            <span id="showConfigStatus" class="show-config-status"></span>
+        </div>
+        <div class="reports-phase-wrap" id="reportsPhaseBar">
+            <p>Show state (same as boards page; visible to everyone). <strong>Post Show</strong> turns on the full-screen “show ended” on the boards URL. Use <strong>Schedule</strong>, <strong>Pre-Show</strong>, or <strong>During Show</strong> here or on boards to turn that screen off.</p>
+            <div class="reports-phase-row">
+                <button type="button" class="reports-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="post" title="Force Post Show banner + full-screen ended">Post Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
+                <span class="reports-price-wrap" title="Controls price badges on the boards page">
+                    <label for="_po-sel-reports">Prices</label>
+                    <select id="_po-sel-reports" aria-label="Price visibility on boards page">
+                        <option value="none">Hide prices (default)</option>
+                        <option value="all">Show all prices</option>
+                        <option value="clicked">Prices on clicked pins only</option>
+                    </select>
+                </span>
+                <span id="reportsPhaseStatus" class="reports-phase-status" aria-live="polite"></span>
+            </div>
+        </div>
+    </section>
+
+    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
+
+    <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+
+    <section><h2>3. Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+
+    <section><h2>4. Click Summary</h2><table id="summaryTable"><thead><tr><th>Clicks</th><th>Pins</th></tr></thead><tbody></tbody></table></section>
+
+    <section><h2>5. Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
+</div>
+<div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const SHOW_DATE_SLUG_FALLBACK = "2026D23";
+function parseShowDateSlugFromPathReports() {
+    const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
+    const segments = pathClean.split("/").filter(Boolean);
+    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+    if (!last) return null;
+    if (last === "2026D23") return last;
+    const m8 = last.match(/^(\d{8})/);
+    if (m8 && /[A-Za-z]/.test(last.slice(8))) return m8[1];
+    if (last === "2026D23" || /[A-Za-z]/.test(last)) return last;
+    const m = last.match(/(\d{8})/);
+    return m ? m[1] : last;
+}
+const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", authDomain: "fins-and-pins-click-to-claim.firebaseapp.com", databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com", projectId: "fins-and-pins-click-to-claim", storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app", messagingSenderId: "31512845258", appId: "1:31512845258:web:2124fae24cfee229084d33" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ADMIN_KEY = "0626200207081986";
+let globalData = null;
+
+function fillTimeSelect(sel, max) {
+    sel.innerHTML = "";
+    for (let i = 0; i <= max; i++) {
+        const o = document.createElement("option");
+        o.value = i;
+        o.textContent = String(i).padStart(2, "0");
+        sel.appendChild(o);
+    }
+}
+
+function checkAuth(m=false) {
+    if (new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true' || m) {
+        sessionStorage.setItem('fp_admin_active', 'true');
+        document.getElementById('authMsg').style.display = 'none';
+        document.getElementById('authContent').style.display = 'block';
+        document.getElementById('backBtn').href = `index.html?admin=${ADMIN_KEY}`;
+        loadData();
+    }
+}
+checkAuth();
+
+async function loadData() {
+    const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
+    const fbName = showDateSlug;
+    const folder = showDateSlug;
+    document.getElementById("showWindowSlugLabel").textContent = showDateSlug;
+    fillTimeSelect(document.getElementById("cfgStartH"), 23);
+    fillTimeSelect(document.getElementById("cfgEndH"), 23);
+    fillTimeSelect(document.getElementById("cfgStartM"), 59);
+    fillTimeSelect(document.getElementById("cfgEndM"), 59);
+
+    db.ref(`showConfig/${fbName}`).once("value").then(snap => {
+        const v = snap.val() || {};
+        const sh = v.startHour != null ? Number(v.startHour) : 12;
+        const sm = v.startMin != null ? Number(v.startMin) : 0;
+        const eh = v.endHour != null ? Number(v.endHour) : 18;
+        const em = v.endMin != null ? Number(v.endMin) : 0;
+        document.getElementById("cfgStartH").value = String(Math.min(23, Math.max(0, sh)));
+        document.getElementById("cfgStartM").value = String(Math.min(59, Math.max(0, sm)));
+        document.getElementById("cfgEndH").value = String(Math.min(23, Math.max(0, eh)));
+        document.getElementById("cfgEndM").value = String(Math.min(59, Math.max(0, em)));
+    });
+
+    document.getElementById("saveShowConfigBtn").onclick = () => {
+        const st = document.getElementById("showConfigStatus");
+        st.textContent = "Saving…";
+        const payload = {
+            startHour: +document.getElementById("cfgStartH").value,
+            startMin: +document.getElementById("cfgStartM").value,
+            endHour: +document.getElementById("cfgEndH").value,
+            endMin: +document.getElementById("cfgEndM").value,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+        db.ref(`showConfig/${fbName}`).update(payload)
+            .then(() => { st.textContent = "Saved. Open boards page refreshes the countdown automatically."; })
+            .catch(e => { st.textContent = "Error: " + e.message; });
+    };
+
+    const phaseStatusEl = document.getElementById("reportsPhaseStatus");
+    function writeShowPhaseReports(phase) {
+        if (!["auto", "pre", "live", "post"].includes(phase)) return;
+        if (phaseStatusEl) phaseStatusEl.textContent = "Saving phase…";
+        const payload = {
+            phase,
+            phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP,
+            endedFullscreen: phase === "post"
+        };
+        db.ref(`showConfig/${fbName}`).update(payload)
+            .then(() => {
+                if (phaseStatusEl) phaseStatusEl.textContent = "Phase saved.";
+                setTimeout(() => { if (phaseStatusEl && phaseStatusEl.textContent === "Phase saved.") phaseStatusEl.textContent = ""; }, 3000);
+            })
+            .catch(e => { if (phaseStatusEl) phaseStatusEl.textContent = "Error: " + e.message; });
+    }
+    document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(btn => {
+        btn.addEventListener("click", () => writeShowPhaseReports(btn.getAttribute("data-phase")));
+    });
+    db.ref(`showConfig/${fbName}`).on("value", snap => {
+        const v = snap.val() || {};
+        const ph = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+        document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(b => {
+            b.classList.toggle("reports-phase-active", b.getAttribute("data-phase") === ph);
+        });
+    });
+
+    // Price overlay control for boards page (shared localStorage + BroadcastChannel).
+    const _PO_MODE_KEY = "_ctcPriceMode_20260723";
+    const priceSel = document.getElementById("_po-sel-reports");
+    if (priceSel) {
+        const cur = localStorage.getItem(_PO_MODE_KEY) || "none";
+        priceSel.value = ["all", "clicked", "none"].includes(cur) ? cur : "none";
+        if (!localStorage.getItem(_PO_MODE_KEY)) localStorage.setItem(_PO_MODE_KEY, "none");
+        let bc = null;
+        try { bc = new BroadcastChannel("ctc_price_mode_20260723"); } catch (_) {}
+        priceSel.addEventListener("change", () => {
+            const mode = priceSel.value;
+            localStorage.setItem(_PO_MODE_KEY, mode);
+            if (bc) bc.postMessage({ mode });
+            if (phaseStatusEl) {
+                phaseStatusEl.textContent = mode === "none" ? "Prices hidden on boards." : "Price display updated on boards.";
+                setTimeout(() => {
+                    if (phaseStatusEl && /Prices/.test(phaseStatusEl.textContent)) phaseStatusEl.textContent = "";
+                }, 2500);
+            }
+        });
+    }
+
+    // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
+    const BOARDS_MANIFEST_VERSION = "2";
+    const manifest = await (await fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+
+    db.ref(`claims/${fbName}`).on('value', snap => {
+        globalData = { raw: snap.val() || {}, boardList: manifest, showName: folder };
+        renderReports();
+    });
+
+    // $ values: claim key IMG_XXXX-idx → crop_stem (boards JSONs) → confirmed price
+    // (same sources as the boards-page overlay: Firebase match pins, prices.json fallback).
+    loadDollarValues(manifest, BOARDS_MANIFEST_VERSION).then(() => {
+        if (globalData) renderReports();
+    });
+
+    db.ref(`feedback/${fbName}`).on('value', snap => {
+        const fb = snap.val() || {};
+        document.getElementById('feedbackContainer').innerHTML = Object.values(fb).reverse().map(f => `
+            <div class="feedback-msg">
+                <strong>${normalizeUserDisplayName(String(f.user || "")) || f.user}</strong> <small>(${new Date(f.time).toLocaleString()})</small><br>${f.msg}
+            </div>
+        `).join('') || "No feedback yet.";
+    });
+}
+
+// ── Dollar value support (same rounding as boards-page badges; no 20% off) ──
+const PRICING_RUN_ID = 'test_PriceCollection_20260721_2320__build_4960_visual_baseline';
+const pinKeyToStem = {};   // "IMG_8127-3" → "img1_pin04"
+const stemToPrice = {};    // stem → raw confirmed price
+
+/** Same rule as boards badges: <$10 → $10, else round UP to nearest $5 (list price). */
+function dollarValueForPk(pk) {
+    const stem = pinKeyToStem[pk];
+    if (!stem) return 0;
+    const raw = stemToPrice[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    return raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
+}
+
+function stemFromPricingPin(pin, domKey) {
+    const cf = String(pin.crop_filename || "");
+    if (cf && !cf.includes("__")) return cf.replace(/\.(jpe?g|png)$/i, "");
+    const pk = String(pin.pin_key || domKey || "");
+    if (pk.includes(".jpg__")) return pk.split(".jpg__")[0];
+    if (String(domKey || "").includes("_jpg__")) return String(domKey).split("_jpg__")[0];
+    if (cf) return cf.replace(/\.(jpe?g|png)$/i, "").split("__")[0];
+    return null;
+}
+
+function rawPriceFromMatchPin(pin) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === "object") {
+        const sp = Number(sc.price != null ? sc.price : sc.total_price);
+        if (isFinite(sp) && sp > 0) return sp;
+    }
+    return null;
+}
+
+async function loadDollarValues(manifest, ver) {
+    await Promise.all(manifest.map(async name => {
+        try {
+            const data = await (await fetch(`./boards/${name}.json?v=${ver}`, { cache: "no-store" })).json();
+            (data.predictions || []).forEach((p, idx) => {
+                if (p.crop_stem) pinKeyToStem[`${name}-${idx}`] = p.crop_stem;
+            });
+        } catch (e) { console.warn("boards json load failed for $ values:", name, e); }
+    }));
+    try {
+        const snap = await (await fetch("./prices.json", { cache: "no-store" })).json();
+        for (const [stem, raw] of Object.entries(snap || {})) {
+            if (isFinite(Number(raw)) && Number(raw) > 0) stemToPrice[stem] = Number(raw);
+        }
+        console.info(`[$Value] prices.json base: ${Object.keys(snap || {}).length} prices`);
+    } catch (e) { console.warn("[$Value] prices.json load failed:", e); }
+    try {
+        const snap = await db.ref(`pin_pricing_tests/${PRICING_RUN_ID}/visual_baseline/pins`).once("value");
+        const all = snap.val() || {};
+        let n = 0;
+        for (const [domKey, pin] of Object.entries(all)) {
+            if (!pin || pin.match_status !== "match") continue;
+            const raw = rawPriceFromMatchPin(pin);
+            if (raw == null) continue;
+            const stem = stemFromPricingPin(pin, domKey);
+            if (stem) { stemToPrice[stem] = raw; n++; }
+        }
+        console.info(`[$Value] Firebase overlay: ${n} confirmed prices`);
+    } catch (e) { console.warn("[$Value] Firebase overlay failed (using snapshot only):", e); }
+}
+
+function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+}
+
+function rowLabel(m) {
+    if (m && typeof m === "object" && m.label) return m.label;
+    return null;
+}
+function rowTime(m) {
+    if (m && typeof m === "object" && m.time != null) return m.time;
+    if (typeof m === "number") return m;
+    return 0;
+}
+
+function renderReports() {
+    const userStats = {}; const liveFeed = []; const popularity = [];
+    Object.entries(globalData.raw).forEach(([pk, users]) => {
+        const [bName, pIdx] = pk.split("-");
+        const bNum = globalData.boardList.indexOf(bName) + 1;
+        const cleanLoc = `Board ${bNum} (Pin ${parseInt(pIdx)+1})`;
+        const uList = Object.entries(users).sort((a,b) => rowTime(a[1]) - rowTime(b[1]));
+        const isUnique = uList.length === 1;
+
+        const userLabels = uList.map(([u, m]) => normalizeUserDisplayName(rowLabel(m) || u) || u).join(", ");
+        popularity.push({ pin: pk, display: cleanLoc, count: uList.length, users: userLabels });
+
+        uList.forEach(([u, m]) => {
+            const t = rowTime(m);
+            const prettyRaw = rowLabel(m) || u;
+            const canon = normalizeUserDisplayName(prettyRaw) || u;
+            if (!userStats[canon]) userStats[canon] = { last: 0, unique: 0, contested: 0, value: 0, pretty: canon, repUid: u };
+            if (t > userStats[canon].last) userStats[canon].last = t;
+            if (isUnique) userStats[canon].unique++; else userStats[canon].contested++;
+            userStats[canon].value += dollarValueForPk(pk);
+            liveFeed.push({
+                pin: pk,
+                display: cleanLoc,
+                user: normalizeUserDisplayName(prettyRaw) || prettyRaw,
+                uid: u,
+                time: t,
+                unique: isUnique
+            });
+        });
+    });
+
+    let tU=0, tC=0, tT=0;
+    document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([canon, s]) => {
+        tU+=s.unique; tC+=s.contested; tT+=(s.unique+s.contested);
+        return `<tr><td>${s.pretty || canon}<br><small style="color:#888">${s.repUid || canon}</small></td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td><td>$${s.value}</td></tr>`;
+    }).join('');
+    // Unduplicated total: each clicked pin counted once (contested pins sell once),
+    // unlike per-user rows where the same pin appears under every clicker.
+    let revTotal = 0, pinsPriced = 0;
+    const pinsClicked = Object.keys(globalData.raw).length;
+    Object.keys(globalData.raw).forEach(pk => {
+        const v = dollarValueForPk(pk);
+        if (v > 0) { revTotal += v; pinsPriced++; }
+    });
+    document.getElementById("userTallyFooter").innerHTML =
+        `<tr><td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td><td>$${revTotal}</td></tr>` +
+        `<tr><td colspan="6" style="font-weight:normal; color:#333;">If every clicked pin sells at list price: <strong>$${revTotal}</strong> from <strong>${pinsClicked}</strong> pins (${pinsPriced} priced, each counted once even when contested). Per-user rows above count contested pins under every clicker, so they can sum higher.</td></tr>`;
+
+    document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `
+        <tr>
+            <td><span class="${f.unique ? 'badge-pull' : 'badge-wait'}">${f.unique ? '📦 PULL' : 'Contested'}</span></td>
+            <td>${f.display}</td><td>${f.user}</td><td>${new Date(f.time).toLocaleTimeString()}</td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${f.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
+        </tr>`).join('');
+
+    // Popularity: only show pins with 2+ clicks
+    document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).filter(p => p.count > 1).map(p => `
+        <tr>
+            <td>${p.display}</td><td>${p.count}</td><td>${p.users}</td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${p.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
+        </tr>`).join('') || '<tr><td colspan="4" style="color:#999;">No contested pins yet.</td></tr>';
+
+    // Click summary: distribution in descending order by click count
+    const clickDist = {};
+    popularity.forEach(p => { if (p.count > 0) clickDist[p.count] = (clickDist[p.count] || 0) + 1; });
+    const sortedCounts = Object.keys(clickDist).map(Number).sort((a, b) => b - a);
+    document.querySelector('#summaryTable tbody').innerHTML = sortedCounts.length
+        ? sortedCounts.map(c => `<tr><td>${c} click${c !== 1 ? 's' : ''}</td><td>${clickDist[c]} pin${clickDist[c] !== 1 ? 's' : ''}</td></tr>`).join('')
+        : '<tr><td colspan="2" style="color:#999;">No data yet.</td></tr>';
+}
+</script>
+</body>
+</html>

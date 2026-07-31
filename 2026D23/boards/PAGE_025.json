@@ -1,0 +1,49 @@
+{
+  "predictions": [
+    {
+      "x": 704.75,
+      "y": 564.6875,
+      "width": 338.4375,
+      "height": 334.6875,
+      "confidence": 0.9429286122322083,
+      "class": "pin",
+      "crop_stem": "img025_pin01"
+    },
+    {
+      "x": 284.75,
+      "y": 566.25,
+      "width": 347.8125,
+      "height": 339.6875,
+      "confidence": 0.942081868648529,
+      "class": "pin",
+      "crop_stem": "img025_pin02"
+    },
+    {
+      "x": 703.5,
+      "y": 973.125,
+      "width": 341.875,
+      "height": 334.0625,
+      "confidence": 0.9487276077270508,
+      "class": "pin",
+      "crop_stem": "img025_pin03"
+    },
+    {
+      "x": 286.625,
+      "y": 973.75,
+      "width": 345.625,
+      "height": 333.75,
+      "confidence": 0.9522199034690857,
+      "class": "pin",
+      "crop_stem": "img025_pin04"
+    }
+  ],
+  "image": {
+    "width": 989,
+    "height": 1280
+  },
+  "_cleanup": {
+    "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
+    "raw_count": 4,
+    "cleaned_count": 4
+  }
+}

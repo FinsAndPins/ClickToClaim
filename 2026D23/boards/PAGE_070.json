@@ -1,0 +1,94 @@
+{
+  "predictions": [
+    {
+      "x": 747.25,
+      "y": 491.5625,
+      "width": 171.40625,
+      "height": 301.25,
+      "confidence": 0.9159594178199768,
+      "class": "pin",
+      "crop_stem": "img070_pin01"
+    },
+    {
+      "x": 492.875,
+      "y": 506.25,
+      "width": 146.71875,
+      "height": 243.28125,
+      "confidence": 0.933552086353302,
+      "class": "pin",
+      "crop_stem": "img070_pin02"
+    },
+    {
+      "x": 204.4375,
+      "y": 520.0,
+      "width": 175.15625,
+      "height": 237.65625,
+      "confidence": 0.9354645609855652,
+      "class": "pin",
+      "crop_stem": "img070_pin03"
+    },
+    {
+      "x": 502.25,
+      "y": 768.125,
+      "width": 128.671875,
+      "height": 240.625,
+      "confidence": 0.9277569651603699,
+      "class": "pin",
+      "crop_stem": "img070_pin04"
+    },
+    {
+      "x": 753.5,
+      "y": 777.5,
+      "width": 179.6875,
+      "height": 234.84375,
+      "confidence": 0.9319595694541931,
+      "class": "pin",
+      "crop_stem": "img070_pin05"
+    },
+    {
+      "x": 234.125,
+      "y": 779.375,
+      "width": 197.1875,
+      "height": 227.03125,
+      "confidence": 0.9359345436096191,
+      "class": "pin",
+      "crop_stem": "img070_pin06"
+    },
+    {
+      "x": 518.5,
+      "y": 1025.625,
+      "width": 145.859375,
+      "height": 230.15625,
+      "confidence": 0.9222025275230408,
+      "class": "pin",
+      "crop_stem": "img070_pin07"
+    },
+    {
+      "x": 779.125,
+      "y": 1036.875,
+      "width": 215.46875,
+      "height": 224.84375,
+      "confidence": 0.9354645609855652,
+      "class": "pin",
+      "crop_stem": "img070_pin08"
+    },
+    {
+      "x": 246.9375,
+      "y": 1041.25,
+      "width": 165.625,
+      "height": 221.875,
+      "confidence": 0.9226218461990356,
+      "class": "pin",
+      "crop_stem": "img070_pin09"
+    }
+  ],
+  "image": {
+    "width": 989,
+    "height": 1280
+  },
+  "_cleanup": {
+    "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
+    "raw_count": 9,
+    "cleaned_count": 9
+  }
+}

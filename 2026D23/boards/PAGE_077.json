@@ -1,0 +1,94 @@
+{
+  "predictions": [
+    {
+      "x": 447.875,
+      "y": 412.1875,
+      "width": 97.734375,
+      "height": 136.71875,
+      "confidence": 0.9167081117630005,
+      "class": "pin",
+      "crop_stem": "img077_pin01"
+    },
+    {
+      "x": 347.5625,
+      "y": 424.6875,
+      "width": 84.453125,
+      "height": 108.515625,
+      "confidence": 0.9064877033233643,
+      "class": "pin",
+      "crop_stem": "img077_pin02"
+    },
+    {
+      "x": 854.75,
+      "y": 425.3125,
+      "width": 84.296875,
+      "height": 110.15625,
+      "confidence": 0.9124361872673035,
+      "class": "pin",
+      "crop_stem": "img077_pin03"
+    },
+    {
+      "x": 146.78125,
+      "y": 425.625,
+      "width": 98.984375,
+      "height": 110.46875,
+      "confidence": 0.9074763655662537,
+      "class": "pin",
+      "crop_stem": "img077_pin04"
+    },
+    {
+      "x": 751.625,
+      "y": 425.625,
+      "width": 90.546875,
+      "height": 110.078125,
+      "confidence": 0.9238675236701965,
+      "class": "pin",
+      "crop_stem": "img077_pin05"
+    },
+    {
+      "x": 549.1250152587891,
+      "y": 425.9375,
+      "width": 88.43746948242188,
+      "height": 108.671875,
+      "confidence": 0.9029524326324463,
+      "class": "pin",
+      "crop_stem": "img077_pin06"
+    },
+    {
+      "x": 247.25,
+      "y": 426.25,
+      "width": 84.375,
+      "height": 106.40625,
+      "confidence": 0.9165588617324829,
+      "class": "pin",
+      "crop_stem": "img077_pin07"
+    },
+    {
+      "x": 651.0,
+      "y": 426.5625,
+      "width": 99.296875,
+      "height": 109.921875,
+      "confidence": 0.920074462890625,
+      "class": "pin",
+      "crop_stem": "img077_pin08"
+    },
+    {
+      "x": 497.24999618530273,
+      "y": 1006.875,
+      "width": 743.1250076293945,
+      "height": 314.0625,
+      "confidence": 0.733738124370575,
+      "class": "pin",
+      "crop_stem": "img077_pin09"
+    }
+  ],
+  "image": {
+    "width": 989,
+    "height": 1280
+  },
+  "_cleanup": {
+    "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
+    "raw_count": 15,
+    "cleaned_count": 9
+  }
+}

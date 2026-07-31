@@ -1,0 +1,94 @@
+{
+  "predictions": [
+    {
+      "x": 779.125,
+      "y": 507.8125,
+      "width": 190.15625,
+      "height": 320.625,
+      "confidence": 0.9421884417533875,
+      "class": "pin",
+      "crop_stem": "img008_pin01"
+    },
+    {
+      "x": 496.0,
+      "y": 508.4375,
+      "width": 208.4375,
+      "height": 206.09375,
+      "confidence": 0.9064877033233643,
+      "class": "pin",
+      "crop_stem": "img008_pin02"
+    },
+    {
+      "x": 175.84375,
+      "y": 515.3125,
+      "width": 209.375,
+      "height": 207.1875,
+      "confidence": 0.9150528311729431,
+      "class": "pin",
+      "crop_stem": "img008_pin03"
+    },
+    {
+      "x": 175.21875,
+      "y": 758.75,
+      "width": 208.75,
+      "height": 227.96875,
+      "confidence": 0.9058233499526978,
+      "class": "pin",
+      "crop_stem": "img008_pin04"
+    },
+    {
+      "x": 496.625,
+      "y": 769.375,
+      "width": 207.96875,
+      "height": 203.90625,
+      "confidence": 0.9197867512702942,
+      "class": "pin",
+      "crop_stem": "img008_pin05"
+    },
+    {
+      "x": 809.75,
+      "y": 771.875,
+      "width": 207.1875,
+      "height": 181.875,
+      "confidence": 0.922062337398529,
+      "class": "pin",
+      "crop_stem": "img008_pin06"
+    },
+    {
+      "x": 176.3125,
+      "y": 996.25,
+      "width": 209.6875,
+      "height": 170.0,
+      "confidence": 0.8846386671066284,
+      "class": "pin",
+      "crop_stem": "img008_pin07"
+    },
+    {
+      "x": 819.125,
+      "y": 998.75,
+      "width": 207.1875,
+      "height": 170.0,
+      "confidence": 0.9036349058151245,
+      "class": "pin",
+      "crop_stem": "img008_pin08"
+    },
+    {
+      "x": 494.125,
+      "y": 1003.75,
+      "width": 207.8125,
+      "height": 203.59375,
+      "confidence": 0.9103862047195435,
+      "class": "pin",
+      "crop_stem": "img008_pin09"
+    }
+  ],
+  "image": {
+    "width": 989,
+    "height": 1280
+  },
+  "_cleanup": {
+    "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
+    "raw_count": 10,
+    "cleaned_count": 9
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "predictions": [
+    {
+      "x": 770.375,
+      "y": 470.0,
+      "width": 100.546875,
+      "height": 209.0625,
+      "confidence": 0.9181873202323914,
+      "class": "pin",
+      "crop_stem": "img088_pin01"
+    },
+    {
+      "x": 403.5,
+      "y": 470.625,
+      "width": 134.765625,
+      "height": 209.375,
+      "confidence": 0.902265727519989,
+      "class": "pin",
+      "crop_stem": "img088_pin02"
+    },
+    {
+      "x": 581.0,
+      "y": 471.25,
+      "width": 126.953125,
+      "height": 208.125,
+      "confidence": 0.91804039478302,
+      "class": "pin",
+      "crop_stem": "img088_pin03"
+    },
+    {
+      "x": 217.5625,
+      "y": 472.5,
+      "width": 145.546875,
+      "height": 209.21875,
+      "confidence": 0.911337673664093,
+      "class": "pin",
+      "crop_stem": "img088_pin04"
+    },
+    {
+      "x": 401.3125,
+      "y": 789.375,
+      "width": 92.5,
+      "height": 202.1875,
+      "confidence": 0.9230391979217529,
+      "class": "pin",
+      "crop_stem": "img088_pin05"
+    },
+    {
+      "x": 216.9375,
+      "y": 790.625,
+      "width": 135.3125,
+      "height": 212.5,
+      "confidence": 0.9105454087257385,
+      "class": "pin",
+      "crop_stem": "img088_pin06"
+    },
+    {
+      "x": 586.0,
+      "y": 790.625,
+      "width": 123.671875,
+      "height": 205.625,
+      "confidence": 0.9319595694541931,
+      "class": "pin",
+      "crop_stem": "img088_pin07"
+    },
+    {
+      "x": 772.25,
+      "y": 791.25,
+      "width": 151.25,
+      "height": 209.84375,
+      "confidence": 0.9314625263214111,
+      "class": "pin",
+      "crop_stem": "img088_pin08"
+    },
+    {
+      "x": 495.0625,
+      "y": 1208.75,
+      "width": 147.890625,
+      "height": 85.625,
+      "confidence": 0.818881630897522,
+      "class": "pin",
+      "crop_stem": "img088_pin09"
+    }
+  ],
+  "image": {
+    "width": 989,
+    "height": 1280
+  },
+  "_cleanup": {
+    "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
+    "raw_count": 9,
+    "cleaned_count": 9
+  }
+}

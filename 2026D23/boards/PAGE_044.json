@@ -1,0 +1,94 @@
+{
+  "predictions": [
+    {
+      "x": 757.875,
+      "y": 505.9375,
+      "width": 194.375,
+      "height": 331.875,
+      "confidence": 0.9235923886299133,
+      "class": "pin",
+      "crop_stem": "img044_pin01"
+    },
+    {
+      "x": 195.375,
+      "y": 534.0625,
+      "width": 197.8125,
+      "height": 235.625,
+      "confidence": 0.9345147609710693,
+      "class": "pin",
+      "crop_stem": "img044_pin02"
+    },
+    {
+      "x": 454.4375,
+      "y": 539.0625,
+      "width": 235.0,
+      "height": 179.84375,
+      "confidence": 0.8666976690292358,
+      "class": "pin",
+      "crop_stem": "img044_pin03"
+    },
+    {
+      "x": 471.3125,
+      "y": 786.875,
+      "width": 172.96875,
+      "height": 222.1875,
+      "confidence": 0.9267027974128723,
+      "class": "pin",
+      "crop_stem": "img044_pin04"
+    },
+    {
+      "x": 242.25,
+      "y": 787.5,
+      "width": 215.15625,
+      "height": 218.90625,
+      "confidence": 0.8910549879074097,
+      "class": "pin",
+      "crop_stem": "img044_pin05"
+    },
+    {
+      "x": 729.75,
+      "y": 788.125,
+      "width": 229.0625,
+      "height": 153.046875,
+      "confidence": 0.9298236966133118,
+      "class": "pin",
+      "crop_stem": "img044_pin06"
+    },
+    {
+      "x": 724.125,
+      "y": 1041.25,
+      "width": 142.578125,
+      "height": 222.8125,
+      "confidence": 0.9268352389335632,
+      "class": "pin",
+      "crop_stem": "img044_pin07"
+    },
+    {
+      "x": 215.6875,
+      "y": 1048.125,
+      "width": 137.03125,
+      "height": 219.375,
+      "confidence": 0.9278878569602966,
+      "class": "pin",
+      "crop_stem": "img044_pin08"
+    },
+    {
+      "x": 477.25,
+      "y": 1051.25,
+      "width": 230.15625,
+      "height": 198.75,
+      "confidence": 0.9276259541511536,
+      "class": "pin",
+      "crop_stem": "img044_pin09"
+    }
+  ],
+  "image": {
+    "width": 989,
+    "height": 1280
+  },
+  "_cleanup": {
+    "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
+    "raw_count": 9,
+    "cleaned_count": 9
+  }
+}
