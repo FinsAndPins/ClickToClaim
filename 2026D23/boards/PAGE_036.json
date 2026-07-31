@@ -1,0 +1,22 @@
+{
+  "predictions": [
+    {
+      "x": 275.0625,
+      "y": 563.75,
+      "width": 471.875,
+      "height": 732.5,
+      "confidence": 0.6817268133163452,
+      "class": "pin",
+      "crop_stem": "img036_pin01"
+    }
+  ],
+  "image": {
+    "width": 989,
+    "height": 1280
+  },
+  "_cleanup": {
+    "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
+    "raw_count": 2,
+    "cleaned_count": 1
+  }
+}

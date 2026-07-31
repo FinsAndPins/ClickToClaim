@@ -1,0 +1,76 @@
+{
+  "predictions": [
+    {
+      "x": 181.0,
+      "y": 580.625,
+      "width": 196.40625,
+      "height": 276.71875,
+      "confidence": 0.9470881819725037,
+      "class": "pin",
+      "crop_stem": "img081_pin01"
+    },
+    {
+      "x": 390.6875,
+      "y": 580.9375,
+      "width": 196.25,
+      "height": 273.59375,
+      "confidence": 0.9502266049385071,
+      "class": "pin",
+      "crop_stem": "img081_pin02"
+    },
+    {
+      "x": 600.3750152587891,
+      "y": 581.5625,
+      "width": 195.15621948242188,
+      "height": 273.75,
+      "confidence": 0.9489172697067261,
+      "class": "pin",
+      "crop_stem": "img081_pin03"
+    },
+    {
+      "x": 811.0,
+      "y": 581.875,
+      "width": 194.53125,
+      "height": 271.5625,
+      "confidence": 0.939024806022644,
+      "class": "pin",
+      "crop_stem": "img081_pin04"
+    },
+    {
+      "x": 251.625,
+      "y": 999.375,
+      "width": 200.3125,
+      "height": 275.78125,
+      "confidence": 0.9463988542556763,
+      "class": "pin",
+      "crop_stem": "img081_pin05"
+    },
+    {
+      "x": 739.75,
+      "y": 999.375,
+      "width": 201.09375,
+      "height": 276.09375,
+      "confidence": 0.9457011222839355,
+      "class": "pin",
+      "crop_stem": "img081_pin06"
+    },
+    {
+      "x": 496.0,
+      "y": 1000.0,
+      "width": 197.96875,
+      "height": 273.4375,
+      "confidence": 0.9449946880340576,
+      "class": "pin",
+      "crop_stem": "img081_pin07"
+    }
+  ],
+  "image": {
+    "width": 989,
+    "height": 1280
+  },
+  "_cleanup": {
+    "rule": "flyer_page_area_0.28_plus_nested_containment_0.75",
+    "raw_count": 7,
+    "cleaned_count": 7
+  }
+}
