@@ -55,9 +55,9 @@
       "crop_stem": "img038_pin06"
     },
     {
-      "x": 157.09375,
+      "x": 169.2265625,
       "y": 876.875,
-      "width": 173.28125,
+      "width": 197.546875,
       "height": 206.71875,
       "confidence": 0.8893368244171143,
       "class": "pin",
@@ -89,6 +89,15 @@
       "confidence": 0.9252300262451172,
       "class": "pin",
       "crop_stem": "img038_pin10"
+    },
+    {
+      "x": 598.5,
+      "y": 418.4375,
+      "width": 197.5,
+      "height": 207.96875,
+      "confidence": 0.93,
+      "class": "pin",
+      "crop_stem": "img038_pin11"
     }
   ],
   "image": {
@@ -105,7 +114,7 @@
       "actions": [
         "drop_header_logo area=0.077 rest_med=0.033 y=0.29"
       ],
-      "cleaned": 10
+      "cleaned": 11
     }
   }
 }
