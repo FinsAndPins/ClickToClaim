@@ -867,7 +867,11 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
 
 (function() {
     if (showDateSlug === "2026D23" || IS_D23_INTEREST) {
-        document.getElementById("showTitle").textContent = "2026 D23 — Pin Interest";
+        document.getElementById("showTitle").textContent = "This is Disney’s catalog of pins available at D23.";
+        const intro = document.getElementById("introNote");
+        if (intro) {
+            intro.textContent = "Tap the ones you hope we’ll be able to get for you?";
+        }
         const help = document.querySelector(".login-help");
         if (help) {
             help.textContent = "Tap pins you’re interested in from the D23 catalogs so we know what to buy. Any username works — Whatnot or Instagram helps us match you later.";
