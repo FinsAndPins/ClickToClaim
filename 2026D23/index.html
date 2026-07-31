@@ -657,6 +657,8 @@ let manifestBoardNames = [];
 /** Sum of prediction counts across all boards (computed async in lite mode). */
 let globalAllBoardPinCount = 0;
 let globalAllBoardPinCountReady = false;
+/** Raw prediction counts per board name (before hiddenPins / Fix boxes). */
+let globalBoardRawPinCounts = {};
 
 function getEffectiveShowPhase() {
     if (showPhaseOverride !== "auto") return showPhaseOverride;
@@ -898,6 +900,39 @@ function pinKeyOf(boardName, idx) {
     return `${boardName}-${idx}`;
 }
 
+/** Clickable pins only: JSON boxes minus admin Fix-boxes hides. */
+function countVisiblePins(boardName, pinCount) {
+    const n = Number(pinCount) || 0;
+    let visible = 0;
+    for (let i = 0; i < n; i++) {
+        if (!hiddenPinKeys.has(pinKeyOf(boardName, i))) visible++;
+    }
+    return visible;
+}
+
+function visibleTotalFromRawCounts(rawCounts) {
+    let sum = 0;
+    Object.entries(rawCounts || {}).forEach(([name, n]) => {
+        sum += countVisiblePins(name, n);
+    });
+    return sum;
+}
+
+/** Keep admin/public totals in sync when Fix boxes hide/unhide detections. */
+function refreshVisiblePinTotals() {
+    Object.keys(boardsState).forEach((name) => {
+        const raw = boardsState[name].rawPinCount;
+        if (raw == null) return;
+        boardsState[name].totalPins = countVisiblePins(name, raw);
+    });
+    if (Object.keys(globalBoardRawPinCounts).length) {
+        globalAllBoardPinCount = visibleTotalFromRawCounts(globalBoardRawPinCounts);
+        globalAllBoardPinCountReady = true;
+    }
+    updateAllBoardDisplays();
+    calculateGlobals();
+}
+
 function refreshHiddenCount() {
     const el = document.getElementById("boxCleanupCount");
     if (!el) return;
@@ -939,6 +974,7 @@ db.ref(`hiddenPins/${fbName}`).on("value", snap => {
         if (v[k]) hiddenPinKeys.add(k);
     });
     applyAllHiddenPins();
+    refreshVisiblePinTotals();
 });
 
 db.ref(`showConfig/${fbName}`).on("value", snap => {
@@ -1046,26 +1082,29 @@ function updateFuelGauge(requested) {
 const BOARDS_MANIFEST_VERSION = "7";
 
 async function computeAllBoardPinTotals(boardNames) {
-    let sum = 0;
+    const rawCounts = {};
     const chunk = 12;
     for (let i = 0; i < boardNames.length; i += chunk) {
         const slice = boardNames.slice(i, i + chunk);
-        const results = await Promise.all(
+        await Promise.all(
             slice.map(async (name) => {
                 try {
                     const r = await fetch(`./boards/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
-                    if (!r.ok) return 0;
+                    if (!r.ok) {
+                        rawCounts[name] = 0;
+                        return;
+                    }
                     const data = await r.json();
                     const pins = data.predictions || data.output?.predictions || [];
-                    return Array.isArray(pins) ? pins.length : 0;
+                    rawCounts[name] = Array.isArray(pins) ? pins.length : 0;
                 } catch (e) {
-                    return 0;
+                    rawCounts[name] = 0;
                 }
             })
         );
-        sum += results.reduce((a, b) => a + b, 0);
     }
-    return sum;
+    globalBoardRawPinCounts = rawCounts;
+    return visibleTotalFromRawCounts(rawCounts);
 }
 
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
@@ -1139,7 +1178,7 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
                 <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}"></div>`;
             boardsList.appendChild(container);
-            boardsState[name] = { totalPins: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
+            boardsState[name] = { totalPins: 0, rawPinCount: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
             setupBoard(name);
         });
         if (displayName) listenForFirebase();
@@ -1149,7 +1188,9 @@ async function setupBoard(name) {
     const response = await fetch(`./boards/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
     const data = await response.json();
     const pins = data.predictions || data.output?.predictions || [];
-    boardsState[name].totalPins = pins.length;
+    boardsState[name].rawPinCount = pins.length;
+    boardsState[name].totalPins = countVisiblePins(name, pins.length);
+    globalBoardRawPinCounts[name] = pins.length;
     const img = document.getElementById(`img-${name}`);
     const wrapper = document.getElementById(`wrapper-${name}`);
     let placedOnce = false;
