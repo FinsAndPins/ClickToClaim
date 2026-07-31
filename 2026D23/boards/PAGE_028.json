@@ -1,20 +1,20 @@
 {
   "predictions": [
     {
-      "x": 456.625,
-      "y": 605.3125,
-      "width": 472.8125,
-      "height": 498.75,
+      "x": 472.453125,
+      "y": 610.46875,
+      "width": 914.90625,
+      "height": 509.0625,
       "confidence": 0.6132366061210632,
       "class": "pin",
       "crop_stem": "img028_pin01"
     },
     {
-      "x": 749.125,
-      "y": 700.625,
-      "width": 361.5625,
-      "height": 308.4375,
-      "confidence": 0.2978782653808594,
+      "x": 491.3125,
+      "y": 1013.75,
+      "width": 340.9375,
+      "height": 219.0625,
+      "confidence": 0.8436376452445984,
       "class": "pin",
       "crop_stem": "img028_pin02"
     },
@@ -26,15 +26,6 @@
       "confidence": 0.5769591927528381,
       "class": "pin",
       "crop_stem": "img028_pin03"
-    },
-    {
-      "x": 491.3125,
-      "y": 1013.75,
-      "width": 340.9375,
-      "height": 219.0625,
-      "confidence": 0.8436376452445984,
-      "class": "pin",
-      "crop_stem": "img028_pin04"
     }
   ],
   "image": {
@@ -53,6 +44,19 @@
         "drop_text_block idx=4 area=0.042 right_af=0.059 x=0.26"
       ],
       "cleaned": 4
+    },
+    "board28_item57_20260731": {
+      "note": "UI Board 28 / catalog item 57 World Princess Week Ultra Jumbo",
+      "merged_split_and_extended_left_for_rapunzel_hair": true,
+      "kept_packaging_boxes_for_admin_hide": true,
+      "raw_count": 4,
+      "cleaned_count": 3,
+      "jumbo_ltrb": [
+        15.0,
+        355.9375,
+        929.90625,
+        865.0
+      ]
     }
   }
 }
