@@ -1360,14 +1360,7 @@ function listenForFirebase() {
                 if (users && users[userKey]) myNow++;
                 if (users && Object.keys(users).length > 0) globalRequested++;
             });
-            if (myNow > lastMyRequestsCount && globalRequested >= FUEL_MAX) {
-                const dayKey = new Date().toDateString();
-                const flagKey = "fp_fuel250_" + fbName + "_" + dayKey;
-                if (!localStorage.getItem(flagKey)) {
-                    localStorage.setItem(flagKey, "1");
-                    document.getElementById("fuelOverModal").style.display = "flex";
-                }
-            }
+            // Skip show-night "250 spots" modal on this D23 interest catalog.
             lastMyRequestsCount = myNow;
         }
 
