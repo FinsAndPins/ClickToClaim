@@ -1310,14 +1310,22 @@ function calculateGlobals() {
 <script id="_ctcPriceOverlay">
 // Price overlay — 20260723. Badges ONLY for Firebase match + positive price.
 // Live RTDB listener (no refresh). Rounded list/show price only (no 20% discount).
-// Visibility mode from reports.html (localStorage); default = hidden.
+// Visibility mode: showConfig/{show}/priceMode (shared across devices). localStorage is cache only.
 (function() {
 const _PO_TR = 'test_PriceCollection_20260802_1354__build_23549_visual_baseline';
 const _PO_AP = 'visual_baseline';
 const _PO_MODE_KEY = '_ctcPriceMode_20260723';
 const _PO_PINS_PATH = `pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins`;
+const _PO_SHOW_ID = (typeof fbName !== 'undefined' && fbName) ? fbName
+  : (typeof showDateSlug !== 'undefined' && showDateSlug) ? showDateSlug
+  : '20260803';
+const _PO_MODE_PATH = `showConfig/${_PO_SHOW_ID}/priceMode`;
 
-let _priceMode = localStorage.getItem(_PO_MODE_KEY) || 'none';
+let _priceMode = 'none';
+try {
+  const cached = localStorage.getItem(_PO_MODE_KEY);
+  if (['all', 'clicked', 'none'].includes(cached)) _priceMode = cached;
+} catch (_) {}
 const _pricesSnap = {};   // stem -> raw (match-only snapshot; fallback when FB match lacks display_price)
 const _stemToPrice = {};  // stem -> raw confirmed show price
 const _napStems = new Set();
@@ -1426,7 +1434,20 @@ function _applyAllPins() {
 function _applyMode(mode) {
     if (!['all', 'clicked', 'none'].includes(mode)) mode = 'none';
     _priceMode = mode;
+    try { localStorage.setItem(_PO_MODE_KEY, mode); } catch (_) {}
     _refreshAllBadges();
+}
+
+// Shared show setting (phones + laptops). localStorage/BroadcastChannel are same-browser only.
+try {
+    if (typeof firebase !== 'undefined' && firebase.database) {
+        firebase.database().ref(_PO_MODE_PATH).on('value', snap => {
+            const m = snap.val();
+            if (['all', 'clicked', 'none'].includes(m)) _applyMode(m);
+        }, err => console.warn('[PriceOverlay] priceMode listener failed:', err));
+    }
+} catch (e) {
+    console.warn('[PriceOverlay] priceMode listener setup failed:', e);
 }
 
 window.addEventListener('storage', (e) => {

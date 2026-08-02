@@ -190,25 +190,57 @@ async function loadData() {
         });
     });
 
-    // Price overlay control for boards page (shared localStorage + BroadcastChannel).
+    // Price overlay control — shared via showConfig/{show}/priceMode (all devices).
+    // localStorage/BroadcastChannel remain as same-browser cache only.
     const _PO_MODE_KEY = "_ctcPriceMode_20260723";
     const priceSel = document.getElementById("_po-sel-reports");
     if (priceSel) {
-        const cur = localStorage.getItem(_PO_MODE_KEY) || "none";
-        priceSel.value = ["all", "clicked", "none"].includes(cur) ? cur : "none";
-        if (!localStorage.getItem(_PO_MODE_KEY)) localStorage.setItem(_PO_MODE_KEY, "none");
         let bc = null;
         try { bc = new BroadcastChannel("ctc_price_mode_20260723"); } catch (_) {}
+        function applyPriceSel(mode) {
+            if (!["all", "clicked", "none"].includes(mode)) mode = "none";
+            priceSel.value = mode;
+            try { localStorage.setItem(_PO_MODE_KEY, mode); } catch (_) {}
+            if (bc) bc.postMessage({ mode });
+        }
+        // Seed from Firebase; if unset, publish this browser's local preference once (e.g. Mac → phones).
+        db.ref(`showConfig/${fbName}/priceMode`).once("value").then(snap => {
+            const fbMode = snap.val();
+            if (["all", "clicked", "none"].includes(fbMode)) {
+                applyPriceSel(fbMode);
+                return;
+            }
+            const localMode = localStorage.getItem(_PO_MODE_KEY) || "none";
+            const seed = ["all", "clicked", "none"].includes(localMode) ? localMode : "none";
+            applyPriceSel(seed);
+            return db.ref(`showConfig/${fbName}`).update({
+                priceMode: seed,
+                priceModeUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        }).catch(() => {
+            applyPriceSel(localStorage.getItem(_PO_MODE_KEY) || "none");
+        });
+        db.ref(`showConfig/${fbName}/priceMode`).on("value", snap => {
+            const m = snap.val();
+            if (["all", "clicked", "none"].includes(m) && priceSel.value !== m) applyPriceSel(m);
+        });
         priceSel.addEventListener("change", () => {
             const mode = priceSel.value;
-            localStorage.setItem(_PO_MODE_KEY, mode);
-            if (bc) bc.postMessage({ mode });
-            if (phaseStatusEl) {
-                phaseStatusEl.textContent = mode === "none" ? "Prices hidden on boards." : "Price display updated on boards.";
-                setTimeout(() => {
-                    if (phaseStatusEl && /Prices/.test(phaseStatusEl.textContent)) phaseStatusEl.textContent = "";
-                }, 2500);
-            }
+            applyPriceSel(mode);
+            if (phaseStatusEl) phaseStatusEl.textContent = "Saving price display…";
+            db.ref(`showConfig/${fbName}`).update({
+                priceMode: mode,
+                priceModeUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                if (phaseStatusEl) {
+                    phaseStatusEl.textContent = mode === "none" ? "Prices hidden on boards (all devices)." : "Price display updated on boards (all devices).";
+                    setTimeout(() => {
+                        if (phaseStatusEl && /Prices|price display/i.test(phaseStatusEl.textContent)) phaseStatusEl.textContent = "";
+                    }, 2500);
+                }
+            }).catch(e => {
+                if (phaseStatusEl) phaseStatusEl.textContent = "Error: " + e.message;
+            });
         });
     }
 
