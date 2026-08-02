@@ -76,12 +76,8 @@
         </div>
     </section>
 
-    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
-
-    <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
-
     <section>
-        <h2>Board Heat</h2>
+        <h2>1. Board Heat</h2>
         <p style="font-size:13px;color:#555;margin:0 0 12px;line-height:1.45;">Sorted by <strong>Total Clicks</strong> (then Contested Pins) — useful run order without pre-pulling pins. <strong>Total Clicks</strong> = sum of requests across every pin on the board (one person on three pins = 3). <strong>Contested Pins</strong> = pins with 2+ requesters. <strong>Pins Requested</strong> = pins with ≥1 request. <strong>Unique Users</strong> = distinct people who touched the board. <strong>$ Requested</strong> = sum of show prices for requested pins (each pin once).</p>
         <table id="boardHeatTable">
             <thead>
@@ -98,11 +94,15 @@
         </table>
     </section>
 
-    <section><h2>3. Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>2. Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
 
-    <section><h2>4. Click Summary</h2><table id="summaryTable"><thead><tr><th>Clicks</th><th>Pins</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>3. Click Summary</h2><table id="summaryTable"><thead><tr><th>Clicks</th><th>Pins</th></tr></thead><tbody></tbody></table></section>
 
-    <section><h2>5. Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
+    <section><h2>4. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
+
+    <section><h2>5. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+
+    <section><h2>6. Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
 </div>
 <div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
 

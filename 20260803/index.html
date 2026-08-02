@@ -393,7 +393,7 @@
     </div>
     <span id="totalPins" hidden>0</span>
     <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
-        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span>
+        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · $<span id="adminTotalValue">0</span>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
         <span class="admin-phase-label">Show state (visible to everyone; use Schedule for Eastern clock)</span>
@@ -604,6 +604,9 @@ let manifestBoardNames = [];
 /** Sum of prediction counts across all boards (computed async in lite mode). */
 let globalAllBoardPinCount = 0;
 let globalAllBoardPinCountReady = false;
+/** Admin-only: pinKey (IMG_####-idx) → crop_stem for $ totals (does not touch claims). */
+const adminCropStemByPinKey = {};
+let adminCropStemMapReady = false;
 
 function getEffectiveShowPhase() {
     if (showPhaseOverride !== "auto") return showPhaseOverride;
@@ -940,6 +943,28 @@ async function computeAllBoardPinTotals(boardNames) {
     return sum;
 }
 
+/** Admin: map every pin key → crop_stem so $ requested can include boards not yet rendered (lite). */
+async function loadAdminCropStemMap(boardNames) {
+    const chunk = 12;
+    for (let i = 0; i < boardNames.length; i += chunk) {
+        const slice = boardNames.slice(i, i + chunk);
+        await Promise.all(slice.map(async (name) => {
+            try {
+                const r = await fetch(`./boards/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+                if (!r.ok) return;
+                const data = await r.json();
+                const pins = data.predictions || data.output?.predictions || [];
+                if (!Array.isArray(pins)) return;
+                pins.forEach((p, idx) => {
+                    if (p && p.crop_stem) adminCropStemByPinKey[`${name}-${idx}`] = p.crop_stem;
+                });
+            } catch (e) { /* ignore single-board fetch failures */ }
+        }));
+    }
+    adminCropStemMapReady = true;
+    calculateGlobals();
+}
+
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
     .then(r => r.json())
     .then(list => {
@@ -953,6 +978,9 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
             });
         } else {
             globalAllBoardPinCountReady = false;
+        }
+        if (isAdmin) {
+            loadAdminCropStemMap(manifestBoardNames);
         }
         const totalBoards = list.length;
         const rank = {};
@@ -1281,6 +1309,32 @@ function calculateGlobals() {
         document.getElementById("adminUnique").textContent         = globalUnique;
         document.getElementById("adminContested").textContent      = globalContested;
         document.getElementById("adminTotalUsers").textContent     = allUsers.size;
+        // Unduplicated show $ for requested pins (same rounding as price badges).
+        let adminValue = 0;
+        const priceForStem = (typeof window._ctcRoundedShowPriceForStem === "function")
+            ? window._ctcRoundedShowPriceForStem
+            : null;
+        if (priceForStem) {
+            const addPk = (pk) => {
+                const stem = adminCropStemByPinKey[pk]
+                    || (document.getElementById(`pin-${pk}`) && document.getElementById(`pin-${pk}`).dataset.cropStem)
+                    || "";
+                if (stem) adminValue += priceForStem(stem) || 0;
+            };
+            if (useGlobalClaims) {
+                Object.entries(latestClaimsData).forEach(([pk, uMap]) => {
+                    if (uMap && Object.keys(uMap).length > 0) addPk(pk);
+                });
+            } else {
+                Object.values(boardsState).forEach(s => {
+                    Object.entries(s.allClaims || {}).forEach(([pk, uMap]) => {
+                        if (uMap && Object.keys(uMap).length > 0) addPk(pk);
+                    });
+                });
+            }
+        }
+        const valEl = document.getElementById("adminTotalValue");
+        if (valEl) valEl.textContent = String(adminValue);
     }
     updateFuelGauge(globalRequested);
 }
@@ -1427,6 +1481,15 @@ function _applyPin(pinEl) {
     _updateBadgeViz(pinEl);
 }
 
+/** Admin boards line: rounded show price for a crop stem (0 if unpriced / NaP). */
+window._ctcRoundedShowPriceForStem = function(stem) {
+    if (!stem) return 0;
+    let raw = _stemToPrice[stem];
+    if (raw == null) raw = _stemToPrice[_normStem(stem)];
+    return _roundForShow(raw);
+};
+window._ctcApplyPinPriceGate = _applyPin;
+
 function _applyAllPins() {
     document.querySelectorAll('.pin').forEach(_applyPin);
 }
@@ -1520,6 +1583,7 @@ function _ingestFirebasePins(all) {
     console.info(`[PriceOverlay] live FB: match=${nMatch} priced=${nPriced} nap=${nNap}`);
     _applyAllPins();
     _applyMode(_priceMode);
+    if (typeof calculateGlobals === 'function') calculateGlobals();
 }
 
 (async function _bootPriceOverlay() {
