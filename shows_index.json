@@ -1,6 +1,13 @@
 {
   "shows": [
     {
+      "folder": "20260801",
+      "label": "Aug 1, 2026",
+      "sort_key": "1785519320",
+      "last_commit_iso": "2026-07-31T17:35:20+00:00",
+      "show_url": "https://finsandpins.github.io/ClickToClaim/20260801/index.html"
+    },
+    {
       "folder": "2026D23",
       "label": "2026D23",
       "sort_key": "1785516864",
@@ -59,22 +66,22 @@
     {
       "folder": "20260707",
       "label": "Jul 7, 2026",
-      "sort_key": "0:20260707",
-      "last_commit_iso": "",
+      "sort_key": "1783376040",
+      "last_commit_iso": "2026-07-06T22:14:00+00:00",
       "show_url": "https://finsandpins.github.io/ClickToClaim/20260707/index.html"
     },
     {
       "folder": "20260705TestPricingOverlay",
       "label": "Jul 5, 2026 \u00b7 TestPricingOverlay",
-      "sort_key": "0:20260705TestPricingOverlay",
-      "last_commit_iso": "",
+      "sort_key": "1783267777",
+      "last_commit_iso": "2026-07-05T16:09:37+00:00",
       "show_url": "https://finsandpins.github.io/ClickToClaim/20260705TestPricingOverlay/index.html"
     },
     {
       "folder": "20260704",
       "label": "Jul 4, 2026",
-      "sort_key": "0:20260704",
-      "last_commit_iso": "",
+      "sort_key": "1783208815",
+      "last_commit_iso": "2026-07-04T23:46:55+00:00",
       "show_url": "https://finsandpins.github.io/ClickToClaim/20260704/index.html"
     },
     {
@@ -92,7 +99,7 @@
       "show_url": "https://finsandpins.github.io/ClickToClaim/20260629/index.html"
     }
   ],
-  "updated_iso": "2026-07-31T13:35:20-04:00",
+  "updated_iso": "2026-08-02T13:54:16-04:00",
   "base_url": "https://finsandpins.github.io/ClickToClaim",
   "ordered_by": "last_git_commit_desc"
 }
