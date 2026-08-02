@@ -80,6 +80,24 @@
 
     <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
 
+    <section>
+        <h2>Board Heat</h2>
+        <p style="font-size:13px;color:#555;margin:0 0 12px;line-height:1.45;">Sorted by <strong>Total Clicks</strong> (then Contested Pins) — useful run order without pre-pulling pins. <strong>Total Clicks</strong> = sum of requests across every pin on the board (one person on three pins = 3). <strong>Contested Pins</strong> = pins with 2+ requesters. <strong>Pins Requested</strong> = pins with ≥1 request. <strong>Unique Users</strong> = distinct people who touched the board. <strong>$ Requested</strong> = sum of show prices for requested pins (each pin once).</p>
+        <table id="boardHeatTable">
+            <thead>
+                <tr>
+                    <th>Board</th>
+                    <th>Total Clicks</th>
+                    <th>Contested Pins</th>
+                    <th>Pins Requested</th>
+                    <th>Unique Users</th>
+                    <th>$ Requested</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </section>
+
     <section><h2>3. Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
 
     <section><h2>4. Click Summary</h2><table id="summaryTable"><thead><tr><th>Clicks</th><th>Pins</th></tr></thead><tbody></tbody></table></section>
@@ -356,12 +374,26 @@ function rowTime(m) {
 
 function renderReports() {
     const userStats = {}; const liveFeed = []; const popularity = [];
+    const boardHeat = {};
+    (globalData.boardList || []).forEach((bName, i) => {
+        boardHeat[bName] = { bNum: i + 1, totalRequesters: 0, contestedPins: 0, pinsRequested: 0, dollarRequested: 0, users: new Set() };
+    });
+
     Object.entries(globalData.raw).forEach(([pk, users]) => {
         const [bName, pIdx] = pk.split("-");
         const bNum = globalData.boardList.indexOf(bName) + 1;
         const cleanLoc = `Board ${bNum} (Pin ${parseInt(pIdx)+1})`;
         const uList = Object.entries(users).sort((a,b) => rowTime(a[1]) - rowTime(b[1]));
         const isUnique = uList.length === 1;
+
+        if (!boardHeat[bName]) boardHeat[bName] = { bNum: bNum || 0, totalRequesters: 0, contestedPins: 0, pinsRequested: 0, dollarRequested: 0, users: new Set() };
+        if (uList.length > 0) {
+            boardHeat[bName].pinsRequested++;
+            boardHeat[bName].totalRequesters += uList.length;
+            boardHeat[bName].dollarRequested += dollarValueForPk(pk);
+            if (uList.length >= 2) boardHeat[bName].contestedPins++;
+            uList.forEach(([u]) => boardHeat[bName].users.add(u));
+        }
 
         const userLabels = uList.map(([u, m]) => normalizeUserDisplayName(rowLabel(m) || u) || u).join(", ");
         popularity.push({ pin: pk, display: cleanLoc, count: uList.length, users: userLabels });
@@ -384,6 +416,30 @@ function renderReports() {
             });
         });
     });
+
+    const boardRows = Object.entries(boardHeat).map(([bName, s]) => ({
+        bName,
+        bNum: s.bNum,
+        display: s.bNum > 0 ? `Board ${s.bNum}` : bName,
+        totalRequesters: s.totalRequesters,
+        contestedPins: s.contestedPins,
+        pinsRequested: s.pinsRequested,
+        uniqueUsers: s.users.size,
+        dollarRequested: s.dollarRequested
+    }));
+    const heatBody = document.querySelector("#boardHeatTable tbody");
+    if (heatBody) {
+        heatBody.innerHTML = boardRows.length
+            ? boardRows.slice().sort((a, b) =>
+                b.totalRequesters - a.totalRequesters ||
+                b.contestedPins - a.contestedPins ||
+                b.dollarRequested - a.dollarRequested ||
+                a.bNum - b.bNum
+            ).map(r =>
+                `<tr><td>${r.display}</td><td>${r.totalRequesters}</td><td>${r.contestedPins}</td><td>${r.pinsRequested}</td><td>${r.uniqueUsers}</td><td>$${r.dollarRequested}</td></tr>`
+            ).join('')
+            : '<tr><td colspan="6" style="color:#999;">No board data yet.</td></tr>';
+    }
 
     let tU=0, tC=0, tT=0;
     document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([canon, s]) => {
