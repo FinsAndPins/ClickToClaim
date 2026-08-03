@@ -56,7 +56,8 @@
         .pin.pin-mine { box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.45); z-index: 105; }
         .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
         .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.45); }
-        .bn-badge { position: absolute; top: -10px; right: -10px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 13px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 111; pointer-events: none; border: 2px solid white; }
+        /* Upper-left so B/N does not cover .pin-pb price (upper-right) during live show. */
+        .bn-badge { position: absolute; top: -10px; left: -10px; right: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 13px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 111; pointer-events: none; border: 2px solid white; }
         .bn-badge.is-b { background: #0d6efd; color: white; }
         .bn-badge.is-n { background: #28a745; color: white; }
         .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 112; pointer-events: none; border: 2px solid white; }
