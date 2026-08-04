@@ -67,11 +67,12 @@
     color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
     pointer-events: none; z-index: 5; line-height: 1; white-space: nowrap;
   }
+  .pin { z-index: 1; }
   .pin-pb {
     position: absolute; top: 2px; right: 2px;
     background: rgba(0,0,0,0.78); color: #fff;
     font-size: 10px; font-weight: 700; padding: 1px 5px;
-    border-radius: 4px; pointer-events: none; white-space: nowrap; z-index: 2;
+    border-radius: 4px; pointer-events: none; white-space: nowrap; z-index: 3;
   }
   #toast {
     position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
@@ -129,7 +130,7 @@
   const RUN_LEFTOVER = "test_PriceCollection_20260802_1354__build_23549_visual_baseline";
   const APPROACH_ID = "visual_baseline";
   const PENDING_PATH = "showConfig/20260806/pendingStems";
-  const MANIFEST_VER = "3";
+  const MANIFEST_VER = "4";
 
   firebase.initializeApp(FB_CFG);
   const db = firebase.database();
@@ -137,9 +138,13 @@
   const boardsEl = document.getElementById("boards");
   const toast = document.getElementById("toast");
   const pendingStems = new Set();
-  const napStems = new Set();
-  const stemToPrice = Object.create(null);
-  const pinElsByStem = Object.create(null);
+  // Dual maps — leftover Firebase run reuses crop names like img8652_pin01.
+  // Merging into one map was marking show pins NaP / wiping prices.
+  const napPrimary = new Set();
+  const napLeftover = new Set();
+  const stemToPricePrimary = Object.create(null);
+  const stemToPriceLeftover = Object.create(null);
+  const pinElsByStem = Object.create(null); // stem -> [pinEl, ...]
   const boardMeta = Object.create(null);
   let reviewer = localStorage.getItem("fpins_pending_reviewer") || "";
 
@@ -177,17 +182,32 @@
     return pendingStems.has(stem) || pendingStems.has(normStem(stem));
   }
 
-  function isNap(stem) {
-    return napStems.has(stem) || napStems.has(normStem(stem));
+  function isLeftoverPin(pinEl) {
+    return !!(pinEl && pinEl.dataset && pinEl.dataset.leftover === "1");
   }
 
-  function priceOf(stem) {
-    return roundForShow(stemToPrice[stem] || stemToPrice[normStem(stem)]);
+  function napSetFor(leftover) {
+    return leftover ? napLeftover : napPrimary;
+  }
+
+  function priceMapFor(leftover) {
+    return leftover ? stemToPriceLeftover : stemToPricePrimary;
+  }
+
+  function isNap(stem, leftover) {
+    const set = napSetFor(leftover);
+    return set.has(stem) || set.has(normStem(stem));
+  }
+
+  function priceOf(stem, leftover) {
+    const map = priceMapFor(leftover);
+    return roundForShow(map[stem] || map[normStem(stem)]);
   }
 
   function applyPinVisual(pinEl) {
     const stem = pinEl.dataset.cropStem;
-    if (isNap(stem)) {
+    const leftover = isLeftoverPin(pinEl);
+    if (isNap(stem, leftover)) {
       pinEl.classList.add("pin-nap");
       return;
     }
@@ -199,7 +219,7 @@
       if (badge) badge.remove();
       return;
     }
-    const rounded = priceOf(stem);
+    const rounded = priceOf(stem, leftover);
     if (!rounded) {
       if (badge) badge.remove();
       return;
@@ -217,7 +237,7 @@
     if (!meta || !meta.statsEl) return;
     let pend = 0, clear = 0, total = 0;
     meta.stems.forEach((stem) => {
-      if (isNap(stem)) return;
+      if (isNap(stem, meta.leftover)) return;
       total++;
       if (isPending(stem)) pend++;
       else clear++;
@@ -229,11 +249,14 @@
 
   function refreshTotals() {
     let pendN = 0, clearN = 0, pendD = 0, clearD = 0;
-    Object.keys(pinElsByStem).forEach((stem) => {
-      if (isNap(stem)) return;
-      const p = priceOf(stem);
-      if (isPending(stem)) { pendN++; pendD += p; }
-      else { clearN++; clearD += p; }
+    Object.keys(boardMeta).forEach((name) => {
+      const meta = boardMeta[name];
+      (meta.stems || []).forEach((stem) => {
+        if (isNap(stem, meta.leftover)) return;
+        const p = priceOf(stem, meta.leftover);
+        if (isPending(stem)) { pendN++; pendD += p; }
+        else { clearN++; clearD += p; }
+      });
     });
     document.getElementById("tot-pend-n").textContent = String(pendN);
     document.getElementById("tot-pend-d").textContent = money(pendD);
@@ -245,13 +268,15 @@
   }
 
   function refreshAllPins() {
-    Object.values(pinElsByStem).forEach(applyPinVisual);
+    Object.keys(pinElsByStem).forEach((stem) => {
+      (pinElsByStem[stem] || []).forEach(applyPinVisual);
+    });
     refreshTotals();
   }
 
   async function togglePending(pinEl) {
     const stem = pinEl.dataset.cropStem;
-    if (!stem || isNap(stem)) return;
+    if (!stem || isNap(stem, isLeftoverPin(pinEl))) return;
     const user = ensureReviewer();
     const key = normStem(stem);
     const path = `${PENDING_PATH}/${key}`;
@@ -297,7 +322,7 @@
     const img = card.querySelector("img");
     const wrap = card.querySelector(".board-wrap");
     const statsEl = card.querySelector("[data-board-stats]");
-    boardMeta[name] = { stems: [], statsEl };
+    boardMeta[name] = { stems: [], statsEl, leftover };
     const render = () => {
       let ORIG_W = data.image?.width || img.naturalWidth;
       let ORIG_H = data.image?.height || img.naturalHeight;
@@ -312,7 +337,9 @@
         div.style.height = ((rotated ? pin.width : pin.height) * scale) + "px";
         if (pin.crop_stem) {
           div.dataset.cropStem = pin.crop_stem;
-          pinElsByStem[pin.crop_stem] = div;
+          if (leftover) div.dataset.leftover = "1";
+          if (!pinElsByStem[pin.crop_stem]) pinElsByStem[pin.crop_stem] = [];
+          pinElsByStem[pin.crop_stem].push(div);
           boardMeta[name].stems.push(pin.crop_stem);
         }
         div.addEventListener("click", (e) => {
@@ -331,30 +358,50 @@
     const cf = pin.crop_filename || "";
     const cropStem = cf.replace(/\.(jpe?g|png)$/i, "");
     if (cropStem) return cropStem;
-    const pk = pin.pin_key || domKey;
+    const pk = pin.pin_key || domKey || "";
     if (pk.includes(".jpg__")) return pk.split(".jpg__")[0];
+    // Firebase RTDB keys cannot contain "."; pipeline stores "…_jpg__hash"
+    if (String(domKey).includes("_jpg__")) {
+      return String(domKey).split("_jpg__")[0].replace(/_jpg$/, "");
+    }
+    if (pk.includes("_jpg__")) return pk.split("_jpg__")[0].replace(/_jpg$/, "");
     return null;
   }
 
-  function ingestPrices(all, merge) {
-    if (!merge) {
-      for (const k of Object.keys(stemToPrice)) delete stemToPrice[k];
-      napStems.clear();
+  function priceFromFbPin(pin) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === "object") {
+      const sp = Number(sc.price != null ? sc.price : sc.total_price);
+      if (isFinite(sp) && sp > 0) return sp;
     }
+    return null;
+  }
+
+  function clearMap(map, napSet) {
+    for (const k of Object.keys(map)) delete map[k];
+    napSet.clear();
+  }
+
+  function ingestPrices(all, leftover) {
+    const map = priceMapFor(leftover);
+    const napSet = napSetFor(leftover);
+    clearMap(map, napSet);
     for (const [domKey, pin] of Object.entries(all || {})) {
       if (!pin) continue;
       const stem = stemFromFbPin(domKey, pin);
       if (!stem) continue;
       if (pin.match_status === "not_a_pin" || pin.not_a_pin === true) {
-        napStems.add(stem);
-        napStems.add(normStem(stem));
+        napSet.add(stem);
+        napSet.add(normStem(stem));
         continue;
       }
       if (pin.match_status !== "match" && pin.match_status !== "priced") continue;
-      const dp = Number(pin.display_price);
-      if (!isFinite(dp) || dp <= 0) continue;
-      stemToPrice[stem] = dp;
-      stemToPrice[normStem(stem)] = dp;
+      const raw = priceFromFbPin(pin);
+      if (raw == null) continue;
+      map[stem] = raw;
+      map[normStem(stem)] = raw;
     }
     refreshAllPins();
   }
@@ -382,10 +429,10 @@
       placeBoard(name, i + 1, data);
     }
     db.ref(`pin_pricing_tests/${RUN_PRIMARY}/${APPROACH_ID}/pins`).on("value", (snap) => {
-      ingestPrices(snap.val() || {}, false);
+      ingestPrices(snap.val() || {}, false /* primary show boards */);
     });
     db.ref(`pin_pricing_tests/${RUN_LEFTOVER}/${APPROACH_ID}/pins`).on("value", (snap) => {
-      ingestPrices(snap.val() || {}, true);
+      ingestPrices(snap.val() || {}, true /* LO03 leftover boards only */);
     });
     db.ref(PENDING_PATH).on("value", (snap) => {
       ingestPending(snap.val() || {});
