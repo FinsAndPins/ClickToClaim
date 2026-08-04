@@ -447,7 +447,7 @@
     </div>
     <span id="totalPins" hidden>0</span>
     <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
-        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · VB ✓ <span id="adminVirtualBoardUsers" title="People who saved a virtual pin board">0</span>
+        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · VB gen <span id="adminVirtualBoardGen" title="People who tapped Create Virtual Pin Board">0</span> · VB save <span id="adminVirtualBoardSave" title="People who saved a virtual pin board photo">0</span>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
         <span class="admin-phase-label">Show state (visible to everyone; use Schedule for Eastern clock)</span>
@@ -578,35 +578,53 @@ function goToFullBoardView() {
     window.location.href = u.pathname + u.search + u.hash;
 }
 
-/** People who saved a virtual board photo (showConfig only — never claims). */
-let virtualBoardUsedCount = 0;
-
-function updateAdminVirtualBoardCount(n) {
-    virtualBoardUsedCount = Math.max(0, Number(n) || 0);
-    const el = document.getElementById("adminVirtualBoardUsers");
-    if (el) el.textContent = String(virtualBoardUsedCount);
+/** Virtual-board analytics (showConfig only — never claims). */
+function updateAdminVirtualBoardCounts(genN, saveN) {
+    const gEl = document.getElementById("adminVirtualBoardGen");
+    const sEl = document.getElementById("adminVirtualBoardSave");
+    if (gEl) gEl.textContent = String(Math.max(0, Number(genN) || 0));
+    if (sEl) sEl.textContent = String(Math.max(0, Number(saveN) || 0));
 }
 
 /**
- * Analytics only: write/update this user's leaf under showConfig/…/virtualBoardUsed.
+ * Analytics only — separate leaves for Generate tap vs Save photo.
+ *   showConfig/{show}/virtualBoardGenerate/{userKey}
+ *   showConfig/{show}/virtualBoardSave/{userKey}
+ * Also mirrors save → virtualBoardUsed (older leaf) so prior rows stay meaningful.
  * Never reads or writes claims/. Failures are ignored so export UX is unaffected.
  */
-function recordVirtualBoardUsage(meta) {
+function recordVirtualBoardEvent(kind, meta) {
     try {
         if (!displayName || typeof db === "undefined" || !db) return;
         const userKey = sanitizeUserKey(identityKey);
         if (!userKey) return;
-        const payload = {
-            label: displayName,
-            time: firebase.database.ServerValue.TIMESTAMP,
-            pinCount: Math.max(0, Number(meta && meta.pinCount) || 0),
-            pages: Math.max(0, Number(meta && meta.pages) || 0)
-        };
-        db.ref(`showConfig/${fbName}/virtualBoardUsed/${userKey}`).set(payload).catch((e) => {
-            console.warn("[Virtual board] usage write skipped:", e && e.message);
+        const branch = kind === "generate" ? "virtualBoardGenerate" : "virtualBoardSave";
+        const path = `showConfig/${fbName}/${branch}/${userKey}`;
+        const pinCount = Math.max(0, Number(meta && meta.pinCount) || 0);
+        const pages = Math.max(0, Number(meta && meta.pages) || 0);
+        db.ref(path).transaction((cur) => {
+            const prev = (cur && typeof cur === "object") ? cur : {};
+            return {
+                label: displayName,
+                time: Date.now(),
+                count: (Number(prev.count) || 0) + 1,
+                pinCount,
+                pages
+            };
+        }).catch((e) => {
+            console.warn("[Virtual board] analytics write skipped:", e && e.message);
         });
+        if (kind === "save") {
+            // Keep legacy leaf in sync for any earlier tooling/reading.
+            db.ref(`showConfig/${fbName}/virtualBoardUsed/${userKey}`).set({
+                label: displayName,
+                time: firebase.database.ServerValue.TIMESTAMP,
+                pinCount,
+                pages
+            }).catch(() => {});
+        }
     } catch (e) {
-        console.warn("[Virtual board] usage write skipped:", e && e.message);
+        console.warn("[Virtual board] analytics write skipped:", e && e.message);
     }
 }
 
@@ -935,8 +953,12 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
     refreshAdminPhaseButtons();
     syncShowEndedOverlay();
     if (isAdmin) {
-        const used = (v && v.virtualBoardUsed && typeof v.virtualBoardUsed === "object") ? v.virtualBoardUsed : {};
-        updateAdminVirtualBoardCount(Object.keys(used).length);
+        const gen = (v && v.virtualBoardGenerate && typeof v.virtualBoardGenerate === "object") ? v.virtualBoardGenerate : {};
+        const saved = (v && v.virtualBoardSave && typeof v.virtualBoardSave === "object") ? v.virtualBoardSave : {};
+        const legacy = (v && v.virtualBoardUsed && typeof v.virtualBoardUsed === "object") ? v.virtualBoardUsed : {};
+        // Unique people: prefer new save leaf, fall back to legacy used.
+        const saveKeys = new Set([...Object.keys(saved), ...Object.keys(legacy)]);
+        updateAdminVirtualBoardCounts(Object.keys(gen).length, saveKeys.size);
     }
 });
 
@@ -1939,6 +1961,8 @@ async function runVirtualBoardExport() {
         showToast("Select at least one pin first.");
         return;
     }
+    // Analytics: Generate tap (separate from Save). Claims untouched.
+    recordVirtualBoardEvent("generate", { pinCount: keys.length, pages: 0 });
     refreshVirtualBoardExportFab(keys.length);
     const startedAt = Date.now();
     const pagesNeeded = Math.max(1, Math.ceil(keys.length / VB_EXPORT_MAX_PER_PAGE));
@@ -2016,8 +2040,8 @@ async function runVirtualBoardExport() {
         const eta = document.getElementById("virtualBoardExportEta");
         if (eta) eta.textContent = "Your clicked pins, as if on a personal board.";
         if (savedCount) {
-            // Analytics leaf only — does not touch claims/.
-            recordVirtualBoardUsage({ pinCount: crops.length, pages: savedCount });
+            // Analytics: Save photo (separate from Generate). Claims untouched.
+            recordVirtualBoardEvent("save", { pinCount: crops.length, pages: savedCount });
             showToast(`Saved ${savedCount} virtual board photo${savedCount > 1 ? "s" : ""}.`);
         }
         setTimeout(() => closeVbExportOverlay(), 1400);
