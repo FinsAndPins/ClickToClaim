@@ -683,6 +683,8 @@ let boardsState = {};
 let lastMyRequestsCount = 0;
 /** Latest flat claims map from Firebase (`pinKey` → users). Used for global queue math in lite mode. */
 let latestClaimsData = {};
+/** Session set of pins this visitor claimed — used so virtual board always includes earlier clicks. */
+const vbMyPinKeysSession = new Set();
 /** True after first Firebase `claims` snapshot in this session (lite mode uses empty snapshot as real “0 claims”). */
 let claimsSnapshotReceived = false;
 /** Full manifest board names (all boards), even when only a page is rendered in lite mode. */
@@ -1217,11 +1219,14 @@ function handlePinClick(boardName, idx) {
     const userKey = sanitizeUserKey(identityKey);
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
     if (alreadyClicked) {
+        // Keep virtual-board session set in sync with local unclaim only (never bulk-cleared).
+        vbMyPinKeysSession.delete(pinKey);
         db.ref(`claims/${fbName}/${pinKey}/${userKey}`).set(null);
         return;
     }
     const existing = boardsState[boardName].allClaims[pinKey];
     const hadPriorRequests = existing && Object.keys(existing).length > 0;
+    vbMyPinKeysSession.add(pinKey);
     db.ref(`claims/${fbName}/${pinKey}/${userKey}`).set({
         time: firebase.database.ServerValue.TIMESTAMP,
         label: displayName
@@ -1284,7 +1289,11 @@ function listenForFirebase() {
                 boardsState[bName].globalBoardClaims++;
                 const pinEl = document.getElementById(`pin-${pinKey}`);
                 const count = Object.keys(users).length;
-                if (users[userKey]) boardsState[bName].myClaims++;
+                if (users[userKey]) {
+                    boardsState[bName].myClaims++;
+                    // Accumulate for virtual board (add-only here; local unclaim removes).
+                    vbMyPinKeysSession.add(pinKey);
+                }
                 if (pinEl && count > 0) {
                     const contested = count >= 2;
                     if (isAdmin) {
@@ -1468,24 +1477,57 @@ function parseVbPinKey(pinKey) {
     return { board: m[1], idx: Number(m[2]) };
 }
 
-/** Read-only: keys the current user has claimed. Never mutates Firebase. */
-function collectMyClickedPinKeys() {
+function vbClaimMapIsMine(uMap, userKey) {
+    if (!uMap || typeof uMap !== "object") return false;
+    if (uMap[userKey]) return true;
+    // Same @handle on another device identity (read-only match for export completeness).
+    const want = normalizeUserDisplayName(displayName || "");
+    if (!want || /^Guest_/i.test(want)) return false;
+    return Object.entries(uMap).some(([, meta]) => {
+        const lab = meta && typeof meta.label === "string" ? normalizeUserDisplayName(meta.label) : "";
+        return lab && lab === want;
+    });
+}
+
+function vbAddKeysFromClaimsMap(keySet, map, userKey) {
+    if (!map || typeof map !== "object") return;
+    Object.entries(map).forEach(([pinKey, uMap]) => {
+        if (vbClaimMapIsMine(uMap, userKey)) keySet.add(pinKey);
+    });
+}
+
+/**
+ * Read-only: every pin this person has requested (full set, not “since last export”).
+ * Unions session clicks + live Firebase snapshot + in-memory claims + pin-mine DOM.
+ * Never writes claims/.
+ */
+async function collectMyClickedPinKeys() {
     const userKey = sanitizeUserKey(identityKey);
-    const keys = [];
-    const source = (latestClaimsData && Object.keys(latestClaimsData).length)
-        ? latestClaimsData
-        : null;
-    if (source) {
-        Object.entries(source).forEach(([pinKey, uMap]) => {
-            if (uMap && uMap[userKey]) keys.push(pinKey);
-        });
-    } else {
-        Object.entries(boardsState).forEach(([, s]) => {
-            Object.entries(s.allClaims || {}).forEach(([pinKey, uMap]) => {
-                if (uMap && uMap[userKey]) keys.push(pinKey);
-            });
-        });
+    const keySet = new Set();
+
+    vbMyPinKeysSession.forEach((k) => keySet.add(k));
+
+    try {
+        if (typeof db !== "undefined" && db && fbName) {
+            const snap = await db.ref(`claims/${fbName}`).once("value");
+            vbAddKeysFromClaimsMap(keySet, snap.val() || {}, userKey);
+        }
+    } catch (e) {
+        console.warn("[Virtual board] read-only claims fetch failed:", e);
     }
+
+    vbAddKeysFromClaimsMap(keySet, latestClaimsData, userKey);
+    Object.values(boardsState || {}).forEach((s) => vbAddKeysFromClaimsMap(keySet, s.allClaims, userKey));
+
+    document.querySelectorAll(".pin.pin-mine").forEach((el) => {
+        const id = el.id || "";
+        if (!id.startsWith("pin-")) return;
+        const rest = id.slice(4);
+        const m = rest.match(/^(.+)-(\d+)$/);
+        if (m) keySet.add(`${m[1]}-${m[2]}`);
+    });
+
+    const keys = Array.from(keySet);
     const boardOrder = new Map((manifestBoardNames || []).map((n, i) => [n, i]));
     keys.sort((a, b) => {
         const pa = parseVbPinKey(a);
@@ -1878,21 +1920,33 @@ function waitForVbPageSave(blob, filename, pageIndex, pageCount) {
 
 async function runVirtualBoardExport() {
     if (!vbExportFeatureOn() || vbExportRunning) return;
-    const keys = collectMyClickedPinKeys();
+    vbExportRunning = true;
+    vbExportCancelRequested = false;
+    refreshVirtualBoardExportFab();
+    openVbExportOverlay();
+    setVbExportProgress(0, 1, "Gathering all your clicked pins…", Date.now());
+    let keys = [];
+    try {
+        keys = await collectMyClickedPinKeys();
+    } catch (e) {
+        console.warn("[Virtual board] collect failed:", e);
+        keys = [];
+    }
     if (!keys.length) {
+        vbExportRunning = false;
+        closeVbExportOverlay();
+        refreshVirtualBoardExportFab();
         showToast("Select at least one pin first.");
         return;
     }
-    vbExportRunning = true;
-    vbExportCancelRequested = false;
     refreshVirtualBoardExportFab(keys.length);
-    openVbExportOverlay();
     const startedAt = Date.now();
     const pagesNeeded = Math.max(1, Math.ceil(keys.length / VB_EXPORT_MAX_PER_PAGE));
     const totalUnits = keys.length + pagesNeeded;
     let doneUnits = 0;
     try {
         const crops = [];
+        setVbExportProgress(0, totalUnits, `Building board with ${keys.length} pin${keys.length === 1 ? "" : "s"}…`, startedAt);
         for (let i = 0; i < keys.length; i++) {
             if (vbExportCancelRequested) throw new Error("cancelled");
             const parsed = parseVbPinKey(keys[i]);
@@ -1902,13 +1956,7 @@ async function runVirtualBoardExport() {
                 await vbYieldToUi();
                 continue;
             }
-            // Skip NaP / sold if still on the live board (they should not be clickable).
-            const livePin = document.getElementById(`pin-${keys[i]}`);
-            if (livePin && (livePin.classList.contains("pin-nap") || livePin.classList.contains("pin-sold"))) {
-                doneUnits++;
-                await vbYieldToUi();
-                continue;
-            }
+            // Include every claimed pin we can crop (do not drop earlier clicks).
             setVbExportProgress(
                 doneUnits,
                 totalUnits,
