@@ -56,9 +56,32 @@
         .pin.pin-mine { box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.45); z-index: 105; }
         .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
         .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.45); }
-        .bn-badge { position: absolute; top: -10px; right: -10px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 13px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 111; pointer-events: none; border: 2px solid white; }
+        .bn-badge { position: absolute; top: -10px; left: -10px; right: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 13px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 111; pointer-events: none; border: 2px solid white; }
         .bn-badge.is-b { background: #0d6efd; color: white; }
         .bn-badge.is-n { background: #28a745; color: white; }
+        /* Leftover FOMO: still visible, not requestable */
+        .pin.pin-sold {
+            background: rgba(0, 0, 0, 0.42) !important;
+            border: 2px solid rgba(255, 80, 80, 0.85) !important;
+            pointer-events: none;
+            cursor: default;
+        }
+        .pin.pin-sold::after {
+            content: "SOLD";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(-28deg);
+            font-size: clamp(11px, 2.8vw, 18px);
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            color: #fff;
+            text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+            pointer-events: none;
+            z-index: 120;
+            line-height: 1;
+            white-space: nowrap;
+        }
         .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 112; pointer-events: none; border: 2px solid white; }
         .tally-badge.offset-left { left: -10px; right: auto; }
         #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: var(--fp-chunk); border-top: 1px solid rgba(255,255,255,0.15); padding: 10px 12px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; z-index: 2000; }
@@ -915,7 +938,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "1";
+const BOARDS_MANIFEST_VERSION = "2";
 
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
@@ -1003,9 +1026,10 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
             const index = rank[name] ?? 0;
             const container = document.createElement("div");
             container.className = "board-container";
+            const leftoverLabel = String(name).startsWith("LO03_") ? " · Leftover" : "";
             container.innerHTML = `
                 <div class="board-header">
-                    <span class="board-title">Board ${index + 1}</span>
+                    <span class="board-title">Board ${index + 1}${leftoverLabel}</span>
                     <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
                 </div>
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
@@ -1038,9 +1062,11 @@ async function setupBoard(name) {
             div.style.height = ((rotated ? pin.width  : pin.height) * scale) + "px";
             div.id = `pin-${name}-${idx}`;
             if (pin.crop_stem) div.dataset.cropStem = pin.crop_stem;
+            if (String(name).startsWith("LO03_")) div.dataset.leftover = "1";
             div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); };
             wrapper.appendChild(div);
             if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
+            if (typeof window._ctcApplySoldGate === "function") window._ctcApplySoldGate(div);
         });
         updateBoardDisplay(name);
         calculateGlobals();
@@ -1067,8 +1093,8 @@ function countClaimedPinsFromState() {
 
 function handlePinClick(boardName, idx) {
     const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
-    // NaP pins are live-disabled by the price overlay; never gate claims on price.
-    if (pinEl && pinEl.classList.contains("pin-nap")) return;
+    // NaP / leftover-sold pins are not requestable (sold stays visible for FOMO).
+    if (pinEl && (pinEl.classList.contains("pin-nap") || pinEl.classList.contains("pin-sold"))) return;
     const pinKey = `${boardName}-${idx}`;
     const userKey = sanitizeUserKey(identityKey);
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
@@ -1308,19 +1334,24 @@ function calculateGlobals() {
 }
 </style>
 <script id="_ctcPriceOverlay">
-// Price overlay — 20260723. Badges ONLY for Firebase match + positive price.
-// Live RTDB listener (no refresh). Rounded list/show price only (no 20% discount).
-// Visibility mode from reports.html (localStorage); default = hidden.
+// Price overlay — dual runs: 20260806 boards → 0955; LO03 leftover boards → 1354.
+// Sold marks: showConfig/20260803_leftover/soldStems (FOMO, not requestable).
 (function() {
 const _PO_TR = 'test_PriceCollection_20260803_0955__build_23549_visual_baseline';
+const _PO_TR_LEFTOVER = 'test_PriceCollection_20260802_1354__build_23549_visual_baseline';
 const _PO_AP = 'visual_baseline';
 const _PO_MODE_KEY = '_ctcPriceMode_20260723';
 const _PO_PINS_PATH = `pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins`;
+const _PO_PINS_PATH_LEFTOVER = `pin_pricing_tests/${_PO_TR_LEFTOVER}/${_PO_AP}/pins`;
+const _SOLD_STEMS_PATH = 'showConfig/20260803_leftover/soldStems';
 
 let _priceMode = localStorage.getItem(_PO_MODE_KEY) || 'none';
-const _pricesSnap = {};   // stem -> raw (match-only snapshot; fallback when FB match lacks display_price)
-const _stemToPrice = {};  // stem -> raw confirmed show price
-const _napStems = new Set();
+const _pricesSnap = {};
+const _stemToPricePrimary = {};
+const _stemToPriceLeftover = {};
+const _napPrimary = new Set();
+const _napLeftover = new Set();
+const _soldStems = new Set();
 
 function _roundForShow(raw) {
     if (raw == null || !isFinite(raw) || raw <= 0) return 0;
@@ -1332,6 +1363,13 @@ function _normStem(stem) {
     return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, '_') : '';
 }
 
+function _isLeftoverPin(pinEl) {
+    if (!pinEl) return false;
+    if (pinEl.dataset && pinEl.dataset.leftover === '1') return true;
+    const id = pinEl.id || '';
+    return id.indexOf('pin-LO03_') === 0;
+}
+
 function _rememberSnap(stem, price) {
     if (!stem || !isFinite(price) || price <= 0) return;
     _pricesSnap[stem] = price;
@@ -1339,16 +1377,16 @@ function _rememberSnap(stem, price) {
     if (norm) _pricesSnap[norm] = price;
 }
 
-function _indexStem(stem, price) {
+function _indexStem(map, stem, price) {
     if (!stem || !isFinite(price) || price <= 0) return;
-    _stemToPrice[stem] = price;
+    map[stem] = price;
     const norm = _normStem(stem);
-    if (norm) _stemToPrice[norm] = price;
+    if (norm) map[norm] = price;
 }
 
-function _clearLiveMaps() {
-    for (const k of Object.keys(_stemToPrice)) delete _stemToPrice[k];
-    _napStems.clear();
+function _clearMap(map, napSet) {
+    for (const k of Object.keys(map)) delete map[k];
+    napSet.clear();
 }
 
 function _snapForStem(stem) {
@@ -1361,19 +1399,27 @@ function _snapForStem(stem) {
 function _rawForPin(pinEl) {
     const stem = pinEl && pinEl.dataset.cropStem;
     if (!stem) return null;
-    let price = _stemToPrice[stem];
-    if (price == null) price = _stemToPrice[_normStem(stem)];
+    const map = _isLeftoverPin(pinEl) ? _stemToPriceLeftover : _stemToPricePrimary;
+    let price = map[stem];
+    if (price == null) price = map[_normStem(stem)];
     return (price != null && isFinite(price) && price > 0) ? price : null;
 }
 
 function _isNapPin(pinEl) {
     const stem = pinEl && pinEl.dataset.cropStem;
     if (!stem) return false;
-    return _napStems.has(stem) || _napStems.has(_normStem(stem));
+    const set = _isLeftoverPin(pinEl) ? _napLeftover : _napPrimary;
+    return set.has(stem) || set.has(_normStem(stem));
+}
+
+function _isSoldStem(stem) {
+    if (!stem) return false;
+    return _soldStems.has(stem) || _soldStems.has(_normStem(stem));
 }
 
 function _badgeVisible(pinEl) {
     if (_priceMode === 'none') return false;
+    if (pinEl.classList.contains('pin-sold')) return false;
     if (_priceMode === 'all') return true;
     return ['selection-green', 'selection-before', 'selection-now', 'pin-mine']
         .some(c => pinEl.classList.contains(c));
@@ -1388,8 +1434,24 @@ function _refreshAllBadges() {
     document.querySelectorAll('.pin').forEach(_updateBadgeViz);
 }
 
+function _applySoldGate(pinEl) {
+    if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
+    if (!_isLeftoverPin(pinEl)) {
+        pinEl.classList.remove('pin-sold');
+        return;
+    }
+    const sold = _isSoldStem(pinEl.dataset.cropStem);
+    pinEl.classList.toggle('pin-sold', sold);
+    if (sold) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+    }
+}
+
 function _applyPin(pinEl) {
     if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
+    _applySoldGate(pinEl);
+    if (pinEl.classList.contains('pin-sold')) return;
     const nap = _isNapPin(pinEl);
     pinEl.classList.toggle('pin-nap', nap);
     if (nap) {
@@ -1428,6 +1490,15 @@ function _applyMode(mode) {
     _priceMode = mode;
     _refreshAllBadges();
 }
+
+window._ctcApplyPinPriceGate = _applyPin;
+window._ctcApplySoldGate = _applySoldGate;
+window._ctcRoundedShowPriceForStem = function(stem, leftover) {
+    const map = leftover ? _stemToPriceLeftover : _stemToPricePrimary;
+    let raw = map[stem];
+    if (raw == null) raw = map[_normStem(stem)];
+    return _roundForShow(raw);
+};
 
 window.addEventListener('storage', (e) => {
     if (e.key === _PO_MODE_KEY) _applyMode(e.newValue || 'none');
@@ -1477,8 +1548,8 @@ function _priceFromMatchPin(pin, stem) {
     return _snapForStem(stem);
 }
 
-function _ingestFirebasePins(all) {
-    _clearLiveMaps();
+function _ingestFirebasePins(all, map, napSet, label) {
+    _clearMap(map, napSet);
     let nMatch = 0, nPriced = 0, nNap = 0;
     for (const [domKey, pin] of Object.entries(all || {})) {
         if (!pin) continue;
@@ -1486,19 +1557,32 @@ function _ingestFirebasePins(all) {
         if (!stem) continue;
         const status = pin.match_status || '';
         if (status === 'not_a_pin') {
-            _napStems.add(stem);
-            _napStems.add(_normStem(stem));
+            napSet.add(stem);
+            napSet.add(_normStem(stem));
             nNap++;
             continue;
         }
         if (status !== 'match') continue;
         nMatch++;
         const raw = _priceFromMatchPin(pin, stem);
-        if (raw != null) { _indexStem(stem, raw); nPriced++; }
+        if (raw != null) { _indexStem(map, stem, raw); nPriced++; }
     }
-    console.info(`[PriceOverlay] live FB: match=${nMatch} priced=${nPriced} nap=${nNap}`);
+    console.info(`[PriceOverlay] ${label}: match=${nMatch} priced=${nPriced} nap=${nNap}`);
     _applyAllPins();
     _applyMode(_priceMode);
+}
+
+function _ingestSoldStems(val) {
+    _soldStems.clear();
+    const obj = val || {};
+    for (const [k, v] of Object.entries(obj)) {
+        if (v === true || (v && typeof v === 'object' && v.sold !== false)) {
+            _soldStems.add(k);
+            _soldStems.add(_normStem(k));
+        }
+    }
+    console.info(`[PriceOverlay] leftover sold stems: ${_soldStems.size}`);
+    _applyAllPins();
 }
 
 (async function _bootPriceOverlay() {
@@ -1511,25 +1595,34 @@ function _ingestFirebasePins(all) {
         console.warn('[PriceOverlay] prices.json load failed:', e);
     }
 
-    // Prefer live listener so Lexi/Steve Match + price writes appear without refresh.
     try {
         if (typeof firebase !== 'undefined' && firebase.database) {
-            firebase.database().ref(_PO_PINS_PATH).on('value', snap => {
-                _ingestFirebasePins(snap.val() || {});
-            }, err => {
-                console.warn('[PriceOverlay] Firebase listener failed:', err);
-            });
+            const db = firebase.database();
+            db.ref(_PO_PINS_PATH).on('value', snap => {
+                _ingestFirebasePins(snap.val() || {}, _stemToPricePrimary, _napPrimary, 'primary');
+            }, err => console.warn('[PriceOverlay] primary listener failed:', err));
+            db.ref(_PO_PINS_PATH_LEFTOVER).on('value', snap => {
+                _ingestFirebasePins(snap.val() || {}, _stemToPriceLeftover, _napLeftover, 'leftover');
+            }, err => console.warn('[PriceOverlay] leftover listener failed:', err));
+            db.ref(_SOLD_STEMS_PATH).on('value', snap => {
+                _ingestSoldStems(snap.val() || {});
+            }, err => console.warn('[PriceOverlay] soldStems listener failed:', err));
             return;
         }
     } catch (e) {
         console.warn('[PriceOverlay] Firebase listener setup failed:', e);
     }
 
-    // Fallback: one-shot REST fetch if SDK unavailable.
     try {
-        const fbUrl = `https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/${_PO_PINS_PATH}.json`;
-        const fbRes = await fetch(fbUrl);
-        _ingestFirebasePins(await fbRes.json());
+        const base = 'https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/';
+        const [a, b, s] = await Promise.all([
+            fetch(base + _PO_PINS_PATH + '.json').then(r => r.json()),
+            fetch(base + _PO_PINS_PATH_LEFTOVER + '.json').then(r => r.json()),
+            fetch(base + _SOLD_STEMS_PATH + '.json').then(r => r.json()),
+        ]);
+        _ingestFirebasePins(a || {}, _stemToPricePrimary, _napPrimary, 'primary');
+        _ingestFirebasePins(b || {}, _stemToPriceLeftover, _napLeftover, 'leftover');
+        _ingestSoldStems(s || {});
     } catch (e) {
         console.warn('[PriceOverlay] Firebase REST fallback failed:', e);
         _applyAllPins();
