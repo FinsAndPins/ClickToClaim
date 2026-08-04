@@ -98,6 +98,20 @@
         .login-help, .modal-sub { font-size: 13px; color: var(--fp-muted); line-height: 1.45; text-align: left; margin: 0 0 10px; font-weight: normal; }
         .login-disclaimer { font-size: 12px; color: var(--fp-muted); line-height: 1.35; text-align: left; margin: 0 0 14px; font-weight: normal; }
         #reportIssueFab { position: fixed; bottom: 72px; right: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+        /* Virtual pin board photo (clicked pins). Read-only — never touches claims. */
+        #virtualBoardExportFab { position: fixed; bottom: 72px; left: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; display: none; }
+        #virtualBoardExportFab:disabled { opacity: 0.45; cursor: not-allowed; }
+        #virtualBoardExportFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
+        #virtualBoardExportOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        #virtualBoardExportOverlay .vb-progress-track { width: 100%; height: 12px; background: rgba(255,255,255,0.15); border-radius: 8px; overflow: hidden; margin: 14px 0 8px; }
+        #virtualBoardExportOverlay .vb-progress-fill { height: 100%; width: 0%; background: #1877f2; border-radius: 8px; transition: width 0.2s ease; }
+        #virtualBoardExportOverlay .vb-eta { font-size: 12px; color: var(--fp-muted); margin: 0 0 12px; }
+        #virtualBoardExportOverlay .vb-preview-wrap { display: none; margin: 10px 0 12px; }
+        #virtualBoardExportOverlay .vb-preview-wrap.show { display: block; }
+        #virtualBoardExportOverlay .vb-preview { max-width: 100%; max-height: 42vh; border-radius: 8px; background: #2a2a4a; }
+        #virtualBoardExportOverlay .vb-save-actions { display: none; gap: 8px; flex-direction: column; }
+        #virtualBoardExportOverlay .vb-save-actions.show { display: flex; }
+        #virtualBoardExportOverlay #virtualBoardExportSaveBtn { margin-top: 0; }
         #reportIssueFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
         #toastHost { position: fixed; bottom: 130px; left: 12px; right: 12px; z-index: 4400; pointer-events: none; display: flex; flex-direction: column; gap: 8px; align-items: center; }
         .app-toast { background: rgba(26, 26, 42, 0.96); color: #fff; padding: 12px 16px; border-radius: 12px; max-width: 420px; font-size: 14px; line-height: 1.4; box-shadow: 0 6px 24px rgba(0,0,0,0.35); text-align: center; opacity: 0; transform: translateY(10px); transition: opacity 0.25s ease, transform 0.25s ease; border: 1px solid rgba(255,255,255,0.12); }
@@ -395,6 +409,23 @@
 </div>
 
 <button type="button" id="reportIssueFab" onclick="document.getElementById('reportIssueOverlay').style.display='flex'" title="Report Issue" aria-label="Report Issue">Report Issue</button>
+<button type="button" id="virtualBoardExportFab" disabled title="Create Virtual Pin Board of Clicked Pins" aria-label="Create Virtual Pin Board of Clicked Pins">Create Virtual Pin Board of Clicked Pins</button>
+<div id="virtualBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="virtualBoardExportTitle">
+    <div class="modal-box" style="max-width:400px;">
+        <h3 id="virtualBoardExportTitle">Building virtual pin board</h3>
+        <p class="modal-sub" id="virtualBoardExportStatus" style="margin-top:0;">Preparing…</p>
+        <div class="vb-progress-track" id="virtualBoardExportTrack" aria-hidden="true"><div class="vb-progress-fill" id="virtualBoardExportBar"></div></div>
+        <p class="vb-eta" id="virtualBoardExportEta">Estimating time…</p>
+        <div class="vb-preview-wrap" id="virtualBoardExportPreviewWrap">
+            <img class="vb-preview" id="virtualBoardExportPreview" alt="Virtual pin board preview">
+        </div>
+        <div class="vb-save-actions" id="virtualBoardExportSaveActions">
+            <button type="button" class="primary" id="virtualBoardExportSaveBtn">Save to Photos</button>
+            <button type="button" class="secondary" id="virtualBoardExportSkipBtn" style="margin-top:0;">Skip this photo</button>
+        </div>
+        <button type="button" class="secondary" id="virtualBoardExportCancelBtn">Cancel</button>
+    </div>
+</div>
 <div id="toastHost" aria-live="polite"></div>
 
 <h1>Fins and Pins Click To Request!</h1>
@@ -943,6 +974,9 @@ const BOARDS_MANIFEST_VERSION = "2";
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
     const chunk = 12;
+    const unavailable = (typeof window._ctcStemIsUnavailable === "function")
+        ? window._ctcStemIsUnavailable
+        : null;
     for (let i = 0; i < boardNames.length; i += chunk) {
         const slice = boardNames.slice(i, i + chunk);
         const results = await Promise.all(
@@ -952,7 +986,16 @@ async function computeAllBoardPinTotals(boardNames) {
                     if (!r.ok) return 0;
                     const data = await r.json();
                     const pins = data.predictions || data.output?.predictions || [];
-                    return Array.isArray(pins) ? pins.length : 0;
+                    if (!Array.isArray(pins)) return 0;
+                    if (!unavailable) return pins.length;
+                    const leftover = String(name).startsWith("LO03_");
+                    let n = 0;
+                    for (const pin of pins) {
+                        const stem = pin && pin.crop_stem ? String(pin.crop_stem) : "";
+                        if (unavailable(stem, leftover)) continue;
+                        n++;
+                    }
+                    return n;
                 } catch (e) {
                     return 0;
                 }
@@ -962,6 +1005,44 @@ async function computeAllBoardPinTotals(boardNames) {
     }
     return sum;
 }
+
+/** Count pins that are still requestable (exclude NaP + leftover sold). */
+function countAvailablePinsOnBoard(name) {
+    const pins = document.querySelectorAll(`#wrapper-${name} .pin`);
+    let n = 0;
+    pins.forEach((p) => {
+        if (p.classList.contains("pin-nap") || p.classList.contains("pin-sold")) return;
+        n++;
+    });
+    return n;
+}
+
+let _availRecountTimer = null;
+function syncAvailablePinTotalsFromDom() {
+    Object.keys(boardsState).forEach((name) => {
+        const wrapper = document.getElementById(`wrapper-${name}`);
+        if (!wrapper) return;
+        boardsState[name].totalPins = countAvailablePinsOnBoard(name);
+    });
+    updateAllBoardDisplays();
+    calculateGlobals();
+}
+
+function scheduleAvailablePinTotalsRefresh() {
+    clearTimeout(_availRecountTimer);
+    _availRecountTimer = setTimeout(() => {
+        syncAvailablePinTotalsFromDom();
+        if (isLiteMode && Array.isArray(manifestBoardNames) && manifestBoardNames.length) {
+            globalAllBoardPinCountReady = false;
+            computeAllBoardPinTotals(manifestBoardNames).then((n) => {
+                globalAllBoardPinCount = n;
+                globalAllBoardPinCountReady = true;
+                calculateGlobals();
+            });
+        }
+    }, 120);
+}
+window._ctcOnPinAvailabilityChanged = scheduleAvailablePinTotalsRefresh;
 
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
     .then(r => r.json())
@@ -1068,6 +1149,7 @@ async function setupBoard(name) {
             if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
             if (typeof window._ctcApplySoldGate === "function") window._ctcApplySoldGate(div);
         });
+        boardsState[name].totalPins = countAvailablePinsOnBoard(name);
         updateBoardDisplay(name);
         calculateGlobals();
     };
@@ -1309,7 +1391,496 @@ function calculateGlobals() {
         document.getElementById("adminTotalUsers").textContent     = allUsers.size;
     }
     updateFuelGauge(globalRequested);
+    if (typeof refreshVirtualBoardExportFab === "function") refreshVirtualBoardExportFab(my);
 }
+
+// ── Virtual pin board photo (clicked pins only; never writes claims) ─────
+const VIRTUAL_BOARD_EXPORT_ENABLED = true;
+const VB_EXPORT_MAX_PER_PAGE = 40;
+const VB_EXPORT_BOARD_W = 1400;
+const VB_BOARD_BG = "#5c3d78";
+let vbExportCancelRequested = false;
+let vbExportRunning = false;
+const vbBoardImageCache = new Map();
+const vbBoardJsonCache = new Map();
+
+function vbExportFeatureOn() {
+    if (!VIRTUAL_BOARD_EXPORT_ENABLED) return false;
+    try {
+        const q = new URLSearchParams(location.search).get("vbExport");
+        if (q === "0" || q === "false" || q === "off") return false;
+    } catch (e) { /* ignore */ }
+    return true;
+}
+
+function refreshVirtualBoardExportFab(myCount) {
+    const fab = document.getElementById("virtualBoardExportFab");
+    if (!fab) return;
+    if (!vbExportFeatureOn()) {
+        fab.style.display = "none";
+        fab.disabled = true;
+        return;
+    }
+    fab.style.display = "block";
+    const n = myCount != null ? myCount : Number(document.getElementById("totalMyClaims")?.textContent || 0);
+    fab.disabled = vbExportRunning || !(n > 0);
+}
+
+function parseVbPinKey(pinKey) {
+    const m = String(pinKey).match(/^(.+)-(\d+)$/);
+    if (!m) return null;
+    return { board: m[1], idx: Number(m[2]) };
+}
+
+/** Read-only: keys the current user has claimed. Never mutates Firebase. */
+function collectMyClickedPinKeys() {
+    const userKey = sanitizeUserKey(identityKey);
+    const keys = [];
+    const source = (latestClaimsData && Object.keys(latestClaimsData).length)
+        ? latestClaimsData
+        : null;
+    if (source) {
+        Object.entries(source).forEach(([pinKey, uMap]) => {
+            if (uMap && uMap[userKey]) keys.push(pinKey);
+        });
+    } else {
+        Object.entries(boardsState).forEach(([, s]) => {
+            Object.entries(s.allClaims || {}).forEach(([pinKey, uMap]) => {
+                if (uMap && uMap[userKey]) keys.push(pinKey);
+            });
+        });
+    }
+    const boardOrder = new Map((manifestBoardNames || []).map((n, i) => [n, i]));
+    keys.sort((a, b) => {
+        const pa = parseVbPinKey(a);
+        const pb = parseVbPinKey(b);
+        if (!pa || !pb) return String(a).localeCompare(String(b));
+        const oa = boardOrder.has(pa.board) ? boardOrder.get(pa.board) : 9999;
+        const ob = boardOrder.has(pb.board) ? boardOrder.get(pb.board) : 9999;
+        if (oa !== ob) return oa - ob;
+        return pa.idx - pb.idx;
+    });
+    return keys;
+}
+
+function vbYieldToUi() {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function loadVbBoardJson(boardName) {
+    if (vbBoardJsonCache.has(boardName)) return vbBoardJsonCache.get(boardName);
+    const r = await fetch(`./boards/${boardName}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(`Missing board JSON ${boardName}`);
+    const data = await r.json();
+    vbBoardJsonCache.set(boardName, data);
+    return data;
+}
+
+function loadVbBoardImage(boardName) {
+    if (vbBoardImageCache.has(boardName)) return vbBoardImageCache.get(boardName);
+    const p = new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Missing board image ${boardName}`));
+        img.src = `./boards/${boardName}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+    });
+    vbBoardImageCache.set(boardName, p);
+    return p;
+}
+
+function cropVbPinCanvas(boardImg, pin, origW, origH) {
+    const sx = Math.max(0, Number(pin.x) - Number(pin.width) / 2);
+    const sy = Math.max(0, Number(pin.y) - Number(pin.height) / 2);
+    const sw = Math.min(Number(pin.width), (origW || boardImg.naturalWidth) - sx);
+    const sh = Math.min(Number(pin.height), (origH || boardImg.naturalHeight) - sy);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(sw));
+    c.height = Math.max(1, Math.round(sh));
+    const ctx = c.getContext("2d");
+    ctx.drawImage(boardImg, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+}
+
+/** Deterministic-ish PRNG so re-exports look similar for the same set size. */
+function vbMulberry32(seed) {
+    let t = seed >>> 0;
+    return function () {
+        t += 0x6D2B79F5;
+        let r = Math.imul(t ^ (t >>> 15), 1 | t);
+        r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function fillVbBoardBackground(ctx, w, h) {
+    ctx.fillStyle = VB_BOARD_BG;
+    ctx.fillRect(0, 0, w, h);
+    // Soft vignette + star-ish noise to suggest foam board texture (no pin boxes).
+    const g = ctx.createRadialGradient(w * 0.5, h * 0.45, Math.min(w, h) * 0.15, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+    g.addColorStop(0, "rgba(255,255,255,0.06)");
+    g.addColorStop(1, "rgba(0,0,0,0.22)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    const rand = vbMulberry32(20260806 ^ (w * 17 + h));
+    ctx.fillStyle = "rgba(255,255,255,0.045)";
+    for (let i = 0; i < 900; i++) {
+        const x = rand() * w;
+        const y = rand() * h;
+        const s = 1 + rand() * 2.2;
+        ctx.fillRect(x, y, s, s);
+    }
+}
+
+/**
+ * Chaotic personal-board layout: cropped pins only (no white cells),
+ * slight rotations / scale jitter / soft overlap — like dumping pins onto a board.
+ */
+function buildVirtualPageCanvas(cropCanvases, pageSeed) {
+    const n = cropCanvases.length;
+    const cols = Math.max(3, Math.ceil(Math.sqrt(n * 1.15)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const margin = 48;
+    const cell = 168;
+    const step = cell * 0.72; // denser than a clean grid → natural overlap
+    const w = VB_EXPORT_BOARD_W;
+    const contentH = margin * 2 + rows * step + cell * 0.35;
+    const h = Math.max(Math.round(w * 0.72), Math.round(contentH));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    fillVbBoardBackground(ctx, w, h);
+
+    const rand = vbMulberry32((pageSeed || 1) * 9973 + n * 131);
+    const usableW = w - margin * 2;
+    const usableH = h - margin * 2;
+    const colPitch = usableW / Math.max(cols, 1);
+    const rowPitch = usableH / Math.max(rows, 1);
+
+    // Shuffle draw order so later pins can overlap earlier ones unevenly.
+    const order = cropCanvases.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        const tmp = order[i];
+        order[i] = order[j];
+        order[j] = tmp;
+    }
+
+    order.forEach((origIdx) => {
+        const crop = cropCanvases[origIdx];
+        const col = origIdx % cols;
+        const row = Math.floor(origIdx / cols);
+        const baseX = margin + col * colPitch + colPitch * 0.5;
+        const baseY = margin + row * rowPitch + rowPitch * 0.5;
+        const jitterX = (rand() - 0.5) * colPitch * 0.55;
+        const jitterY = (rand() - 0.5) * rowPitch * 0.55;
+        const cx = baseX + jitterX;
+        const cy = baseY + jitterY;
+        const target = cell * (0.78 + rand() * 0.42);
+        const scale = Math.min(target / crop.width, target / crop.height);
+        const dw = Math.max(1, crop.width * scale);
+        const dh = Math.max(1, crop.height * scale);
+        const rot = (rand() - 0.5) * 0.55; // ~±15.7°
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rot);
+        ctx.shadowColor = "rgba(0,0,0,0.45)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 3;
+        // Cropped pin only — no buffer / white cell behind it.
+        ctx.drawImage(crop, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
+    });
+    return canvas;
+}
+
+function vbCanvasToJpegBlob(canvas, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("JPEG encode failed"))), "image/jpeg", quality);
+    });
+}
+
+async function saveVbJpegBlob(blob, filename) {
+    const file = new File([blob], filename, { type: "image/jpeg" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: filename });
+            return "shared";
+        } catch (e) {
+            if (e && e.name === "AbortError") return "aborted";
+        }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return "download";
+}
+
+function vbLikelyNeedsPhotosShare() {
+    const ua = navigator.userAgent || "";
+    return /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function setVbExportProgress(done, total, status, startedAt) {
+    const bar = document.getElementById("virtualBoardExportBar");
+    const st = document.getElementById("virtualBoardExportStatus");
+    const eta = document.getElementById("virtualBoardExportEta");
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    if (bar) bar.style.width = pct + "%";
+    if (st && status) st.textContent = status;
+    if (eta) {
+        if (!startedAt || done <= 0) {
+            eta.textContent = "Estimating time…";
+        } else {
+            const elapsed = (Date.now() - startedAt) / 1000;
+            const rate = done / elapsed;
+            const remain = Math.max(0, Math.ceil((total - done) / Math.max(rate, 0.05)));
+            eta.textContent = remain <= 1 ? "Almost done…" : `About ${remain}s remaining`;
+        }
+    }
+}
+
+function setVbExportBuildMode() {
+    const track = document.getElementById("virtualBoardExportTrack");
+    const eta = document.getElementById("virtualBoardExportEta");
+    const previewWrap = document.getElementById("virtualBoardExportPreviewWrap");
+    const actions = document.getElementById("virtualBoardExportSaveActions");
+    const title = document.getElementById("virtualBoardExportTitle");
+    if (title) title.textContent = "Building virtual pin board";
+    if (track) track.style.display = "";
+    if (eta) eta.style.display = "";
+    if (previewWrap) previewWrap.classList.remove("show");
+    if (actions) actions.classList.remove("show");
+}
+
+function setVbExportSaveMode(pageIndex, pageCount, previewUrl) {
+    const track = document.getElementById("virtualBoardExportTrack");
+    const eta = document.getElementById("virtualBoardExportEta");
+    const previewWrap = document.getElementById("virtualBoardExportPreviewWrap");
+    const preview = document.getElementById("virtualBoardExportPreview");
+    const actions = document.getElementById("virtualBoardExportSaveActions");
+    const saveBtn = document.getElementById("virtualBoardExportSaveBtn");
+    const title = document.getElementById("virtualBoardExportTitle");
+    const st = document.getElementById("virtualBoardExportStatus");
+    const slug = SHOW_DATE_SLUG_FALLBACK || "board";
+    if (title) title.textContent = `Save photo ${pageIndex} of ${pageCount}`;
+    if (track) track.style.display = "none";
+    if (eta) {
+        eta.style.display = "";
+        eta.textContent = vbLikelyNeedsPhotosShare()
+            ? 'Tap Save to Photos, then choose “Save Image” for your Camera Roll.'
+            : "Tap Save to Photos to download this board photo.";
+    }
+    if (st) {
+        st.textContent = vbLikelyNeedsPhotosShare()
+            ? "Safari can’t write straight to Camera Roll — use the share sheet."
+            : `Ready: ${slug}-VirtualBoard-${pageIndex}of${pageCount}.jpg`;
+    }
+    if (preview && previewUrl) preview.src = previewUrl;
+    if (previewWrap) previewWrap.classList.add("show");
+    if (actions) actions.classList.add("show");
+    if (saveBtn) {
+        saveBtn.textContent = vbLikelyNeedsPhotosShare() ? "Save to Photos…" : "Download photo";
+        saveBtn.disabled = false;
+    }
+}
+
+function openVbExportOverlay() {
+    const el = document.getElementById("virtualBoardExportOverlay");
+    if (el) el.style.display = "flex";
+    setVbExportBuildMode();
+}
+
+function closeVbExportOverlay() {
+    const el = document.getElementById("virtualBoardExportOverlay");
+    if (el) el.style.display = "none";
+    const preview = document.getElementById("virtualBoardExportPreview");
+    if (preview && preview.src && preview.src.startsWith("blob:")) {
+        URL.revokeObjectURL(preview.src);
+        preview.removeAttribute("src");
+    }
+    setVbExportBuildMode();
+}
+
+function waitForVbPageSave(blob, filename, pageIndex, pageCount) {
+    return new Promise((resolve) => {
+        const previewUrl = URL.createObjectURL(blob);
+        setVbExportSaveMode(pageIndex, pageCount, previewUrl);
+        const saveBtn = document.getElementById("virtualBoardExportSaveBtn");
+        const skipBtn = document.getElementById("virtualBoardExportSkipBtn");
+        let settled = false;
+
+        const cleanup = () => {
+            if (saveBtn) saveBtn.onclick = null;
+            if (skipBtn) skipBtn.onclick = null;
+            clearInterval(poll);
+            URL.revokeObjectURL(previewUrl);
+            const preview = document.getElementById("virtualBoardExportPreview");
+            if (preview) preview.removeAttribute("src");
+        };
+
+        const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(result);
+        };
+
+        const poll = setInterval(() => {
+            if (vbExportCancelRequested) finish("aborted");
+        }, 200);
+
+        if (saveBtn) {
+            saveBtn.onclick = async () => {
+                if (vbExportCancelRequested) return finish("aborted");
+                saveBtn.disabled = true;
+                saveBtn.textContent = "Opening share sheet…";
+                const how = await saveVbJpegBlob(blob, filename);
+                if (how === "aborted") {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = vbLikelyNeedsPhotosShare() ? "Save to Photos…" : "Download photo";
+                    const st = document.getElementById("virtualBoardExportStatus");
+                    if (st) st.textContent = "Save cancelled — tap again when ready, or Skip.";
+                    return;
+                }
+                finish(how);
+            };
+        }
+        if (skipBtn) skipBtn.onclick = () => finish("skipped");
+    });
+}
+
+async function runVirtualBoardExport() {
+    if (!vbExportFeatureOn() || vbExportRunning) return;
+    const keys = collectMyClickedPinKeys();
+    if (!keys.length) {
+        showToast("Select at least one pin first.");
+        return;
+    }
+    vbExportRunning = true;
+    vbExportCancelRequested = false;
+    refreshVirtualBoardExportFab(keys.length);
+    openVbExportOverlay();
+    const startedAt = Date.now();
+    const pagesNeeded = Math.max(1, Math.ceil(keys.length / VB_EXPORT_MAX_PER_PAGE));
+    const totalUnits = keys.length + pagesNeeded;
+    let doneUnits = 0;
+    try {
+        const crops = [];
+        for (let i = 0; i < keys.length; i++) {
+            if (vbExportCancelRequested) throw new Error("cancelled");
+            const parsed = parseVbPinKey(keys[i]);
+            if (!parsed) {
+                doneUnits++;
+                setVbExportProgress(doneUnits, totalUnits, `Skipping unknown pin ${keys[i]}…`, startedAt);
+                await vbYieldToUi();
+                continue;
+            }
+            // Skip NaP / sold if still on the live board (they should not be clickable).
+            const livePin = document.getElementById(`pin-${keys[i]}`);
+            if (livePin && (livePin.classList.contains("pin-nap") || livePin.classList.contains("pin-sold"))) {
+                doneUnits++;
+                await vbYieldToUi();
+                continue;
+            }
+            setVbExportProgress(
+                doneUnits,
+                totalUnits,
+                `Cropping pin ${i + 1} of ${keys.length}…`,
+                startedAt
+            );
+            const data = await loadVbBoardJson(parsed.board);
+            const pins = data.predictions || data.output?.predictions || [];
+            const pin = pins[parsed.idx];
+            if (!pin) {
+                doneUnits++;
+                await vbYieldToUi();
+                continue;
+            }
+            const boardImg = await loadVbBoardImage(parsed.board);
+            const origW = Number(data.image?.width) || boardImg.naturalWidth;
+            const origH = Number(data.image?.height) || boardImg.naturalHeight;
+            crops.push(cropVbPinCanvas(boardImg, pin, origW, origH));
+            doneUnits++;
+            setVbExportProgress(doneUnits, totalUnits, `Cropped ${i + 1} of ${keys.length}…`, startedAt);
+            await vbYieldToUi();
+        }
+        if (!crops.length) throw new Error("No pin images could be cropped.");
+        const pageCount = Math.ceil(crops.length / VB_EXPORT_MAX_PER_PAGE);
+        const slug = SHOW_DATE_SLUG_FALLBACK || "board";
+        let savedCount = 0;
+        for (let p = 0; p < pageCount; p++) {
+            if (vbExportCancelRequested) throw new Error("cancelled");
+            const slice = crops.slice(p * VB_EXPORT_MAX_PER_PAGE, (p + 1) * VB_EXPORT_MAX_PER_PAGE);
+            setVbExportBuildMode();
+            setVbExportProgress(
+                doneUnits,
+                totalUnits,
+                `Building photo ${p + 1} of ${pageCount}…`,
+                startedAt
+            );
+            await vbYieldToUi();
+            const canvas = buildVirtualPageCanvas(slice, p + 1);
+            const blob = await vbCanvasToJpegBlob(canvas, 0.92);
+            const filename = `${slug}-VirtualBoard-${p + 1}of${pageCount}.jpg`;
+            const how = await waitForVbPageSave(blob, filename, p + 1, pageCount);
+            if (how === "aborted") throw new Error("cancelled");
+            if (how === "shared" || how === "download") savedCount++;
+            doneUnits++;
+            setVbExportProgress(doneUnits, totalUnits, `Finished photo ${p + 1} of ${pageCount}`, startedAt);
+            await vbYieldToUi();
+        }
+        setVbExportBuildMode();
+        setVbExportProgress(
+            totalUnits,
+            totalUnits,
+            savedCount
+                ? `Done — saved ${savedCount} of ${pageCount} photo${pageCount > 1 ? "s" : ""}.`
+                : "Done — no photos were saved.",
+            startedAt
+        );
+        const eta = document.getElementById("virtualBoardExportEta");
+        if (eta) eta.textContent = "Your clicked pins, as if on a personal board.";
+        if (savedCount) showToast(`Saved ${savedCount} virtual board photo${savedCount > 1 ? "s" : ""}.`);
+        setTimeout(() => closeVbExportOverlay(), 1400);
+    } catch (e) {
+        if (String(e && e.message) === "cancelled") {
+            showToast("Virtual board export cancelled.");
+        } else {
+            console.warn("[Virtual board export]", e);
+            showToast("Could not build virtual board. Please try again.");
+        }
+        closeVbExportOverlay();
+    } finally {
+        vbExportRunning = false;
+        refreshVirtualBoardExportFab();
+    }
+}
+
+(function initVirtualBoardExport() {
+    const fab = document.getElementById("virtualBoardExportFab");
+    const cancelBtn = document.getElementById("virtualBoardExportCancelBtn");
+    if (!fab) return;
+    refreshVirtualBoardExportFab(0);
+    fab.addEventListener("click", () => {
+        if (fab.disabled || vbExportRunning) return;
+        runVirtualBoardExport();
+    });
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
+            vbExportCancelRequested = true;
+            if (!vbExportRunning) closeVbExportOverlay();
+        });
+    }
+})();
+
 </script>
 <style id="_ctcPriceOverlayCss">
 .pin-pb {
@@ -1483,6 +2054,9 @@ function _applyPin(pinEl) {
 
 function _applyAllPins() {
     document.querySelectorAll('.pin').forEach(_applyPin);
+    if (typeof window._ctcOnPinAvailabilityChanged === 'function') {
+        window._ctcOnPinAvailabilityChanged();
+    }
 }
 
 function _applyMode(mode) {
@@ -1493,6 +2067,12 @@ function _applyMode(mode) {
 
 window._ctcApplyPinPriceGate = _applyPin;
 window._ctcApplySoldGate = _applySoldGate;
+window._ctcStemIsUnavailable = function(stem, leftover) {
+    if (!stem) return false;
+    if (leftover && _isSoldStem(stem)) return true;
+    const set = leftover ? _napLeftover : _napPrimary;
+    return set.has(stem) || set.has(_normStem(stem));
+};
 window._ctcRoundedShowPriceForStem = function(stem, leftover) {
     const map = leftover ? _stemToPriceLeftover : _stemToPricePrimary;
     let raw = map[stem];
@@ -1583,6 +2163,7 @@ function _ingestSoldStems(val) {
     }
     console.info(`[PriceOverlay] leftover sold stems: ${_soldStems.size}`);
     _applyAllPins();
+    _applyMode(_priceMode);
 }
 
 (async function _bootPriceOverlay() {
