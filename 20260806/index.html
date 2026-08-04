@@ -1532,64 +1532,75 @@ function fillVbBoardBackground(ctx, w, h) {
 }
 
 /**
- * Chaotic personal-board layout: cropped pins only (no white cells),
- * slight rotations / scale jitter / soft overlap — like dumping pins onto a board.
+ * Dense personal-board layout: pins nearly touching / slight overlap,
+ * canvas sized to the cluster (no huge empty foam). Cropped pins only.
  */
 function buildVirtualPageCanvas(cropCanvases, pageSeed) {
     const n = cropCanvases.length;
-    const cols = Math.max(3, Math.ceil(Math.sqrt(n * 1.15)));
+    const rand = vbMulberry32((pageSeed || 1) * 9973 + n * 131);
+    // Compact column count — don’t force a wide empty board for small sets.
+    const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
     const rows = Math.max(1, Math.ceil(n / cols));
-    const margin = 48;
-    const cell = 168;
-    const step = cell * 0.72; // denser than a clean grid → natural overlap
-    const w = VB_EXPORT_BOARD_W;
-    const contentH = margin * 2 + rows * step + cell * 0.35;
-    const h = Math.max(Math.round(w * 0.72), Math.round(contentH));
+    const pinSize = n <= 6 ? 220 : (n <= 16 ? 190 : 160);
+    // Centers closer than pin size → real-board crowding / soft overlap.
+    const pitch = pinSize * 0.78;
+    const margin = Math.round(pinSize * 0.28);
+    const clusterW = margin * 2 + (cols - 1) * pitch + pinSize;
+    const clusterH = margin * 2 + (rows - 1) * pitch + pinSize;
+    // Cap width for big pages; keep aspect tight to content.
+    const maxW = VB_EXPORT_BOARD_W;
+    const scaleBoard = clusterW > maxW ? maxW / clusterW : 1;
+    const w = Math.max(320, Math.round(clusterW * scaleBoard));
+    const h = Math.max(280, Math.round(clusterH * scaleBoard));
     const canvas = document.createElement("canvas");
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
     fillVbBoardBackground(ctx, w, h);
 
-    const rand = vbMulberry32((pageSeed || 1) * 9973 + n * 131);
-    const usableW = w - margin * 2;
-    const usableH = h - margin * 2;
-    const colPitch = usableW / Math.max(cols, 1);
-    const rowPitch = usableH / Math.max(rows, 1);
+    const s = scaleBoard;
+    const m = margin * s;
+    const p = pitch * s;
+    const basePin = pinSize * s;
 
-    // Shuffle draw order so later pins can overlap earlier ones unevenly.
-    const order = cropCanvases.map((_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) {
-        const j = Math.floor(rand() * (i + 1));
-        const tmp = order[i];
-        order[i] = order[j];
-        order[j] = tmp;
+    const placements = [];
+    for (let i = 0; i < n; i++) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const lastRowCount = n - row * cols;
+        // Center a short final row so leftovers don’t leave a lonely far-right pin.
+        const rowOffset = (lastRowCount < cols && row === rows - 1)
+            ? ((cols - lastRowCount) * p) / 2
+            : 0;
+        const jitterX = (rand() - 0.5) * p * 0.22;
+        const jitterY = (rand() - 0.5) * p * 0.22;
+        const cx = m + pinSize * s * 0.5 + col * p + rowOffset + jitterX;
+        const cy = m + pinSize * s * 0.5 + row * p + jitterY;
+        const target = basePin * (0.88 + rand() * 0.28);
+        const rot = (rand() - 0.5) * 0.42; // ~±12°
+        placements.push({ i, cx, cy, target, rot });
     }
 
-    order.forEach((origIdx) => {
-        const crop = cropCanvases[origIdx];
-        const col = origIdx % cols;
-        const row = Math.floor(origIdx / cols);
-        const baseX = margin + col * colPitch + colPitch * 0.5;
-        const baseY = margin + row * rowPitch + rowPitch * 0.5;
-        const jitterX = (rand() - 0.5) * colPitch * 0.55;
-        const jitterY = (rand() - 0.5) * rowPitch * 0.55;
-        const cx = baseX + jitterX;
-        const cy = baseY + jitterY;
-        const target = cell * (0.78 + rand() * 0.42);
+    // Shuffle draw order for uneven overlap.
+    for (let i = placements.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        const tmp = placements[i];
+        placements[i] = placements[j];
+        placements[j] = tmp;
+    }
+
+    placements.forEach(({ i, cx, cy, target, rot }) => {
+        const crop = cropCanvases[i];
         const scale = Math.min(target / crop.width, target / crop.height);
         const dw = Math.max(1, crop.width * scale);
         const dh = Math.max(1, crop.height * scale);
-        const rot = (rand() - 0.5) * 0.55; // ~±15.7°
-
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(rot);
         ctx.shadowColor = "rgba(0,0,0,0.45)";
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 3;
-        // Cropped pin only — no buffer / white cell behind it.
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 2;
         ctx.drawImage(crop, -dw / 2, -dh / 2, dw, dh);
         ctx.restore();
     });
