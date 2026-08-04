@@ -82,6 +82,29 @@
             line-height: 1;
             white-space: nowrap;
         }
+        /* Auth hold: visible PENDING, not requestable (any board) */
+        .pin.pin-pending {
+            background: rgba(40, 30, 0, 0.45) !important;
+            border: 2px solid rgba(230, 180, 40, 0.9) !important;
+            pointer-events: none;
+            cursor: default;
+        }
+        .pin.pin-pending::after {
+            content: "PENDING";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(-28deg);
+            font-size: clamp(10px, 2.5vw, 16px);
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            color: #fff;
+            text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+            pointer-events: none;
+            z-index: 120;
+            line-height: 1;
+            white-space: nowrap;
+        }
         .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 112; pointer-events: none; border: 2px solid white; }
         .tally-badge.offset-left { left: -10px; right: auto; }
         #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: var(--fp-chunk); border-top: 1px solid rgba(255,255,255,0.15); padding: 10px 12px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; z-index: 2000; }
@@ -1032,7 +1055,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "3";
+const BOARDS_MANIFEST_VERSION = "4";
 
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
@@ -1069,12 +1092,12 @@ async function computeAllBoardPinTotals(boardNames) {
     return sum;
 }
 
-/** Count pins that are still requestable (exclude NaP + leftover sold). */
+/** Count pins that are still requestable (exclude NaP + sold + pending auth). */
 function countAvailablePinsOnBoard(name) {
     const pins = document.querySelectorAll(`#wrapper-${name} .pin`);
     let n = 0;
     pins.forEach((p) => {
-        if (p.classList.contains("pin-nap") || p.classList.contains("pin-sold")) return;
+        if (p.classList.contains("pin-nap") || p.classList.contains("pin-sold") || p.classList.contains("pin-pending")) return;
         n++;
     });
     return n;
@@ -1236,6 +1259,7 @@ async function setupBoard(name) {
             wrapper.appendChild(div);
             if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
             if (typeof window._ctcApplySoldGate === "function") window._ctcApplySoldGate(div);
+            if (typeof window._ctcApplyPendingGate === "function") window._ctcApplyPendingGate(div);
         });
         boardsState[name].totalPins = countAvailablePinsOnBoard(name);
         updateBoardDisplay(name);
@@ -1263,8 +1287,8 @@ function countClaimedPinsFromState() {
 
 function handlePinClick(boardName, idx) {
     const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
-    // NaP / leftover-sold pins are not requestable (sold stays visible for FOMO).
-    if (pinEl && (pinEl.classList.contains("pin-nap") || pinEl.classList.contains("pin-sold"))) return;
+    // NaP / sold / pending-auth pins are not requestable (labels stay visible).
+    if (pinEl && (pinEl.classList.contains("pin-nap") || pinEl.classList.contains("pin-sold") || pinEl.classList.contains("pin-pending"))) return;
     const pinKey = `${boardName}-${idx}`;
     const userKey = sanitizeUserKey(identityKey);
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
@@ -2158,6 +2182,7 @@ async function runVirtualBoardExport() {
 <script id="_ctcPriceOverlay">
 // Price overlay — dual runs: 20260806 boards → 0955; LO03 leftover boards → 1354.
 // Sold marks: showConfig/20260803_leftover/soldStems (FOMO, not requestable).
+// Pending auth: showConfig/{show}/pendingStems (FOMO, not requestable; any board).
 // Visibility mode: showConfig/{show}/priceMode (shared across devices). localStorage is cache only.
 (function() {
 const _PO_TR = 'test_PriceCollection_20260803_0955__build_23549_visual_baseline';
@@ -2170,6 +2195,7 @@ const _SOLD_STEMS_PATH = 'showConfig/20260803_leftover/soldStems';
 const _PO_SHOW_ID = (typeof fbName !== 'undefined' && fbName) ? fbName
   : (typeof showDateSlug !== 'undefined' && showDateSlug) ? showDateSlug
   : '20260806';
+const _PENDING_STEMS_PATH = `showConfig/${_PO_SHOW_ID}/pendingStems`;
 const _PO_MODE_PATH = `showConfig/${_PO_SHOW_ID}/priceMode`;
 
 let _priceMode = 'none';
@@ -2183,6 +2209,7 @@ const _stemToPriceLeftover = {};
 const _napPrimary = new Set();
 const _napLeftover = new Set();
 const _soldStems = new Set();
+const _pendingStems = new Set();
 
 function _roundForShow(raw) {
     if (raw == null || !isFinite(raw) || raw <= 0) return 0;
@@ -2248,9 +2275,14 @@ function _isSoldStem(stem) {
     return _soldStems.has(stem) || _soldStems.has(_normStem(stem));
 }
 
+function _isPendingStem(stem) {
+    if (!stem) return false;
+    return _pendingStems.has(stem) || _pendingStems.has(_normStem(stem));
+}
+
 function _badgeVisible(pinEl) {
     if (_priceMode === 'none') return false;
-    if (pinEl.classList.contains('pin-sold')) return false;
+    if (pinEl.classList.contains('pin-sold') || pinEl.classList.contains('pin-pending')) return false;
     if (_priceMode === 'all') return true;
     return ['selection-green', 'selection-before', 'selection-now', 'pin-mine']
         .some(c => pinEl.classList.contains(c));
@@ -2279,10 +2311,21 @@ function _applySoldGate(pinEl) {
     }
 }
 
+function _applyPendingGate(pinEl) {
+    if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
+    const pending = _isPendingStem(pinEl.dataset.cropStem);
+    pinEl.classList.toggle('pin-pending', pending);
+    if (pending) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+    }
+}
+
 function _applyPin(pinEl) {
     if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
     _applySoldGate(pinEl);
-    if (pinEl.classList.contains('pin-sold')) return;
+    _applyPendingGate(pinEl);
+    if (pinEl.classList.contains('pin-sold') || pinEl.classList.contains('pin-pending')) return;
     const nap = _isNapPin(pinEl);
     pinEl.classList.toggle('pin-nap', nap);
     if (nap) {
@@ -2328,8 +2371,10 @@ function _applyMode(mode) {
 
 window._ctcApplyPinPriceGate = _applyPin;
 window._ctcApplySoldGate = _applySoldGate;
+window._ctcApplyPendingGate = _applyPendingGate;
 window._ctcStemIsUnavailable = function(stem, leftover) {
     if (!stem) return false;
+    if (_isPendingStem(stem)) return true;
     if (leftover && _isSoldStem(stem)) return true;
     const set = leftover ? _napLeftover : _napPrimary;
     return set.has(stem) || set.has(_normStem(stem));
@@ -2439,6 +2484,24 @@ function _ingestSoldStems(val) {
     _applyMode(_priceMode);
 }
 
+function _ingestPendingStems(val) {
+    _pendingStems.clear();
+    const obj = val || {};
+    for (const [k, v] of Object.entries(obj)) {
+        if (v === true || (v && typeof v === 'object' && v.pending !== false)) {
+            _pendingStems.add(k);
+            _pendingStems.add(_normStem(k));
+            if (v && v.crop_stem) {
+                _pendingStems.add(v.crop_stem);
+                _pendingStems.add(_normStem(v.crop_stem));
+            }
+        }
+    }
+    console.info(`[PriceOverlay] pending auth stems: ${_pendingStems.size}`);
+    _applyAllPins();
+    _applyMode(_priceMode);
+}
+
 (async function _bootPriceOverlay() {
     try {
         const res = await fetch('./prices.json', { cache: 'no-store' });
@@ -2461,6 +2524,9 @@ function _ingestSoldStems(val) {
             db.ref(_SOLD_STEMS_PATH).on('value', snap => {
                 _ingestSoldStems(snap.val() || {});
             }, err => console.warn('[PriceOverlay] soldStems listener failed:', err));
+            db.ref(_PENDING_STEMS_PATH).on('value', snap => {
+                _ingestPendingStems(snap.val() || {});
+            }, err => console.warn('[PriceOverlay] pendingStems listener failed:', err));
             return;
         }
     } catch (e) {
@@ -2469,14 +2535,16 @@ function _ingestSoldStems(val) {
 
     try {
         const base = 'https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/';
-        const [a, b, s] = await Promise.all([
+        const [a, b, s, p] = await Promise.all([
             fetch(base + _PO_PINS_PATH + '.json').then(r => r.json()),
             fetch(base + _PO_PINS_PATH_LEFTOVER + '.json').then(r => r.json()),
             fetch(base + _SOLD_STEMS_PATH + '.json').then(r => r.json()),
+            fetch(base + _PENDING_STEMS_PATH + '.json').then(r => r.json()),
         ]);
         _ingestFirebasePins(a || {}, _stemToPricePrimary, _napPrimary, 'primary');
         _ingestFirebasePins(b || {}, _stemToPriceLeftover, _napLeftover, 'leftover');
         _ingestSoldStems(s || {});
+        _ingestPendingStems(p || {});
     } catch (e) {
         console.warn('[PriceOverlay] Firebase REST fallback failed:', e);
         _applyAllPins();
