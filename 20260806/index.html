@@ -1532,76 +1532,148 @@ function fillVbBoardBackground(ctx, w, h) {
 }
 
 /**
- * Dense personal-board layout: pins nearly touching / slight overlap,
- * canvas sized to the cluster (no huge empty foam). Cropped pins only.
+ * Dense personal-board pack: pins close together with a small foam gap,
+ * no overlap (AABB of rotated crop). Canvas sized to the cluster.
  */
 function buildVirtualPageCanvas(cropCanvases, pageSeed) {
     const n = cropCanvases.length;
     const rand = vbMulberry32((pageSeed || 1) * 9973 + n * 131);
-    // Compact column count — don’t force a wide empty board for small sets.
-    const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
-    const rows = Math.max(1, Math.ceil(n / cols));
-    const pinSize = n <= 6 ? 220 : (n <= 16 ? 190 : 160);
-    // Centers closer than pin size → real-board crowding / soft overlap.
-    const pitch = pinSize * 0.78;
-    const margin = Math.round(pinSize * 0.28);
-    const clusterW = margin * 2 + (cols - 1) * pitch + pinSize;
-    const clusterH = margin * 2 + (rows - 1) * pitch + pinSize;
-    // Cap width for big pages; keep aspect tight to content.
+    const gap = 10; // foam showing between pins — close, not touching
+    const maxDim = n <= 6 ? 240 : (n <= 16 ? 200 : 168);
+
+    const items = cropCanvases.map((crop, i) => {
+        const scale = Math.min(maxDim / crop.width, maxDim / crop.height) * (0.92 + rand() * 0.16);
+        const dw = Math.max(1, crop.width * scale);
+        const dh = Math.max(1, crop.height * scale);
+        // Mild tilt like a hand-pinned board; AABB accounts for rotation so they never overlap.
+        const rot = (rand() - 0.5) * 0.28; // ~±8°
+        const c = Math.abs(Math.cos(rot));
+        const s = Math.abs(Math.sin(rot));
+        const aw = dw * c + dh * s;
+        const ah = dw * s + dh * c;
+        return { i, crop, dw, dh, rot, aw, ah };
+    });
+    // Larger first packs more like a real board.
+    items.sort((a, b) => (b.aw * b.ah) - (a.aw * a.ah));
+
+    function overlaps(cx, cy, aw, ah, placed) {
+        const l = cx - aw / 2 - gap / 2;
+        const r = cx + aw / 2 + gap / 2;
+        const t = cy - ah / 2 - gap / 2;
+        const b = cy + ah / 2 + gap / 2;
+        for (const p of placed) {
+            const pl = p.cx - p.aw / 2 - gap / 2;
+            const pr = p.cx + p.aw / 2 + gap / 2;
+            const pt = p.cy - p.ah / 2 - gap / 2;
+            const pb = p.cy + p.ah / 2 + gap / 2;
+            if (l < pr && r > pl && t < pb && b > pt) return true;
+        }
+        return false;
+    }
+
+    const placed = [];
+    const startPad = 24;
+    items.forEach((it, idx) => {
+        let best = null;
+        if (idx === 0) {
+            best = { cx: startPad + it.aw / 2, cy: startPad + it.ah / 2 };
+        } else {
+            const candidates = [];
+            placed.forEach((p) => {
+                // Nestle against existing edges (right / below / left / above + slight diagonal).
+                const ox = (rand() - 0.5) * 14;
+                const oy = (rand() - 0.5) * 14;
+                candidates.push(
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap + ox, cy: p.cy + oy },
+                    { cx: p.cx + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap + oy },
+                    { cx: p.cx - (p.aw + it.aw) / 2 - gap + ox, cy: p.cy + oy },
+                    { cx: p.cx + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap + oy },
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap * 0.6 + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap * 0.6 + oy },
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap * 0.6 + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap * 0.6 + oy }
+                );
+            });
+            // Prefer candidates that keep the cluster compact (near current bbox center).
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            placed.forEach((p) => {
+                minX = Math.min(minX, p.cx - p.aw / 2);
+                minY = Math.min(minY, p.cy - p.ah / 2);
+                maxX = Math.max(maxX, p.cx + p.aw / 2);
+                maxY = Math.max(maxY, p.cy + p.ah / 2);
+            });
+            const midX = (minX + maxX) / 2;
+            const midY = (minY + maxY) / 2;
+            candidates.sort((a, b) => {
+                const da = (a.cx - midX) ** 2 + (a.cy - midY) ** 2;
+                const db = (b.cx - midX) ** 2 + (b.cy - midY) ** 2;
+                return da - db;
+            });
+            for (const c of candidates) {
+                if (c.cx - it.aw / 2 < 8 || c.cy - it.ah / 2 < 8) continue;
+                if (!overlaps(c.cx, c.cy, it.aw, it.ah, placed)) {
+                    best = c;
+                    break;
+                }
+            }
+            // Fallback: scan a loose grid expanding outward.
+            if (!best) {
+                const step = Math.max(12, Math.min(it.aw, it.ah) * 0.2);
+                outer: for (let rad = 0; rad < 40; rad++) {
+                    for (let gy = startPad + it.ah / 2; gy < maxY + it.ah + 80 + rad * step; gy += step) {
+                        for (let gx = startPad + it.aw / 2; gx < maxX + it.aw + 80 + rad * step; gx += step) {
+                            if (!overlaps(gx, gy, it.aw, it.ah, placed)) {
+                                best = { cx: gx, cy: gy };
+                                break outer;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!best) {
+                best = {
+                    cx: maxX + gap + it.aw / 2 + 4,
+                    cy: startPad + it.ah / 2
+                };
+            }
+        }
+        placed.push({ ...it, cx: best.cx, cy: best.cy });
+    });
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    placed.forEach((p) => {
+        minX = Math.min(minX, p.cx - p.aw / 2);
+        minY = Math.min(minY, p.cy - p.ah / 2);
+        maxX = Math.max(maxX, p.cx + p.aw / 2);
+        maxY = Math.max(maxY, p.cy + p.ah / 2);
+    });
+    const margin = 28;
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+    let w = Math.ceil(contentW + margin * 2);
+    let h = Math.ceil(contentH + margin * 2);
     const maxW = VB_EXPORT_BOARD_W;
-    const scaleBoard = clusterW > maxW ? maxW / clusterW : 1;
-    const w = Math.max(320, Math.round(clusterW * scaleBoard));
-    const h = Math.max(280, Math.round(clusterH * scaleBoard));
+    const boardScale = w > maxW ? maxW / w : 1;
+    w = Math.max(280, Math.round(w * boardScale));
+    h = Math.max(240, Math.round(h * boardScale));
+
     const canvas = document.createElement("canvas");
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
     fillVbBoardBackground(ctx, w, h);
 
-    const s = scaleBoard;
-    const m = margin * s;
-    const p = pitch * s;
-    const basePin = pinSize * s;
-
-    const placements = [];
-    for (let i = 0; i < n; i++) {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const lastRowCount = n - row * cols;
-        // Center a short final row so leftovers don’t leave a lonely far-right pin.
-        const rowOffset = (lastRowCount < cols && row === rows - 1)
-            ? ((cols - lastRowCount) * p) / 2
-            : 0;
-        const jitterX = (rand() - 0.5) * p * 0.22;
-        const jitterY = (rand() - 0.5) * p * 0.22;
-        const cx = m + pinSize * s * 0.5 + col * p + rowOffset + jitterX;
-        const cy = m + pinSize * s * 0.5 + row * p + jitterY;
-        const target = basePin * (0.88 + rand() * 0.28);
-        const rot = (rand() - 0.5) * 0.42; // ~±12°
-        placements.push({ i, cx, cy, target, rot });
-    }
-
-    // Shuffle draw order for uneven overlap.
-    for (let i = placements.length - 1; i > 0; i--) {
-        const j = Math.floor(rand() * (i + 1));
-        const tmp = placements[i];
-        placements[i] = placements[j];
-        placements[j] = tmp;
-    }
-
-    placements.forEach(({ i, cx, cy, target, rot }) => {
-        const crop = cropCanvases[i];
-        const scale = Math.min(target / crop.width, target / crop.height);
-        const dw = Math.max(1, crop.width * scale);
-        const dh = Math.max(1, crop.height * scale);
+    const ox = margin * boardScale - minX * boardScale;
+    const oy = margin * boardScale - minY * boardScale;
+    // Draw in original click order for stable visual, still non-overlapping.
+    const byOrig = placed.slice().sort((a, b) => a.i - b.i);
+    byOrig.forEach((p) => {
         ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(rot);
-        ctx.shadowColor = "rgba(0,0,0,0.45)";
-        ctx.shadowBlur = 8;
+        ctx.translate(p.cx * boardScale + ox, p.cy * boardScale + oy);
+        ctx.rotate(p.rot);
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 7;
         ctx.shadowOffsetX = 1;
         ctx.shadowOffsetY = 2;
-        ctx.drawImage(crop, -dw / 2, -dh / 2, dw, dh);
+        ctx.drawImage(p.crop, -(p.dw * boardScale) / 2, -(p.dh * boardScale) / 2, p.dw * boardScale, p.dh * boardScale);
         ctx.restore();
     });
     return canvas;
