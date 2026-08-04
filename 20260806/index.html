@@ -447,7 +447,7 @@
     </div>
     <span id="totalPins" hidden>0</span>
     <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
-        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span>
+        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · VB ✓ <span id="adminVirtualBoardUsers" title="People who saved a virtual pin board">0</span>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
         <span class="admin-phase-label">Show state (visible to everyone; use Schedule for Eastern clock)</span>
@@ -576,6 +576,38 @@ function goToFullBoardView() {
     if (isAdmin) u.searchParams.set("admin", ADMIN_KEY);
     else u.searchParams.delete("admin");
     window.location.href = u.pathname + u.search + u.hash;
+}
+
+/** People who saved a virtual board photo (showConfig only — never claims). */
+let virtualBoardUsedCount = 0;
+
+function updateAdminVirtualBoardCount(n) {
+    virtualBoardUsedCount = Math.max(0, Number(n) || 0);
+    const el = document.getElementById("adminVirtualBoardUsers");
+    if (el) el.textContent = String(virtualBoardUsedCount);
+}
+
+/**
+ * Analytics only: write/update this user's leaf under showConfig/…/virtualBoardUsed.
+ * Never reads or writes claims/. Failures are ignored so export UX is unaffected.
+ */
+function recordVirtualBoardUsage(meta) {
+    try {
+        if (!displayName || typeof db === "undefined" || !db) return;
+        const userKey = sanitizeUserKey(identityKey);
+        if (!userKey) return;
+        const payload = {
+            label: displayName,
+            time: firebase.database.ServerValue.TIMESTAMP,
+            pinCount: Math.max(0, Number(meta && meta.pinCount) || 0),
+            pages: Math.max(0, Number(meta && meta.pages) || 0)
+        };
+        db.ref(`showConfig/${fbName}/virtualBoardUsed/${userKey}`).set(payload).catch((e) => {
+            console.warn("[Virtual board] usage write skipped:", e && e.message);
+        });
+    } catch (e) {
+        console.warn("[Virtual board] usage write skipped:", e && e.message);
+    }
 }
 
 if (isAdmin) {
@@ -900,6 +932,10 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
     recomputeShowWindows();
     refreshAdminPhaseButtons();
     syncShowEndedOverlay();
+    if (isAdmin) {
+        const used = (v && v.virtualBoardUsed && typeof v.virtualBoardUsed === "object") ? v.virtualBoardUsed : {};
+        updateAdminVirtualBoardCount(Object.keys(used).length);
+    }
 });
 
 (function() {
@@ -1930,8 +1966,13 @@ async function runVirtualBoardExport() {
             startedAt
         );
         const eta = document.getElementById("virtualBoardExportEta");
+        const eta = document.getElementById("virtualBoardExportEta");
         if (eta) eta.textContent = "Your clicked pins, as if on a personal board.";
-        if (savedCount) showToast(`Saved ${savedCount} virtual board photo${savedCount > 1 ? "s" : ""}.`);
+        if (savedCount) {
+            // Analytics leaf only — does not touch claims/.
+            recordVirtualBoardUsage({ pinCount: crops.length, pages: savedCount });
+            showToast(`Saved ${savedCount} virtual board photo${savedCount > 1 ? "s" : ""}.`);
+        }
         setTimeout(() => closeVbExportOverlay(), 1400);
     } catch (e) {
         if (String(e && e.message) === "cancelled") {
