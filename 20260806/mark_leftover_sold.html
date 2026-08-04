@@ -20,25 +20,34 @@
   }
   header h1 { margin: 0; font-size: 16px; font-weight: 700; flex: 1; min-width: 180px; }
   header .sub { display: block; font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
-  header a.btn, header button.btn {
+  header a.btn {
     height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #333;
     background: #222; color: var(--text); font-size: 13px; text-decoration: none;
-    display: inline-flex; align-items: center; cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center;
   }
   header a.btn.primary { background: #1e4fa0; border-color: #2a6eff; }
   #totals {
     margin: 12px 12px 0; padding: 10px 14px; border-radius: 12px;
-    background: #152238; border: 1px solid #2a4a73; max-width: 420px;
+    background: #152238; border: 1px solid #2a4a73; max-width: 480px;
   }
-  #totals .label { font-size: 11px; color: #9ec8ff; text-transform: uppercase; letter-spacing: 0.04em; }
-  #totals .row { display: flex; justify-content: space-between; gap: 16px; font-size: 17px; font-weight: 700; }
+  #totals .label { font-size: 11px; color: #9ec8ff; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  #totals table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  #totals th { text-align: right; font-size: 11px; color: #9ec8ff; font-weight: 600; padding: 0 0 4px; }
+  #totals th:first-child { text-align: left; }
+  #totals td { padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.08); font-weight: 700; }
+  #totals td:first-child { text-align: left; font-weight: 600; color: #d7e8ff; }
+  #totals td.num, #totals th.num { text-align: right; font-variant-numeric: tabular-nums; padding-left: 12px; }
+  #totals tr.total td { border-top: 2px solid rgba(158,200,255,0.35); color: #fff; }
   #hint { padding: 8px 12px 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
   #boards { padding: 12px; display: flex; flex-direction: column; gap: 18px; }
   .board-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .board-head {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
     padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--line);
   }
+  .board-head .title { font-weight: 600; }
+  .board-head .stats { text-align: right; color: var(--muted); font-size: 12px; line-height: 1.35; }
+  .board-head .stats b { color: var(--text); font-weight: 700; }
   .board-wrap { position: relative; width: 100%; background: #000; }
   .board-wrap img { display: block; width: 100%; height: auto; }
   .pin {
@@ -76,23 +85,29 @@
 <body>
 <header>
   <h1>Mark leftover sold
-    <span class="sub">20260803 inventory on 20260806 Boards 17+ · tap = SOLD (FOMO)</span>
+    <span class="sub">From Monday's show · on 20260806 Boards 17+ · tap = SOLD</span>
   </h1>
   <a class="btn" href="./index.html">Open CTR 20260806</a>
-  <a class="btn primary" href="./reports.html">Reports</a>
+  <a class="btn primary" href="./leftover_sheet.html">Leftover sheet</a>
 </header>
 
 <div id="totals">
   <div class="label">Leftover status</div>
-  <div class="row"><span>Sold</span><span id="tot-sold">0</span></div>
-  <div class="row"><span>Still available</span><span id="tot-avail">0</span></div>
-  <div class="row"><span>Available $</span><span id="tot-price">$0</span></div>
+  <table>
+    <thead>
+      <tr><th></th><th class="num">Count</th><th class="num">$</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Sold</td><td class="num" id="tot-sold-n">0</td><td class="num" id="tot-sold-d">$0</td></tr>
+      <tr><td>Still available</td><td class="num" id="tot-avail-n">0</td><td class="num" id="tot-avail-d">$0</td></tr>
+      <tr class="total"><td>Total</td><td class="num" id="tot-all-n">0</td><td class="num" id="tot-all-d">$0</td></tr>
+    </tbody>
+  </table>
 </div>
 <p id="hint">
   Tap a pin to mark it <b>SOLD</b> (diagonal label). Tap again to undo.
   Marks save to <code>showConfig/20260803_leftover/soldStems</code> and appear live on the CTR.
   Does not change 20260803 claims or Lexi pricing.
-  Prices read from the 20260803 pricing run.
 </p>
 <div id="boards"></div>
 <div id="toast"></div>
@@ -124,6 +139,7 @@
   const napStems = new Set();
   const stemToPrice = Object.create(null);
   const pinElsByStem = Object.create(null);
+  const boardMeta = Object.create(null); // name -> { stems, statsEl }
   let reviewer = localStorage.getItem("fpins_leftover_reviewer") || "";
 
   function toastMsg(msg, ok) {
@@ -154,12 +170,18 @@
     return Math.ceil(raw / 5) * 5;
   }
 
+  function money(n) { return "$" + Number(n || 0).toLocaleString(); }
+
   function isSold(stem) {
     return soldStems.has(stem) || soldStems.has(normStem(stem));
   }
 
   function isNap(stem) {
     return napStems.has(stem) || napStems.has(normStem(stem));
+  }
+
+  function priceOf(stem) {
+    return roundForShow(stemToPrice[stem] || stemToPrice[normStem(stem)]);
   }
 
   function applyPinVisual(pinEl) {
@@ -176,8 +198,7 @@
       if (badge) badge.remove();
       return;
     }
-    const raw = stemToPrice[stem] || stemToPrice[normStem(stem)];
-    const rounded = roundForShow(raw);
+    const rounded = priceOf(stem);
     if (!rounded) {
       if (badge) badge.remove();
       return;
@@ -190,17 +211,36 @@
     badge.textContent = "$" + rounded;
   }
 
+  function refreshBoardStats(name) {
+    const meta = boardMeta[name];
+    if (!meta || !meta.statsEl) return;
+    let sold = 0, avail = 0, total = 0;
+    meta.stems.forEach((stem) => {
+      if (isNap(stem)) return;
+      total++;
+      if (isSold(stem)) sold++;
+      else avail++;
+    });
+    meta.statsEl.innerHTML =
+      `<b>${total}</b> pins<br>` +
+      `<b>${sold}</b> sold · <b>${avail}</b> available`;
+  }
+
   function refreshTotals() {
-    let sold = 0, avail = 0, dollars = 0;
+    let soldN = 0, availN = 0, soldD = 0, availD = 0;
     Object.keys(pinElsByStem).forEach((stem) => {
       if (isNap(stem)) return;
-      if (isSold(stem)) { sold++; return; }
-      avail++;
-      dollars += roundForShow(stemToPrice[stem] || stemToPrice[normStem(stem)]);
+      const p = priceOf(stem);
+      if (isSold(stem)) { soldN++; soldD += p; }
+      else { availN++; availD += p; }
     });
-    document.getElementById("tot-sold").textContent = String(sold);
-    document.getElementById("tot-avail").textContent = String(avail);
-    document.getElementById("tot-price").textContent = "$" + dollars.toLocaleString();
+    document.getElementById("tot-sold-n").textContent = String(soldN);
+    document.getElementById("tot-sold-d").textContent = money(soldD);
+    document.getElementById("tot-avail-n").textContent = String(availN);
+    document.getElementById("tot-avail-d").textContent = money(availD);
+    document.getElementById("tot-all-n").textContent = String(soldN + availN);
+    document.getElementById("tot-all-d").textContent = money(soldD + availD);
+    Object.keys(boardMeta).forEach(refreshBoardStats);
   }
 
   function refreshAllPins() {
@@ -245,15 +285,17 @@
     card.className = "board-card";
     card.innerHTML = `
       <div class="board-head">
-        <span>Board ${boardIndex} · Leftover · ${name.replace(/^LO03_/, "")}</span>
-        <span>${pins.length} pins</span>
+        <span class="title">Board ${boardIndex} · From Monday's show · ${name.replace(/^LO03_/, "")}</span>
+        <span class="stats" data-board-stats="${name}"><b>${pins.length}</b> pins</span>
       </div>
-      <div class="board-wrap" id="wrap-${name}">
+      <div class="board-wrap">
         <img alt="${name}" src="./boards/${name}.JPG?v=${MANIFEST_VER}">
       </div>`;
     boardsEl.appendChild(card);
     const img = card.querySelector("img");
     const wrap = card.querySelector(".board-wrap");
+    const statsEl = card.querySelector("[data-board-stats]");
+    boardMeta[name] = { stems: [], statsEl };
     const render = () => {
       let ORIG_W = data.image?.width || img.naturalWidth;
       let ORIG_H = data.image?.height || img.naturalHeight;
@@ -269,6 +311,7 @@
         if (pin.crop_stem) {
           div.dataset.cropStem = pin.crop_stem;
           pinElsByStem[pin.crop_stem] = div;
+          boardMeta[name].stems.push(pin.crop_stem);
         }
         div.addEventListener("click", (e) => {
           e.preventDefault();
