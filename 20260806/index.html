@@ -99,7 +99,7 @@
         .login-disclaimer { font-size: 12px; color: var(--fp-muted); line-height: 1.35; text-align: left; margin: 0 0 14px; font-weight: normal; }
         #reportIssueFab { position: fixed; bottom: 72px; right: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; }
         /* Virtual pin board photo (clicked pins). Read-only — never touches claims. */
-        #virtualBoardExportFab { position: fixed; bottom: 72px; left: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; display: none; }
+        #virtualBoardExportFab { position: fixed; bottom: 72px; left: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: min(56vw, 280px); line-height: 1.3; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; display: none; }
         #virtualBoardExportFab:disabled { opacity: 0.45; cursor: not-allowed; }
         #virtualBoardExportFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
         #virtualBoardExportOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3100; display: none; align-items: center; justify-content: center; padding: 20px; }
@@ -409,7 +409,7 @@
 </div>
 
 <button type="button" id="reportIssueFab" onclick="document.getElementById('reportIssueOverlay').style.display='flex'" title="Report Issue" aria-label="Report Issue">Report Issue</button>
-<button type="button" id="virtualBoardExportFab" disabled title="Create Virtual Pin Board of Clicked Pins" aria-label="Create Virtual Pin Board of Clicked Pins">Create Virtual Pin Board of Clicked Pins</button>
+<button type="button" id="virtualBoardExportFab" disabled title="Create Virtual Pin Board of your clicked pins" aria-label="Create Virtual Pin Board of your clicked pins">Create Virtual Pin Board of 0 Clicked Pins · $0</button>
 <div id="virtualBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="virtualBoardExportTitle">
     <div class="modal-box" style="max-width:400px;">
         <h3 id="virtualBoardExportTitle">Building virtual pin board</h3>
@@ -1537,6 +1537,46 @@ function vbExportFeatureOn() {
     return true;
 }
 
+/** Crop stem for a claims pinKey like IMG_8652-3 (read-only; never writes). */
+function cropStemForPinKey(pk) {
+    if (!pk) return "";
+    return adminCropStemByPinKey[pk]
+        || (document.getElementById(`pin-${pk}`) && document.getElementById(`pin-${pk}`).dataset.cropStem)
+        || "";
+}
+
+/**
+ * This user's clicked-pin count + show-rounded $ (same rounding as price badges).
+ * Matches My Requests identity only — not other users.
+ */
+function computeMyClickedRunningTotals(myCountHint) {
+    const n = myCountHint != null
+        ? myCountHint
+        : Number(document.getElementById("totalMyClaims")?.textContent || 0);
+    let dollars = 0;
+    const priceForStem = (typeof window._ctcRoundedShowPriceForStem === "function")
+        ? window._ctcRoundedShowPriceForStem
+        : null;
+    if (priceForStem && identityKey) {
+        const userKey = sanitizeUserKey(identityKey);
+        const addMine = (pk, uMap) => {
+            if (!uMap || !uMap[userKey]) return;
+            const stem = cropStemForPinKey(pk);
+            if (!stem) return;
+            dollars += priceForStem(stem, String(pk).startsWith("LO03_")) || 0;
+        };
+        const useGlobalClaims = isLiteMode && claimsSnapshotReceived;
+        if (useGlobalClaims) {
+            Object.entries(latestClaimsData || {}).forEach(([pk, uMap]) => addMine(pk, uMap));
+        } else {
+            Object.values(boardsState || {}).forEach((s) => {
+                Object.entries(s.allClaims || {}).forEach(([pk, uMap]) => addMine(pk, uMap));
+            });
+        }
+    }
+    return { count: n, dollars };
+}
+
 function refreshVirtualBoardExportFab(myCount) {
     const fab = document.getElementById("virtualBoardExportFab");
     if (!fab) return;
@@ -1546,7 +1586,11 @@ function refreshVirtualBoardExportFab(myCount) {
         return;
     }
     fab.style.display = "block";
-    const n = myCount != null ? myCount : Number(document.getElementById("totalMyClaims")?.textContent || 0);
+    const { count: n, dollars } = computeMyClickedRunningTotals(myCount);
+    const label = `Create Virtual Pin Board of ${n} Clicked Pins · $${dollars}`;
+    fab.textContent = label;
+    fab.title = label;
+    fab.setAttribute("aria-label", label);
     fab.disabled = vbExportRunning || !(n > 0);
 }
 
