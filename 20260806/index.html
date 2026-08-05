@@ -82,12 +82,10 @@
             line-height: 1;
             white-space: nowrap;
         }
-        /* Auth hold: visible PENDING, not requestable (any board) */
+        /* Auth hold label only — still requestable; Whatnot builder excludes these stems */
         .pin.pin-pending {
-            background: rgba(40, 30, 0, 0.45) !important;
+            background: rgba(40, 30, 0, 0.28) !important;
             border: 2px solid rgba(230, 180, 40, 0.9) !important;
-            pointer-events: none;
-            cursor: default;
         }
         .pin.pin-pending::after {
             content: "PENDING";
@@ -1092,12 +1090,12 @@ async function computeAllBoardPinTotals(boardNames) {
     return sum;
 }
 
-/** Count pins that are still requestable (exclude NaP + sold + pending auth). */
+/** Count pins that are still requestable (exclude NaP + sold leftovers). Pending stays clickable. */
 function countAvailablePinsOnBoard(name) {
     const pins = document.querySelectorAll(`#wrapper-${name} .pin`);
     let n = 0;
     pins.forEach((p) => {
-        if (p.classList.contains("pin-nap") || p.classList.contains("pin-sold") || p.classList.contains("pin-pending")) return;
+        if (p.classList.contains("pin-nap") || p.classList.contains("pin-sold")) return;
         n++;
     });
     return n;
@@ -1287,8 +1285,8 @@ function countClaimedPinsFromState() {
 
 function handlePinClick(boardName, idx) {
     const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
-    // NaP / sold / pending-auth pins are not requestable (labels stay visible).
-    if (pinEl && (pinEl.classList.contains("pin-nap") || pinEl.classList.contains("pin-sold") || pinEl.classList.contains("pin-pending"))) return;
+    // NaP / sold pins are not requestable (labels stay visible). Pending remains clickable.
+    if (pinEl && (pinEl.classList.contains("pin-nap") || pinEl.classList.contains("pin-sold"))) return;
     const pinKey = `${boardName}-${idx}`;
     const userKey = sanitizeUserKey(identityKey);
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
@@ -2182,7 +2180,7 @@ async function runVirtualBoardExport() {
 <script id="_ctcPriceOverlay">
 // Price overlay — dual runs: 20260806 boards → 0955; LO03 leftover boards → 1354.
 // Sold marks: showConfig/20260803_leftover/soldStems (FOMO, not requestable).
-// Pending auth: showConfig/{show}/pendingStems (FOMO, not requestable; any board).
+// Pending auth: showConfig/{show}/pendingStems (label only; still requestable; Whatnot excludes).
 // Visibility mode: showConfig/{show}/priceMode (shared across devices). localStorage is cache only.
 (function() {
 const _PO_TR = 'test_PriceCollection_20260803_0955__build_23549_visual_baseline';
@@ -2282,7 +2280,7 @@ function _isPendingStem(stem) {
 
 function _badgeVisible(pinEl) {
     if (_priceMode === 'none') return false;
-    if (pinEl.classList.contains('pin-sold') || pinEl.classList.contains('pin-pending')) return false;
+    if (pinEl.classList.contains('pin-sold')) return false;
     if (_priceMode === 'all') return true;
     return ['selection-green', 'selection-before', 'selection-now', 'pin-mine']
         .some(c => pinEl.classList.contains(c));
@@ -2315,17 +2313,13 @@ function _applyPendingGate(pinEl) {
     if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
     const pending = _isPendingStem(pinEl.dataset.cropStem);
     pinEl.classList.toggle('pin-pending', pending);
-    if (pending) {
-        const old = pinEl.querySelector('.pin-pb');
-        if (old) old.remove();
-    }
 }
 
 function _applyPin(pinEl) {
     if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
     _applySoldGate(pinEl);
     _applyPendingGate(pinEl);
-    if (pinEl.classList.contains('pin-sold') || pinEl.classList.contains('pin-pending')) return;
+    if (pinEl.classList.contains('pin-sold')) return;
     const nap = _isNapPin(pinEl);
     pinEl.classList.toggle('pin-nap', nap);
     if (nap) {
@@ -2374,7 +2368,7 @@ window._ctcApplySoldGate = _applySoldGate;
 window._ctcApplyPendingGate = _applyPendingGate;
 window._ctcStemIsUnavailable = function(stem, leftover) {
     if (!stem) return false;
-    if (_isPendingStem(stem)) return true;
+    // Pending is labeled but still requestable (excluded only from Whatnot CSV).
     if (leftover && _isSoldStem(stem)) return true;
     const set = leftover ? _napLeftover : _napPrimary;
     return set.has(stem) || set.has(_normStem(stem));
