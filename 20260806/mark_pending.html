@@ -55,6 +55,20 @@
     border-radius: 4px; cursor: pointer; touch-action: manipulation;
   }
   .pin.pin-nap { visibility: hidden; pointer-events: none; }
+  .pin.pin-sold {
+    background: rgba(0, 0, 0, 0.42) !important;
+    border: 2px solid rgba(255, 80, 80, 0.85) !important;
+    pointer-events: none;
+    cursor: default;
+  }
+  .pin.pin-sold::after {
+    content: "SOLD";
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%) rotate(-28deg);
+    font-size: clamp(11px, 2.8vw, 18px); font-weight: 900; letter-spacing: 0.06em;
+    color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+    pointer-events: none; z-index: 6; line-height: 1; white-space: nowrap;
+  }
   .pin.pin-pending {
     background: rgba(40, 30, 0, 0.45) !important;
     border: 2px solid rgba(230, 180, 40, 0.9) !important;
@@ -100,7 +114,8 @@
     </thead>
     <tbody>
       <tr><td>Pending</td><td class="num" id="tot-pend-n">0</td><td class="num" id="tot-pend-d">$0</td></tr>
-      <tr><td>Clear to sell</td><td class="num" id="tot-clear-n">0</td><td class="num" id="tot-clear-d">$0</td></tr>
+      <tr><td>Sold (leftover)</td><td class="num" id="tot-sold-n">0</td><td class="num" id="tot-sold-d">$0</td></tr>
+      <tr><td>Clear to check</td><td class="num" id="tot-clear-n">0</td><td class="num" id="tot-clear-d">$0</td></tr>
       <tr class="total"><td>Total (excl. NaP)</td><td class="num" id="tot-all-n">0</td><td class="num" id="tot-all-d">$0</td></tr>
     </tbody>
   </table>
@@ -108,6 +123,7 @@
 <p id="hint">
   Tap a pin to mark it <b>PENDING</b> (Lexi still authenticating — still clickable on CTR, excluded from Whatnot upload).
   Tap again to undo. Saves to <code>showConfig/20260806/pendingStems</code> only.
+  Leftover <b>SOLD</b> pins are labeled and not tappable here (same as CTR).
   Does <b>not</b> change claims, leftover SOLD marks, or Lexi pricing.
 </p>
 <div id="boards"></div>
@@ -130,6 +146,7 @@
   const RUN_LEFTOVER = "test_PriceCollection_20260802_1354__build_23549_visual_baseline";
   const APPROACH_ID = "visual_baseline";
   const PENDING_PATH = "showConfig/20260806/pendingStems";
+  const SOLD_PATH = "showConfig/20260803_leftover/soldStems";
   const MANIFEST_VER = "4";
 
   firebase.initializeApp(FB_CFG);
@@ -138,6 +155,7 @@
   const boardsEl = document.getElementById("boards");
   const toast = document.getElementById("toast");
   const pendingStems = new Set();
+  const soldStems = new Set();
   // Dual maps — leftover Firebase run reuses crop names like img8652_pin01.
   // Merging into one map was marking show pins NaP / wiping prices.
   const napPrimary = new Set();
@@ -182,6 +200,15 @@
     return pendingStems.has(stem) || pendingStems.has(normStem(stem));
   }
 
+  function isSoldStem(stem) {
+    return soldStems.has(stem) || soldStems.has(normStem(stem));
+  }
+
+  /** Sold FOMO only applies to leftover (LO03_) boards, same as CTR. */
+  function isSold(stem, leftover) {
+    return !!(leftover && isSoldStem(stem));
+  }
+
   function isLeftoverPin(pinEl) {
     return !!(pinEl && pinEl.dataset && pinEl.dataset.leftover === "1");
   }
@@ -209,9 +236,18 @@
     const leftover = isLeftoverPin(pinEl);
     if (isNap(stem, leftover)) {
       pinEl.classList.add("pin-nap");
+      pinEl.classList.remove("pin-sold", "pin-pending");
       return;
     }
     pinEl.classList.remove("pin-nap");
+    const sold = isSold(stem, leftover);
+    pinEl.classList.toggle("pin-sold", sold);
+    if (sold) {
+      pinEl.classList.remove("pin-pending");
+      const badge = pinEl.querySelector(".pin-pb");
+      if (badge) badge.remove();
+      return;
+    }
     const pending = isPending(stem);
     pinEl.classList.toggle("pin-pending", pending);
     let badge = pinEl.querySelector(".pin-pb");
@@ -235,35 +271,39 @@
   function refreshBoardStats(name) {
     const meta = boardMeta[name];
     if (!meta || !meta.statsEl) return;
-    let pend = 0, clear = 0, total = 0;
+    let pend = 0, clear = 0, sold = 0, total = 0;
     meta.stems.forEach((stem) => {
       if (isNap(stem, meta.leftover)) return;
       total++;
-      if (isPending(stem)) pend++;
+      if (isSold(stem, meta.leftover)) sold++;
+      else if (isPending(stem)) pend++;
       else clear++;
     });
     meta.statsEl.innerHTML =
       `<b>${total}</b> pins<br>` +
-      `<b>${pend}</b> pending · <b>${clear}</b> clear`;
+      `<b>${pend}</b> pending · <b>${sold}</b> sold · <b>${clear}</b> clear`;
   }
 
   function refreshTotals() {
-    let pendN = 0, clearN = 0, pendD = 0, clearD = 0;
+    let pendN = 0, clearN = 0, soldN = 0, pendD = 0, clearD = 0, soldD = 0;
     Object.keys(boardMeta).forEach((name) => {
       const meta = boardMeta[name];
       (meta.stems || []).forEach((stem) => {
         if (isNap(stem, meta.leftover)) return;
         const p = priceOf(stem, meta.leftover);
-        if (isPending(stem)) { pendN++; pendD += p; }
+        if (isSold(stem, meta.leftover)) { soldN++; soldD += p; }
+        else if (isPending(stem)) { pendN++; pendD += p; }
         else { clearN++; clearD += p; }
       });
     });
     document.getElementById("tot-pend-n").textContent = String(pendN);
     document.getElementById("tot-pend-d").textContent = money(pendD);
+    document.getElementById("tot-sold-n").textContent = String(soldN);
+    document.getElementById("tot-sold-d").textContent = money(soldD);
     document.getElementById("tot-clear-n").textContent = String(clearN);
     document.getElementById("tot-clear-d").textContent = money(clearD);
-    document.getElementById("tot-all-n").textContent = String(pendN + clearN);
-    document.getElementById("tot-all-d").textContent = money(pendD + clearD);
+    document.getElementById("tot-all-n").textContent = String(pendN + soldN + clearN);
+    document.getElementById("tot-all-d").textContent = money(pendD + soldD + clearD);
     Object.keys(boardMeta).forEach(refreshBoardStats);
   }
 
@@ -276,7 +316,12 @@
 
   async function togglePending(pinEl) {
     const stem = pinEl.dataset.cropStem;
-    if (!stem || isNap(stem, isLeftoverPin(pinEl))) return;
+    const leftover = isLeftoverPin(pinEl);
+    if (!stem || isNap(stem, leftover)) return;
+    if (isSold(stem, leftover)) {
+      toastMsg("Sold — can't mark pending", false);
+      return;
+    }
     const user = ensureReviewer();
     const key = normStem(stem);
     const path = `${PENDING_PATH}/${key}`;
@@ -421,6 +466,21 @@
     refreshAllPins();
   }
 
+  function ingestSold(val) {
+    soldStems.clear();
+    for (const [k, v] of Object.entries(val || {})) {
+      if (v === true || (v && typeof v === "object" && v.sold !== false)) {
+        soldStems.add(k);
+        soldStems.add(normStem(k));
+        if (v && v.crop_stem) {
+          soldStems.add(v.crop_stem);
+          soldStems.add(normStem(v.crop_stem));
+        }
+      }
+    }
+    refreshAllPins();
+  }
+
   async function boot() {
     const manifest = await (await fetch(`./boards/manifest.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
     for (let i = 0; i < manifest.length; i++) {
@@ -436,6 +496,9 @@
     });
     db.ref(PENDING_PATH).on("value", (snap) => {
       ingestPending(snap.val() || {});
+    });
+    db.ref(SOLD_PATH).on("value", (snap) => {
+      ingestSold(snap.val() || {});
     });
   }
 
