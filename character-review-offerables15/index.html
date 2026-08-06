@@ -450,6 +450,8 @@ async function syncToFirebase(opts) {
     if (!quiet) toast("Firebase not configured");
     return;
   }
+  const exp = buildExportPayload();
+  // RTDB keys cannot contain '.' — crop stems like img8765_pin01.jpg must be encoded.
   const payload = {
     show_id: SHOW_ID,
     kind: "offerables15_vlm_character_review",
@@ -457,7 +459,13 @@ async function syncToFirebase(opts) {
     updated_at: new Date().toISOString(),
     reviewed_by: getReviewer(),
     overrides: encodeKeyedObject(state.overrides),
-    export: buildExportPayload(),
+    export: {
+      show_id: exp.show_id,
+      exported_at: exp.exported_at,
+      counts: exp.counts,
+      nap_stems: (exp.nap_stems || []).map(toFbKey),
+      character_map: encodeKeyedObject(exp.character_map || {}),
+    },
   };
   await fbPut(FB_STATE_PATH, payload);
   persistQuiet();
