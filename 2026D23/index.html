@@ -97,7 +97,7 @@
         #reportIssueFab { position: fixed; bottom: 72px; right: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; }
         #reportIssueFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
         /* ISO virtual board export FAB (left). Toggle via ISO_VIRTUAL_BOARD_EXPORT_ENABLED. */
-        #isoBoardExportFab { position: fixed; bottom: 72px; left: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; display: none; }
+        #isoBoardExportFab { position: fixed; bottom: 72px; left: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: min(56vw, 280px); line-height: 1.3; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; display: none; }
         #isoBoardExportFab:disabled { opacity: 0.45; cursor: not-allowed; }
         #isoBoardExportFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
         #isoBoardExportOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3100; display: none; align-items: center; justify-content: center; padding: 20px; }
@@ -408,7 +408,7 @@
     </div>
 </div>
 
-<button type="button" id="isoBoardExportFab" disabled title="Save Photo of ISO virtual pin board" aria-label="Save Photo of ISO virtual pin board">Save Photo of ISO virtual pin board</button>
+<button type="button" id="isoBoardExportFab" disabled title="Create Virtual Pin Board of your clicked pins" aria-label="Create Virtual Pin Board of your clicked pins">Create Virtual Pin Board of 0 Clicked Pins · $0</button>
 <button type="button" id="reportIssueFab" onclick="document.getElementById('reportIssueOverlay').style.display='flex'" title="Report Issue" aria-label="Report Issue">Report Issue</button>
 <div id="isoBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="isoBoardExportTitle">
     <div class="modal-box" style="max-width:360px;">
@@ -447,7 +447,7 @@
     </div>
     <span id="totalPins" hidden>0</span>
     <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
-        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span>
+        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · VB gen <span id="adminVirtualBoardGen" title="People who tapped Save Photo of ISO virtual pin board">0</span> · VB save <span id="adminVirtualBoardSave" title="People who saved an ISO virtual board photo">0</span>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
         <span class="admin-phase-label">Admin only — show state &amp; box cleanup (not shown to visitors)</span>
@@ -639,6 +639,54 @@ function sanitizeUserKey(id) {
     return String(id).replace(/[.#$\[\]\/]/g, "_");
 }
 
+/** Virtual-board analytics (showConfig only — never claims). */
+function updateAdminVirtualBoardCounts(genN, saveN) {
+    const gEl = document.getElementById("adminVirtualBoardGen");
+    const sEl = document.getElementById("adminVirtualBoardSave");
+    if (gEl) gEl.textContent = String(Math.max(0, Number(genN) || 0));
+    if (sEl) sEl.textContent = String(Math.max(0, Number(saveN) || 0));
+}
+
+/**
+ * Analytics only — Generate tap vs Save photo.
+ *   showConfig/{show}/virtualBoardGenerate/{userKey}
+ *   showConfig/{show}/virtualBoardSave/{userKey}
+ * Mirrors save → virtualBoardUsed (legacy). Never reads/writes claims/.
+ */
+function recordVirtualBoardEvent(kind, meta) {
+    try {
+        if (!displayName || typeof db === "undefined" || !db) return;
+        const userKey = sanitizeUserKey(identityKey);
+        if (!userKey) return;
+        const branch = kind === "generate" ? "virtualBoardGenerate" : "virtualBoardSave";
+        const path = `showConfig/${fbName}/${branch}/${userKey}`;
+        const pinCount = Math.max(0, Number(meta && meta.pinCount) || 0);
+        const pages = Math.max(0, Number(meta && meta.pages) || 0);
+        db.ref(path).transaction((cur) => {
+            const prev = (cur && typeof cur === "object") ? cur : {};
+            return {
+                label: displayName,
+                time: Date.now(),
+                count: (Number(prev.count) || 0) + 1,
+                pinCount,
+                pages
+            };
+        }).catch((e) => {
+            console.warn("[Virtual board] analytics write skipped:", e && e.message);
+        });
+        if (kind === "save") {
+            db.ref(`showConfig/${fbName}/virtualBoardUsed/${userKey}`).set({
+                label: displayName,
+                time: firebase.database.ServerValue.TIMESTAMP,
+                pinCount,
+                pages
+            }).catch(() => {});
+        }
+    } catch (e) {
+        console.warn("[Virtual board] analytics write skipped:", e && e.message);
+    }
+}
+
 /** @whatnot / @instagram-style names: one customer per handle regardless of case. Guest_* left as-is. */
 function normalizeUserDisplayName(raw) {
     if (raw == null || raw === "") return "";
@@ -690,7 +738,9 @@ let boardsState = {};
 let lastMyRequestsCount = 0;
 /** Latest flat claims map from Firebase (`pinKey` → users). Used for global queue math in lite mode. */
 let latestClaimsData = {};
-/** True after first Firebase `claims` snapshot in this session (lite mode uses empty snapshot as real “0 claims”). */
+/** Session set of pins this visitor claimed — virtual board export always includes earlier clicks. */
+const isoMyPinKeysSession = new Set();
+/** True after first Firebase `claims` snapshot in this session. */
 let claimsSnapshotReceived = false;
 /** Full manifest board names (all boards), even when only a page is rendered in lite mode. */
 let manifestBoardNames = [];
@@ -1034,6 +1084,13 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
     recomputeShowWindows();
     refreshAdminPhaseButtons();
     syncShowEndedOverlay();
+    if (isAdmin) {
+        const gen = (v && v.virtualBoardGenerate && typeof v.virtualBoardGenerate === "object") ? v.virtualBoardGenerate : {};
+        const saved = (v && v.virtualBoardSave && typeof v.virtualBoardSave === "object") ? v.virtualBoardSave : {};
+        const legacy = (v && v.virtualBoardUsed && typeof v.virtualBoardUsed === "object") ? v.virtualBoardUsed : {};
+        const saveKeys = new Set([...Object.keys(saved), ...Object.keys(legacy)]);
+        updateAdminVirtualBoardCounts(Object.keys(gen).length, saveKeys.size);
+    }
 });
 
 (function() {
@@ -1336,11 +1393,13 @@ function handlePinClick(boardName, idx) {
     const userKey = sanitizeUserKey(identityKey);
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
     if (alreadyClicked) {
+        isoMyPinKeysSession.delete(pinKey);
         db.ref(`claims/${fbName}/${pinKey}/${userKey}`).set(null);
         return;
     }
     const existing = boardsState[boardName].allClaims[pinKey];
     const hadPriorRequests = existing && Object.keys(existing).length > 0;
+    isoMyPinKeysSession.add(pinKey);
     db.ref(`claims/${fbName}/${pinKey}/${userKey}`).set({
         time: firebase.database.ServerValue.TIMESTAMP,
         label: displayName
@@ -1403,7 +1462,10 @@ function listenForFirebase() {
                 boardsState[bName].globalBoardClaims++;
                 const pinEl = document.getElementById(`pin-${pinKey}`);
                 const count = Object.keys(users).length;
-                if (users[userKey]) boardsState[bName].myClaims++;
+                if (users[userKey]) {
+                    boardsState[bName].myClaims++;
+                    isoMyPinKeysSession.add(pinKey);
+                }
                 if (pinEl && count > 0) {
                     const contested = count >= 2;
                     if (isAdmin) {
@@ -1543,13 +1605,10 @@ function calculateGlobals() {
 }
 
 // ── ISO virtual board photo export (feature-flagged; removable) ─────────
-const ISO_EXPORT_THUMB = 200;
-const ISO_EXPORT_GAP = 28;
-const ISO_EXPORT_MARGIN = 36;
-const ISO_EXPORT_COLS = 6;
-const ISO_EXPORT_MAX_PER_PAGE = 42; // 6×7 — detection-friendly soft cap
-const ISO_EXPORT_BG = "#ebe6dc";
-const ISO_EXPORT_PAD_FRAC = 0.1;
+// Layout + generate/save analytics match 20260806 virtual board (dense foam pack).
+const ISO_EXPORT_MAX_PER_PAGE = 40;
+const ISO_EXPORT_BOARD_W = 1400;
+const ISO_EXPORT_BG = "#5c3d78";
 let isoExportCancelRequested = false;
 let isoExportRunning = false;
 const isoBoardImageCache = new Map();
@@ -1564,6 +1623,41 @@ function isoExportFeatureOn() {
     return true;
 }
 
+/** Crop stem for a claims pinKey (read-only). */
+function isoCropStemForPinKey(pk) {
+    if (!pk) return "";
+    const el = document.getElementById(`pin-${pk}`);
+    return (el && el.dataset.cropStem) || "";
+}
+
+function computeMyIsoClickedRunningTotals(myCountHint) {
+    const n = myCountHint != null
+        ? myCountHint
+        : Number(document.getElementById("totalMyClaims")?.textContent || 0);
+    let dollars = 0;
+    const priceForStem = (typeof window._ctcRoundedShowPriceForStem === "function")
+        ? window._ctcRoundedShowPriceForStem
+        : null;
+    if (priceForStem && identityKey) {
+        const userKey = sanitizeUserKey(identityKey);
+        const addMine = (pk, uMap) => {
+            if (!uMap || !uMap[userKey]) return;
+            const stem = isoCropStemForPinKey(pk);
+            if (!stem) return;
+            dollars += priceForStem(stem, String(pk).startsWith("LO03_")) || 0;
+        };
+        const useGlobalClaims = claimsSnapshotReceived;
+        if (useGlobalClaims) {
+            Object.entries(latestClaimsData || {}).forEach(([pk, uMap]) => addMine(pk, uMap));
+        } else {
+            Object.values(boardsState || {}).forEach((s) => {
+                Object.entries(s.allClaims || {}).forEach(([pk, uMap]) => addMine(pk, uMap));
+            });
+        }
+    }
+    return { count: n, dollars };
+}
+
 function refreshIsoBoardExportFab(myCount) {
     const fab = document.getElementById("isoBoardExportFab");
     if (!fab) return;
@@ -1572,9 +1666,12 @@ function refreshIsoBoardExportFab(myCount) {
         fab.disabled = true;
         return;
     }
-    // Must set an explicit display — clearing inline style falls back to CSS display:none.
     fab.style.display = "block";
-    const n = myCount != null ? myCount : Number(document.getElementById("totalMyClaims")?.textContent || 0);
+    const { count: n, dollars } = computeMyIsoClickedRunningTotals(myCount);
+    const label = `Create Virtual Pin Board of ${n} Clicked Pins · $${dollars}`;
+    fab.textContent = label;
+    fab.title = label;
+    fab.setAttribute("aria-label", label);
     fab.disabled = isoExportRunning || !(n > 0);
 }
 
@@ -1584,23 +1681,51 @@ function parseIsoPinKey(pinKey) {
     return { board: m[1], idx: Number(m[2]) };
 }
 
-function collectMyIsoPinKeys() {
+function isoClaimMapIsMine(uMap, userKey) {
+    if (!uMap || typeof uMap !== "object") return false;
+    if (uMap[userKey]) return true;
+    const want = normalizeUserDisplayName(displayName || "");
+    if (!want || /^Guest_/i.test(want)) return false;
+    return Object.entries(uMap).some(([, meta]) => {
+        const lab = meta && typeof meta.label === "string" ? normalizeUserDisplayName(meta.label) : "";
+        return lab && lab === want;
+    });
+}
+
+function isoAddKeysFromClaimsMap(keySet, map, userKey) {
+    if (!map || typeof map !== "object") return;
+    Object.entries(map).forEach(([pinKey, uMap]) => {
+        if (isoClaimMapIsMine(uMap, userKey)) keySet.add(pinKey);
+    });
+}
+
+/**
+ * Read-only: every pin this person has requested (full set).
+ * Unions session clicks + live Firebase + in-memory claims + pin-mine DOM.
+ * Never writes claims/.
+ */
+async function collectMyIsoPinKeys() {
     const userKey = sanitizeUserKey(identityKey);
-    const keys = [];
-    const source = (latestClaimsData && Object.keys(latestClaimsData).length)
-        ? latestClaimsData
-        : null;
-    if (source) {
-        Object.entries(source).forEach(([pinKey, uMap]) => {
-            if (uMap && uMap[userKey]) keys.push(pinKey);
-        });
-    } else {
-        Object.entries(boardsState).forEach(([, s]) => {
-            Object.entries(s.allClaims || {}).forEach(([pinKey, uMap]) => {
-                if (uMap && uMap[userKey]) keys.push(pinKey);
-            });
-        });
+    const keySet = new Set();
+    isoMyPinKeysSession.forEach((k) => keySet.add(k));
+    try {
+        if (typeof db !== "undefined" && db && fbName) {
+            const snap = await db.ref(`claims/${fbName}`).once("value");
+            isoAddKeysFromClaimsMap(keySet, snap.val() || {}, userKey);
+        }
+    } catch (e) {
+        console.warn("[ISO export] read-only claims fetch failed:", e);
     }
+    isoAddKeysFromClaimsMap(keySet, latestClaimsData, userKey);
+    Object.values(boardsState || {}).forEach((s) => isoAddKeysFromClaimsMap(keySet, s.allClaims, userKey));
+    document.querySelectorAll(".pin.pin-mine").forEach((el) => {
+        const id = el.id || "";
+        if (!id.startsWith("pin-")) return;
+        const rest = id.slice(4);
+        const m = rest.match(/^(PAGE_\d+)-(\d+)$/i) || rest.match(/^(.+)-(\d+)$/);
+        if (m) keySet.add(`${m[1]}-${m[2]}`);
+    });
+    const keys = Array.from(keySet);
     const boardOrder = new Map((manifestBoardNames || []).map((n, i) => [n, i]));
     keys.sort((a, b) => {
         const pa = parseIsoPinKey(a);
@@ -1652,36 +1777,173 @@ function cropIsoPinCanvas(boardImg, pin, origW, origH) {
     return c;
 }
 
-function buildIsoPageCanvas(cropCanvases) {
+/** Deterministic-ish PRNG so re-exports look similar for the same set size. */
+function isoMulberry32(seed) {
+    let t = seed >>> 0;
+    return function () {
+        t += 0x6D2B79F5;
+        let r = Math.imul(t ^ (t >>> 15), 1 | t);
+        r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function fillIsoBoardBackground(ctx, w, h) {
+    ctx.fillStyle = ISO_EXPORT_BG;
+    ctx.fillRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(w * 0.5, h * 0.45, Math.min(w, h) * 0.15, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+    g.addColorStop(0, "rgba(255,255,255,0.06)");
+    g.addColorStop(1, "rgba(0,0,0,0.22)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    const rand = isoMulberry32(0x2026d23 ^ (w * 17 + h));
+    ctx.fillStyle = "rgba(255,255,255,0.045)";
+    for (let i = 0; i < 900; i++) {
+        const x = rand() * w;
+        const y = rand() * h;
+        const s = 1 + rand() * 2.2;
+        ctx.fillRect(x, y, s, s);
+    }
+}
+
+/**
+ * Dense personal-board pack (same algorithm as 20260806 virtual board):
+ * pins close together with a small foam gap, mild tilt, no overlap.
+ */
+function buildIsoPageCanvas(cropCanvases, pageSeed) {
     const n = cropCanvases.length;
-    const cols = ISO_EXPORT_COLS;
-    const rows = Math.max(1, Math.ceil(n / cols));
-    const cell = ISO_EXPORT_THUMB;
-    const gap = ISO_EXPORT_GAP;
-    const margin = ISO_EXPORT_MARGIN;
-    const w = margin * 2 + cols * cell + (cols - 1) * gap;
-    const h = margin * 2 + rows * cell + (rows - 1) * gap;
+    const rand = isoMulberry32((pageSeed || 1) * 9973 + n * 131);
+    const gap = 10;
+    const maxDim = n <= 6 ? 240 : (n <= 16 ? 200 : 168);
+
+    const items = cropCanvases.map((crop, i) => {
+        const scale = Math.min(maxDim / crop.width, maxDim / crop.height) * (0.92 + rand() * 0.16);
+        const dw = Math.max(1, crop.width * scale);
+        const dh = Math.max(1, crop.height * scale);
+        const rot = (rand() - 0.5) * 0.28;
+        const c = Math.abs(Math.cos(rot));
+        const s = Math.abs(Math.sin(rot));
+        const aw = dw * c + dh * s;
+        const ah = dw * s + dh * c;
+        return { i, crop, dw, dh, rot, aw, ah };
+    });
+    items.sort((a, b) => (b.aw * b.ah) - (a.aw * a.ah));
+
+    function overlaps(cx, cy, aw, ah, placed) {
+        const l = cx - aw / 2 - gap / 2;
+        const r = cx + aw / 2 + gap / 2;
+        const t = cy - ah / 2 - gap / 2;
+        const b = cy + ah / 2 + gap / 2;
+        for (const p of placed) {
+            const pl = p.cx - p.aw / 2 - gap / 2;
+            const pr = p.cx + p.aw / 2 + gap / 2;
+            const pt = p.cy - p.ah / 2 - gap / 2;
+            const pb = p.cy + p.ah / 2 + gap / 2;
+            if (l < pr && r > pl && t < pb && b > pt) return true;
+        }
+        return false;
+    }
+
+    const placed = [];
+    const startPad = 24;
+    items.forEach((it, idx) => {
+        let best = null;
+        if (idx === 0) {
+            best = { cx: startPad + it.aw / 2, cy: startPad + it.ah / 2 };
+        } else {
+            const candidates = [];
+            placed.forEach((p) => {
+                const ox = (rand() - 0.5) * 14;
+                const oy = (rand() - 0.5) * 14;
+                candidates.push(
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap + ox, cy: p.cy + oy },
+                    { cx: p.cx + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap + oy },
+                    { cx: p.cx - (p.aw + it.aw) / 2 - gap + ox, cy: p.cy + oy },
+                    { cx: p.cx + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap + oy },
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap * 0.6 + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap * 0.6 + oy },
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap * 0.6 + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap * 0.6 + oy }
+                );
+            });
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            placed.forEach((p) => {
+                minX = Math.min(minX, p.cx - p.aw / 2);
+                minY = Math.min(minY, p.cy - p.ah / 2);
+                maxX = Math.max(maxX, p.cx + p.aw / 2);
+                maxY = Math.max(maxY, p.cy + p.ah / 2);
+            });
+            const midX = (minX + maxX) / 2;
+            const midY = (minY + maxY) / 2;
+            candidates.sort((a, b) => {
+                const da = (a.cx - midX) ** 2 + (a.cy - midY) ** 2;
+                const db = (b.cx - midX) ** 2 + (b.cy - midY) ** 2;
+                return da - db;
+            });
+            for (const c of candidates) {
+                if (c.cx - it.aw / 2 < 8 || c.cy - it.ah / 2 < 8) continue;
+                if (!overlaps(c.cx, c.cy, it.aw, it.ah, placed)) {
+                    best = c;
+                    break;
+                }
+            }
+            if (!best) {
+                const step = Math.max(12, Math.min(it.aw, it.ah) * 0.2);
+                outer: for (let rad = 0; rad < 40; rad++) {
+                    for (let gy = startPad + it.ah / 2; gy < maxY + it.ah + 80 + rad * step; gy += step) {
+                        for (let gx = startPad + it.aw / 2; gx < maxX + it.aw + 80 + rad * step; gx += step) {
+                            if (!overlaps(gx, gy, it.aw, it.ah, placed)) {
+                                best = { cx: gx, cy: gy };
+                                break outer;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!best) {
+                best = {
+                    cx: maxX + gap + it.aw / 2 + 4,
+                    cy: startPad + it.ah / 2
+                };
+            }
+        }
+        placed.push({ ...it, cx: best.cx, cy: best.cy });
+    });
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    placed.forEach((p) => {
+        minX = Math.min(minX, p.cx - p.aw / 2);
+        minY = Math.min(minY, p.cy - p.ah / 2);
+        maxX = Math.max(maxX, p.cx + p.aw / 2);
+        maxY = Math.max(maxY, p.cy + p.ah / 2);
+    });
+    const margin = 28;
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+    let w = Math.ceil(contentW + margin * 2);
+    let h = Math.ceil(contentH + margin * 2);
+    const maxW = ISO_EXPORT_BOARD_W;
+    const boardScale = w > maxW ? maxW / w : 1;
+    w = Math.max(280, Math.round(w * boardScale));
+    h = Math.max(240, Math.round(h * boardScale));
+
     const canvas = document.createElement("canvas");
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = ISO_EXPORT_BG;
-    ctx.fillRect(0, 0, w, h);
-    cropCanvases.forEach((crop, i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x0 = margin + col * (cell + gap);
-        const y0 = margin + row * (cell + gap);
-        const pad = Math.round(cell * ISO_EXPORT_PAD_FRAC);
-        const inner = cell - pad * 2;
-        const scale = Math.min(inner / crop.width, inner / crop.height);
-        const dw = Math.max(1, Math.round(crop.width * scale));
-        const dh = Math.max(1, Math.round(crop.height * scale));
-        const dx = x0 + Math.round((cell - dw) / 2);
-        const dy = y0 + Math.round((cell - dh) / 2);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(x0 + 2, y0 + 2, cell - 4, cell - 4);
-        ctx.drawImage(crop, dx, dy, dw, dh);
+    fillIsoBoardBackground(ctx, w, h);
+
+    const ox = margin * boardScale - minX * boardScale;
+    const oy = margin * boardScale - minY * boardScale;
+    const byOrig = placed.slice().sort((a, b) => a.i - b.i);
+    byOrig.forEach((p) => {
+        ctx.save();
+        ctx.translate(p.cx * boardScale + ox, p.cy * boardScale + oy);
+        ctx.rotate(p.rot);
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 7;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 2;
+        ctx.drawImage(p.crop, -(p.dw * boardScale) / 2, -(p.dh * boardScale) / 2, p.dw * boardScale, p.dh * boardScale);
+        ctx.restore();
     });
     return canvas;
 }
@@ -1744,7 +2006,7 @@ function setIsoExportBuildMode() {
     const previewWrap = document.getElementById("isoBoardExportPreviewWrap");
     const actions = document.getElementById("isoBoardExportSaveActions");
     const title = document.getElementById("isoBoardExportTitle");
-    if (title) title.textContent = "Building ISO board photo";
+    if (title) title.textContent = "Building virtual pin board";
     if (track) track.style.display = "";
     if (eta) eta.style.display = "";
     if (previewWrap) previewWrap.classList.remove("show");
@@ -1850,7 +2112,8 @@ function waitForIsoPageSave(blob, filename, pageIndex, pageCount) {
 
 async function runIsoVirtualBoardExport() {
     if (!isoExportFeatureOn() || isoExportRunning) return;
-    const keys = collectMyIsoPinKeys();
+    refreshIsoBoardExportFab();
+    const keys = await collectMyIsoPinKeys();
     if (!keys.length) {
         showToast("Select at least one pin first.");
         return;
@@ -1859,6 +2122,7 @@ async function runIsoVirtualBoardExport() {
     isoExportCancelRequested = false;
     refreshIsoBoardExportFab(keys.length);
     openIsoExportOverlay();
+    recordVirtualBoardEvent("generate", { pinCount: keys.length, pages: 0 });
     const startedAt = Date.now();
     const pagesNeeded = Math.max(1, Math.ceil(keys.length / ISO_EXPORT_MAX_PER_PAGE));
     const totalUnits = keys.length + pagesNeeded;
@@ -1910,7 +2174,7 @@ async function runIsoVirtualBoardExport() {
                 startedAt
             );
             await yieldToUi();
-            const canvas = buildIsoPageCanvas(slice);
+            const canvas = buildIsoPageCanvas(slice, p + 1);
             const blob = await canvasToJpegBlob(canvas, 0.92);
             const filename = `2026D23-ISO-${p + 1}of${pageCount}.jpg`;
             const how = await waitForIsoPageSave(blob, filename, p + 1, pageCount);
@@ -1935,7 +2199,10 @@ async function runIsoVirtualBoardExport() {
                 ? "In Photos? Check Recents. Then: Trade → Add ISO Pins in the app."
                 : "Upload in the app: Trade → Add ISO Pins";
         }
-        if (savedCount) showToast(`Saved ${savedCount} ISO board photo${savedCount > 1 ? "s" : ""}.`);
+        if (savedCount) {
+            recordVirtualBoardEvent("save", { pinCount: crops.length, pages: savedCount });
+            showToast(`Saved ${savedCount} ISO board photo${savedCount > 1 ? "s" : ""}.`);
+        }
         setTimeout(() => closeIsoExportOverlay(), 1400);
     } catch (e) {
         if (String(e && e.message) === "cancelled") {
@@ -2111,6 +2378,15 @@ function _applyMode(mode) {
     _priceMode = mode;
     _refreshAllBadges();
 }
+
+/** Used by ISO virtual-board FAB $ totals (read-only; never writes claims). */
+window._ctcRoundedShowPriceForStem = function(stem) {
+    if (!stem) return 0;
+    let raw = _stemToPrice[stem];
+    if (raw == null) raw = _stemToPrice[_normStem(stem)];
+    if (raw == null) raw = _snapForStem(stem);
+    return _roundForShow(raw);
+};
 
 window.addEventListener('storage', (e) => {
     if (e.key === _PO_MODE_KEY) _applyMode(e.newValue || 'none');
