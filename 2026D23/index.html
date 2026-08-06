@@ -408,7 +408,7 @@
     </div>
 </div>
 
-<button type="button" id="isoBoardExportFab" disabled title="Create Virtual Pin Board of your clicked pins" aria-label="Create Virtual Pin Board of your clicked pins">Create Virtual Pin Board of 0 Clicked Pins · $0</button>
+<button type="button" id="isoBoardExportFab" disabled title="Create Virtual Pin Board of your clicked pins" aria-label="Create Virtual Pin Board of your clicked pins">Create Virtual Pin Board of 0 Clicked Pins</button>
 <button type="button" id="reportIssueFab" onclick="document.getElementById('reportIssueOverlay').style.display='flex'" title="Report Issue" aria-label="Report Issue">Report Issue</button>
 <div id="isoBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="isoBoardExportTitle">
     <div class="modal-box" style="max-width:360px;">
@@ -1605,7 +1605,7 @@ function calculateGlobals() {
 }
 
 // ── ISO virtual board photo export (feature-flagged; removable) ─────────
-// Layout + generate/save analytics match 20260806 virtual board (dense foam pack).
+// D23 wishlist board: upright crops, count-only FAB (no $). Generate/save analytics kept.
 const ISO_EXPORT_MAX_PER_PAGE = 40;
 const ISO_EXPORT_BOARD_W = 1400;
 const ISO_EXPORT_BG = "#5c3d78";
@@ -1630,32 +1630,11 @@ function isoCropStemForPinKey(pk) {
     return (el && el.dataset.cropStem) || "";
 }
 
-function computeMyIsoClickedRunningTotals(myCountHint) {
-    const n = myCountHint != null
+/** D23 wishlist board: count only (no $ — these aren’t priced inventory for this show). */
+function computeMyIsoClickedCount(myCountHint) {
+    return myCountHint != null
         ? myCountHint
         : Number(document.getElementById("totalMyClaims")?.textContent || 0);
-    let dollars = 0;
-    const priceForStem = (typeof window._ctcRoundedShowPriceForStem === "function")
-        ? window._ctcRoundedShowPriceForStem
-        : null;
-    if (priceForStem && identityKey) {
-        const userKey = sanitizeUserKey(identityKey);
-        const addMine = (pk, uMap) => {
-            if (!uMap || !uMap[userKey]) return;
-            const stem = isoCropStemForPinKey(pk);
-            if (!stem) return;
-            dollars += priceForStem(stem, String(pk).startsWith("LO03_")) || 0;
-        };
-        const useGlobalClaims = claimsSnapshotReceived;
-        if (useGlobalClaims) {
-            Object.entries(latestClaimsData || {}).forEach(([pk, uMap]) => addMine(pk, uMap));
-        } else {
-            Object.values(boardsState || {}).forEach((s) => {
-                Object.entries(s.allClaims || {}).forEach(([pk, uMap]) => addMine(pk, uMap));
-            });
-        }
-    }
-    return { count: n, dollars };
 }
 
 function refreshIsoBoardExportFab(myCount) {
@@ -1667,8 +1646,8 @@ function refreshIsoBoardExportFab(myCount) {
         return;
     }
     fab.style.display = "block";
-    const { count: n, dollars } = computeMyIsoClickedRunningTotals(myCount);
-    const label = `Create Virtual Pin Board of ${n} Clicked Pins · $${dollars}`;
+    const n = computeMyIsoClickedCount(myCount);
+    const label = `Create Virtual Pin Board of ${n} Clicked Pins`;
     fab.textContent = label;
     fab.title = label;
     fab.setAttribute("aria-label", label);
@@ -1807,8 +1786,8 @@ function fillIsoBoardBackground(ctx, w, h) {
 }
 
 /**
- * Dense personal-board pack (same algorithm as 20260806 virtual board):
- * pins close together with a small foam gap, mild tilt, no overlap.
+ * Dense personal-board pack (D23 wishlist): upright crops, small foam gap, no overlap.
+ * Unlike sell-show boards, pins stay straight — easier to scan what you want from the event.
  */
 function buildIsoPageCanvas(cropCanvases, pageSeed) {
     const n = cropCanvases.length;
@@ -1820,11 +1799,9 @@ function buildIsoPageCanvas(cropCanvases, pageSeed) {
         const scale = Math.min(maxDim / crop.width, maxDim / crop.height) * (0.92 + rand() * 0.16);
         const dw = Math.max(1, crop.width * scale);
         const dh = Math.max(1, crop.height * scale);
-        const rot = (rand() - 0.5) * 0.28;
-        const c = Math.abs(Math.cos(rot));
-        const s = Math.abs(Math.sin(rot));
-        const aw = dw * c + dh * s;
-        const ah = dw * s + dh * c;
+        const rot = 0;
+        const aw = dw;
+        const ah = dh;
         return { i, crop, dw, dh, rot, aw, ah };
     });
     items.sort((a, b) => (b.aw * b.ah) - (a.aw * a.ah));
@@ -2379,7 +2356,7 @@ function _applyMode(mode) {
     _refreshAllBadges();
 }
 
-/** Used by ISO virtual-board FAB $ totals (read-only; never writes claims). */
+/** Optional price helper for overlays (not used by D23 virtual-board FAB). */
 window._ctcRoundedShowPriceForStem = function(stem) {
     if (!stem) return 0;
     let raw = _stemToPrice[stem];
