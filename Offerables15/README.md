@@ -2,7 +2,10 @@
 
 Whatnot-only $15 offerable boards (48+). Not a Click To Request show.
 
-- `crops/` — pin crop images for Whatnot + character review
-- `review/` — character review UI (Firebase state under `pin_title_review/shows/offerables15/` only)
+- `crops/` — pin images (Whatnot Image URL via raw GitHub)
+- `review/` — character review source copy
 
-Review: https://finsandpins.github.io/ClickToClaim/Offerables15/review/
+**Open the review here (GitHub Pages):**  
+https://finsandpins.github.io/ClickToClaim/character-review-offerables15/
+
+Firebase progress: `pin_title_review/shows/offerables15/vlm_state` only.
