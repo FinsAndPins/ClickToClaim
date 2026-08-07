@@ -37,13 +37,13 @@
       "crop_stem": "img018_pin04"
     },
     {
-      "x": 192.56,
+      "x": 216.49,
       "y": 510.0,
-      "width": 265.94,
+      "width": 313.81,
       "height": 298.59,
       "confidence": 0.6472409963607788,
       "class": "pin",
-      "_manual": "merged_pongo_callout",
+      "_manual": "pongo_widened",
       "crop_stem": "img018_pin05"
     },
     {
@@ -86,6 +86,11 @@
         "kept left + top large callout pins",
         "merged double box on Pongo (dog) callout into 1",
         "before=26 after=8"
+      ]
+    },
+    "manual_board18_pongo_widen_20260806": {
+      "actions": [
+        "widened top-left Dalmatian/Pongo callout ~18% to the right"
       ]
     }
   }
