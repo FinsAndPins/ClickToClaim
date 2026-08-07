@@ -37,13 +37,23 @@
       "crop_stem": "img007_pin04"
     },
     {
+      "x": 411.5,
+      "y": 547.5,
+      "width": 136.02,
+      "height": 120.78,
+      "confidence": 1.0,
+      "class": "pin",
+      "_manual": "letter_C_row1",
+      "crop_stem": "img007_pin05"
+    },
+    {
       "x": 556.625,
       "y": 547.5,
       "width": 137.03125,
       "height": 117.109375,
       "confidence": 0.9127477407455444,
       "class": "pin",
-      "crop_stem": "img007_pin05"
+      "crop_stem": "img007_pin06"
     },
     {
       "x": 700.375,
@@ -52,7 +62,7 @@
       "height": 117.5,
       "confidence": 0.9282788634300232,
       "class": "pin",
-      "crop_stem": "img007_pin06"
+      "crop_stem": "img007_pin07"
     },
     {
       "x": 847.875,
@@ -61,7 +71,7 @@
       "height": 121.328125,
       "confidence": 0.5038336515426636,
       "class": "pin",
-      "crop_stem": "img007_pin07"
+      "crop_stem": "img007_pin08"
     },
     {
       "x": 121.625,
@@ -70,7 +80,7 @@
       "height": 121.09375,
       "confidence": 0.9119669198989868,
       "class": "pin",
-      "crop_stem": "img007_pin08"
+      "crop_stem": "img007_pin09"
     },
     {
       "x": 411.625,
@@ -79,7 +89,7 @@
       "height": 115.46875,
       "confidence": 0.9235923886299133,
       "class": "pin",
-      "crop_stem": "img007_pin09"
+      "crop_stem": "img007_pin10"
     },
     {
       "x": 846.625,
@@ -88,7 +98,7 @@
       "height": 115.546875,
       "confidence": 0.9248236417770386,
       "class": "pin",
-      "crop_stem": "img007_pin10"
+      "crop_stem": "img007_pin11"
     },
     {
       "x": 266.9375,
@@ -97,7 +107,7 @@
       "height": 119.53125,
       "confidence": 0.929951012134552,
       "class": "pin",
-      "crop_stem": "img007_pin11"
+      "crop_stem": "img007_pin12"
     },
     {
       "x": 701.625,
@@ -106,7 +116,7 @@
       "height": 120.234375,
       "confidence": 0.9353464841842651,
       "class": "pin",
-      "crop_stem": "img007_pin12"
+      "crop_stem": "img007_pin13"
     },
     {
       "x": 555.375,
@@ -115,7 +125,7 @@
       "height": 117.8125,
       "confidence": 0.9290551543235779,
       "class": "pin",
-      "crop_stem": "img007_pin13"
+      "crop_stem": "img007_pin14"
     },
     {
       "x": 849.125,
@@ -124,7 +134,7 @@
       "height": 120.703125,
       "confidence": 0.8901033401489258,
       "class": "pin",
-      "crop_stem": "img007_pin14"
+      "crop_stem": "img007_pin15"
     },
     {
       "x": 122.71875,
@@ -133,7 +143,7 @@
       "height": 125.703125,
       "confidence": 0.9095862507820129,
       "class": "pin",
-      "crop_stem": "img007_pin15"
+      "crop_stem": "img007_pin16"
     },
     {
       "x": 557.25,
@@ -142,7 +152,7 @@
       "height": 116.015625,
       "confidence": 0.9214990139007568,
       "class": "pin",
-      "crop_stem": "img007_pin16"
+      "crop_stem": "img007_pin17"
     },
     {
       "x": 267.25,
@@ -151,7 +161,7 @@
       "height": 117.96875,
       "confidence": 0.8594279289245605,
       "class": "pin",
-      "crop_stem": "img007_pin17"
+      "crop_stem": "img007_pin18"
     },
     {
       "x": 700.375,
@@ -160,7 +170,7 @@
       "height": 117.890625,
       "confidence": 0.8966140151023865,
       "class": "pin",
-      "crop_stem": "img007_pin18"
+      "crop_stem": "img007_pin19"
     },
     {
       "x": 847.875,
@@ -169,7 +179,17 @@
       "height": 117.34375,
       "confidence": 0.9138304591178894,
       "class": "pin",
-      "crop_stem": "img007_pin19"
+      "crop_stem": "img007_pin20"
+    },
+    {
+      "x": 122.5,
+      "y": 953.12,
+      "width": 133.28,
+      "height": 117.34,
+      "confidence": 1.0,
+      "class": "pin",
+      "_manual": "letter_P_row4",
+      "crop_stem": "img007_pin21"
     },
     {
       "x": 411.3125,
@@ -178,7 +198,7 @@
       "height": 114.84375,
       "confidence": 0.9274948239326477,
       "class": "pin",
-      "crop_stem": "img007_pin20"
+      "crop_stem": "img007_pin22"
     },
     {
       "x": 701.0,
@@ -187,7 +207,7 @@
       "height": 121.40625,
       "confidence": 0.9245515465736389,
       "class": "pin",
-      "crop_stem": "img007_pin21"
+      "crop_stem": "img007_pin23"
     },
     {
       "x": 556.625,
@@ -196,7 +216,7 @@
       "height": 113.828125,
       "confidence": 0.9162596464157104,
       "class": "pin",
-      "crop_stem": "img007_pin22"
+      "crop_stem": "img007_pin24"
     },
     {
       "x": 266.3125,
@@ -205,7 +225,7 @@
       "height": 118.125,
       "confidence": 0.9165588617324829,
       "class": "pin",
-      "crop_stem": "img007_pin23"
+      "crop_stem": "img007_pin25"
     },
     {
       "x": 847.875,
@@ -214,7 +234,7 @@
       "height": 123.671875,
       "confidence": 0.8783142566680908,
       "class": "pin",
-      "crop_stem": "img007_pin24"
+      "crop_stem": "img007_pin26"
     },
     {
       "x": 122.5625,
@@ -223,7 +243,7 @@
       "height": 126.71875,
       "confidence": 0.902265727519989,
       "class": "pin",
-      "crop_stem": "img007_pin25"
+      "crop_stem": "img007_pin27"
     },
     {
       "x": 410.0625,
@@ -232,7 +252,7 @@
       "height": 120.859375,
       "confidence": 0.9303317666053772,
       "class": "pin",
-      "crop_stem": "img007_pin26"
+      "crop_stem": "img007_pin28"
     },
     {
       "x": 701.0,
@@ -241,7 +261,7 @@
       "height": 115.0,
       "confidence": 0.9214990139007568,
       "class": "pin",
-      "crop_stem": "img007_pin27"
+      "crop_stem": "img007_pin29"
     },
     {
       "x": 556.0,
@@ -250,7 +270,7 @@
       "height": 114.921875,
       "confidence": 0.5162144303321838,
       "class": "pin",
-      "crop_stem": "img007_pin28"
+      "crop_stem": "img007_pin30"
     },
     {
       "x": 266.9375,
@@ -259,7 +279,7 @@
       "height": 115.15625,
       "confidence": 0.920074462890625,
       "class": "pin",
-      "crop_stem": "img007_pin29"
+      "crop_stem": "img007_pin31"
     }
   ],
   "image": {
@@ -272,6 +292,12 @@
       "raw": 29,
       "actions": [],
       "cleaned": 29
+    },
+    "manual_board7_CP_20260806": {
+      "actions": [
+        "added letter C (row1 col3) sized to row peers",
+        "added letter P (row4 col1) sized to row peers"
+      ]
     }
   }
 }
