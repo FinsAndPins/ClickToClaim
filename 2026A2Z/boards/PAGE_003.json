@@ -1,20 +1,21 @@
 {
   "predictions": [
     {
-      "x": 836.625,
-      "y": 143.75,
-      "width": 268.125,
-      "height": 235.15625,
-      "confidence": 0.49892622232437134,
+      "x": 200.4,
+      "y": 666.6,
+      "width": 270.78,
+      "height": 259.69,
+      "confidence": 1.0,
       "class": "pin",
-      "crop_stem": "img003_pin01"
+      "crop_stem": "img003_pin01",
+      "_manual": "c3po_item2"
     },
     {
-      "x": 794.125,
-      "y": 145.15625,
-      "width": 361.875,
-      "height": 238.75,
-      "confidence": 0.35947656631469727,
+      "x": 496.625,
+      "y": 670.0,
+      "width": 266.40625,
+      "height": 259.6875,
+      "confidence": 0.9466953873634338,
       "class": "pin",
       "crop_stem": "img003_pin02"
     },
@@ -28,22 +29,13 @@
       "crop_stem": "img003_pin03"
     },
     {
-      "x": 496.625,
-      "y": 670.0,
-      "width": 266.40625,
-      "height": 259.6875,
-      "confidence": 0.9466953873634338,
-      "class": "pin",
-      "crop_stem": "img003_pin04"
-    },
-    {
       "x": 329.75,
       "y": 1002.5,
       "width": 270.78125,
       "height": 259.0625,
       "confidence": 0.9399133324623108,
       "class": "pin",
-      "crop_stem": "img003_pin05"
+      "crop_stem": "img003_pin04"
     },
     {
       "x": 620.375,
@@ -52,7 +44,7 @@
       "height": 261.40625,
       "confidence": 0.9384632706642151,
       "class": "pin",
-      "crop_stem": "img003_pin06"
+      "crop_stem": "img003_pin05"
     }
   ],
   "image": {
@@ -67,6 +59,12 @@
         "drop_text_block idx=4 area=0.042 right_af=0.055 x=0.20"
       ],
       "cleaned": 6
+    },
+    "manual_board3_20260806": {
+      "actions": [
+        "removed 2 overlapping top-right non-pin boxes (Ludwig Von Drake / stars)",
+        "added C-3PO item 2 box matching sibling pin dimensions"
+      ]
     }
   }
 }
