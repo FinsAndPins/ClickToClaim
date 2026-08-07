@@ -1610,7 +1610,7 @@ const ISO_EXPORT_MAX_PER_PAGE = 40;
 const ISO_EXPORT_BOARD_W = 1400;
 const ISO_EXPORT_BG = "#5c3d78";
 /** Bottom band for corner brand marks — pins stay above this strip. */
-const ISO_EXPORT_LOGO_STRIP = 72;
+const ISO_EXPORT_LOGO_STRIP = 288;
 const ISO_EXPORT_LOGO_FINS = "./fins-and-pins-logo-white.png";
 const ISO_EXPORT_LOGO_PIG = "./collection-detection-app-icon.png";
 let isoBrandLogos = { fins: null, pig: null };
@@ -1638,21 +1638,29 @@ async function ensureIsoBrandLogos() {
     return isoBrandLogosPromise;
 }
 
-/** Fins & Pins (left) + Collection Detection (right) — drawn in the reserved bottom strip. */
+/** Fins & Pins (left) + Collection Detection (right) — drawn only in the reserved bottom strip. */
 function drawIsoCornerLogos(ctx, w, h) {
-    const pad = 16;
-    const logoH = Math.min(52, Math.max(36, Math.round(ISO_EXPORT_LOGO_STRIP - pad * 1.2)));
+    const pad = 20;
+    // 4× prior ~52px mark; keep inside the pin-free strip and leave a gap between corners.
+    const targetH = 208;
+    const maxH = Math.max(48, ISO_EXPORT_LOGO_STRIP - pad * 2);
+    let logoH = Math.min(targetH, maxH);
+    const maxWEach = Math.max(48, (w - pad * 3) / 2);
     const { fins, pig } = isoBrandLogos;
     if (fins && fins.naturalWidth) {
-        const scale = logoH / fins.naturalHeight;
-        const dw = Math.max(1, fins.naturalWidth * scale);
-        const dh = logoH;
+        let scale = logoH / fins.naturalHeight;
+        let dw = Math.max(1, fins.naturalWidth * scale);
+        if (dw > maxWEach) {
+            scale = maxWEach / fins.naturalWidth;
+            dw = maxWEach;
+            logoH = Math.min(logoH, fins.naturalHeight * scale);
+        }
+        const dh = fins.naturalHeight * scale;
         ctx.drawImage(fins, pad, h - pad - dh, dw, dh);
     }
     if (pig && pig.naturalWidth) {
-        const dh = logoH;
-        const dw = dh;
-        ctx.drawImage(pig, w - pad - dw, h - pad - dh, dw, dh);
+        const side = Math.min(logoH, maxWEach);
+        ctx.drawImage(pig, w - pad - side, h - pad - side, side, side);
     }
 }
 let isoExportCancelRequested = false;
