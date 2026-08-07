@@ -76,7 +76,7 @@
         </div>
     </section>
 
-    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
+    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>VB gen</th><th>VB save</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
 
     <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
 
@@ -109,6 +109,29 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
 let globalData = null;
+/** showConfig virtual-board analytics — never claims. */
+let virtualBoardGenerate = {};
+let virtualBoardSave = {};
+let virtualBoardUsed = {}; // legacy save leaf
+
+function userInVbMap(map, repUid, canon) {
+    if (!map || typeof map !== "object") return false;
+    if (repUid && map[repUid]) return true;
+    const want = canon || "";
+    return Object.values(map).some((row) => {
+        if (!row || typeof row !== "object") return false;
+        const lab = normalizeUserDisplayName(String(row.label || "")) || String(row.label || "");
+        return lab && want && lab === want;
+    });
+}
+
+function userGeneratedVirtualBoard(repUid, canon) {
+    return userInVbMap(virtualBoardGenerate, repUid, canon);
+}
+
+function userSavedVirtualBoard(repUid, canon) {
+    return userInVbMap(virtualBoardSave, repUid, canon) || userInVbMap(virtualBoardUsed, repUid, canon);
+}
 
 function fillTimeSelect(sel, max) {
     sel.innerHTML = "";
@@ -193,6 +216,13 @@ async function loadData() {
         document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(b => {
             b.classList.toggle("reports-phase-active", b.getAttribute("data-phase") === ph);
         });
+        virtualBoardGenerate = (v.virtualBoardGenerate && typeof v.virtualBoardGenerate === "object")
+            ? v.virtualBoardGenerate : {};
+        virtualBoardSave = (v.virtualBoardSave && typeof v.virtualBoardSave === "object")
+            ? v.virtualBoardSave : {};
+        virtualBoardUsed = (v.virtualBoardUsed && typeof v.virtualBoardUsed === "object")
+            ? v.virtualBoardUsed : {};
+        if (globalData) renderReports();
     });
 
     // Price overlay control for boards page (shared localStorage + BroadcastChannel).
@@ -358,10 +388,16 @@ function renderReports() {
         });
     });
 
-    let tU=0, tC=0, tT=0;
+    let tU=0, tC=0, tT=0, tGen=0, tSave=0;
     document.querySelector("#userTallyTable tbody").innerHTML = Object.entries(userStats).sort((a,b) => a[0].localeCompare(b[0])).map(([canon, s]) => {
         tU+=s.unique; tC+=s.contested; tT+=(s.unique+s.contested);
-        return `<tr><td>${s.pretty || canon}<br><small style="color:#888">${s.repUid || canon}</small></td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td><td>$${s.value}</td></tr>`;
+        const gen = userGeneratedVirtualBoard(s.repUid, canon);
+        const saved = userSavedVirtualBoard(s.repUid, canon);
+        if (gen) tGen++;
+        if (saved) tSave++;
+        const genCell = gen ? '<span title="Tapped Create Virtual Pin Board" style="color:#0d6efd;font-weight:bold;">✓</span>' : "";
+        const saveCell = saved ? '<span title="Saved a virtual pin board photo" style="color:#198754;font-weight:bold;">✓</span>' : "";
+        return `<tr><td>${s.pretty || canon}<br><small style="color:#888">${s.repUid || canon}</small></td><td style="text-align:center">${genCell}</td><td style="text-align:center">${saveCell}</td><td>${new Date(s.last).toLocaleTimeString()}</td><td>${s.unique}</td><td>${s.contested}</td><td>${s.unique+s.contested}</td><td>$${s.value}</td></tr>`;
     }).join('');
     // Unduplicated total: each clicked pin counted once (contested pins sell once),
     // unlike per-user rows where the same pin appears under every clicker.
@@ -371,9 +407,17 @@ function renderReports() {
         const v = dollarValueForPk(pk);
         if (v > 0) { revTotal += v; pinsPriced++; }
     });
+    const genPeople = Object.keys(virtualBoardGenerate || {}).length;
+    const savePeople = new Set([
+        ...Object.keys(virtualBoardSave || {}),
+        ...Object.keys(virtualBoardUsed || {})
+    ]).size;
+    const genOnly = Math.max(0, genPeople - savePeople);
     document.getElementById("userTallyFooter").innerHTML =
-        `<tr><td colspan="2">TOTALS</td><td>${tU}</td><td>${tC}</td><td>${tT}</td><td>$${revTotal}</td></tr>` +
-        `<tr><td colspan="6" style="font-weight:normal; color:#333;">If every clicked pin sells at list price: <strong>$${revTotal}</strong> from <strong>${pinsClicked}</strong> pins (${pinsPriced} priced, each counted once even when contested). Per-user rows above count contested pins under every clicker, so they can sum higher.</td></tr>`;
+        `<tr><td>TOTALS</td><td style="text-align:center">${tGen}</td><td style="text-align:center">${tSave}</td><td></td><td>${tU}</td><td>${tC}</td><td>${tT}</td><td>$${revTotal}</td></tr>` +
+        `<tr><td colspan="8" style="font-weight:normal; color:#333;">If every clicked pin sells at list price: <strong>$${revTotal}</strong> from <strong>${pinsClicked}</strong> pins (${pinsPriced} priced, each counted once even when contested). Per-user rows above count contested pins under every clicker, so they can sum higher. Virtual board: <strong>${genPeople}</strong> generated · <strong>${savePeople}</strong> saved` +
+        (genOnly > 0 ? ` · <strong>${genOnly}</strong> generated without a save` : "") +
+        `.</td></tr>`;
 
     document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `
         <tr>
