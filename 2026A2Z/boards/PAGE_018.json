@@ -1,13 +1,50 @@
 {
   "predictions": [
     {
-      "x": 160.37499237060547,
-      "y": 509.375,
-      "width": 185.93748474121094,
-      "height": 296.5625,
-      "confidence": 0.6472409963607788,
+      "x": 567.875,
+      "y": 477.5,
+      "width": 150.3125,
+      "height": 212.5,
+      "confidence": 0.7786493301391602,
       "class": "pin",
       "crop_stem": "img018_pin01"
+    },
+    {
+      "x": 415.375,
+      "y": 481.25,
+      "width": 137.8125,
+      "height": 188.125,
+      "confidence": 0.837221086025238,
+      "class": "pin",
+      "crop_stem": "img018_pin02"
+    },
+    {
+      "x": 717.875,
+      "y": 490.9375,
+      "width": 121.71875,
+      "height": 176.875,
+      "confidence": 0.8271310925483704,
+      "class": "pin",
+      "crop_stem": "img018_pin03"
+    },
+    {
+      "x": 857.25,
+      "y": 508.75,
+      "width": 105.078125,
+      "height": 134.453125,
+      "confidence": 0.8816148638725281,
+      "class": "pin",
+      "crop_stem": "img018_pin04"
+    },
+    {
+      "x": 192.56,
+      "y": 510.0,
+      "width": 265.94,
+      "height": 298.59,
+      "confidence": 0.6472409963607788,
+      "class": "pin",
+      "_manual": "merged_pongo_callout",
+      "crop_stem": "img018_pin05"
     },
     {
       "x": 179.75,
@@ -16,7 +53,7 @@
       "height": 148.75,
       "confidence": 0.8893368244171143,
       "class": "pin",
-      "crop_stem": "img018_pin02"
+      "crop_stem": "img018_pin06"
     },
     {
       "x": 185.6875,
@@ -25,7 +62,7 @@
       "height": 164.53125,
       "confidence": 0.9313377141952515,
       "class": "pin",
-      "crop_stem": "img018_pin03"
+      "crop_stem": "img018_pin07"
     },
     {
       "x": 175.53125,
@@ -34,7 +71,7 @@
       "height": 120.15625,
       "confidence": 0.8848377466201782,
       "class": "pin",
-      "crop_stem": "img018_pin04"
+      "crop_stem": "img018_pin08"
     }
   ],
   "image": {
@@ -42,18 +79,13 @@
     "height": 1280
   },
   "_cleanup": {
-    "flyer_fp_v2": {
-      "page": "PAGE_018",
-      "raw": 26,
-      "actions": [],
-      "cleaned": 26
-    },
-    "manual_board18_bookshelf_20260806": {
+    "manual_board18_bookshelf_v2_20260806": {
       "actions": [
-        "removed all detections on/inside the wooden bookshelf",
+        "removed all bottom-right bookshelf interior detections",
         "removed Ludwig header FP",
-        "kept only left-column large callout pins outside the shelf",
-        "before=26 after=4"
+        "kept left + top large callout pins",
+        "merged double box on Pongo (dog) callout into 1",
+        "before=26 after=8"
       ]
     }
   }
