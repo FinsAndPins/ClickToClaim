@@ -84,7 +84,28 @@
 
     <section><h2>4. Click Summary</h2><table id="summaryTable"><thead><tr><th>Clicks</th><th>Pins</th></tr></thead><tbody></tbody></table></section>
 
-    <section><h2>5. Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
+    <section id="virtualBoardSection">
+        <h2>5. Virtual Board (ISO photo)</h2>
+        <p style="font-size:14px;color:#555;margin:0 0 12px;line-height:1.45;">
+            Unique people who used <strong>Save Photo of ISO virtual pin board</strong>.
+            <strong>VB gen</strong> = tapped to build the board;
+            <strong>VB save</strong> = actually saved/shared a photo.
+            Totals: <strong>VB gen <span id="vbGenTotal">0</span></strong> ·
+            <strong>VB save <span id="vbSaveTotal">0</span></strong>
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+            <div style="flex:1;min-width:280px;">
+                <h3 style="margin:0 0 8px;font-size:15px;">Generate taps</h3>
+                <table id="vbGenTable"><thead><tr><th>User</th><th>Taps</th><th>Last pins</th><th>Last time</th></tr></thead><tbody></tbody></table>
+            </div>
+            <div style="flex:1;min-width:280px;">
+                <h3 style="margin:0 0 8px;font-size:15px;">Saved photos</h3>
+                <table id="vbSaveTable"><thead><tr><th>User</th><th>Saves</th><th>Last pins</th><th>Pages</th><th>Last time</th></tr></thead><tbody></tbody></table>
+            </div>
+        </div>
+    </section>
+
+    <section><h2>6. Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
 </div>
 <div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
 
@@ -193,6 +214,7 @@ async function loadData() {
         document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(b => {
             b.classList.toggle("reports-phase-active", b.getAttribute("data-phase") === ph);
         });
+        renderVirtualBoardReports(v);
     });
 
     // Price overlay control for boards page (shared localStorage + BroadcastChannel).
@@ -218,7 +240,7 @@ async function loadData() {
     }
 
     // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
-    const BOARDS_MANIFEST_VERSION = "14";
+    const BOARDS_MANIFEST_VERSION = "12";
     const manifest = await (await fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
 
     db.ref(`claims/${fbName}`).on('value', snap => {
@@ -240,6 +262,94 @@ async function loadData() {
             </div>
         `).join('') || "No feedback yet.";
     });
+
+    // Virtual board analytics (same paths as boards admin VB gen / VB save).
+    function vbEntryTime(m) {
+        if (!m || typeof m !== "object") return 0;
+        const t = Number(m.time);
+        return isFinite(t) ? t : 0;
+    }
+    function renderVirtualBoardReports(cfg) {
+        const gen = (cfg && cfg.virtualBoardGenerate && typeof cfg.virtualBoardGenerate === "object")
+            ? cfg.virtualBoardGenerate : {};
+        const saved = (cfg && cfg.virtualBoardSave && typeof cfg.virtualBoardSave === "object")
+            ? cfg.virtualBoardSave : {};
+        const legacy = (cfg && cfg.virtualBoardUsed && typeof cfg.virtualBoardUsed === "object")
+            ? cfg.virtualBoardUsed : {};
+
+        const genRows = Object.entries(gen).map(([uid, m]) => {
+            const label = normalizeUserDisplayName(String((m && m.label) || uid)) || uid;
+            return {
+                uid,
+                label,
+                count: Math.max(1, Number(m && m.count) || 1),
+                pinCount: Math.max(0, Number(m && m.pinCount) || 0),
+                time: vbEntryTime(m)
+            };
+        }).sort((a, b) => b.time - a.time || a.label.localeCompare(b.label));
+
+        const saveMap = {};
+        Object.entries(saved).forEach(([uid, m]) => {
+            saveMap[uid] = {
+                uid,
+                label: normalizeUserDisplayName(String((m && m.label) || uid)) || uid,
+                count: Math.max(1, Number(m && m.count) || 1),
+                pinCount: Math.max(0, Number(m && m.pinCount) || 0),
+                pages: Math.max(0, Number(m && m.pages) || 0),
+                time: vbEntryTime(m)
+            };
+        });
+        Object.entries(legacy).forEach(([uid, m]) => {
+            if (saveMap[uid]) {
+                const t = vbEntryTime(m);
+                if (t > saveMap[uid].time) {
+                    saveMap[uid].time = t;
+                    if (m && m.label) saveMap[uid].label = normalizeUserDisplayName(String(m.label)) || saveMap[uid].label;
+                    if (m && m.pinCount != null) saveMap[uid].pinCount = Math.max(0, Number(m.pinCount) || 0);
+                    if (m && m.pages != null) saveMap[uid].pages = Math.max(0, Number(m.pages) || 0);
+                }
+                return;
+            }
+            saveMap[uid] = {
+                uid,
+                label: normalizeUserDisplayName(String((m && m.label) || uid)) || uid,
+                count: 1,
+                pinCount: Math.max(0, Number(m && m.pinCount) || 0),
+                pages: Math.max(0, Number(m && m.pages) || 0),
+                time: vbEntryTime(m)
+            };
+        });
+        const saveRows = Object.values(saveMap).sort((a, b) => b.time - a.time || a.label.localeCompare(b.label));
+
+        const genEl = document.getElementById("vbGenTotal");
+        const saveEl = document.getElementById("vbSaveTotal");
+        if (genEl) genEl.textContent = String(genRows.length);
+        if (saveEl) saveEl.textContent = String(saveRows.length);
+
+        const genBody = document.querySelector("#vbGenTable tbody");
+        if (genBody) {
+            genBody.innerHTML = genRows.length
+                ? genRows.map(r => `<tr>
+                    <td>${r.label}<br><small style="color:#888">${r.uid}</small></td>
+                    <td>${r.count}</td>
+                    <td>${r.pinCount || "—"}</td>
+                    <td>${r.time ? new Date(r.time).toLocaleString() : "—"}</td>
+                </tr>`).join("")
+                : '<tr><td colspan="4" style="color:#999;">No generate taps yet.</td></tr>';
+        }
+        const saveBody = document.querySelector("#vbSaveTable tbody");
+        if (saveBody) {
+            saveBody.innerHTML = saveRows.length
+                ? saveRows.map(r => `<tr>
+                    <td>${r.label}<br><small style="color:#888">${r.uid}</small></td>
+                    <td>${r.count}</td>
+                    <td>${r.pinCount || "—"}</td>
+                    <td>${r.pages || "—"}</td>
+                    <td>${r.time ? new Date(r.time).toLocaleString() : "—"}</td>
+                </tr>`).join("")
+                : '<tr><td colspan="5" style="color:#999;">No saves yet.</td></tr>';
+        }
+    }
 }
 
 // ── Dollar value support (same rounding as boards-page badges; no 20% off) ──
