@@ -1,58 +1,13 @@
 {
   "predictions": [
     {
-      "x": 839.125,
-      "y": 143.046875,
-      "width": 260.3125,
-      "height": 234.53125,
-      "confidence": 0.5805898904800415,
-      "class": "pin",
-      "crop_stem": "img008_pin01"
-    },
-    {
-      "x": 789.75,
-      "y": 146.25,
-      "width": 369.0625,
-      "height": 235.9375,
-      "confidence": 0.2913839817047119,
-      "class": "pin",
-      "crop_stem": "img008_pin02"
-    },
-    {
-      "x": 363.1875,
-      "y": 551.25,
-      "width": 128.671875,
-      "height": 117.1875,
-      "confidence": 0.2759094536304474,
-      "class": "pin",
-      "crop_stem": "img008_pin03"
-    },
-    {
-      "x": 599.75,
-      "y": 624.0625,
-      "width": 119.609375,
-      "height": 115.390625,
-      "confidence": 0.33437204360961914,
-      "class": "pin",
-      "crop_stem": "img008_pin04"
-    },
-    {
-      "x": 200.0625,
-      "y": 624.6875,
-      "width": 128.125,
-      "height": 121.25,
-      "confidence": 0.30954527854919434,
-      "class": "pin",
-      "crop_stem": "img008_pin05"
-    },
-    {
       "x": 283.8125,
       "y": 634.6875,
       "width": 365.9375,
       "height": 370.625,
       "confidence": 0.9260365962982178,
       "class": "pin",
-      "crop_stem": "img008_pin06"
+      "crop_stem": "img008_pin01"
     },
     {
       "x": 698.5,
@@ -61,34 +16,7 @@
       "height": 367.8125,
       "confidence": 0.9277569651603699,
       "class": "pin",
-      "crop_stem": "img008_pin07"
-    },
-    {
-      "x": 621.0,
-      "y": 749.375,
-      "width": 129.0625,
-      "height": 116.40625,
-      "confidence": 0.38664764165878296,
-      "class": "pin",
-      "crop_stem": "img008_pin08"
-    },
-    {
-      "x": 173.5,
-      "y": 758.125,
-      "width": 131.875,
-      "height": 120.859375,
-      "confidence": 0.6752294898033142,
-      "class": "pin",
-      "crop_stem": "img008_pin09"
-    },
-    {
-      "x": 400.0625,
-      "y": 759.375,
-      "width": 125.546875,
-      "height": 116.953125,
-      "confidence": 0.3846231698989868,
-      "class": "pin",
-      "crop_stem": "img008_pin10"
+      "crop_stem": "img008_pin02"
     },
     {
       "x": 491.9375,
@@ -97,7 +25,7 @@
       "height": 352.8125,
       "confidence": 0.9252300262451172,
       "class": "pin",
-      "crop_stem": "img008_pin11"
+      "crop_stem": "img008_pin03"
     }
   ],
   "image": {
@@ -110,6 +38,15 @@
       "raw": 11,
       "actions": [],
       "cleaned": 11
+    },
+    "manual_board8_20260806": {
+      "actions": [
+        "removed 2 overlapping top-right Ludwig non-pin boxes",
+        "removed 6 nested character portrait boxes inside the 3 ABC jumbo pins",
+        "kept only the 3 large product pins"
+      ],
+      "before": 11,
+      "after": 3
     }
   }
 }
