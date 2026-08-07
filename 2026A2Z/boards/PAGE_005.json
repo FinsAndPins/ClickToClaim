@@ -1,0 +1,99 @@
+{
+  "predictions": [
+    {
+      "x": 826.625,
+      "y": 141.71875,
+      "width": 282.34375,
+      "height": 230.15625,
+      "confidence": 0.814495861530304,
+      "class": "pin",
+      "crop_stem": "img005_pin01"
+    },
+    {
+      "x": 216.3125,
+      "y": 443.125,
+      "width": 264.84375,
+      "height": 240.78125,
+      "confidence": 0.914290726184845,
+      "class": "pin",
+      "crop_stem": "img005_pin02"
+    },
+    {
+      "x": 492.5625,
+      "y": 445.625,
+      "width": 240.78125,
+      "height": 229.375,
+      "confidence": 0.9415467381477356,
+      "class": "pin",
+      "crop_stem": "img005_pin03"
+    },
+    {
+      "x": 774.75,
+      "y": 445.625,
+      "width": 243.75,
+      "height": 234.6875,
+      "confidence": 0.9403530955314636,
+      "class": "pin",
+      "crop_stem": "img005_pin04"
+    },
+    {
+      "x": 777.875,
+      "y": 716.25,
+      "width": 271.71875,
+      "height": 255.46875,
+      "confidence": 0.9388007521629333,
+      "class": "pin",
+      "crop_stem": "img005_pin05"
+    },
+    {
+      "x": 486.625,
+      "y": 728.75,
+      "width": 251.09375,
+      "height": 237.34375,
+      "confidence": 0.9437636137008667,
+      "class": "pin",
+      "crop_stem": "img005_pin06"
+    },
+    {
+      "x": 766.0,
+      "y": 1001.875,
+      "width": 222.03125,
+      "height": 245.15625,
+      "confidence": 0.9383503198623657,
+      "class": "pin",
+      "crop_stem": "img005_pin07"
+    },
+    {
+      "x": 219.4375,
+      "y": 1006.25,
+      "width": 232.1875,
+      "height": 234.6875,
+      "confidence": 0.9406808614730835,
+      "class": "pin",
+      "crop_stem": "img005_pin08"
+    },
+    {
+      "x": 488.1875,
+      "y": 1010.0,
+      "width": 250.78125,
+      "height": 235.3125,
+      "confidence": 0.9342753291130066,
+      "class": "pin",
+      "crop_stem": "img005_pin09"
+    }
+  ],
+  "image": {
+    "width": 990,
+    "height": 1280
+  },
+  "_cleanup": {
+    "flyer_fp_v2": {
+      "page": "PAGE_005",
+      "raw": 10,
+      "actions": [
+        "drop_text_block idx=5 area=0.044 right_af=0.055 x=0.22"
+      ],
+      "cleaned": 9
+    }
+  }
+}

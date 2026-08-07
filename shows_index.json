@@ -1,6 +1,20 @@
 {
   "shows": [
     {
+      "folder": "2026A2Z",
+      "label": "2026A2Z",
+      "sort_key": "1786068000",
+      "last_commit_iso": "2026-08-07T02:00:00+00:00",
+      "show_url": "https://finsandpins.github.io/ClickToClaim/2026A2Z/index.html"
+    },
+    {
+      "folder": "2026D23",
+      "label": "2026D23",
+      "sort_key": "1786067999",
+      "last_commit_iso": "2026-08-07T02:00:00+00:00",
+      "show_url": "https://finsandpins.github.io/ClickToClaim/2026D23/index.html"
+    },
+    {
       "folder": "20260806",
       "label": "Aug 6, 2026",
       "sort_key": "1785723232",
@@ -20,13 +34,6 @@
       "sort_key": "1785519320",
       "last_commit_iso": "2026-07-31T17:35:20+00:00",
       "show_url": "https://finsandpins.github.io/ClickToClaim/20260801/index.html"
-    },
-    {
-      "folder": "2026D23",
-      "label": "2026D23",
-      "sort_key": "1785516864",
-      "last_commit_iso": "2026-07-31T16:54:24+00:00",
-      "show_url": "https://finsandpins.github.io/ClickToClaim/2026D23/index.html"
     },
     {
       "folder": "20260730",
@@ -113,7 +120,7 @@
       "show_url": "https://finsandpins.github.io/ClickToClaim/20260629/index.html"
     }
   ],
-  "updated_iso": "2026-08-02T22:14:56-04:00",
+  "updated_iso": "2026-08-06T22:00:00-04:00",
   "base_url": "https://finsandpins.github.io/ClickToClaim",
   "ordered_by": "last_git_commit_desc"
 }

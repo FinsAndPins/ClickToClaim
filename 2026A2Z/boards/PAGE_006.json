@@ -1,0 +1,97 @@
+{
+  "predictions": [
+    {
+      "x": 836.625,
+      "y": 140.703125,
+      "width": 259.84375,
+      "height": 227.96875,
+      "confidence": 0.8474634885787964,
+      "class": "pin",
+      "crop_stem": "img006_pin01"
+    },
+    {
+      "x": 777.25,
+      "y": 451.5625,
+      "width": 248.59375,
+      "height": 237.1875,
+      "confidence": 0.9290551543235779,
+      "class": "pin",
+      "crop_stem": "img006_pin02"
+    },
+    {
+      "x": 493.8125,
+      "y": 456.875,
+      "width": 236.875,
+      "height": 237.5,
+      "confidence": 0.9049869179725647,
+      "class": "pin",
+      "crop_stem": "img006_pin03"
+    },
+    {
+      "x": 211.625,
+      "y": 460.625,
+      "width": 237.65625,
+      "height": 245.625,
+      "confidence": 0.9165588617324829,
+      "class": "pin",
+      "crop_stem": "img006_pin04"
+    },
+    {
+      "x": 778.5,
+      "y": 729.375,
+      "width": 236.09375,
+      "height": 245.78125,
+      "confidence": 0.9433475732803345,
+      "class": "pin",
+      "crop_stem": "img006_pin05"
+    },
+    {
+      "x": 214.4375,
+      "y": 735.0,
+      "width": 248.59375,
+      "height": 229.53125,
+      "confidence": 0.9339146018028259,
+      "class": "pin",
+      "crop_stem": "img006_pin06"
+    },
+    {
+      "x": 490.375,
+      "y": 736.875,
+      "width": 247.65625,
+      "height": 231.875,
+      "confidence": 0.9381240010261536,
+      "class": "pin",
+      "crop_stem": "img006_pin07"
+    },
+    {
+      "x": 355.6875,
+      "y": 1018.125,
+      "width": 247.8125,
+      "height": 232.8125,
+      "confidence": 0.9303317666053772,
+      "class": "pin",
+      "crop_stem": "img006_pin08"
+    },
+    {
+      "x": 664.75,
+      "y": 1025.0,
+      "width": 249.21875,
+      "height": 240.15625,
+      "confidence": 0.9278878569602966,
+      "class": "pin",
+      "crop_stem": "img006_pin09"
+    }
+  ],
+  "image": {
+    "width": 990,
+    "height": 1280
+  },
+  "_cleanup": {
+    "flyer_fp_v2": {
+      "page": "PAGE_006",
+      "raw": 9,
+      "actions": [],
+      "cleaned": 9
+    }
+  }
+}

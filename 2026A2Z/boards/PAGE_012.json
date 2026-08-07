@@ -1,0 +1,79 @@
+{
+  "predictions": [
+    {
+      "x": 822.875,
+      "y": 142.265625,
+      "width": 291.875,
+      "height": 231.875,
+      "confidence": 0.8033281564712524,
+      "class": "pin",
+      "crop_stem": "img012_pin01"
+    },
+    {
+      "x": 493.5,
+      "y": 496.25,
+      "width": 905.625,
+      "height": 921.25,
+      "confidence": 0.29007506370544434,
+      "class": "pin",
+      "crop_stem": "img012_pin02"
+    },
+    {
+      "x": 318.1875,
+      "y": 725.0,
+      "width": 138.828125,
+      "height": 433.4375,
+      "confidence": 0.9132132530212402,
+      "class": "pin",
+      "crop_stem": "img012_pin03"
+    },
+    {
+      "x": 485.0625,
+      "y": 771.25,
+      "width": 174.53125,
+      "height": 336.875,
+      "confidence": 0.8908652067184448,
+      "class": "pin",
+      "crop_stem": "img012_pin04"
+    },
+    {
+      "x": 143.34375,
+      "y": 786.25,
+      "width": 198.28125,
+      "height": 313.28125,
+      "confidence": 0.9398029446601868,
+      "class": "pin",
+      "crop_stem": "img012_pin05"
+    },
+    {
+      "x": 665.375,
+      "y": 791.875,
+      "width": 183.90625,
+      "height": 293.59375,
+      "confidence": 0.8677098155021667,
+      "class": "pin",
+      "crop_stem": "img012_pin06"
+    },
+    {
+      "x": 854.125,
+      "y": 796.25,
+      "width": 132.890625,
+      "height": 281.40625,
+      "confidence": 0.8194603323936462,
+      "class": "pin",
+      "crop_stem": "img012_pin07"
+    }
+  ],
+  "image": {
+    "width": 990,
+    "height": 1280
+  },
+  "_cleanup": {
+    "flyer_fp_v2": {
+      "page": "PAGE_012",
+      "raw": 7,
+      "actions": [],
+      "cleaned": 7
+    }
+  }
+}

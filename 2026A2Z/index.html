@@ -513,9 +513,9 @@ let showPhaseOverride = "auto";
 /** Firebase `showConfig/…/endedFullscreen`: full-screen “show ended” — true only on Post Show; false on Schedule, Pre, or During. */
 let showEndedFullscreenActive = false;
 /** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
-const SHOW_DATE_SLUG_FALLBACK = "2026D23";
-/** Non-show interest catalog (D23 flyers) — not a Whatnot show night. */
-const IS_D23_INTEREST = true;
+const SHOW_DATE_SLUG_FALLBACK = "2026A2Z";
+/** Non-show interest catalog (A2Z flyers) — not a Whatnot show night. */
+const IS_INTEREST_CATALOG = true;
 /** Paste your whatnot invite / referral URL here (shown in FAQ links). */
 const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
 /**
@@ -550,8 +550,8 @@ function wallTimeToUtc(year, month, day, hour, minute, timeZone) {
 }
 
 function recomputeShowWindows() {
-    if (showDateSlug === "2026D23" || IS_D23_INTEREST) {
-        // Interest window for D23 shopping (Aug 2026), not a single show day.
+    if (showDateSlug === "2026A2Z" || IS_INTEREST_CATALOG) {
+        // Interest window for A2Z shopping (Aug 2026), not a single show day.
         showWindowStartMs = wallTimeToUtc(2026, 8, 1, 0, 0, EASTERN_TZ);
         showWindowEndMs = wallTimeToUtc(2026, 8, 31, 23, 59, EASTERN_TZ);
         updateCountdowns();
@@ -628,7 +628,7 @@ if (isAdmin) {
     document.getElementById('adminPhaseBar').style.display = 'none';
     const cleanupBar = document.getElementById('boxCleanupBar');
     if (cleanupBar) cleanupBar.style.display = 'none';
-    // This page is the D23 interest catalog (not a Whatnot show night).
+    // This page is the A2Z interest catalog (not a Whatnot show night).
     const countdown = document.getElementById('countdownArea');
     const fuelGauge = document.getElementById('fuelGaugeArea');
     if (countdown) countdown.style.display = 'none';
@@ -969,11 +969,11 @@ function parseShowDateSlugFromPath() {
     const segments = pathClean.split("/").filter(Boolean);
     const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
     if (!last) return null;
-    // Named folders like 2026D23 are Firebase keys as-is (not YYYYMMDD).
-    if (last === "2026D23" || /[A-Za-z]/.test(last.replace(/^\d{8}/, ""))) {
+    // Named folders like 2026A2Z are Firebase keys as-is (not YYYYMMDD).
+    if (last === "2026A2Z" || /[A-Za-z]/.test(last.replace(/^\d{8}/, ""))) {
         // Keep legacy YYYYMMDDTest* behavior: digits-only when folder is date+suffix.
         const m8 = last.match(/^(\d{8})/);
-        if (m8 && last !== "2026D23") return m8[1];
+        if (m8 && last !== "2026A2Z") return m8[1];
         return last;
     }
     const m = last.match(/(\d{8})/);
@@ -1094,15 +1094,15 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
 });
 
 (function() {
-    if (showDateSlug === "2026D23" || IS_D23_INTEREST) {
-        document.getElementById("showTitle").textContent = "This is Disney’s catalog of pins available at D23.";
+    if (showDateSlug === "2026A2Z" || IS_INTEREST_CATALOG) {
+        document.getElementById("showTitle").textContent = "This is Disney’s A-Z Pin Event 2026 catalog.";
         const intro = document.getElementById("introNote");
         if (intro) {
             intro.textContent = "Tap the ones you hope we’ll be able to get for you?";
         }
         const help = document.querySelector(".login-help");
         if (help) {
-            help.textContent = "Tap pins you’re interested in from the D23 catalogs so we know what to buy. Any username works — Whatnot or Instagram helps us match you later.";
+            help.textContent = "Tap pins you’re interested in from the A2Z catalog so we know what to buy. Any username works — Whatnot or Instagram helps us match you later.";
         }
         const disc = document.querySelector(".login-disclaimer");
         if (disc) {
@@ -1176,7 +1176,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "14";
+const BOARDS_MANIFEST_VERSION = "1";
 
 async function computeAllBoardPinTotals(boardNames) {
     const rawCounts = {};
@@ -1503,7 +1503,7 @@ function listenForFirebase() {
                 if (users && users[userKey]) myNow++;
                 if (users && Object.keys(users).length > 0) globalRequested++;
             });
-            // Skip show-night "250 spots" modal on this D23 interest catalog.
+            // Skip show-night "250 spots" modal on this A2Z interest catalog.
             lastMyRequestsCount = myNow;
         }
 
@@ -1605,7 +1605,7 @@ function calculateGlobals() {
 }
 
 // ── ISO virtual board photo export (feature-flagged; removable) ─────────
-// D23 wishlist board: upright crops, count-only FAB (no $). Generate/save analytics kept.
+// A2Z wishlist board: upright crops, count-only FAB (no $). Generate/save analytics kept.
 const ISO_EXPORT_MAX_PER_PAGE = 40;
 const ISO_EXPORT_BOARD_W = 1400;
 const ISO_EXPORT_BG = "#5c3d78";
@@ -1676,7 +1676,7 @@ function isoCropStemForPinKey(pk) {
     return (el && el.dataset.cropStem) || "";
 }
 
-/** D23 wishlist board: count only (no $ — these aren’t priced inventory for this show). */
+/** A2Z wishlist board: count only (no $ — these aren’t priced inventory for this show). */
 function computeMyIsoClickedCount(myCountHint) {
     return myCountHint != null
         ? myCountHint
@@ -1832,7 +1832,7 @@ function fillIsoBoardBackground(ctx, w, h) {
 }
 
 /**
- * Dense personal-board pack (D23 wishlist): upright crops, small foam gap, no overlap.
+ * Dense personal-board pack (A2Z wishlist): upright crops, small foam gap, no overlap.
  * Unlike sell-show boards, pins stay straight — easier to scan what you want from the event.
  */
 function buildIsoPageCanvas(cropCanvases, pageSeed) {
@@ -2057,7 +2057,7 @@ function setIsoExportSaveMode(pageIndex, pageCount, previewUrl) {
     if (st) {
         st.textContent = isoLikelyNeedsPhotosShare()
             ? "Safari can’t write straight to Camera Roll — use the share sheet."
-            : `Ready: 2026D23-ISO-${pageIndex}of${pageCount}.jpg`;
+            : `Ready: 2026A2Z-ISO-${pageIndex}of${pageCount}.jpg`;
     }
     if (preview && previewUrl) preview.src = previewUrl;
     if (previewWrap) previewWrap.classList.add("show");
@@ -2201,7 +2201,7 @@ async function runIsoVirtualBoardExport() {
             await yieldToUi();
             const canvas = buildIsoPageCanvas(slice, p + 1);
             const blob = await canvasToJpegBlob(canvas, 0.92);
-            const filename = `2026D23-ISO-${p + 1}of${pageCount}.jpg`;
+            const filename = `2026A2Z-ISO-${p + 1}of${pageCount}.jpg`;
             const how = await waitForIsoPageSave(blob, filename, p + 1, pageCount);
             if (how === "aborted") throw new Error("cancelled");
             if (how === "shared" || how === "download") savedCount++;
@@ -2404,7 +2404,7 @@ function _applyMode(mode) {
     _refreshAllBadges();
 }
 
-/** Optional price helper for overlays (not used by D23 virtual-board FAB). */
+/** Optional price helper for overlays (not used by A2Z virtual-board FAB). */
 window._ctcRoundedShowPriceForStem = function(stem) {
     if (!stem) return 0;
     let raw = _stemToPrice[stem];

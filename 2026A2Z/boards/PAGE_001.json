@@ -1,0 +1,16 @@
+{
+  "predictions": [],
+  "image": {
+    "width": 990,
+    "height": 1280
+  },
+  "_cleanup": {
+    "flyer_fp_v2": {
+      "page": "PAGE_001",
+      "raw": 1,
+      "actions": [
+        "blank_cover max_area=0.915"
+      ]
+    }
+  }
+}

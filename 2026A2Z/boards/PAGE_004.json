@@ -1,0 +1,106 @@
+{
+  "predictions": [
+    {
+      "x": 826.0,
+      "y": 142.109375,
+      "width": 284.375,
+      "height": 230.625,
+      "confidence": 0.8300437331199646,
+      "class": "pin",
+      "crop_stem": "img004_pin01"
+    },
+    {
+      "x": 493.5,
+      "y": 524.0625,
+      "width": 217.34375,
+      "height": 216.875,
+      "confidence": 0.9333093762397766,
+      "class": "pin",
+      "crop_stem": "img004_pin02"
+    },
+    {
+      "x": 201.625,
+      "y": 524.6875,
+      "width": 238.125,
+      "height": 225.625,
+      "confidence": 0.9269675612449646,
+      "class": "pin",
+      "crop_stem": "img004_pin03"
+    },
+    {
+      "x": 770.375,
+      "y": 526.875,
+      "width": 218.125,
+      "height": 212.5,
+      "confidence": 0.9310875535011292,
+      "class": "pin",
+      "crop_stem": "img004_pin04"
+    },
+    {
+      "x": 493.5,
+      "y": 768.75,
+      "width": 222.03125,
+      "height": 216.5625,
+      "confidence": 0.7197777628898621,
+      "class": "pin",
+      "crop_stem": "img004_pin05"
+    },
+    {
+      "x": 200.0625,
+      "y": 771.25,
+      "width": 226.5625,
+      "height": 213.90625,
+      "confidence": 0.9015746116638184,
+      "class": "pin",
+      "crop_stem": "img004_pin06"
+    },
+    {
+      "x": 769.75,
+      "y": 773.125,
+      "width": 222.96875,
+      "height": 215.46875,
+      "confidence": 0.9272316098213196,
+      "class": "pin",
+      "crop_stem": "img004_pin07"
+    },
+    {
+      "x": 202.25,
+      "y": 1025.625,
+      "width": 244.53125,
+      "height": 227.65625,
+      "confidence": 0.9404625296592712,
+      "class": "pin",
+      "crop_stem": "img004_pin08"
+    },
+    {
+      "x": 766.625,
+      "y": 1026.25,
+      "width": 227.8125,
+      "height": 223.59375,
+      "confidence": 0.9419752359390259,
+      "class": "pin",
+      "crop_stem": "img004_pin09"
+    },
+    {
+      "x": 489.4375,
+      "y": 1031.25,
+      "width": 227.34375,
+      "height": 220.9375,
+      "confidence": 0.9237300753593445,
+      "class": "pin",
+      "crop_stem": "img004_pin10"
+    }
+  ],
+  "image": {
+    "width": 990,
+    "height": 1280
+  },
+  "_cleanup": {
+    "flyer_fp_v2": {
+      "page": "PAGE_004",
+      "raw": 10,
+      "actions": [],
+      "cleaned": 10
+    }
+  }
+}
