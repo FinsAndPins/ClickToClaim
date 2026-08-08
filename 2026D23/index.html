@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v8-post-show-overlay">
+    <meta name="ctr-countdown" content="closes-to-end-v9-d23-aug14-noon">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -551,9 +551,9 @@ function wallTimeToUtc(year, month, day, hour, minute, timeZone) {
 
 function recomputeShowWindows() {
     if (showDateSlug === "2026D23" || IS_D23_INTEREST) {
-        // Interest window for D23 shopping (Aug 2026), not a single show day.
+        // Interest window closes Fri Aug 14, 2026 at 12:00 noon Eastern.
         showWindowStartMs = wallTimeToUtc(2026, 8, 1, 0, 0, EASTERN_TZ);
-        showWindowEndMs = wallTimeToUtc(2026, 8, 31, 23, 59, EASTERN_TZ);
+        showWindowEndMs = wallTimeToUtc(2026, 8, 14, 12, 0, EASTERN_TZ);
         updateCountdowns();
         return;
     }
