@@ -1,0 +1,98 @@
+{
+  "predictions": [
+    {
+      "x": 471.875,
+      "y": 423.75,
+      "width": 303.125,
+      "height": 480.9375,
+      "confidence": 0.9246877431869507,
+      "class": "pin",
+      "crop_stem": "img8871_pin01"
+    },
+    {
+      "x": 168.75,
+      "y": 425.0,
+      "width": 312.65625,
+      "height": 487.5,
+      "confidence": 0.9289263486862183,
+      "class": "pin",
+      "crop_stem": "img8871_pin02"
+    },
+    {
+      "x": 768.125,
+      "y": 426.875,
+      "width": 301.25,
+      "height": 473.75,
+      "confidence": 0.9312127232551575,
+      "class": "pin",
+      "crop_stem": "img8871_pin03"
+    },
+    {
+      "x": 474.6875,
+      "y": 469.375,
+      "width": 190.15625,
+      "height": 223.75,
+      "confidence": 0.5021286010742188,
+      "class": "pin",
+      "crop_stem": "img8871_pin04"
+    },
+    {
+      "x": 178.4375,
+      "y": 475.3125,
+      "width": 200.625,
+      "height": 227.96875,
+      "confidence": 0.4563189446926117,
+      "class": "pin",
+      "crop_stem": "img8871_pin05"
+    },
+    {
+      "x": 766.25,
+      "y": 487.5,
+      "width": 193.28125,
+      "height": 221.25,
+      "confidence": 0.6722241044044495,
+      "class": "pin",
+      "crop_stem": "img8871_pin06"
+    },
+    {
+      "x": 466.5625,
+      "y": 899.375,
+      "width": 307.8125,
+      "height": 480.3125,
+      "confidence": 0.9337939620018005,
+      "class": "pin",
+      "crop_stem": "img8871_pin07"
+    },
+    {
+      "x": 769.375,
+      "y": 899.375,
+      "width": 299.21875,
+      "height": 487.1875,
+      "confidence": 0.9323301911354065,
+      "class": "pin",
+      "crop_stem": "img8871_pin08"
+    },
+    {
+      "x": 159.6875,
+      "y": 903.125,
+      "width": 314.0625,
+      "height": 487.8125,
+      "confidence": 0.9348725080490112,
+      "class": "pin",
+      "crop_stem": "img8871_pin09"
+    },
+    {
+      "x": 168.125,
+      "y": 950.0,
+      "width": 217.65625,
+      "height": 226.5625,
+      "confidence": 0.3408142030239105,
+      "class": "pin",
+      "crop_stem": "img8871_pin10"
+    }
+  ],
+  "image": {
+    "width": 960,
+    "height": 1280
+  }
+}

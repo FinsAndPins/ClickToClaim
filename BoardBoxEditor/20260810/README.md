@@ -31,3 +31,13 @@ Tell the agent to:
 2. Clone `20260806` → `ClickToClaim/20260810` using these boards.
 3. Run pricing from the edited CTR boards (`crop_boards_from_ctr_json` / watcher path).
 4. Apply **25% off** display (list struck through; sale price in totals) like `20260720`’s 20% off.
+
+## Backup / QR-card cleanup
+
+Pre-cleanup JSON snapshot (restore if needed):
+
+`boards_backup_pre_qr_card_cleanup/`
+
+Auto pass `qr_card_outer_drop_v1`: dropped outer boxes only when a smaller pin box was nested inside **and** OpenCV detected a QR on that outer crop (white Fins & Pins backing cards). Report: `qr_card_cleanup_report.json`.
+
+Cards where RF-DETR never found a separate pin-only box are unchanged — shrink those by hand in the editor.
