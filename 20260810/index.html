@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v10-20260810-slim-sticky">
+    <meta name="ctr-countdown" content="closes-to-end-v11-20260810-fix-boxes">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -52,6 +52,26 @@
         .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: rgba(0,0,0,0.2); border-radius: 8px; }
         .board-img { width: 100%; display: block; border-radius: 8px; }
         .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
+        /* Public: hidden pins are not clickable and not visible. */
+        .pin.pin-hidden { visibility: hidden; pointer-events: none; }
+        /* Admin cleanup mode: outline every live box; show hidden ones so they can be restored. */
+        body.box-cleanup-on .pin:not(.pin-hidden) {
+            border: 2px solid rgba(0, 220, 90, 0.95);
+            background: rgba(0, 220, 90, 0.12);
+        }
+        body.box-cleanup-on .pin.pin-hidden {
+            visibility: visible;
+            pointer-events: auto;
+            border: 2px dashed rgba(255, 60, 60, 0.95);
+            background: rgba(255, 60, 60, 0.18);
+            opacity: 0.85;
+        }
+        #boxCleanupBar { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+        body.box-cleanup-on #boxCleanupBar { display: block; }
+        #boxCleanupBar p { font-size: 12px; color: var(--fp-muted); margin: 0 0 8px; line-height: 1.35; font-weight: normal; }
+        #boxCleanupToggle { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; }
+        #boxCleanupToggle.is-active { background: #1877f2; border-color: rgba(255,255,255,0.5); }
+        #boxCleanupCount { font-size: 11px; color: var(--fp-muted); margin-left: 8px; }
         /* Visitors during+after show: blue = ≥2 requesters, green = 1; B badge = first request pre-show, N = first during show. Before show: plain green. Admin: green = pre-show pin; blue = during/after show start. */
         .pin.selection-before { border: 4px solid rgba(0, 72, 180, 0.95); background: rgba(80, 140, 255, 0.32); }
         .pin.selection-now { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
@@ -456,11 +476,16 @@
     </div>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
-        <span class="admin-phase-label">Show state (visible to everyone; use Schedule for Eastern clock)</span>
+        <span class="admin-phase-label">Admin only — show state &amp; box cleanup (not shown to visitors)</span>
         <button type="button" class="admin-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
         <button type="button" class="admin-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
         <button type="button" class="admin-phase-btn" data-phase="post" title="Force Post Show banner">Post Show</button>
         <button type="button" class="admin-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
+        <button type="button" id="boxCleanupToggle" title="Show all boxes; tap to hide non-pins for everyone">Fix boxes</button>
+        <span id="boxCleanupCount"></span>
+    </div>
+    <div id="boxCleanupBar" aria-label="Box cleanup help">
+        <p><strong>Fix boxes (live for everyone):</strong> green outline = clickable pin. Tap a bad box to hide it for all visitors (red dashed). Tap again to restore. Saves to Firebase immediately — not just this browser.</p>
     </div>
     <div id="countdownArea"></div>
     <div id="fuelGaugeArea">
@@ -647,9 +672,20 @@ if (isAdmin) {
     document.getElementById('adminPhaseBar').querySelectorAll('.admin-phase-btn').forEach(btn => {
         btn.addEventListener('click', () => writeShowPhase(btn.getAttribute('data-phase')));
     });
+    const cleanupBtn = document.getElementById('boxCleanupToggle');
+    if (cleanupBtn) {
+        cleanupBtn.addEventListener('click', () => {
+            boxCleanupMode = !boxCleanupMode;
+            document.body.classList.toggle('box-cleanup-on', boxCleanupMode);
+            cleanupBtn.classList.toggle('is-active', boxCleanupMode);
+            applyAllHiddenPins();
+        });
+    }
 } else {
     document.getElementById('fuelStatBlock').style.display = 'none';
     document.getElementById('dotAfterSync').style.display = 'none';
+    const cleanupBar = document.getElementById('boxCleanupBar');
+    if (cleanupBar) cleanupBar.style.display = 'none';
 }
 
 function sanitizeUserKey(id) {
@@ -944,6 +980,56 @@ function parseShowDateSlugFromPath() {
 const showDateSlug = parseShowDateSlugFromPath() || SHOW_DATE_SLUG_FALLBACK;
 const fbName = showDateSlug;
 
+/** Firebase `hiddenPins/<slug>/<board>-<idx>` — removed for EVERY visitor, not local-only. */
+const hiddenPinKeys = new Set();
+let boxCleanupMode = false;
+
+function pinKeyOf(boardName, idx) {
+    return `${boardName}-${idx}`;
+}
+
+function refreshHiddenCount() {
+    const el = document.getElementById("boxCleanupCount");
+    if (!el) return;
+    el.textContent = hiddenPinKeys.size ? `${hiddenPinKeys.size} hidden` : "";
+}
+
+function applyHiddenToPinEl(pinEl, pinKey) {
+    if (!pinEl) return;
+    pinEl.classList.toggle("pin-hidden", hiddenPinKeys.has(pinKey));
+}
+
+function applyAllHiddenPins() {
+    document.querySelectorAll(".pin[id^='pin-']").forEach(el => {
+        const pinKey = el.id.startsWith("pin-") ? el.id.slice(4) : "";
+        if (pinKey) applyHiddenToPinEl(el, pinKey);
+    });
+    refreshHiddenCount();
+}
+
+function toggleHiddenPin(boardName, idx) {
+    const pinKey = pinKeyOf(boardName, idx);
+    const ref = db.ref(`hiddenPins/${fbName}/${pinKey}`);
+    if (hiddenPinKeys.has(pinKey)) {
+        ref.set(null);
+    } else {
+        ref.set({
+            hidden: true,
+            time: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+}
+
+db.ref(`hiddenPins/${fbName}`).on("value", snap => {
+    hiddenPinKeys.clear();
+    const v = snap.val() || {};
+    Object.keys(v).forEach(k => {
+        if (v[k]) hiddenPinKeys.add(k);
+    });
+    applyAllHiddenPins();
+    scheduleAvailablePinTotalsRefresh();
+});
+
 db.ref(`showConfig/${fbName}`).on("value", snap => {
     const v = snap.val() || {};
     if (v.startHour != null || v.endHour != null) {
@@ -1056,14 +1142,16 @@ async function computeAllBoardPinTotals(boardNames) {
                     const data = await r.json();
                     const pins = data.predictions || data.output?.predictions || [];
                     if (!Array.isArray(pins)) return 0;
-                    if (!unavailable) return pins.length;
                     const leftover = String(name).startsWith("LO03_");
                     let n = 0;
-                    for (const pin of pins) {
-                        const stem = pin && pin.crop_stem ? String(pin.crop_stem) : "";
-                        if (unavailable(stem, leftover)) continue;
+                    pins.forEach((pin, idx) => {
+                        if (hiddenPinKeys.has(pinKeyOf(name, idx))) return;
+                        if (unavailable) {
+                            const stem = pin && pin.crop_stem ? String(pin.crop_stem) : "";
+                            if (unavailable(stem, leftover)) return;
+                        }
                         n++;
-                    }
+                    });
                     return n;
                 } catch (e) {
                     return 0;
@@ -1075,12 +1163,12 @@ async function computeAllBoardPinTotals(boardNames) {
     return sum;
 }
 
-/** Count pins that are still requestable (exclude NaP + sold leftovers). Pending stays clickable. */
+/** Count pins that are still requestable (exclude NaP + sold leftovers + Fix-boxes hides). Pending stays clickable. */
 function countAvailablePinsOnBoard(name) {
     const pins = document.querySelectorAll(`#wrapper-${name} .pin`);
     let n = 0;
     pins.forEach((p) => {
-        if (p.classList.contains("pin-nap") || p.classList.contains("pin-sold")) return;
+        if (p.classList.contains("pin-nap") || p.classList.contains("pin-sold") || p.classList.contains("pin-hidden")) return;
         n++;
     });
     return n;
@@ -1237,8 +1325,16 @@ async function setupBoard(name) {
             div.id = `pin-${name}-${idx}`;
             if (pin.crop_stem) div.dataset.cropStem = pin.crop_stem;
             if (String(name).startsWith("LO03_")) div.dataset.leftover = "1";
-            div.onclick = (e) => { e.preventDefault(); handlePinClick(name, idx); };
+            div.onclick = (e) => {
+                e.preventDefault();
+                if (isAdmin && boxCleanupMode) {
+                    toggleHiddenPin(name, idx);
+                    return;
+                }
+                handlePinClick(name, idx);
+            };
             wrapper.appendChild(div);
+            applyHiddenToPinEl(div, pinKeyOf(name, idx));
             if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
             if (typeof window._ctcApplySoldGate === "function") window._ctcApplySoldGate(div);
             if (typeof window._ctcApplyPendingGate === "function") window._ctcApplyPendingGate(div);
@@ -1271,7 +1367,9 @@ function handlePinClick(boardName, idx) {
     const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
     // NaP / sold pins are not requestable (labels stay visible). Pending remains clickable.
     if (pinEl && (pinEl.classList.contains("pin-nap") || pinEl.classList.contains("pin-sold"))) return;
+    if (pinEl && pinEl.classList.contains("pin-hidden") && !(isAdmin && boxCleanupMode)) return;
     const pinKey = `${boardName}-${idx}`;
+    if (hiddenPinKeys.has(pinKey) && !(isAdmin && boxCleanupMode)) return;
     const userKey = sanitizeUserKey(identityKey);
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
     if (alreadyClicked) {

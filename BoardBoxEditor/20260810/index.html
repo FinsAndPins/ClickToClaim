@@ -135,9 +135,15 @@
       font-size: 11px; color: var(--muted); line-height: 1.35;
       padding: 0 2px 4px;
     }
+    #authMsg {
+      text-align: center; margin-top: 100px; font-weight: bold; color: var(--muted);
+      padding: 0 20px; line-height: 1.5;
+    }
   </style>
 </head>
 <body>
+<div id="authMsg">Admin authorization required. Open from CTR Reports (admin link), or add <code>?admin=…</code>.</div>
+<div id="authContent" style="display:none;">
 <div id="app">
   <header>
     <div class="row">
@@ -178,11 +184,23 @@
     </div>
   </div>
 </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 (function () {
+  const ADMIN_KEY = "0626200207081986";
+  const providedKey = new URLSearchParams(window.location.search).get("admin");
+  if (providedKey === ADMIN_KEY) sessionStorage.setItem("fp_admin_active", "true");
+  const isAdmin = sessionStorage.getItem("fp_admin_active") === "true" || providedKey === ADMIN_KEY;
+  if (!isAdmin) return;
+  sessionStorage.setItem("fp_admin_active", "true");
+  const authMsg = document.getElementById("authMsg");
+  const authContent = document.getElementById("authContent");
+  if (authMsg) authMsg.style.display = "none";
+  if (authContent) authContent.style.display = "block";
+
   const SHOW_SLUG = "20260810";
   const FIREBASE_ROOT = `boardBoxEditor/${SHOW_SLUG}`;
   const MIN_BOX = 24;
