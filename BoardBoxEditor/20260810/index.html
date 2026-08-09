@@ -48,26 +48,44 @@
     button.danger { background: #5a1520; border-color: var(--danger); }
     button:disabled { opacity: 0.45; cursor: default; }
     #stageWrap {
-      flex: 1 1 auto; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch;
-      background: #0a0c12; position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      background: #0a0c12;
+      position: relative;
       padding: 10px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
     }
     #stage {
-      position: relative; margin: 0 auto; width: fit-content;
-      touch-action: none; user-select: none;
+      position: relative;
+      margin: 0 auto;
+      width: fit-content;
+      max-width: 100%;
+      touch-action: pan-y;
+      user-select: none;
     }
     #boardImg {
-      display: block; max-width: min(100vw - 20px, 960px);
-      width: auto; height: auto;
+      display: block;
+      max-width: min(100vw - 20px, 960px);
+      width: auto;
+      height: auto;
       border-radius: 6px;
       box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+      pointer-events: none;
+      -webkit-user-drag: none;
     }
     #overlay {
       position: absolute; left: 0; top: 0; width: 100%; height: 100%;
       pointer-events: none;
+      touch-action: pan-y;
     }
     .box {
       position: absolute; pointer-events: auto;
+      touch-action: none;
       border: 3px solid var(--box);
       background: rgba(0, 255, 156, 0.18);
       box-shadow: 0 0 0 1px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(0,0,0,0.25);
@@ -90,8 +108,25 @@
       position: absolute; width: 22px; height: 22px;
       background: var(--handle); border: 2px solid #111;
       border-radius: 4px; pointer-events: auto;
+      touch-action: none;
       box-shadow: 0 1px 4px rgba(0,0,0,0.5);
     }
+    #unsavedModal {
+      display: none; position: fixed; inset: 0; z-index: 5000;
+      background: rgba(0,0,0,0.72); align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #unsavedModal.open { display: flex; }
+    #unsavedModal .sheet {
+      background: var(--panel); color: var(--text);
+      border-radius: 14px; padding: 18px 16px; width: min(360px, 100%);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    }
+    #unsavedModal h3 { margin: 0 0 8px; font-size: 17px; }
+    #unsavedModal p { margin: 0 0 16px; font-size: 14px; color: var(--muted); line-height: 1.4; }
+    #unsavedModal .actions { display: flex; flex-direction: column; gap: 8px; }
+    #unsavedModal .actions button { width: 100%; }
     .handle.nw { left: -11px; top: -11px; cursor: nwse-resize; }
     .handle.ne { right: -11px; top: -11px; cursor: nesw-resize; }
     .handle.sw { left: -11px; bottom: -11px; cursor: nesw-resize; }
@@ -129,6 +164,17 @@
     <div id="stage">
       <img id="boardImg" alt="Board">
       <div id="overlay"></div>
+    </div>
+  </div>
+</div>
+<div id="unsavedModal" role="dialog" aria-modal="true" aria-labelledby="unsavedTitle">
+  <div class="sheet">
+    <h3 id="unsavedTitle">Unsaved changes</h3>
+    <p>This board has edits that aren’t saved yet.</p>
+    <div class="actions">
+      <button type="button" class="primary" id="unsavedSave">Save</button>
+      <button type="button" id="unsavedDiscard">Don’t Save</button>
+      <button type="button" id="unsavedCancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -372,12 +418,36 @@
     return snap.val();
   }
 
+  function askUnsaved() {
+    const modal = document.getElementById("unsavedModal");
+    return new Promise((resolve) => {
+      const finish = (choice) => {
+        modal.classList.remove("open");
+        document.getElementById("unsavedSave").onclick = null;
+        document.getElementById("unsavedDiscard").onclick = null;
+        document.getElementById("unsavedCancel").onclick = null;
+        resolve(choice);
+      };
+      document.getElementById("unsavedSave").onclick = () => finish("save");
+      document.getElementById("unsavedDiscard").onclick = () => finish("discard");
+      document.getElementById("unsavedCancel").onclick = () => finish("cancel");
+      modal.classList.add("open");
+    });
+  }
+
   async function loadBoard(index, { forceFile = false } = {}) {
     if (dirty && !forceFile) {
-      const ok = confirm("You have unsaved changes. Discard them?");
-      if (!ok) {
+      const choice = await askUnsaved();
+      if (choice === "cancel") {
         el.select.value = stems[stemIndex];
         return;
+      }
+      if (choice === "save") {
+        await saveBoard();
+        if (dirty) {
+          el.select.value = stems[stemIndex];
+          return;
+        }
       }
     }
     stemIndex = Math.max(0, Math.min(stems.length - 1, index));
@@ -393,9 +463,20 @@
     if (!forceFile) {
       try {
         const fb = await loadFirebaseJson(stem);
-        if (fb && Array.isArray(fb.predictions) && fb.predictions.length >= 0 && fb.updatedAt) {
-          payload = fb;
-          setStatus(`Loaded ${stem} from Firebase (edited)`, "ok");
+        let best = null;
+        if (fb && Array.isArray(fb.predictions) && fb.updatedAt) best = fb;
+        try {
+          const lsRaw = localStorage.getItem(`bbe_${SHOW_SLUG}_${stem}`);
+          if (lsRaw) {
+            const ls = JSON.parse(lsRaw);
+            if (ls && Array.isArray(ls.predictions) && ls.updatedAt && (!best || Number(ls.updatedAt) > Number(best.updatedAt))) {
+              best = ls;
+            }
+          }
+        } catch (_) {}
+        if (best) {
+          payload = best;
+          setStatus(`Loaded ${stem} from ${best.source === "board-box-editor" || best.updatedAt ? "your saved edits" : "Firebase"}`, "ok");
         } else {
           setStatus(`Loaded ${stem} from file`, "ok");
         }
@@ -414,7 +495,7 @@
       }
       render();
     };
-    el.img.src = `./boards/${stem}.JPG?v=1`;
+    el.img.src = `./boards/${stem}.JPG?v=2`;
     if (el.img.complete) {
       updateScale();
       render();
