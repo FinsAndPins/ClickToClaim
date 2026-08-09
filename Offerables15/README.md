@@ -8,4 +8,7 @@ Whatnot-only $15 offerable boards (48+). Not a Click To Request show.
 **Open the review here (GitHub Pages):**  
 https://finsandpins.github.io/ClickToClaim/character-review-offerables15/
 
+**Sold overlay (boards 48+ from shipping ledger):**  
+https://finsandpins.github.io/ClickToClaim/Offerables15/sold-overlay/
+
 Firebase progress: `pin_title_review/shows/offerables15/vlm_state` only.
