@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Offerables Sold Overlay — Boards 48+</title>
+  <style>
+    :root {
+      --bg: #12141a;
+      --panel: #1c2030;
+      --text: #f4f6fb;
+      --muted: #9aa3b5;
+      --sold: #ff2d55;
+      --sold-bg: rgba(255, 45, 85, 0.35);
+      --ok: #3ddc97;
+      --btn: #2a3148;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; height: 100%; background: var(--bg); color: var(--text);
+      font-family: "Avenir Next", "Segoe UI", sans-serif; overflow: hidden;
+    }
+    #app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+    header {
+      flex: 0 0 auto;
+      background: var(--panel);
+      padding: 8px 10px calc(8px + env(safe-area-inset-top));
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .title { font-weight: 800; font-size: 15px; }
+    .meta { font-size: 12px; color: var(--muted); }
+    .meta strong { color: #ff8fa3; }
+    #status { font-size: 12px; color: var(--muted); min-height: 16px; }
+    #status.ok { color: var(--ok); }
+    #status.err { color: var(--sold); }
+    select, button {
+      font: inherit; font-size: 13px; font-weight: 700;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.14);
+      background: var(--btn); color: var(--text);
+      padding: 10px 12px; min-height: 42px; cursor: pointer;
+    }
+    select { flex: 1 1 180px; min-width: 160px; }
+    button:active { transform: scale(0.98); }
+    button.primary { background: #6b1028; border-color: var(--sold); }
+    label.toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted); font-weight: 600;
+    }
+    #stageWrap {
+      flex: 1 1 auto; min-height: 0;
+      overflow-x: hidden; overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      background: #0a0c12;
+      padding: 10px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+    #stage {
+      position: relative; margin: 0 auto; width: fit-content; max-width: 100%;
+      touch-action: pan-y;
+    }
+    #boardImg {
+      display: block;
+      max-width: min(100vw - 20px, 960px);
+      width: auto; height: auto;
+      border-radius: 6px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+    #overlay {
+      position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .sold-box {
+      position: absolute;
+      border: 3px solid var(--sold);
+      background: var(--sold-bg);
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.55);
+    }
+    .sold-box .tag {
+      position: absolute; left: 0; top: 0; transform: translateY(-100%);
+      background: var(--sold); color: #fff;
+      font-size: 11px; font-weight: 900; letter-spacing: 0.04em;
+      padding: 3px 7px; border-radius: 4px 4px 0 0;
+      white-space: nowrap;
+    }
+    .sold-box .xmark {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(18px, 4vw, 34px); font-weight: 900; color: #fff;
+      text-shadow: 0 1px 3px #000;
+      opacity: 0.95;
+    }
+    .hint {
+      font-size: 11px; color: var(--muted); line-height: 1.35;
+      padding: 0 2px 2px;
+    }
+    #soldList {
+      font-size: 12px; color: var(--muted); line-height: 1.45;
+      max-height: 72px; overflow: auto;
+    }
+    #soldList strong { color: #ffb3c1; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="row">
+      <div class="title">Sold Overlay · Offerables 48+</div>
+      <div class="meta"><strong id="soldTotal">0</strong> sold · board <strong id="boardLabel">—</strong></div>
+    </div>
+    <div class="row">
+      <button type="button" id="btnPrev">◀ Prev</button>
+      <select id="boardSelect" aria-label="Board"></select>
+      <button type="button" id="btnNext">Next ▶</button>
+    </div>
+    <div class="row">
+      <button type="button" class="primary" id="btnNextSold">Next board with sold</button>
+      <label class="toggle"><input type="checkbox" id="onlySold" checked> Only boards with sold</label>
+    </div>
+    <div id="soldList"></div>
+    <div id="status">Loading…</div>
+    <div class="hint">Red = sold per Thursday shipping ledger (<code>Board N Pin M</code>). Compare to the physical board, pull those pins, then clone remaining inventory in Whatnot.</div>
+  </header>
+  <div id="stageWrap">
+    <div id="stage">
+      <img id="boardImg" alt="Board">
+      <div id="overlay"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  const el = {
+    select: document.getElementById("boardSelect"),
+    img: document.getElementById("boardImg"),
+    overlay: document.getElementById("overlay"),
+    status: document.getElementById("status"),
+    soldTotal: document.getElementById("soldTotal"),
+    boardLabel: document.getElementById("boardLabel"),
+    soldList: document.getElementById("soldList"),
+    onlySold: document.getElementById("onlySold"),
+    btnPrev: document.getElementById("btnPrev"),
+    btnNext: document.getElementById("btnNext"),
+    btnNextSold: document.getElementById("btnNextSold"),
+  };
+
+  let data = null;
+  let view = [];
+  let idx = 0;
+  let scale = 1;
+
+  function setStatus(msg, kind) {
+    el.status.textContent = msg || "";
+    el.status.className = kind || "";
+  }
+
+  function visibleBoards() {
+    if (!data) return [];
+    if (el.onlySold.checked) return data.boards.filter((b) => b.sold_count > 0);
+    return data.boards.slice();
+  }
+
+  function rebuildSelect(keepStem) {
+    view = visibleBoards();
+    el.select.innerHTML = view.map((b, i) => {
+      const mark = b.sold_count ? ` · ${b.sold_count} sold` : "";
+      return `<option value="${b.stem}">${i + 1}. ${b.label}${mark}</option>`;
+    }).join("");
+    if (!view.length) {
+      setStatus("No boards to show.", "err");
+      return;
+    }
+    let i = view.findIndex((b) => b.stem === keepStem);
+    if (i < 0) i = 0;
+    idx = i;
+    el.select.value = view[idx].stem;
+  }
+
+  function updateScale() {
+    const nw = el.img.naturalWidth || (view[idx] && view[idx].image && view[idx].image.width) || 1;
+    const dw = el.img.clientWidth || nw;
+    scale = dw / nw;
+  }
+
+  function render() {
+    if (!view.length) return;
+    const b = view[idx];
+    updateScale();
+    el.overlay.innerHTML = "";
+    el.overlay.style.width = el.img.clientWidth + "px";
+    el.overlay.style.height = el.img.clientHeight + "px";
+    (b.sold || []).forEach((p) => {
+      const left = (p.x - p.width / 2) * scale;
+      const top = (p.y - p.height / 2) * scale;
+      const w = p.width * scale;
+      const h = p.height * scale;
+      const box = document.createElement("div");
+      box.className = "sold-box";
+      box.style.left = left + "px";
+      box.style.top = top + "px";
+      box.style.width = w + "px";
+      box.style.height = h + "px";
+      const tag = document.createElement("div");
+      tag.className = "tag";
+      tag.textContent = `SOLD · Pin ${p.pin}` + (p.price ? ` · $${p.price}` : "");
+      const x = document.createElement("div");
+      x.className = "xmark";
+      x.textContent = "SOLD";
+      box.appendChild(tag);
+      box.appendChild(x);
+      el.overlay.appendChild(box);
+    });
+    el.boardLabel.textContent = `${b.label} (${idx + 1}/${view.length})`;
+    el.soldList.innerHTML = b.sold_count
+      ? `<strong>${b.sold_count} sold on this board:</strong> ` +
+        b.sold.map((p) => `Pin ${p.pin}` + (p.buyer ? ` (@${p.buyer})` : "")).join(" · ")
+      : "No sold pins on this board.";
+    setStatus(`${b.label} · ${b.sold_count} sold / ${b.pin_count} boxes`, b.sold_count ? "ok" : "");
+  }
+
+  function loadBoard(i) {
+    if (!view.length) return;
+    idx = Math.max(0, Math.min(view.length - 1, i));
+    const b = view[idx];
+    el.select.value = b.stem;
+    setStatus(`Loading ${b.label}…`);
+    el.img.onload = () => render();
+    el.img.src = `./boards/${b.stem}.JPG?v=1`;
+    if (el.img.complete) render();
+  }
+
+  el.btnPrev.addEventListener("click", () => loadBoard(idx - 1));
+  el.btnNext.addEventListener("click", () => loadBoard(idx + 1));
+  el.btnNextSold.addEventListener("click", () => {
+    if (!view.length) return;
+    for (let step = 1; step <= view.length; step++) {
+      const j = (idx + step) % view.length;
+      if (view[j].sold_count > 0) {
+        loadBoard(j);
+        return;
+      }
+    }
+  });
+  el.select.addEventListener("change", () => {
+    const i = view.findIndex((b) => b.stem === el.select.value);
+    if (i >= 0) loadBoard(i);
+  });
+  el.onlySold.addEventListener("change", () => {
+    const keep = view[idx] && view[idx].stem;
+    rebuildSelect(keep);
+    loadBoard(idx);
+  });
+  window.addEventListener("resize", () => render());
+
+  fetch("./sold.json?v=" + Date.now(), { cache: "no-store" })
+    .then((r) => r.json())
+    .then((j) => {
+      data = j;
+      el.soldTotal.textContent = String(j.total_sold_marked || 0);
+      rebuildSelect(null);
+      loadBoard(0);
+    })
+    .catch((e) => setStatus("Failed to load sold.json: " + e.message, "err"));
+})();
+</script>
+</body>
+</html>
