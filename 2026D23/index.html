@@ -28,7 +28,9 @@
         .login-form-stack { width: 100%; max-width: 280px; margin: 0 auto; box-sizing: border-box; }
         .login-form-stack input#usernameInput { width: 100%; box-sizing: border-box; margin: 8px 0 12px; }
         .login-form-stack .primary { width: 100%; box-sizing: border-box; }
-        #globalCounts { text-align: center; font-size: 13px; margin-bottom: 16px; font-weight: 600; background: var(--fp-chunk); padding: 8px 10px; border-radius: 10px; position: sticky; top: 0; z-index: 2000; color: var(--fp-text); }
+        /* Only the slim stats strip sticks while scrolling — admin/fuel/lite chrome scrolls away (esp. iPhone). */
+        #globalCounts { text-align: center; font-size: 13px; margin-bottom: 16px; font-weight: 600; background: var(--fp-chunk); padding: 8px 10px; border-radius: 10px; color: var(--fp-text); }
+        #globalCountsStick { position: sticky; top: 0; z-index: 2000; background: var(--fp-chunk); padding: 2px 0 4px; margin: 0 -2px; }
         .global-counts-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; line-height: 1.3; }
         .gc-item { font-size: 13px; }
         .gc-dot { color: var(--fp-muted); font-weight: normal; user-select: none; }
@@ -438,6 +440,7 @@
 </div>
 
 <div id="globalCounts">
+    <div id="globalCountsStick">
     <div id="userStatsRow" class="global-counts-row">
         <span id="userStatBlock" class="gc-item">My Requests: <span id="totalMyClaims">0</span></span>
         <span id="dotBeforeSync" class="gc-dot" aria-hidden="true">·</span>
@@ -448,6 +451,7 @@
     <span id="totalPins" hidden>0</span>
     <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
         Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · VB gen <span id="adminVirtualBoardGen" title="People who tapped Save Photo of ISO virtual pin board">0</span> · VB save <span id="adminVirtualBoardSave" title="People who saved an ISO virtual board photo">0</span>
+    </div>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
         <span class="admin-phase-label">Admin only — show state &amp; box cleanup (not shown to visitors)</span>
