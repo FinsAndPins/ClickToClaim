@@ -1034,7 +1034,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "1";
+const BOARDS_MANIFEST_VERSION = "3";
 
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
@@ -2221,7 +2221,7 @@ async function runVirtualBoardExport() {
 // Pending auth stems live in showConfig/{show}/pendingStems (Whatnot excludes; no CTR label).
 // Visibility mode: showConfig/{show}/priceMode (shared across devices). localStorage is cache only.
 (function() {
-const _PO_TR = 'test_CTR_20260810_pricing_unset';
+const _PO_TR = 'test_PriceCollection_20260808_2357__build_20260810_fullres_visual_baseline';
 const _PO_TR_LEFTOVER = 'test_CTR_20260810_pricing_unset';
 const _PO_AP = 'visual_baseline';
 const _PO_MODE_KEY = '_ctcPriceMode_20260810';

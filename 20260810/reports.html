@@ -268,7 +268,7 @@ async function loadData() {
     }
 
     // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
-    const BOARDS_MANIFEST_VERSION = "1";
+    const BOARDS_MANIFEST_VERSION = "3";
     const manifest = await (await fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
 
     // Virtual board analytics — showConfig only; never claims.
@@ -307,7 +307,7 @@ async function loadData() {
 }
 
 // ── Dollar value support (same as boards badges: list round, then 25% off) ──
-const PRICING_RUN_ID = 'test_CTR_20260810_pricing_unset';
+const PRICING_RUN_ID = 'test_PriceCollection_20260808_2357__build_20260810_fullres_visual_baseline';
 const PRICING_RUN_ID_LEFTOVER = 'test_CTR_20260810_pricing_unset';
 const pinKeyToStem = {};   // "IMG_8127-3" / "LO03_IMG_8621-0" → crop_stem
 const stemToPricePrimary = {};
