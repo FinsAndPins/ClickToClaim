@@ -47,6 +47,14 @@
     button.primary { background: #0b6e4f; border-color: var(--accent); color: #fff; }
     button.danger { background: #5a1520; border-color: var(--danger); }
     button:disabled { opacity: 0.45; cursor: default; }
+    a.btn-link {
+      display: inline-flex; align-items: center; justify-content: center;
+      text-decoration: none; font: inherit; font-size: 13px; font-weight: 700;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.14);
+      background: var(--btn); color: var(--text);
+      padding: 10px 12px; min-height: 42px; box-sizing: border-box;
+    }
+    a.btn-link:active { transform: scale(0.98); }
     #stageWrap {
       flex: 1 1 auto;
       min-height: 0;
@@ -149,6 +157,7 @@
     <div class="row">
       <div class="title">Board Box Editor</div>
       <div class="meta">20260810 · <strong id="pinCount">0</strong> pins · board <strong id="boardIdx">1</strong>/<span id="boardTotal">0</span></div>
+      <a id="btnReports" class="btn-link" href="../../20260810/reports.html">← Reports</a>
     </div>
     <div class="row">
       <button type="button" id="btnPrev" title="Previous board">◀ Prev</button>
@@ -202,6 +211,7 @@
   if (authContent) authContent.style.display = "block";
 
   const SHOW_SLUG = "20260810";
+  const REPORTS_HREF = `../../${SHOW_SLUG}/reports.html?admin=${ADMIN_KEY}`;
   const FIREBASE_ROOT = `boardBoxEditor/${SHOW_SLUG}`;
   const MIN_BOX = 24;
 
@@ -234,7 +244,9 @@
     btnSave: document.getElementById("btnSave"),
     btnDownload: document.getElementById("btnDownload"),
     btnReset: document.getElementById("btnReset"),
+    btnReports: document.getElementById("btnReports"),
   };
+  if (el.btnReports) el.btnReports.href = REPORTS_HREF;
 
   let stems = [];
   let stemIndex = 0;
@@ -628,6 +640,20 @@
       saveBoard();
     }
   });
+
+  async function goToReports(e) {
+    if (e) e.preventDefault();
+    if (dirty) {
+      const choice = await askUnsaved();
+      if (choice === "cancel") return;
+      if (choice === "save") {
+        await saveBoard();
+        if (dirty) return;
+      }
+    }
+    window.location.href = REPORTS_HREF;
+  }
+  if (el.btnReports) el.btnReports.addEventListener("click", goToReports);
 
   async function init() {
     const r = await fetch("./boards/manifest.json?v=" + Date.now(), { cache: "no-store" });

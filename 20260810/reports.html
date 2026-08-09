@@ -47,7 +47,7 @@
 </head>
 <body>
 <div id="authContent" style="display:none;">
-    <div class="header"><h1>Reports</h1><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="mark_pending.html" class="btn" style="background:#444">Mark pending auth</a><a href="mark_leftover_sold.html" class="btn" style="background:#444">Mark leftover sold</a><a href="leftover_sheet.html" class="btn" style="background:#444">Leftover sheet</a><a id="fixBoxesBoardsBtn" href="index.html" class="btn" style="background:#0b6e4f" title="Open boards as admin, then tap Fix boxes">Fix boxes</a><a id="boardBoxEditorBtn" href="../BoardBoxEditor/20260810/" class="btn" style="background:#0b6e4f">Board box editor</a><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
+    <div class="header"><h1>Reports</h1><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="mark_pending.html" class="btn" style="background:#444">Mark pending auth</a><a href="mark_leftover_sold.html" class="btn" style="background:#444">Mark leftover sold</a><a href="leftover_sheet.html" class="btn" style="background:#444">Leftover sheet</a><a id="boardBoxEditorBtn" href="../BoardBoxEditor/20260810/" class="btn" style="background:#0b6e4f">Board box editor</a><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
 
     <section id="showWindowSection">
         <h2>Show window (Eastern Time)</h2>
@@ -60,9 +60,8 @@
         </div>
         <div class="reports-phase-wrap" id="reportsBoxTools" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid #ddd;">
             <h2 style="margin:0 0 8px;font-size:1.17em;">Box tools (admin only)</h2>
-            <p class="box-tools-note"><strong>Fix boxes</strong> opens the live boards page — tap <strong>Fix boxes</strong> in the admin bar, then tap a bad detection to hide it for everyone (Firebase). <strong>Board box editor</strong> is for move/resize/add/delete; Save syncs devices. Same admin key as this page.</p>
+            <p class="box-tools-note"><strong>Board box editor</strong> — move, resize, add, or delete pin boxes. Save syncs across devices. Same admin key as this page. After edits, ask to sync JSON into the live CTR boards folder before relying on them for clicks/prices.</p>
             <div class="box-tools-row">
-                <a id="fixBoxesBoardsBtn2" href="index.html" class="btn" style="background:#0b6e4f">Open boards → Fix boxes</a>
                 <a id="boardBoxEditorBtn2" href="../BoardBoxEditor/20260810/" class="btn" style="background:#0b6e4f">Open board box editor</a>
             </div>
         </div>
@@ -154,12 +153,7 @@ function checkAuth(m=false) {
         document.getElementById('authMsg').style.display = 'none';
         document.getElementById('authContent').style.display = 'block';
         document.getElementById('backBtn').href = `index.html?admin=${ADMIN_KEY}`;
-        const fixHref = `index.html?admin=${ADMIN_KEY}`;
         const editorHref = `../BoardBoxEditor/20260810/?admin=${ADMIN_KEY}`;
-        ["fixBoxesBoardsBtn", "fixBoxesBoardsBtn2"].forEach((id) => {
-            const a = document.getElementById(id);
-            if (a) a.href = fixHref;
-        });
         ["boardBoxEditorBtn", "boardBoxEditorBtn2"].forEach((id) => {
             const a = document.getElementById(id);
             if (a) a.href = editorHref;
