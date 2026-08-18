@@ -49,14 +49,14 @@
             <button type="button" class="btn" id="csvCatalogBtn">Download CSV — catalog order</button>
             <button type="button" class="btn secondary" id="csvCountBtn">Download CSV — highest count first</button>
         </div>
-        <p class="muted">CSV is pins with quantity 1 or more. Photos below are cropped from the live D23 catalog boards.</p>
+        <p class="muted">CSV is pins with quantity 1 or more. Photos below are cropped from the live D23 catalog boards. <strong>Counted by</strong> uses the staff name each person typed at login.</p>
     </section>
 
     <section>
         <h2>1. In stock — catalog order</h2>
         <p class="muted">Pins we have 1 or more of, in flyer page order.</p>
         <table>
-            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th></th></tr></thead>
+            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Counted by</th><th></th></tr></thead>
             <tbody id="catalogBody"></tbody>
         </table>
     </section>
@@ -65,7 +65,7 @@
         <h2>2. In stock — highest count first</h2>
         <p class="muted">Same pins, sorted by quantity (high → low), then catalog order.</p>
         <table>
-            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th></th></tr></thead>
+            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Counted by</th><th></th></tr></thead>
             <tbody id="countBody"></tbody>
         </table>
     </section>
@@ -145,11 +145,40 @@ function checkAuth() {
 }
 checkAuth();
 
+function inventoryStaffCount(entry) {
+    if (entry == null) return 0;
+    if (typeof entry === "number") return Math.max(0, Math.floor(entry));
+    return Math.max(0, Math.floor(Number(entry.count) || 0));
+}
+
 function inventoryCountFromRow(row) {
     if (row == null) return 0;
     if (typeof row === "number") return Math.max(0, Math.floor(row));
-    if (typeof row === "object") return Math.max(0, Math.floor(Number(row.count) || 0));
+    if (typeof row === "object") {
+        if (row.staff && typeof row.staff === "object") {
+            const sum = Object.values(row.staff).reduce((s, v) => s + inventoryStaffCount(v), 0);
+            if (sum > 0) return sum;
+        }
+        return Math.max(0, Math.floor(Number(row.count) || 0));
+    }
     return 0;
+}
+
+function staffBreakdownText(row) {
+    const parts = [];
+    if (row && row.staff && typeof row.staff === "object") {
+        Object.values(row.staff).forEach((v) => {
+            const n = inventoryStaffCount(v);
+            if (n > 0) parts.push({ label: (v && v.label) ? String(v.label) : "staff", n });
+        });
+    }
+    if (!parts.length && inventoryCountFromRow(row) > 0) {
+        parts.push({ label: (row && row.by) ? String(row.by) : "unattributed", n: inventoryCountFromRow(row) });
+    }
+    return parts
+        .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label))
+        .map((p) => `${p.label} ${p.n}`)
+        .join(" · ");
 }
 
 function csvEscape(v) {
@@ -319,6 +348,7 @@ async function loadData() {
                     boardNum: meta.boardIndex + 1,
                     catalogOrder,
                     qty,
+                    countedBy: staffBreakdownText(invData[pinKey]),
                     pin,
                     image: meta.image,
                     loc: `Board ${meta.boardIndex + 1} (Pin ${idx + 1})`
@@ -338,6 +368,7 @@ async function loadData() {
             <td>${row.thumb ? `<img class="pin-thumb" alt="${row.loc}" src="${row.thumb}">` : ""}</td>
             <td>${row.loc}<br><small class="muted">${row.pinKey}</small></td>
             <td><span class="qty-pill">${row.qty}</span></td>
+            <td>${row.countedBy || ""}</td>
             <td><a href="index.html?admin=${ADMIN_KEY}#pin-${row.pinKey}" style="color:#0066aa;font-weight:bold;">View</a></td>
         </tr>`;
     }
@@ -349,9 +380,9 @@ async function loadData() {
         document.getElementById("invSummary").innerHTML =
             `<strong>${catalog.length}</strong> pin${catalog.length === 1 ? "" : "s"} in stock · <strong>${units}</strong> unit${units === 1 ? "" : "s"} total`;
         document.getElementById("catalogBody").innerHTML = catalog.map(rowHtml).join("") ||
-            '<tr><td colspan="4" class="muted">Nothing in stock yet. Tap pins on the boards page to start at 1.</td></tr>';
+            '<tr><td colspan="5" class="muted">Nothing in stock yet. Tap pins on the boards page to start at 1.</td></tr>';
         document.getElementById("countBody").innerHTML = byCount.map(rowHtml).join("") ||
-            '<tr><td colspan="4" class="muted">Nothing in stock yet.</td></tr>';
+            '<tr><td colspan="5" class="muted">Nothing in stock yet.</td></tr>';
         const dist = {};
         catalog.forEach((r) => { dist[r.qty] = (dist[r.qty] || 0) + 1; });
         const counts = Object.keys(dist).map(Number).sort((a, b) => b - a);
@@ -362,8 +393,8 @@ async function loadData() {
 
     function csvRows(list) {
         return [
-            ["catalog_order", "board", "board_number", "pin_index", "pin_key", "qty", "location"],
-            ...list.map((r) => [r.catalogOrder, r.name, r.boardNum, r.idx + 1, r.pinKey, r.qty, r.loc])
+            ["catalog_order", "board", "board_number", "pin_index", "pin_key", "qty", "counted_by", "location"],
+            ...list.map((r) => [r.catalogOrder, r.name, r.boardNum, r.idx + 1, r.pinKey, r.qty, r.countedBy || "", r.loc])
         ];
     }
     document.getElementById("csvCatalogBtn").onclick = () => {

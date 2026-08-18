@@ -1185,11 +1185,11 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
         document.getElementById("showTitle").textContent = "D23 inventory — tap a pin or + to add one; − to remove one. Shared staff count.";
         const intro = document.getElementById("introNote");
         if (intro) {
-            intro.textContent = "Starting at zero. Counts are one shared inventory, not per person.";
+            intro.textContent = "Starting at zero. Each pin shows one combined count for both of you.";
         }
         const help = document.querySelector(".login-help");
         if (help) {
-            help.textContent = "Enter any staff name so we know who last tapped. Counts are shared — not per username.";
+            help.textContent = "Enter Lexi, Steve, or another staff name. The pin shows one combined count; reports show who counted how many.";
         }
         const disc = document.querySelector(".login-disclaimer");
         if (disc) {
@@ -1479,11 +1479,55 @@ function countClaimedPinsFromState() {
     return n;
 }
 
+function inventoryStaffCount(entry) {
+    if (entry == null) return 0;
+    if (typeof entry === "number") return Math.max(0, Math.floor(entry));
+    return Math.max(0, Math.floor(Number(entry.count) || 0));
+}
+
 function inventoryCountFromRow(row) {
     if (row == null) return 0;
     if (typeof row === "number") return Math.max(0, Math.floor(row));
-    if (typeof row === "object") return Math.max(0, Math.floor(Number(row.count) || 0));
+    if (typeof row === "object") {
+        if (row.staff && typeof row.staff === "object") {
+            const sum = Object.values(row.staff).reduce((s, v) => s + inventoryStaffCount(v), 0);
+            if (sum > 0) return sum;
+        }
+        return Math.max(0, Math.floor(Number(row.count) || 0));
+    }
     return 0;
+}
+
+function staffMapFromRow(row) {
+    const staff = {};
+    if (row && row.staff && typeof row.staff === "object") {
+        Object.entries(row.staff).forEach(([k, v]) => {
+            const n = inventoryStaffCount(v);
+            if (n <= 0) return;
+            staff[k] = {
+                count: n,
+                label: (v && typeof v === "object" && v.label) ? String(v.label) : k,
+                time: (v && typeof v === "object" && v.time) ? v.time : 0
+            };
+        });
+    }
+    if (!Object.keys(staff).length) {
+        const n = inventoryCountFromRow(row);
+        if (n > 0) {
+            const label = (row && row.by) ? String(row.by) : "unattributed";
+            const key = sanitizeUserKey(label) || "_prior";
+            staff[key] = { count: n, label, time: (row && row.time) || 0 };
+        }
+    }
+    return staff;
+}
+
+function staffBreakdownText(staff) {
+    return Object.values(staff || {})
+        .filter((v) => inventoryStaffCount(v) > 0)
+        .sort((a, b) => inventoryStaffCount(b) - inventoryStaffCount(a) || String(a.label || "").localeCompare(String(b.label || "")))
+        .map((v) => `${v.label || "staff"} ${inventoryStaffCount(v)}`)
+        .join(" · ");
 }
 
 function boardNameFromPinKey(pinKey) {
@@ -1491,21 +1535,56 @@ function boardNameFromPinKey(pinKey) {
     return m ? m[1] : "";
 }
 
+function currentInventoryStaffKey() {
+    return sanitizeUserKey(displayName || identityKey || "staff");
+}
+
 function adjustInventoryCount(pinKey, delta) {
     if (!isAdmin || !pinKey || !delta) return;
+    const userKey = currentInventoryStaffKey();
+    const label = displayName || "staff";
     db.ref(`inventory/${fbName}/${pinKey}`).transaction((cur) => {
-        const prev = inventoryCountFromRow(cur);
-        const next = Math.max(0, prev + delta);
+        const staff = staffMapFromRow(cur);
+        if (delta > 0) {
+            const mine = staff[userKey] || { count: 0, label, time: 0 };
+            mine.count = inventoryStaffCount(mine) + delta;
+            mine.label = label;
+            mine.time = Date.now();
+            staff[userKey] = mine;
+        } else {
+            let need = Math.abs(delta);
+            if (staff[userKey] && inventoryStaffCount(staff[userKey]) > 0) {
+                const take = Math.min(need, inventoryStaffCount(staff[userKey]));
+                staff[userKey].count = inventoryStaffCount(staff[userKey]) - take;
+                staff[userKey].label = label;
+                staff[userKey].time = Date.now();
+                need -= take;
+                if (staff[userKey].count <= 0) delete staff[userKey];
+            }
+            if (need > 0) {
+                Object.keys(staff)
+                    .sort((a, b) => inventoryStaffCount(staff[b]) - inventoryStaffCount(staff[a]))
+                    .forEach((k) => {
+                        if (need <= 0) return;
+                        const take = Math.min(need, inventoryStaffCount(staff[k]));
+                        staff[k].count = inventoryStaffCount(staff[k]) - take;
+                        need -= take;
+                        if (staff[k].count <= 0) delete staff[k];
+                    });
+            }
+        }
+        const next = Object.values(staff).reduce((s, v) => s + inventoryStaffCount(v), 0);
         if (next <= 0) return null;
         return {
             count: next,
             time: Date.now(),
-            by: displayName || "staff"
+            by: label,
+            staff
         };
     }).catch((e) => alert(e.message));
 }
 
-function applyQtyUi(pinEl, qty) {
+function applyQtyUi(pinEl, qty, breakdown) {
     if (!pinEl) return;
     const n = Math.max(0, Number(qty) || 0);
     pinEl.classList.toggle("has-qty", n >= 1);
@@ -1516,6 +1595,7 @@ function applyQtyUi(pinEl, qty) {
     let bar = pinEl.querySelector(".qty-stepper");
     if (n < 1) {
         if (bar) bar.remove();
+        pinEl.removeAttribute("title");
         return;
     }
     if (!bar) {
@@ -1538,6 +1618,9 @@ function applyQtyUi(pinEl, qty) {
     }
     const num = bar.querySelector(".qty-num");
     if (num) num.textContent = String(n);
+    const tip = breakdown ? `${n} in stock (${breakdown})` : `${n} in stock`;
+    pinEl.title = tip;
+    bar.title = tip;
 }
 
 function handlePinClick(boardName, idx) {
@@ -1585,13 +1668,13 @@ function listenForFirebase() {
             if (qty <= 0) return;
             const bName = boardNameFromPinKey(pinKey);
             if (!boardsState[bName]) return;
-            const by = (row && row.by) ? String(row.by) : "staff";
+            const by = staffBreakdownText(staffMapFromRow(row)) || ((row && row.by) ? String(row.by) : "staff");
             boardsState[bName].allClaims[pinKey] = { inventory: { time: row && row.time, label: by, count: qty } };
             boardsState[bName].globalBoardClaims++;
             boardsState[bName].myClaims += qty;
             isoMyPinKeysSession.add(pinKey);
             latestClaimsData[pinKey] = boardsState[bName].allClaims[pinKey];
-            applyQtyUi(document.getElementById(`pin-${pinKey}`), qty);
+            applyQtyUi(document.getElementById(`pin-${pinKey}`), qty, by);
         });
         updateAllBoardDisplays();
         calculateGlobals();
