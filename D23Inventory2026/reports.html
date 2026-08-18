@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>Fins and Pins — D23 Inventory Reports</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .btn { padding: 10px 15px; background: #0066aa; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; font-family: inherit; font-size: 14px; display: inline-block; }
+        .btn.secondary { background: #444; }
+        section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        th { background: #f9f9f9; position: sticky; top: 0; }
+        tr:hover { background: #f1f7ff; }
+        .pin-thumb {
+            width: 72px; height: 72px; object-fit: contain; background: #111;
+            border-radius: 8px; border: 1px solid #ddd; display: block;
+        }
+        .qty-pill { background: #1877f2; color: #fff; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 14px; }
+        .summary-line { font-size: 15px; color: #333; margin: 0 0 14px; }
+        .csv-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+        .muted { color: #777; font-size: 13px; }
+        .show-window-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 8px; }
+        .show-window-form label { font-size: 14px; }
+        .show-window-form select { font-size: 15px; padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; }
+        .tz-colon { margin: 0 2px; }
+        .show-config-status { font-size: 13px; color: #333; min-width: 120px; }
+        .reports-phase-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px solid #ddd; }
+        .reports-phase-wrap > p { font-size: 13px; color: #555; margin: 0 0 10px; line-height: 1.45; }
+        .reports-phase-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .reports-phase-btn { font-size: 12px; font-weight: bold; padding: 8px 12px; border-radius: 8px; border: 1px solid #999; background: #e8e8e8; color: #222; cursor: pointer; font-family: inherit; }
+        .reports-phase-btn.reports-phase-active { background: #0066aa; border-color: #004a80; color: #fff; }
+        .feedback-msg { background: #fff9c4; padding: 10px; border-radius: 4px; margin-bottom: 5px; border-left: 4px solid #fbc02d; }
+    </style>
+</head>
+<body>
+<div id="authContent" style="display:none;">
+    <div class="header">
+        <h1 style="margin:0;">D23 Inventory Reports</h1>
+        <div><a id="backBtn" href="index.html" class="btn">Boards</a></div>
+    </div>
+
+    <section>
+        <h2>Summary</h2>
+        <p id="invSummary" class="summary-line">Loading…</p>
+        <div class="csv-row">
+            <button type="button" class="btn" id="csvCatalogBtn">Download CSV — catalog order</button>
+            <button type="button" class="btn secondary" id="csvCountBtn">Download CSV — highest count first</button>
+        </div>
+        <p class="muted">CSV is pins with quantity 1 or more. Photos below are cropped from the live D23 catalog boards.</p>
+    </section>
+
+    <section>
+        <h2>1. In stock — catalog order</h2>
+        <p class="muted">Pins we have 1 or more of, in flyer page order.</p>
+        <table>
+            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th></th></tr></thead>
+            <tbody id="catalogBody"></tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>2. In stock — highest count first</h2>
+        <p class="muted">Same pins, sorted by quantity (high → low), then catalog order.</p>
+        <table>
+            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th></th></tr></thead>
+            <tbody id="countBody"></tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>3. Count summary</h2>
+        <table id="summaryTable"><thead><tr><th>Quantity</th><th>Pins</th></tr></thead><tbody id="distBody"></tbody></table>
+    </section>
+
+    <section id="showWindowSection">
+        <h2>Show window (Eastern Time)</h2>
+        <p style="font-size:14px;color:#555;margin:0 0 12px;">Kept from CTR chrome. Writes only to this inventory folder’s <code>showConfig</code> — not live D23 Click To Request. Folder <strong id="showWindowSlugLabel"></strong>.</p>
+        <div class="show-window-form">
+            <label>Start <select id="cfgStartH"></select><span class="tz-colon">:</span><select id="cfgStartM"></select></label>
+            <label>End <select id="cfgEndH"></select><span class="tz-colon">:</span><select id="cfgEndM"></select></label>
+            <button type="button" class="btn" id="saveShowConfigBtn">Save Window</button>
+            <span id="showConfigStatus" class="show-config-status"></span>
+        </div>
+        <div class="reports-phase-wrap" id="reportsPhaseBar">
+            <p>Show state for this inventory URL only (does not change public D23 CTR).</p>
+            <div class="reports-phase-row">
+                <button type="button" class="reports-phase-btn" data-phase="pre">Pre-Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="live">During Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="post">Post Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="auto">Schedule</button>
+                <span id="reportsPhaseStatus" class="reports-phase-status" aria-live="polite"></span>
+            </div>
+        </div>
+    </section>
+
+    <section><h2>Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
+</div>
+<div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;">Checking Authorization...</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const SHOW_DATE_SLUG_FALLBACK = "D23Inventory2026";
+const CTR_BOARDS_BASE = "../2026D23/boards";
+const CTR_HIDDEN_PINS_SLUG = "2026D23";
+const BOARDS_MANIFEST_VERSION = String(Date.now());
+const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", authDomain: "fins-and-pins-click-to-claim.firebaseapp.com", databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com", projectId: "fins-and-pins-click-to-claim", storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app", messagingSenderId: "31512845258", appId: "1:31512845258:web:2124fae24cfee229084d33" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ADMIN_KEY = "0626200207081986";
+
+function parseShowDateSlugFromPathReports() {
+    const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
+    const segments = pathClean.split("/").filter(Boolean);
+    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+    if (!last) return null;
+    if (last === "D23Inventory2026" || last === "2026D23" || /[A-Za-z]/.test(last)) return last;
+    const m = last.match(/(\d{8})/);
+    return m ? m[1] : last;
+}
+
+function fillTimeSelect(sel, max) {
+    sel.innerHTML = "";
+    for (let i = 0; i <= max; i++) {
+        const o = document.createElement("option");
+        o.value = i;
+        o.textContent = String(i).padStart(2, "0");
+        sel.appendChild(o);
+    }
+}
+
+function checkAuth() {
+    if (new URLSearchParams(window.location.search).get("admin") === ADMIN_KEY || sessionStorage.getItem("fp_admin_active") === "true") {
+        sessionStorage.setItem("fp_admin_active", "true");
+        document.getElementById("authMsg").style.display = "none";
+        document.getElementById("authContent").style.display = "block";
+        document.getElementById("backBtn").href = `index.html?admin=${ADMIN_KEY}`;
+        loadData();
+    } else {
+        document.getElementById("authMsg").textContent = "Staff-only. Open this reports page with the admin link.";
+    }
+}
+checkAuth();
+
+function inventoryCountFromRow(row) {
+    if (row == null) return 0;
+    if (typeof row === "number") return Math.max(0, Math.floor(row));
+    if (typeof row === "object") return Math.max(0, Math.floor(Number(row.count) || 0));
+    return 0;
+}
+
+function csvEscape(v) {
+    const s = String(v ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+}
+
+function downloadCsv(filename, rows) {
+    const text = rows.map((r) => r.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function loadData() {
+    const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
+    const fbName = showDateSlug;
+    document.getElementById("showWindowSlugLabel").textContent = showDateSlug;
+    fillTimeSelect(document.getElementById("cfgStartH"), 23);
+    fillTimeSelect(document.getElementById("cfgEndH"), 23);
+    fillTimeSelect(document.getElementById("cfgStartM"), 59);
+    fillTimeSelect(document.getElementById("cfgEndM"), 59);
+
+    db.ref(`showConfig/${fbName}`).once("value").then(snap => {
+        const v = snap.val() || {};
+        const sh = v.startHour != null ? Number(v.startHour) : 12;
+        const sm = v.startMin != null ? Number(v.startMin) : 0;
+        const eh = v.endHour != null ? Number(v.endHour) : 18;
+        const em = v.endMin != null ? Number(v.endMin) : 0;
+        document.getElementById("cfgStartH").value = String(Math.min(23, Math.max(0, sh)));
+        document.getElementById("cfgStartM").value = String(Math.min(59, Math.max(0, sm)));
+        document.getElementById("cfgEndH").value = String(Math.min(23, Math.max(0, eh)));
+        document.getElementById("cfgEndM").value = String(Math.min(59, Math.max(0, em)));
+    });
+
+    document.getElementById("saveShowConfigBtn").onclick = () => {
+        const st = document.getElementById("showConfigStatus");
+        st.textContent = "Saving…";
+        const payload = {
+            startHour: +document.getElementById("cfgStartH").value,
+            startMin: +document.getElementById("cfgStartM").value,
+            endHour: +document.getElementById("cfgEndH").value,
+            endMin: +document.getElementById("cfgEndM").value,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+        db.ref(`showConfig/${fbName}`).update(payload)
+            .then(() => { st.textContent = "Saved (inventory showConfig only)."; })
+            .catch(e => { st.textContent = "Error: " + e.message; });
+    };
+
+    const phaseStatusEl = document.getElementById("reportsPhaseStatus");
+    function writeShowPhaseReports(phase) {
+        if (!["auto", "pre", "live", "post"].includes(phase)) return;
+        if (phaseStatusEl) phaseStatusEl.textContent = "Saving phase…";
+        db.ref(`showConfig/${fbName}`).update({
+            phase,
+            phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP,
+            endedFullscreen: phase === "post"
+        }).then(() => {
+            if (phaseStatusEl) phaseStatusEl.textContent = "Phase saved (inventory only).";
+            setTimeout(() => { if (phaseStatusEl && /saved/.test(phaseStatusEl.textContent)) phaseStatusEl.textContent = ""; }, 3000);
+        }).catch(e => { if (phaseStatusEl) phaseStatusEl.textContent = "Error: " + e.message; });
+    }
+    document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(btn => {
+        btn.addEventListener("click", () => writeShowPhaseReports(btn.getAttribute("data-phase")));
+    });
+    db.ref(`showConfig/${fbName}`).on("value", snap => {
+        const v = snap.val() || {};
+        const ph = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+        document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(b => {
+            b.classList.toggle("reports-phase-active", b.getAttribute("data-phase") === ph);
+        });
+    });
+
+    db.ref(`feedback/${fbName}`).on("value", snap => {
+        const fb = snap.val() || {};
+        document.getElementById("feedbackContainer").innerHTML = Object.values(fb).reverse().map(f => `
+            <div class="feedback-msg">
+                <strong>${f.user || ""}</strong> <small>(${f.time ? new Date(f.time).toLocaleString() : ""})</small><br>${f.msg || ""}
+            </div>
+        `).join("") || "No feedback yet.";
+    });
+
+    const manifest = await (await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+    const boardMeta = {};
+    await Promise.all(manifest.map(async (name, boardIndex) => {
+        try {
+            const data = await (await fetch(`${CTR_BOARDS_BASE}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+            boardMeta[name] = {
+                boardIndex,
+                image: data.image || {},
+                pins: data.predictions || data.output?.predictions || []
+            };
+        } catch (e) {
+            boardMeta[name] = { boardIndex, image: {}, pins: [] };
+        }
+    }));
+
+    const hiddenPinKeys = new Set();
+    let ctrHiddenVal = {};
+    let invHiddenVal = {};
+    let lastInvData = {};
+    let stockRows = [];
+    function ingestHidden(dest, val) {
+        Object.keys(val || {}).forEach((k) => { if (val[k]) dest.add(k); });
+    }
+    function refreshHiddenSet() {
+        hiddenPinKeys.clear();
+        ingestHidden(hiddenPinKeys, ctrHiddenVal);
+        ingestHidden(hiddenPinKeys, invHiddenVal);
+    }
+
+    const boardImgCache = new Map();
+    function loadBoardImage(name) {
+        if (boardImgCache.has(name)) return boardImgCache.get(name);
+        const p = new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = `${CTR_BOARDS_BASE}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+        });
+        boardImgCache.set(name, p);
+        return p;
+    }
+
+    function cropDataUrl(img, pin, orig) {
+        if (!img || !pin) return "";
+        const origW = Number(orig.width) || img.naturalWidth;
+        const origH = Number(orig.height) || img.naturalHeight;
+        const sx = Math.max(0, Number(pin.x) - Number(pin.width) / 2);
+        const sy = Math.max(0, Number(pin.y) - Number(pin.height) / 2);
+        const sw = Math.min(Number(pin.width) || 1, origW - sx);
+        const sh = Math.min(Number(pin.height) || 1, origH - sy);
+        const c = document.createElement("canvas");
+        c.width = 96;
+        c.height = 96;
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#111";
+        ctx.fillRect(0, 0, 96, 96);
+        const scale = Math.min(96 / sw, 96 / sh);
+        const dw = sw * scale;
+        const dh = sh * scale;
+        ctx.drawImage(img, sx, sy, sw, sh, (96 - dw) / 2, (96 - dh) / 2, dw, dh);
+        return c.toDataURL("image/jpeg", 0.82);
+    }
+
+    async function rebuildStockRows(invData) {
+        lastInvData = invData || {};
+        const rows = [];
+        let catalogOrder = 0;
+        manifest.forEach((name) => {
+            const meta = boardMeta[name] || { boardIndex: 0, pins: [], image: {} };
+            meta.pins.forEach((pin, idx) => {
+                catalogOrder += 1;
+                const pinKey = `${name}-${idx}`;
+                if (hiddenPinKeys.has(pinKey)) return;
+                const qty = inventoryCountFromRow(invData[pinKey]);
+                if (qty < 1) return;
+                rows.push({
+                    pinKey,
+                    name,
+                    idx,
+                    boardNum: meta.boardIndex + 1,
+                    catalogOrder,
+                    qty,
+                    pin,
+                    image: meta.image,
+                    loc: `Board ${meta.boardIndex + 1} (Pin ${idx + 1})`
+                });
+            });
+        });
+        await Promise.all(rows.map(async (row) => {
+            const img = await loadBoardImage(row.name);
+            row.thumb = cropDataUrl(img, row.pin, row.image);
+        }));
+        stockRows = rows;
+        renderInventory();
+    }
+
+    function rowHtml(row) {
+        return `<tr>
+            <td>${row.thumb ? `<img class="pin-thumb" alt="${row.loc}" src="${row.thumb}">` : ""}</td>
+            <td>${row.loc}<br><small class="muted">${row.pinKey}</small></td>
+            <td><span class="qty-pill">${row.qty}</span></td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${row.pinKey}" style="color:#0066aa;font-weight:bold;">View</a></td>
+        </tr>`;
+    }
+
+    function renderInventory() {
+        const catalog = stockRows.slice().sort((a, b) => a.catalogOrder - b.catalogOrder);
+        const byCount = stockRows.slice().sort((a, b) => b.qty - a.qty || a.catalogOrder - b.catalogOrder);
+        const units = catalog.reduce((n, r) => n + r.qty, 0);
+        document.getElementById("invSummary").innerHTML =
+            `<strong>${catalog.length}</strong> pin${catalog.length === 1 ? "" : "s"} in stock · <strong>${units}</strong> unit${units === 1 ? "" : "s"} total`;
+        document.getElementById("catalogBody").innerHTML = catalog.map(rowHtml).join("") ||
+            '<tr><td colspan="4" class="muted">Nothing in stock yet. Tap pins on the boards page to start at 1.</td></tr>';
+        document.getElementById("countBody").innerHTML = byCount.map(rowHtml).join("") ||
+            '<tr><td colspan="4" class="muted">Nothing in stock yet.</td></tr>';
+        const dist = {};
+        catalog.forEach((r) => { dist[r.qty] = (dist[r.qty] || 0) + 1; });
+        const counts = Object.keys(dist).map(Number).sort((a, b) => b - a);
+        document.getElementById("distBody").innerHTML = counts.length
+            ? counts.map((c) => `<tr><td>${c}</td><td>${dist[c]} pin${dist[c] !== 1 ? "s" : ""}</td></tr>`).join("")
+            : '<tr><td colspan="2" class="muted">No data yet.</td></tr>';
+    }
+
+    function csvRows(list) {
+        return [
+            ["catalog_order", "board", "board_number", "pin_index", "pin_key", "qty", "location"],
+            ...list.map((r) => [r.catalogOrder, r.name, r.boardNum, r.idx + 1, r.pinKey, r.qty, r.loc])
+        ];
+    }
+    document.getElementById("csvCatalogBtn").onclick = () => {
+        const list = stockRows.slice().sort((a, b) => a.catalogOrder - b.catalogOrder);
+        downloadCsv("D23Inventory2026-catalog.csv", csvRows(list));
+    };
+    document.getElementById("csvCountBtn").onclick = () => {
+        const list = stockRows.slice().sort((a, b) => b.qty - a.qty || a.catalogOrder - b.catalogOrder);
+        downloadCsv("D23Inventory2026-by-count.csv", csvRows(list));
+    };
+
+    db.ref(`hiddenPins/${CTR_HIDDEN_PINS_SLUG}`).on("value", (snap) => {
+        ctrHiddenVal = snap.val() || {};
+        refreshHiddenSet();
+        rebuildStockRows(lastInvData);
+    });
+    db.ref(`hiddenPins/${fbName}`).on("value", (snap) => {
+        invHiddenVal = snap.val() || {};
+        refreshHiddenSet();
+        rebuildStockRows(lastInvData);
+    });
+    db.ref(`inventory/${fbName}`).on("value", (snap) => {
+        rebuildStockRows(snap.val() || {});
+    });
+}
+</script>
+</body>
+</html>

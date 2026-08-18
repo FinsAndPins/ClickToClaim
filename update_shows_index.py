@@ -89,6 +89,11 @@ def bundle_tracked(root: Path, folder: str) -> bool:
     return bool(out.stdout.strip())
 
 
+HIDDEN_FROM_PUBLIC_INDEX = {
+    "D23Inventory2026",  # staff inventory; not a customer Click To Request
+}
+
+
 def main() -> int:
     root = Path(os.environ.get("CTR_REPO_ROOT", Path(__file__).resolve().parent))
     rows: list[dict[str, str]] = []
@@ -103,6 +108,8 @@ def main() -> int:
         if not (p / "boards").is_dir():
             continue
         folder = p.name
+        if folder in HIDDEN_FROM_PUBLIC_INDEX:
+            continue
         if not bundle_tracked(root, folder):
             continue
 
