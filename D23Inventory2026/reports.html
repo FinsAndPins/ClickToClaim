@@ -159,7 +159,30 @@
 const SHOW_DATE_SLUG_FALLBACK = "D23Inventory2026";
 const CTR_BOARDS_BASE = "../2026D23/boards";
 const CTR_HIDDEN_PINS_SLUG = "2026D23";
+const EXTRA_BOARDS_BASE = "./extra-boards";
+const EXTRA_BOARD_TITLES = {
+    D23MP_AUG14: "D23 Marketplace · Fri Aug 14",
+    D23MP_AUG15: "D23 Marketplace · Sat Aug 15",
+    D23MP_AUG16: "D23 Marketplace · Sun Aug 16"
+};
 const BOARDS_MANIFEST_VERSION = String(Date.now());
+function boardAssetBase(name) {
+    return Object.prototype.hasOwnProperty.call(EXTRA_BOARD_TITLES, name) ? EXTRA_BOARDS_BASE : CTR_BOARDS_BASE;
+}
+function boardTitle(name, index) {
+    return EXTRA_BOARD_TITLES[name] || ("Board " + (index + 1));
+}
+async function loadInventoryBoardNames() {
+    const ctrRes = await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const ctr = await ctrRes.json();
+    let extra = [];
+    try {
+        const extraRes = await fetch(`${EXTRA_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+        if (extraRes.ok) extra = await extraRes.json();
+    } catch (e) {}
+    if (!Array.isArray(ctr)) return [];
+    return ctr.concat(Array.isArray(extra) ? extra : []);
+}
 const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", authDomain: "fins-and-pins-click-to-claim.firebaseapp.com", databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com", projectId: "fins-and-pins-click-to-claim", storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app", messagingSenderId: "31512845258", appId: "1:31512845258:web:2124fae24cfee229084d33" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
@@ -429,11 +452,11 @@ async function loadData() {
         `).join("") || "No feedback yet.";
     });
 
-    const manifest = await (await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+    const manifest = await loadInventoryBoardNames();
     const boardMeta = {};
     await Promise.all(manifest.map(async (name, boardIndex) => {
         try {
-            const data = await (await fetch(`${CTR_BOARDS_BASE}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+            const data = await (await fetch(`${boardAssetBase(name)}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
             boardMeta[name] = {
                 boardIndex,
                 image: data.image || {},
@@ -465,7 +488,7 @@ async function loadData() {
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = () => resolve(null);
-            img.src = `${CTR_BOARDS_BASE}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+            img.src = `${boardAssetBase(name)}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
         });
         boardImgCache.set(name, p);
         return p;
@@ -516,7 +539,7 @@ async function loadData() {
                     countedBy: staffBreakdownText(invData[pinKey]),
                     pin,
                     image: meta.image,
-                    loc: `Board ${meta.boardIndex + 1} (Pin ${idx + 1})`
+                    loc: `${boardTitle(name, meta.boardIndex)} (Pin ${idx + 1})`
                 });
             });
         });
