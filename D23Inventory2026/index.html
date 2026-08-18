@@ -5,7 +5,7 @@
     <title>Fins and Pins D23 Inventory 2026</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="d23-inventory-2026-v1">
+    <meta name="ctr-countdown" content="d23-inventory-2026-v2">
     <meta name="robots" content="noindex, nofollow">
     <style>
         :root {
@@ -578,6 +578,19 @@ const IS_D23_INVENTORY = true;
 const CTR_BOARDS_FOLDER = "2026D23";
 const CTR_BOARDS_BASE = "../2026D23/boards";
 const CTR_HIDDEN_PINS_SLUG = "2026D23";
+/** Extra Marketplace flyers — inventory only (not live CTR). Appended after PAGE_088. */
+const EXTRA_BOARDS_BASE = "./extra-boards";
+const EXTRA_BOARD_TITLES = {
+    D23MP_AUG14: "D23 Marketplace · Fri Aug 14",
+    D23MP_AUG15: "D23 Marketplace · Sat Aug 15",
+    D23MP_AUG16: "D23 Marketplace · Sun Aug 16"
+};
+function boardAssetBase(name) {
+    return Object.prototype.hasOwnProperty.call(EXTRA_BOARD_TITLES, name) ? EXTRA_BOARDS_BASE : CTR_BOARDS_BASE;
+}
+function boardTitle(name, index) {
+    return EXTRA_BOARD_TITLES[name] || ("Board " + (index + 1));
+}
 /** Paste your whatnot invite / referral URL here (shown in FAQ links). */
 const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
 /**
@@ -1185,7 +1198,7 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
         document.getElementById("showTitle").textContent = "D23 inventory — tap a pin or + to add one; − to remove one. Shared staff count.";
         const intro = document.getElementById("introNote");
         if (intro) {
-            intro.textContent = "Starting at zero. Each pin shows one combined count for both of you.";
+            intro.textContent = "Starting at zero. Each pin shows one combined count for both of you. Three extra Marketplace flyers are at the bottom.";
         }
         const help = document.querySelector(".login-help");
         if (help) {
@@ -1272,7 +1285,19 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "14";
+const BOARDS_MANIFEST_VERSION = "15";
+
+async function loadInventoryBoardNames() {
+    const ctrRes = await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const ctr = await ctrRes.json();
+    let extra = [];
+    try {
+        const extraRes = await fetch(`${EXTRA_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+        if (extraRes.ok) extra = await extraRes.json();
+    } catch (e) {}
+    if (!Array.isArray(ctr)) return [];
+    return ctr.concat(Array.isArray(extra) ? extra : []);
+}
 
 async function computeAllBoardPinTotals(boardNames) {
     const rawCounts = {};
@@ -1282,7 +1307,7 @@ async function computeAllBoardPinTotals(boardNames) {
         await Promise.all(
             slice.map(async (name) => {
                 try {
-                    const r = await fetch(`${CTR_BOARDS_BASE}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+                    const r = await fetch(`${boardAssetBase(name)}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
                     if (!r.ok) {
                         rawCounts[name] = 0;
                         return;
@@ -1300,8 +1325,7 @@ async function computeAllBoardPinTotals(boardNames) {
     return visibleTotalFromRawCounts(rawCounts);
 }
 
-if (isAdmin) fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
-    .then(r => r.json())
+if (isAdmin) loadInventoryBoardNames()
     .then(list => {
         manifestBoardNames = list.slice();
         if (isLiteMode) {
@@ -1365,11 +1389,11 @@ if (isAdmin) fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION
             container.className = "board-container";
             container.innerHTML = `
                 <div class="board-header">
-                    <span class="board-title">Board ${index + 1}</span>
+                    <span class="board-title">${boardTitle(name, index)}</span>
                     <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
                 </div>
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
-                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="${CTR_BOARDS_BASE}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}"></div>`;
+                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="${boardAssetBase(name)}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}"></div>`;
             boardsList.appendChild(container);
             boardsState[name] = { totalPins: 0, rawPinCount: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
             setupBoard(name);
@@ -1378,7 +1402,7 @@ if (isAdmin) fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION
     });
 
 async function setupBoard(name) {
-    const response = await fetch(`${CTR_BOARDS_BASE}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const response = await fetch(`${boardAssetBase(name)}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
     const data = await response.json();
     const pins = data.predictions || data.output?.predictions || [];
     boardsState[name].rawPinCount = pins.length;
@@ -1909,7 +1933,7 @@ function yieldToUi() {
 
 async function loadIsoBoardJson(boardName) {
     if (isoBoardJsonCache.has(boardName)) return isoBoardJsonCache.get(boardName);
-    const r = await fetch(`${CTR_BOARDS_BASE}/${boardName}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const r = await fetch(`${boardAssetBase(boardName)}/${boardName}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
     if (!r.ok) throw new Error(`Missing board JSON ${boardName}`);
     const data = await r.json();
     isoBoardJsonCache.set(boardName, data);
@@ -1922,7 +1946,7 @@ function loadIsoBoardImage(boardName) {
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = () => reject(new Error(`Missing board image ${boardName}`));
-        img.src = `${CTR_BOARDS_BASE}/${boardName}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+        img.src = `${boardAssetBase(boardName)}/${boardName}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
     });
     isoBoardImageCache.set(boardName, p);
     return p;

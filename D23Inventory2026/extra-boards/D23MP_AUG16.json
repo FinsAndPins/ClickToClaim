@@ -1,0 +1,143 @@
+{
+  "predictions": [
+    {
+      "x": 194.5,
+      "y": 287.5,
+      "width": 305.0,
+      "height": 245.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "disneyland_map"
+    },
+    {
+      "x": 446.0,
+      "y": 237.5,
+      "width": 180.0,
+      "height": 155.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "hollywood_studios_map"
+    },
+    {
+      "x": 651.0,
+      "y": 247.5,
+      "width": 182.0,
+      "height": 145.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "epcot_map"
+    },
+    {
+      "x": 863.0,
+      "y": 240.0,
+      "width": 150.0,
+      "height": 150.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "muppets_animal"
+    },
+    {
+      "x": 197.5,
+      "y": 567.0,
+      "width": 295.0,
+      "height": 230.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "magic_kingdom_map"
+    },
+    {
+      "x": 457.0,
+      "y": 483.0,
+      "width": 190.0,
+      "height": 150.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "animal_kingdom_map"
+    },
+    {
+      "x": 657.5,
+      "y": 492.0,
+      "width": 195.0,
+      "height": 128.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "california_adventure_map"
+    },
+    {
+      "x": 866.0,
+      "y": 495.5,
+      "width": 140.0,
+      "height": 135.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "sorcerer_mickey"
+    },
+    {
+      "x": 438.0,
+      "y": 766.0,
+      "width": 132.0,
+      "height": 108.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "sounds_leota"
+    },
+    {
+      "x": 580.0,
+      "y": 764.0,
+      "width": 132.0,
+      "height": 108.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "sounds_dream_wish"
+    },
+    {
+      "x": 736.0,
+      "y": 772.0,
+      "width": 132.0,
+      "height": 108.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "sounds_fantasmic"
+    },
+    {
+      "x": 888.0,
+      "y": 774.0,
+      "width": 132.0,
+      "height": 108.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "sounds_dedication"
+    },
+    {
+      "x": 197.0,
+      "y": 994.0,
+      "width": 298.0,
+      "height": 292.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "wdw_castle_frame"
+    },
+    {
+      "x": 569.0,
+      "y": 1024.0,
+      "width": 430.0,
+      "height": 312.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "dl_castle_frame"
+    },
+    {
+      "x": 872.0,
+      "y": 1003.0,
+      "width": 160.0,
+      "height": 210.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "steamboat_willie"
+    }
+  ],
+  "image": {
+    "width": 983,
+    "height": 1280
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "predictions": [
+    {
+      "x": 146.0,
+      "y": 288.0,
+      "width": 212.0,
+      "height": 168.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "pirates_lithograph"
+    },
+    {
+      "x": 368.0,
+      "y": 289.0,
+      "width": 210.0,
+      "height": 168.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "haunted_mansion_lithograph"
+    },
+    {
+      "x": 597.0,
+      "y": 290.0,
+      "width": 210.0,
+      "height": 168.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "small_world_lithograph"
+    },
+    {
+      "x": 842.5,
+      "y": 248.0,
+      "width": 165.0,
+      "height": 160.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "aulani_15th"
+    },
+    {
+      "x": 254.0,
+      "y": 568.0,
+      "width": 414.0,
+      "height": 132.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "country_bear_set"
+    },
+    {
+      "x": 255.0,
+      "y": 719.0,
+      "width": 408.0,
+      "height": 132.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "batb_pin_set"
+    },
+    {
+      "x": 256.0,
+      "y": 885.0,
+      "width": 412.0,
+      "height": 132.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "tiki_room_set"
+    },
+    {
+      "x": 840.5,
+      "y": 550.5,
+      "width": 245.0,
+      "height": 205.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "big_thunder_blueprint"
+    },
+    {
+      "x": 840.5,
+      "y": 785.5,
+      "width": 245.0,
+      "height": 235.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "mr_toad_blueprint"
+    },
+    {
+      "x": 205.0,
+      "y": 1050.5,
+      "width": 330.0,
+      "height": 145.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "disneyland_1955"
+    },
+    {
+      "x": 553.0,
+      "y": 1050.5,
+      "width": 310.0,
+      "height": 145.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "wdw_1971"
+    },
+    {
+      "x": 825.0,
+      "y": 1058.0,
+      "width": 230.0,
+      "height": 220.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "dcl_jumbo"
+    }
+  ],
+  "image": {
+    "width": 984,
+    "height": 1280
+  }
+}
