@@ -4,7 +4,10 @@ compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
 # Public hostname after DNS: sell.finsandpins.shop
-# workers.dev URL works for private beta until then.
+# After deploy (Mac):
+#   npx wrangler secret put GOOGLE_VISION_API_KEY
+#   npx wrangler secret put RESEND_API_KEY
+# Set PUBLIC_BASE_URL to https://sell.finsandpins.shop in the Worker dashboard (or wrangler vars).
 
 [assets]
 directory = "./public"
@@ -16,9 +19,9 @@ APP_NAME = "Fins & Pins — Sell My Collection"
 PUBLIC_BASE_URL = "http://127.0.0.1:8787"
 FROM_EMAIL = "offer@finsandpins.shop"
 STAFF_ALERT_EMAILS = "finsandpins@gmail.com"
-STAFF_EMAILS = "steve.fierstein@gmail.com"
-SHIP_TO_NAME = "Fins & Pins"
-SHIP_TO_ADDRESS = "Set SHIP_TO_ADDRESS in Cloudflare / .dev.vars"
+STAFF_EMAILS = "steve.fierstein@gmail.com,finsandpins@gmail.com"
+SHIP_TO_NAME = "Fins and Pins, LLC"
+SHIP_TO_ADDRESS = "15049 Canopy Cover Dr, Winter Garden, FL 34787"
 OFFER_TTL_DAYS = "7"
 MAX_PHOTOS = "100"
 MAX_PHOTO_BYTES = "15728640"

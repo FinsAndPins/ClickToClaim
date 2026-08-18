@@ -50,7 +50,17 @@ function offerUrl(env: Bindings, token: string) {
 
 export const app = new Hono<{ Bindings: Bindings }>();
 
-app.get("/health", (c) => c.json({ ok: true, service: "intake" }));
+app.get("/health", (c) =>
+  c.json({
+    ok: true,
+    service: "intake",
+    moderation: hasModerationProvider(c.env)
+      ? "configured"
+      : c.env.ENVIRONMENT === "development"
+        ? "dev_pass"
+        : "missing",
+  })
+);
 
 
 app.get("/styles.css", async (c) => {

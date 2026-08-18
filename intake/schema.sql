@@ -89,3 +89,18 @@ CREATE TABLE IF NOT EXISTS upload_temp_photos (
   created_at TEXT NOT NULL,
   FOREIGN KEY (session_id) REFERENCES upload_sessions(id)
 );
+
+-- Reserved for a later cloud pricing worker. v1 does not enqueue jobs yet.
+CREATE TABLE IF NOT EXISTS pricing_jobs (
+  id TEXT PRIMARY KEY,
+  collection_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  harness_url TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (collection_id) REFERENCES collections(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_jobs_collection ON pricing_jobs(collection_id);
+CREATE INDEX IF NOT EXISTS idx_pricing_jobs_status ON pricing_jobs(status);

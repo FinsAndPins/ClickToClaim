@@ -17,11 +17,12 @@ export async function moderateImage(
   bytes: ArrayBuffer,
   contentType: string
 ): Promise<ModerationResult> {
-  if (env.SIGHTENGINE_USER && env.SIGHTENGINE_SECRET) {
-    return moderateSightengine(env, bytes, contentType);
-  }
+  // Prefer Google Vision when both are configured (Google is the v1 choice).
   if (env.GOOGLE_VISION_API_KEY) {
     return moderateGoogle(env, bytes);
+  }
+  if (env.SIGHTENGINE_USER && env.SIGHTENGINE_SECRET) {
+    return moderateSightengine(env, bytes, contentType);
   }
   if (env.ENVIRONMENT === "development") {
     // Local UI work only. Production must have a provider (fail closed).

@@ -35,9 +35,18 @@ Open:
 ## What v1 does not do (on purpose)
 
 - No seller logins
-- No cloud RF-DETR / eBay pricing (still Mac CTM/CTP)
+- No cloud RF-DETR / eBay pricing in v1 (still Mac CTM/CTP). Prep notes: `docs/CLOUD_PRICING_MIGRATION.md`
 - No PayPal API yet (manual G&S after Accept)
 - No auto shipping labels (seller’s postage)
-- No second moderation vendor yet
+- No second moderation vendor yet (Google Vision first: `docs/MODERATION.md`)
 
-See **ACTION_ITEMS.md** for what Steve does from the phone vs the Mac.
+See **ACTION_ITEMS.md** for Mac deploy steps.
+
+Docs:
+
+| File | Purpose |
+|------|---------|
+| `ACTION_ITEMS.md` | Phone vs Mac checklist |
+| `LOCKED_DECISIONS.md` | Product decisions |
+| `docs/MODERATION.md` | Why Google Vision, how to add the key |
+| `docs/CLOUD_PRICING_MIGRATION.md` | How to move RF-DETR/eBay later **without** putting keys on the public site |

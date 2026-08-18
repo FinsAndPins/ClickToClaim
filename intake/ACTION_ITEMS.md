@@ -4,79 +4,64 @@ Phone-friendly checklist. Nothing here requires writing code.
 
 ---
 
-## You can do from your iPhone
+## Locked from you (this session)
 
-### 1. Cloudflare (needed to put this on sell.finsandpins.shop)
+- [x] Ship-to: **Fins and Pins, LLC**, 15049 Canopy Cover Dr, Winter Garden, FL 34787
+- [x] Lexi alerts / Access: **finsandpins@gmail.com** (plus Steve: steve.fierstein@gmail.com)
+- [x] Moderation vendor: **Google Cloud Vision SafeSearch** (see `docs/MODERATION.md`)
 
-- [ ] Cloudflare account on the same login you’ll use for the shop
-- [ ] Add DNS for **`sell.finsandpins.shop`** later (CNAME to the worker — Mac or I can do this once the account is connected)
-- [ ] **Cloudflare Access** application for `/admin*` on the sell hostname
-  - Allow **steve.fierstein@gmail.com**
-  - Add **Lexi’s email** when you have it (reply here)
-- [ ] Create **R2** bucket `finsandpins-intake`
-- [ ] Create **D1** database `intake` and run `schema.sql`
+---
 
-### 2. Email
+## You can still do from your iPhone
 
-- [ ] Pick a transactional provider (Resend is what the app is wired for)
-- [ ] Domain: send **From `offer@finsandpins.shop`**
-- [ ] SPF/DKIM on `finsandpins.shop` (DNS — 10 minutes on Mac is easier)
-- [ ] Staff alerts already default to **finsandpins@gmail.com**
-- [ ] Add Lexi’s email for alerts when you have it
+### Cloudflare (needed for sell.finsandpins.shop)
 
-### 3. Content moderation (required before real sellers)
+- [ ] Cloudflare account (same one you’ll use for the shop)
+- [ ] Later on Mac: DNS for **`sell.finsandpins.shop`**, Access for `/admin*`
+  - Allow **steve.fierstein@gmail.com** and **finsandpins@gmail.com**
+- [ ] R2 bucket `finsandpins-intake` + D1 database `intake`
 
-- [ ] Create a **Sightengine** account (v1 default) and save API user + secret
-  - Or Google Cloud Vision API key if you prefer
-- [ ] Do **not** put keys in chat. When you’re at a keyboard, paste them into Cloudflare Worker secrets / `.dev.vars`
-- [ ] Optional later: send me a handful of real board JPGs to measure false-positive rate (Mac iCloud is easier)
+### Email
 
-### 4. Copy I still need from you
+- [ ] Resend (or similar) account — app is wired for Resend
+- [ ] From **`offer@finsandpins.shop`** + SPF/DKIM (Mac DNS is easier)
+- [x] Staff alerts: **finsandpins@gmail.com**
 
-- [ ] **Ship-to address** shown after Accept
-- [ ] **Lexi’s email** for Access + alerts
-- [ ] Confirm Sightengine vs Google Vision
+### 3. Google Vision (required before real sellers)
 
-### 5. Lawyer (not blocking a private beta)
+- [ ] On Mac: enable Cloud Vision API, create a **restricted API key**, `wrangler secret put GOOGLE_VISION_API_KEY`
+- [ ] Do **not** paste the key in chat
+- [ ] Optional: run `node scripts/test_google_safesearch.mjs` on real board photos
 
-- [ ] One question: if moderation flags a severe category and we only store name/email + reason code (no image), what must we do?
+### Lawyer (not blocking a private beta)
+
+- [ ] If Vision flags a severe category and we only store name/email + reason code (no image), what must we do?
 
 ---
 
 ## When you’re back on the MacBook
 
-These need the laptop, not the iPhone:
-
-- [ ] `cd intake && npm install && npm run dev` and click through seller + staff flows
-- [ ] Set `SHIP_TO_ADDRESS` in `.dev.vars`
-- [ ] `npx wrangler login` and `npx wrangler deploy`
-- [ ] Create real D1 + R2 and bind them in `wrangler.toml` (replace the placeholder database id)
+- [ ] `cd intake && npm install && npm run dev` — seller at `/`, staff at `/admin`
+- [ ] `npx wrangler login` and deploy
+- [ ] Create real D1 + R2; put the real `database_id` in `wrangler.toml`
+- [ ] `wrangler secret put GOOGLE_VISION_API_KEY`
 - [ ] `wrangler secret put RESEND_API_KEY`
-- [ ] `wrangler secret put SIGHTENGINE_USER` and `SIGHTENGINE_SECRET`
-- [ ] Point `sell.finsandpins.shop` at the worker
-- [ ] Test photo download: `./scripts/download_collection.sh <id>` then drop the folder into the **existing pricing watcher inbox**
-- [ ] After CTP: paste overlay URL + harness total on the staff card, send offer
-- [ ] Optional: test moderation on real boards (same Sightengine call the worker uses)
+- [ ] Point `sell.finsandpins.shop` at the worker; Cloudflare Access on `/admin*`
+- [ ] `node scripts/test_google_safesearch.mjs /path/to/boards`
+- [ ] `./scripts/download_collection.sh <id>` → pricing watcher inbox
+- [ ] Paste overlay URL + harness total, send offer
 
-**Not on this Mac trip (later):**
-
-- Cloud RF-DETR / eBay keys / auto harness link after upload
-- PayPal G&S API (“create payment request”)
-- Second moderation vendor
-- Cindy’s Access login
+**Not this trip (later):** full cloud RF-DETR/eBay — blueprint is `docs/CLOUD_PRICING_MIGRATION.md`. PayPal API, second moderation vendor, Cindy Access.
 
 ---
 
-## What I already built in this PR
+## What is already in the PR
 
-- Seller upload + privacy/terms + PayPal G&S required
-- Temp storage → moderation → clean originals or full delete
-- Staff dashboard (Kanban, notes, overlay, % helpers, photos, event log)
-- Offer email + 7-day reusable link + reissue
-- Accept → Ready to pay email; ship-to; seller postage
-- Decline survey (optional wanted amount)
-- Waiting / received list
-- Local Mac download script for pricing
-- Cron cleanup of abandoned temp uploads (~40 min)
-
-Local dev **passes photos without a moderation vendor**. Production **refuses uploads** until a vendor key is set (fail closed).
+- Seller upload + terms + PayPal G&S
+- Temp → Google Vision (when keyed) → keep or delete; staff alert without image
+- Kanban, notes, overlay, % helpers, photos, event log
+- 7-day offer link + reissue
+- Accept → Ready to pay; ship-to LLC address; seller postage
+- Decline survey; waiting/received list
+- Mac download script + Vision board-test script
+- `pricing_jobs` table reserved for a future private pricing service
