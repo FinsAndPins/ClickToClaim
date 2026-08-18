@@ -18,6 +18,53 @@
             width: 72px; height: 72px; object-fit: contain; background: #111;
             border-radius: 8px; border: 1px solid #ddd; display: block;
         }
+        button.pin-thumb-btn {
+            padding: 0; border: none; background: transparent; cursor: pointer;
+            border-radius: 8px; -webkit-tap-highlight-color: transparent;
+        }
+        button.pin-thumb-btn:focus-visible { outline: 3px solid #0066aa; outline-offset: 2px; }
+        .qty-stepper {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            background: #1A1A42;
+            border: 2px solid #fff;
+            border-radius: 22px;
+            padding: 3px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            vertical-align: middle;
+        }
+        .qty-stepper button {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border: none;
+            border-radius: 50%;
+            font-size: 22px;
+            font-weight: bold;
+            line-height: 1;
+            cursor: pointer;
+            font-family: inherit;
+            touch-action: manipulation;
+        }
+        .qty-stepper .qty-minus { background: #fff; color: #1A1A42; }
+        .qty-stepper .qty-plus { background: #1877f2; color: #fff; }
+        .qty-stepper .qty-num {
+            min-width: 28px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: #fff;
+            pointer-events: none;
+        }
+        .count-as {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+            font-size: 14px; margin: 0 0 12px;
+        }
+        .count-as input {
+            font-size: 16px; padding: 8px 10px; border-radius: 8px; border: 1px solid #ccc;
+            min-width: 160px;
+        }
         .qty-pill { background: #1877f2; color: #fff; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 14px; }
         .summary-line { font-size: 15px; color: #333; margin: 0 0 14px; }
         .csv-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
@@ -39,7 +86,13 @@
 <div id="authContent" style="display:none;">
     <div class="header">
         <h1 style="margin:0;">D23 Inventory Reports</h1>
-        <div><a id="backBtn" href="index.html" class="btn">Boards</a></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <label class="count-as" style="margin:0;">
+                Counting as
+                <input type="text" id="staffNameInput" placeholder="Lexi or Steve" autocomplete="username">
+            </label>
+            <a id="backBtn" href="index.html" class="btn">Boards</a>
+        </div>
     </div>
 
     <section>
@@ -49,12 +102,12 @@
             <button type="button" class="btn" id="csvCatalogBtn">Download CSV — catalog order</button>
             <button type="button" class="btn secondary" id="csvCountBtn">Download CSV — highest count first</button>
         </div>
-        <p class="muted">CSV is pins with quantity 1 or more. Photos below are cropped from the live D23 catalog boards. <strong>Counted by</strong> uses the staff name each person typed at login.</p>
+        <p class="muted">Tap a pin photo or <strong>+</strong> to add one; <strong>−</strong> to remove one. Same Firebase count as the catalog. A pin drops off this list at 0 — add the first copy from Boards. <strong>Counted by</strong> uses the name in “Counting as” (same login name as Boards).</p>
     </section>
 
     <section>
         <h2>1. In stock — catalog order</h2>
-        <p class="muted">Pins we have 1 or more of, in flyer page order.</p>
+        <p class="muted">Pins we have 1 or more of, in flyer page order. Adjust qty here or on the catalog — both update the same count.</p>
         <table>
             <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Counted by</th><th></th></tr></thead>
             <tbody id="catalogBody"></tbody>
@@ -111,6 +164,32 @@ const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", auth
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ADMIN_KEY = "0626200207081986";
+let displayName = localStorage.getItem("fp_display_name") || localStorage.getItem("fp_username") || "";
+let identityKey = localStorage.getItem("fp_identity") || "staff";
+let inventoryFbName = SHOW_DATE_SLUG_FALLBACK;
+
+function sanitizeUserKey(id) {
+    return String(id).replace(/[.#$\[\]\/]/g, "_");
+}
+
+function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+}
+
+function setStaffDisplayName(raw) {
+    const n = normalizeUserDisplayName(raw) || String(raw || "").trim();
+    displayName = n;
+    if (n) localStorage.setItem("fp_display_name", n);
+}
+
+function currentInventoryStaffKey() {
+    return sanitizeUserKey(displayName || identityKey || "staff");
+}
 
 function parseShowDateSlugFromPathReports() {
     const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
@@ -181,6 +260,82 @@ function staffBreakdownText(row) {
         .join(" · ");
 }
 
+function staffMapFromRow(row) {
+    const staff = {};
+    if (row && row.staff && typeof row.staff === "object") {
+        Object.entries(row.staff).forEach(([k, v]) => {
+            const n = inventoryStaffCount(v);
+            if (n <= 0) return;
+            staff[k] = {
+                count: n,
+                label: (v && typeof v === "object" && v.label) ? String(v.label) : k,
+                time: (v && typeof v === "object" && v.time) ? v.time : 0
+            };
+        });
+    }
+    if (!Object.keys(staff).length) {
+        const n = inventoryCountFromRow(row);
+        if (n > 0) {
+            const label = (row && row.by) ? String(row.by) : "unattributed";
+            const key = sanitizeUserKey(label) || "_prior";
+            staff[key] = { count: n, label, time: (row && row.time) || 0 };
+        }
+    }
+    return staff;
+}
+
+function adjustInventoryCount(pinKey, delta) {
+    if (!pinKey || !delta) return;
+    if (!displayName) {
+        const typed = window.prompt("Staff name for this count (Lexi or Steve)?", "") || "";
+        setStaffDisplayName(typed);
+        const inp = document.getElementById("staffNameInput");
+        if (inp && displayName) inp.value = displayName;
+        if (!displayName) return;
+    }
+    const userKey = currentInventoryStaffKey();
+    const label = displayName || "staff";
+    db.ref(`inventory/${inventoryFbName}/${pinKey}`).transaction((cur) => {
+        const staff = staffMapFromRow(cur);
+        if (delta > 0) {
+            const mine = staff[userKey] || { count: 0, label, time: 0 };
+            mine.count = inventoryStaffCount(mine) + delta;
+            mine.label = label;
+            mine.time = Date.now();
+            staff[userKey] = mine;
+        } else {
+            let need = Math.abs(delta);
+            if (staff[userKey] && inventoryStaffCount(staff[userKey]) > 0) {
+                const take = Math.min(need, inventoryStaffCount(staff[userKey]));
+                staff[userKey].count = inventoryStaffCount(staff[userKey]) - take;
+                staff[userKey].label = label;
+                staff[userKey].time = Date.now();
+                need -= take;
+                if (staff[userKey].count <= 0) delete staff[userKey];
+            }
+            if (need > 0) {
+                Object.keys(staff)
+                    .sort((a, b) => inventoryStaffCount(staff[b]) - inventoryStaffCount(staff[a]))
+                    .forEach((k) => {
+                        if (need <= 0) return;
+                        const take = Math.min(need, inventoryStaffCount(staff[k]));
+                        staff[k].count = inventoryStaffCount(staff[k]) - take;
+                        need -= take;
+                        if (staff[k].count <= 0) delete staff[k];
+                    });
+            }
+        }
+        const next = Object.values(staff).reduce((s, v) => s + inventoryStaffCount(v), 0);
+        if (next <= 0) return null;
+        return {
+            count: next,
+            time: Date.now(),
+            by: label,
+            staff
+        };
+    }).catch((e) => alert(e.message));
+}
+
 function csvEscape(v) {
     const s = String(v ?? "");
     if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -200,7 +355,15 @@ function downloadCsv(filename, rows) {
 async function loadData() {
     const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
     const fbName = showDateSlug;
+    inventoryFbName = fbName;
     document.getElementById("showWindowSlugLabel").textContent = showDateSlug;
+    const nameInp = document.getElementById("staffNameInput");
+    if (nameInp) {
+        if (displayName) nameInp.value = displayName;
+        const saveName = () => setStaffDisplayName(nameInp.value);
+        nameInp.addEventListener("change", saveName);
+        nameInp.addEventListener("blur", saveName);
+    }
     fillTimeSelect(document.getElementById("cfgStartH"), 23);
     fillTimeSelect(document.getElementById("cfgEndH"), 23);
     fillTimeSelect(document.getElementById("cfgStartM"), 59);
@@ -329,6 +492,8 @@ async function loadData() {
         return c.toDataURL("image/jpeg", 0.82);
     }
 
+    const thumbCache = new Map();
+
     async function rebuildStockRows(invData) {
         lastInvData = invData || {};
         const rows = [];
@@ -356,24 +521,40 @@ async function loadData() {
             });
         });
         await Promise.all(rows.map(async (row) => {
+            if (thumbCache.has(row.pinKey)) {
+                row.thumb = thumbCache.get(row.pinKey);
+                return;
+            }
             const img = await loadBoardImage(row.name);
             row.thumb = cropDataUrl(img, row.pin, row.image);
+            if (row.thumb) thumbCache.set(row.pinKey, row.thumb);
         }));
         stockRows = rows;
         renderInventory();
     }
 
     function rowHtml(row) {
+        const thumb = row.thumb
+            ? `<button type="button" class="pin-thumb-btn" data-qty-delta="1" data-pin="${row.pinKey}" title="Tap photo to add 1"><img class="pin-thumb" alt="" src="${row.thumb}"></button>`
+            : "";
+        const by = row.countedBy || "";
         return `<tr>
-            <td>${row.thumb ? `<img class="pin-thumb" alt="${row.loc}" src="${row.thumb}">` : ""}</td>
+            <td>${thumb}</td>
             <td>${row.loc}<br><small class="muted">${row.pinKey}</small></td>
-            <td><span class="qty-pill">${row.qty}</span></td>
-            <td>${row.countedBy || ""}</td>
-            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${row.pinKey}" style="color:#0066aa;font-weight:bold;">View</a></td>
+            <td>
+                <div class="qty-stepper" title="${by}">
+                    <button type="button" class="qty-minus" data-qty-delta="-1" data-pin="${row.pinKey}" aria-label="Decrease count">−</button>
+                    <span class="qty-num">${row.qty}</span>
+                    <button type="button" class="qty-plus" data-qty-delta="1" data-pin="${row.pinKey}" aria-label="Increase count">+</button>
+                </div>
+            </td>
+            <td>${by}</td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${row.pinKey}" style="color:#0066aa;font-weight:bold;">View on board</a></td>
         </tr>`;
     }
 
     function renderInventory() {
+        const y = window.scrollY;
         const catalog = stockRows.slice().sort((a, b) => a.catalogOrder - b.catalogOrder);
         const byCount = stockRows.slice().sort((a, b) => b.qty - a.qty || a.catalogOrder - b.catalogOrder);
         const units = catalog.reduce((n, r) => n + r.qty, 0);
@@ -389,7 +570,20 @@ async function loadData() {
         document.getElementById("distBody").innerHTML = counts.length
             ? counts.map((c) => `<tr><td>${c}</td><td>${dist[c]} pin${dist[c] !== 1 ? "s" : ""}</td></tr>`).join("")
             : '<tr><td colspan="2" class="muted">No data yet.</td></tr>';
+        requestAnimationFrame(() => window.scrollTo(0, y));
     }
+
+    function onReportQtyEvent(e) {
+        const hit = e.target.closest("[data-qty-delta]");
+        if (!hit || !this.contains(hit)) return;
+        e.preventDefault();
+        const pinKey = hit.getAttribute("data-pin");
+        const delta = Number(hit.getAttribute("data-qty-delta"));
+        if (!pinKey || !delta) return;
+        adjustInventoryCount(pinKey, delta);
+    }
+    document.getElementById("catalogBody").addEventListener("click", onReportQtyEvent);
+    document.getElementById("countBody").addEventListener("click", onReportQtyEvent);
 
     function csvRows(list) {
         return [
