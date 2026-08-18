@@ -1,0 +1,27 @@
+# Copy to .dev.vars (never commit .dev.vars)
+ENVIRONMENT=development
+# development = allow staff bypass + optional moderation skip for local UI work
+# production = fail closed without a moderation provider
+
+# Local staff bypass (wrangler dev only). Cloudflare Access replaces this in prod.
+DEV_ADMIN_EMAIL=steve.fierstein@gmail.com
+
+# Required in production. Sightengine is the v1 default (easy API user+secret).
+# SIGHTENGINE_USER=
+# SIGHTENGINE_SECRET=
+
+# Optional alternative:
+# GOOGLE_VISION_API_KEY=
+
+# Required before seller emails actually send:
+# RESEND_API_KEY=
+
+# Shown to sellers after Accept:
+SHIP_TO_NAME=Fins & Pins
+SHIP_TO_ADDRESS=Your warehouse / home address here
+
+STAFF_ALERT_EMAILS=finsandpins@gmail.com
+STAFF_EMAILS=steve.fierstein@gmail.com
+# Add Lexi's email, comma-separated, when known:
+# STAFF_EMAILS=steve.fierstein@gmail.com,lexi@example.com
+# STAFF_ALERT_EMAILS=finsandpins@gmail.com,lexi@example.com
