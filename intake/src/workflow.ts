@@ -41,3 +41,13 @@ export function addDaysIso(days: number, from = new Date()): string {
   const d = new Date(from.getTime() + days * 24 * 60 * 60 * 1000);
   return d.toISOString();
 }
+
+/** Staff helper: 24h offer promise from submission time. */
+export function offerDueLabel(createdAt: string, status: Status, now = new Date()): string | null {
+  if (status !== "submitted" && status !== "pricing") return null;
+  const due = new Date(createdAt).getTime() + 24 * 60 * 60 * 1000;
+  const ms = due - now.getTime();
+  if (ms <= 0) return "Over 24h — send offer";
+  const hours = Math.max(1, Math.ceil(ms / (60 * 60 * 1000)));
+  return `${hours}h to send offer`;
+}

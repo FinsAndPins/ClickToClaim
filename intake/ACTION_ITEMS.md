@@ -8,7 +8,8 @@ Phone-friendly checklist. Nothing here requires writing code.
 
 - [x] Ship-to: **Fins and Pins, LLC**, 15049 Canopy Cover Dr, Winter Garden, FL 34787
 - [x] Lexi alerts / Access: **finsandpins@gmail.com** (plus Steve: steve.fierstein@gmail.com)
-- [x] Moderation vendor: **Google Cloud Vision SafeSearch** (see `docs/MODERATION.md`)
+- [x] Launch: invite-only first; 24h offer aim; Disney pins line; no minimum; photo tips
+- [x] No public email addresses on the site; offer mail says don’t reply
 
 ---
 
@@ -24,7 +25,7 @@ Phone-friendly checklist. Nothing here requires writing code.
 ### Email
 
 - [ ] Resend (or similar) account — app is wired for Resend
-- [ ] From **`offer@finsandpins.shop`** + SPF/DKIM (Mac DNS is easier)
+- [ ] From **`offer@finsandpins.shop`** + **`noreply@finsandpins.shop`** (Reply-To) + SPF/DKIM (Mac DNS is easier)
 - [x] Staff alerts: **finsandpins@gmail.com**
 
 ### 3. Google Vision (required before real sellers)
@@ -44,6 +45,7 @@ Phone-friendly checklist. Nothing here requires writing code.
 - [ ] `cd intake && npm install && npm run dev` — seller at `/`, staff at `/admin`
 - [ ] `npx wrangler login` and deploy
 - [ ] Create real D1 + R2; put the real `database_id` in `wrangler.toml`
+- [ ] `wrangler secret put INVITE_CODE` (private beta password; share as `https://sell.finsandpins.shop/?invite=CODE`)
 - [ ] `wrangler secret put GOOGLE_VISION_API_KEY`
 - [ ] `wrangler secret put RESEND_API_KEY`
 - [ ] Point `sell.finsandpins.shop` at the worker; Cloudflare Access on `/admin*`
@@ -64,4 +66,5 @@ Phone-friendly checklist. Nothing here requires writing code.
 - Accept → Ready to pay; ship-to LLC address; seller postage
 - Decline survey; waiting/received list
 - Mac download script + Vision board-test script
-- `pricing_jobs` table reserved for a future private pricing service
+- Invite-only seller site (`INVITE_CODE`); 24h offer aim on cards
+- No staff/offer emails printed on public pages; Reply-To noreply

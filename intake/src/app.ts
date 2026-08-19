@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { Bindings, CollectionRow, PhotoRow } from "./types";
 import { html, escapeHtml } from "./html";
 import { moderateImage, hasModerationProvider } from "./moderation";
@@ -11,8 +12,10 @@ import {
   sellerPhotosRejectedEmail,
 } from "./email";
 import { centsToDollars, offerHelpers, parseDollarsToCents } from "./money";
-import { addDaysIso, canStaffMove, KANBAN_COLUMNS, offerExpired, staffNextStatuses } from "./workflow";
+import { addDaysIso, canStaffMove, KANBAN_COLUMNS, offerDueLabel, offerExpired, staffNextStatuses } from "./workflow";
 import { requireStaff } from "./auth";
+import { getCookie, setCookie } from "hono/cookie";
+import { INVITE_COOKIE, inviteGateEnabled, presentedInviteMatches } from "./invite";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
@@ -48,7 +51,63 @@ function offerUrl(env: Bindings, token: string) {
   return `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/o/${token}`;
 }
 
+function inviteCookieOptions(env: Bindings) {
+  return {
+    httpOnly: true,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+    sameSite: "Lax" as const,
+    secure: (env.ENVIRONMENT || "").toLowerCase() === "production",
+  };
+}
+
+function sellerHasInvite(c: Context<{ Bindings: Bindings }>): boolean {
+  if (!inviteGateEnabled(c.env)) return true;
+  const q = c.req.query("invite");
+  if (presentedInviteMatches(c.env, q)) return true;
+  return presentedInviteMatches(c.env, getCookie(c, INVITE_COOKIE));
+}
+
+function inviteGatePage(env: Bindings, err?: string) {
+  const flash = err ? `<div class="flash err">${escapeHtml(err)}</div>` : "";
+  return html(
+    env,
+    "Invite only",
+    `${flash}
+    <h1>Private preview</h1>
+    <p class="lede">This page is invite-only while we try it out. If you have a code, enter it below.</p>
+    <div class="card">
+      <form method="post" action="/invite">
+        <label>Invite code<input required name="code" autocomplete="off" /></label>
+        <button type="submit">Continue</button>
+      </form>
+    </div>`
+  );
+}
+
 export const app = new Hono<{ Bindings: Bindings }>();
+
+const OPEN_PATHS = new Set(["/health", "/styles.css", "/invite"]);
+
+app.use("*", async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  if (path.startsWith("/admin") || path.startsWith("/o/") || OPEN_PATHS.has(path)) {
+    return next();
+  }
+  const q = c.req.query("invite");
+  if (q && presentedInviteMatches(c.env, q)) {
+    setCookie(c, INVITE_COOKIE, q, inviteCookieOptions(c.env));
+    if (path === "/" && q) {
+      return c.redirect("/");
+    }
+    return next();
+  }
+  if (sellerHasInvite(c)) return next();
+  if (path.startsWith("/api/")) {
+    return c.json({ error: "Invite required" }, 403);
+  }
+  return inviteGatePage(c.env);
+});
 
 app.get("/health", (c) =>
   c.json({
@@ -61,6 +120,16 @@ app.get("/health", (c) =>
         : "missing",
   })
 );
+
+app.post("/invite", async (c) => {
+  const form = await c.req.parseBody();
+  const code = String(form.code || "").trim();
+  if (!presentedInviteMatches(c.env, code)) {
+    return inviteGatePage(c.env, "That code didn’t work.");
+  }
+  setCookie(c, INVITE_COOKIE, code, inviteCookieOptions(c.env));
+  return c.redirect("/");
+});
 
 
 app.get("/styles.css", async (c) => {
@@ -81,14 +150,14 @@ app.get("/", (c) => {
     "Sell my collection",
     `${flash}
     <h1>Sell your pin collection</h1>
-    <p class="lede">Upload photos of the boards you want to sell. We’ll send <strong>one best offer</strong> for everything in those photos. It takes real work to price a collection — that’s why we ask for PayPal Goods &amp; Services details up front, and why this isn’t a free appraisal.</p>
+    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email <strong>one best offer</strong> for everything in those photos, usually within <strong>24 hours</strong>. It takes real work to price a collection — that’s why we ask for PayPal Goods &amp; Services details up front, and why this isn’t a free appraisal.</p>
     <div class="card">
       <form id="start" method="post" action="/api/submissions">
         <label>Name<input required name="seller_name" autocomplete="name" /></label>
         <label>Email<input required type="email" name="seller_email" autocomplete="email" /></label>
-        <p class="hint">We’ll email your offer here. That’s the only way we contact you about this offer — we don’t negotiate in DMs.</p>
+        <p class="hint">We’ll send the offer to the address you type here. Please use the link in that message to accept or decline — we don’t negotiate by email or in DMs.</p>
         <label>PayPal Goods &amp; Services email<input required type="email" name="paypal_gs_email" /></label>
-        <p class="hint">Required so we can pay you if you accept. We pay via PayPal G&amp;S after you accept, before you ship.</p>
+        <p class="hint">Required so we can pay you if you accept. We pay via PayPal G&amp;S after you accept, before you ship. You pay postage to us in Florida.</p>
         <label>Instagram <span class="hint">(optional)</span><input name="instagram" placeholder="@you" /></label>
         <label class="agree">
           <input required type="checkbox" name="agree" value="yes" />
@@ -106,19 +175,20 @@ app.get("/privacy", (c) => {
     "Privacy & terms",
     `<h1>Privacy &amp; terms</h1>
     <div class="card legal">
-      <p>Fins &amp; Pins buys pin collections. This site is an offer to purchase, not a free pricing tool.</p>
+      <p>Fins &amp; Pins buys authentic Disney pin collections. This site is an offer to purchase, not a free pricing tool. There is no minimum number of pins or photos.</p>
       <h2>What you submit</h2>
       <p>Name, email, PayPal Goods &amp; Services email, optional Instagram, and photos of the pins you want to sell.</p>
       <h2>Content moderation</h2>
-      <p>Every photo is checked by automated safety filters before we keep it. If a photo fails, it is deleted immediately and never stored. We may email ourselves your name, email, and a reason code — not the image — so we know a submission was blocked.</p>
+      <p>Every photo is checked by automated safety filters before we keep it. If a photo fails, it is deleted immediately and never stored. We may notify ourselves with your name, email, and a reason code — not the image — so we know a submission was blocked.</p>
       <h2>What we keep</h2>
       <p>Photos that pass moderation may be kept as board originals and as cropped pin images. Crops are kept for future research and training. Board originals are kept for now; we may later delete originals after a set period, after we receive a collection, or after an offer is declined.</p>
       <h2>Offers</h2>
-      <p>We send one total offer for everything in the photos you uploaded. You can accept or decline. Declining is fine — no pressure. If you share why you declined, we use that to learn, not to haggle.</p>
+      <p>We aim to send one total offer within 24 hours of a complete submission. That offer is for everything in the photos you uploaded. You can accept or decline in the link we send. Declining is fine — no pressure. Please don’t reply to offer emails; we don’t negotiate by email. If you share why you declined, we use that to learn, not to haggle.</p>
       <h2>Shipping &amp; payment</h2>
-      <p>If you accept, we pay PayPal Goods &amp; Services, then you ship to us using your own postage. We show our ship-to address after you accept.</p>
-      <h2>Contact</h2>
-      <p>Questions: ${escapeHtml(c.env.FROM_EMAIL)}</p>
+      <p>If you accept, we pay PayPal Goods &amp; Services, then you ship to us in Florida using your own postage. We show our ship-to address after you accept.</p>
+      <p>We can buy from outside the United States when you pay all shipping, PayPal Goods &amp; Services is available for the payment, and we can legally receive the package. International PayPal protection is not always the same as a U.S. domestic payment — if G&amp;S isn’t available in your country, we can’t complete a purchase. Import duties into the U.S., if any, are not something we can promise in advance.</p>
+      <h2>How we contact you</h2>
+      <p>We only email about your offer, using the address you enter. Use the link in that email to accept or decline. We don’t publish a contact address on this site and we don’t monitor replies.</p>
     </div>`
   );
 });
@@ -160,8 +230,16 @@ app.get("/upload/:sessionId", async (c) => {
     c.env,
     "Upload photos",
     `<h1>Upload board photos</h1>
-    <p class="lede">Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. Phone photos of pin boards work best. JPEG is safest (on iPhone: Settings → Camera → Most Compatible). We’ll check each photo with automated safety filters before anything is saved.</p>
+    <p class="lede">No minimum count. Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. We’ll check each photo with automated safety filters before anything is saved.</p>
     <div class="card">
+      <h2>How to shoot a board</h2>
+      <ul class="legal">
+        <li>One board (or one clear group of pins) per photo.</li>
+        <li>Fill the frame with the pins. Straight-on is better than a steep angle.</li>
+        <li>Use even light. Avoid heavy glare on cellophane if you can.</li>
+        <li>Don’t include people, faces, or anything that isn’t the pins.</li>
+        <li>JPEG is safest on iPhone: Settings → Camera → Most Compatible.</li>
+      </ul>
       <input id="files" type="file" accept="image/*" multiple />
       <p class="hint">On iPhone you can pick from Photos. Upload starts when you tap Submit.</p>
       <div class="progress" id="status"></div>
@@ -417,8 +495,8 @@ app.get("/thanks", (c) => {
     "Thanks",
     `<h1>We have your photos</h1>
     <div class="card">
-      <p>Thanks — we’ll take a look and email our best offer to you. No pressure if it’s not a fit.</p>
-      <p class="hint">We only email about this offer. We won’t use DMs to negotiate.</p>
+      <p>Thanks — we’ll email our best offer to the address you gave, usually within 24 hours. No pressure if it’s not a fit.</p>
+      <p class="hint">Use the link in that email to accept or decline. Please don’t reply to the message; we don’t negotiate by email.</p>
     </div>`
   );
 });
@@ -443,7 +521,7 @@ app.get("/o/:token", async (c) => {
     const ship =
       row.status === "accepted" || row.status === "paid" || row.status === "waiting_for_package" || row.status === "received" || row.status === "done"
         ? `<h2>Ship to</h2><p><strong>${escapeHtml(c.env.SHIP_TO_NAME)}</strong><br>${escapeHtml(c.env.SHIP_TO_ADDRESS).replace(/\n/g, "<br>")}</p>
-           <p class="hint">Please use your own postage (USPS, UPS, etc.). We pay via PayPal Goods &amp; Services after you accept.</p>`
+           <p class="hint">Please use your own postage (USPS, UPS, or your local carrier). International sellers: you pay all shipping to Florida. We pay via PayPal Goods &amp; Services after you accept.</p>`
         : "";
     return html(
       c.env,
@@ -587,7 +665,9 @@ app.get("/admin", async (c) => {
           ? `<img src="/admin/collections/${r.id}/photos/${r.cover_photo_id}" alt="" />`
           : "";
         const offer = r.offer_cents != null ? escapeHtml(centsToDollars(r.offer_cents)) : "No offer yet";
-        return `<a class="mini" href="/admin/collections/${r.id}">${img}<div class="who">${escapeHtml(r.seller_name)}</div><div class="meta">${escapeHtml(offer)} · ${r.photo_count} photos</div></a>`;
+        const due = offerDueLabel(r.created_at, r.status);
+        const dueHtml = due ? `<div class="meta">${escapeHtml(due)}</div>` : "";
+        return `<a class="mini" href="/admin/collections/${r.id}">${img}<div class="who">${escapeHtml(r.seller_name)}</div><div class="meta">${escapeHtml(offer)} · ${r.photo_count} photos</div>${dueHtml}</a>`;
       })
       .join("");
     return `<section class="col"><h3>${escapeHtml(col.label)} (${(byStatus.get(col.id) || []).length})</h3>${cards || `<p class="hint">Empty</p>`}</section>`;

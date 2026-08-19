@@ -7,6 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 # After deploy (Mac):
 #   npx wrangler secret put GOOGLE_VISION_API_KEY
 #   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put INVITE_CODE
 # Set PUBLIC_BASE_URL to https://sell.finsandpins.shop in the Worker dashboard (or wrangler vars).
 
 [assets]
@@ -18,6 +19,8 @@ run_worker_first = true
 APP_NAME = "Fins & Pins — Sell My Collection"
 PUBLIC_BASE_URL = "http://127.0.0.1:8787"
 FROM_EMAIL = "offer@finsandpins.shop"
+NOREPLY_EMAIL = "noreply@finsandpins.shop"
+INVITE_CODE = "local-dev"
 STAFF_ALERT_EMAILS = "finsandpins@gmail.com"
 STAFF_EMAILS = "steve.fierstein@gmail.com,finsandpins@gmail.com"
 SHIP_TO_NAME = "Fins and Pins, LLC"

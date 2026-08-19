@@ -13,6 +13,8 @@ export type Bindings = {
   MAX_PHOTOS: string;
   MAX_PHOTO_BYTES: string;
   ENVIRONMENT: string;
+  INVITE_CODE?: string;
+  NOREPLY_EMAIL?: string;
   DEV_ADMIN_EMAIL?: string;
   SIGHTENGINE_USER?: string;
   SIGHTENGINE_SECRET?: string;

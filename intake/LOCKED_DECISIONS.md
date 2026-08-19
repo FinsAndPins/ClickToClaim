@@ -21,6 +21,11 @@ Planning conversation (Aug 2026). Implementation lives in `/intake`.
 | URLs | `sell.finsandpins.shop` (not a path on the Shopify shop). |
 | Email | From `offer@finsandpins.shop`. Alerts to `finsandpins@gmail.com`. |
 | Ship-to | Fins and Pins, LLC, 15049 Canopy Cover Dr, Winter Garden, FL 34787 |
-| Hosting vs shop | Separate app. Shopify is outbound store only. |
+| Offer SLA | Aim to send the offer within **24 hours** of submission. |
+| Geography | Worldwide OK if seller pays shipping, PayPal G&S is available, and we can receive the package. Do **not** claim G&S protection equals U.S. domestic. |
+| Launch | **Invite-only** (`INVITE_CODE` / `?invite=`). Public later. |
+| Minimum | No minimum photos/pins. |
+| Homepage | “We pay reasonable prices for authentic Disney pins.” |
+| From address | `offer@finsandpins.shop` (not shown on the site). Reply-To `noreply@…`. Copy says don’t reply. |
 
 Later (not v1): cloud RF-DETR + eBay pricing, PayPal API, auto labels, Cindy Access.

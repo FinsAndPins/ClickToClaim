@@ -34,7 +34,7 @@ Open:
 
 ## What v1 does not do (on purpose)
 
-- No seller logins
+- Invite-only until you turn it off (`?invite=` or the code form)
 - No cloud RF-DETR / eBay pricing in v1 (still Mac CTM/CTP). Prep notes: `docs/CLOUD_PRICING_MIGRATION.md`
 - No PayPal API yet (manual G&S after Accept)
 - No auto shipping labels (seller’s postage)

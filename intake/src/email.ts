@@ -6,6 +6,9 @@ export type OutboundEmail = {
   text: string;
 };
 
+const NO_REPLY_LINE =
+  "Please don’t reply to this email — this inbox isn’t monitored. Use the link in the message if we sent one.";
+
 export async function sendEmail(
   env: Bindings,
   email: OutboundEmail
@@ -14,6 +17,7 @@ export async function sendEmail(
   if (!key) {
     return { sent: false, error: "RESEND_API_KEY missing — logged only" };
   }
+  const replyTo = (env.NOREPLY_EMAIL || "noreply@finsandpins.shop").trim();
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -22,6 +26,7 @@ export async function sendEmail(
     },
     body: JSON.stringify({
       from: `Fins & Pins <${env.FROM_EMAIL}>`,
+      reply_to: replyTo,
       to: email.to,
       subject: email.subject,
       text: email.text,
@@ -67,6 +72,8 @@ export function offerEmail(opts: {
       opts.link,
       "",
       "No pressure either way. If you decline, you can optionally tell us why — we won't use that to haggle.",
+      "",
+      NO_REPLY_LINE,
       "",
       "— Fins & Pins",
     ].join("\n"),
@@ -131,7 +138,9 @@ export function sellerPhotosRejectedEmail(sellerName: string): OutboundEmail {
       "One or more photos didn't pass our automated safety checks, so we could not accept this submission.",
       "Those files were not saved.",
       "",
-      "Please try again with photos of pin boards only — a clear picture of the pins, without people or other content.",
+      "Please try again with photos of pin boards only — a clear picture of the pins, without people or other content. Use the same invite link you were given; don’t reply to this email.",
+      "",
+      NO_REPLY_LINE,
       "",
       "— Fins & Pins",
     ].join("\n"),
