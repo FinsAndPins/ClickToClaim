@@ -150,15 +150,19 @@ app.get("/", (c) => {
     "Sell my collection",
     `${flash}
     <h1>Sell your pin collection</h1>
-    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email <strong>one best offer</strong> for everything in those photos, usually within <strong>24 hours</strong>. It takes real work to price a collection — that’s why we ask for PayPal Goods &amp; Services details up front, and why this isn’t a free appraisal.</p>
+    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email <strong>one best offer</strong> for everything in those photos, usually within <strong>24 hours</strong>. For now we only buy collections that ship from the United States. It takes real work to price a collection — that’s why we ask for PayPal Goods &amp; Services details up front, and why this isn’t a free appraisal.</p>
     <div class="card">
       <form id="start" method="post" action="/api/submissions">
         <label>Name<input required name="seller_name" autocomplete="name" /></label>
         <label>Email<input required type="email" name="seller_email" autocomplete="email" /></label>
         <p class="hint">We’ll send the offer to the address you type here. Please use the link in that message to accept or decline — we don’t negotiate by email or in DMs.</p>
         <label>PayPal Goods &amp; Services email<input required type="email" name="paypal_gs_email" /></label>
-        <p class="hint">Required so we can pay you if you accept. We pay via PayPal G&amp;S after you accept, before you ship. You pay postage to us in Florida.</p>
+        <p class="hint">Required so we can pay you if you accept. We pay via PayPal G&amp;S after you accept, before you ship. For now we only buy collections that ship from the United States.</p>
         <label>Instagram <span class="hint">(optional)</span><input name="instagram" placeholder="@you" /></label>
+        <label class="agree">
+          <input required type="checkbox" name="ship_us" value="yes" />
+          <span>I will ship from the United States (USPS, UPS, or similar). We aren’t taking international shipments yet.</span>
+        </label>
         <label class="agree">
           <input required type="checkbox" name="agree" value="yes" />
           <span>I agree to the <a href="/privacy">privacy notice and terms</a>. I understand photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin crops for our research.</span>
@@ -185,8 +189,7 @@ app.get("/privacy", (c) => {
       <h2>Offers</h2>
       <p>We aim to send one total offer within 24 hours of a complete submission. That offer is for everything in the photos you uploaded. You can accept or decline in the link we send. Declining is fine — no pressure. Please don’t reply to offer emails; we don’t negotiate by email. If you share why you declined, we use that to learn, not to haggle.</p>
       <h2>Shipping &amp; payment</h2>
-      <p>If you accept, we pay PayPal Goods &amp; Services, then you ship to us in Florida using your own postage. We show our ship-to address after you accept.</p>
-      <p>We can buy from outside the United States when you pay all shipping, PayPal Goods &amp; Services is available for the payment, and we can legally receive the package. International PayPal protection is not always the same as a U.S. domestic payment — if G&amp;S isn’t available in your country, we can’t complete a purchase. Import duties into the U.S., if any, are not something we can promise in advance.</p>
+      <p>If you accept, we pay PayPal Goods &amp; Services, then you ship to us in Florida using your own US postage. We show our ship-to address after you accept. For now we only buy collections shipped from the United States.</p>
       <h2>How we contact you</h2>
       <p>We only email about your offer, using the address you enter. Use the link in that email to accept or decline. We don’t publish a contact address on this site and we don’t monitor replies.</p>
     </div>`
@@ -200,8 +203,9 @@ app.post("/api/submissions", async (c) => {
   const paypal_gs_email = String(form.paypal_gs_email || "").trim().toLowerCase();
   const instagram = String(form.instagram || "").trim() || null;
   const agree = String(form.agree || "") === "yes";
-  if (!agree || !seller_name || !seller_email || !paypal_gs_email) {
-    return c.redirect("/?err=" + encodeURIComponent("Please fill name, email, PayPal, and agree to the terms."));
+  const shipUs = String(form.ship_us || "") === "yes";
+  if (!agree || !shipUs || !seller_name || !seller_email || !paypal_gs_email) {
+    return c.redirect("/?err=" + encodeURIComponent("Please fill name, email, PayPal, US shipping, and agree to the terms."));
   }
   const sessionId = id();
   const created = nowIso();
@@ -521,7 +525,7 @@ app.get("/o/:token", async (c) => {
     const ship =
       row.status === "accepted" || row.status === "paid" || row.status === "waiting_for_package" || row.status === "received" || row.status === "done"
         ? `<h2>Ship to</h2><p><strong>${escapeHtml(c.env.SHIP_TO_NAME)}</strong><br>${escapeHtml(c.env.SHIP_TO_ADDRESS).replace(/\n/g, "<br>")}</p>
-           <p class="hint">Please use your own postage (USPS, UPS, or your local carrier). International sellers: you pay all shipping to Florida. We pay via PayPal Goods &amp; Services after you accept.</p>`
+           <p class="hint">Please ship with USPS, UPS, or similar from the United States. We pay via PayPal Goods &amp; Services after you accept.</p>`
         : "";
     return html(
       c.env,

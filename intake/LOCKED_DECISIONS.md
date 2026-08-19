@@ -22,7 +22,7 @@ Planning conversation (Aug 2026). Implementation lives in `/intake`.
 | Email | From `offer@finsandpins.shop`. Alerts to `finsandpins@gmail.com`. |
 | Ship-to | Fins and Pins, LLC, 15049 Canopy Cover Dr, Winter Garden, FL 34787 |
 | Offer SLA | Aim to send the offer within **24 hours** of submission. |
-| Geography | Worldwide OK if seller pays shipping, PayPal G&S is available, and we can receive the package. Do **not** claim G&S protection equals U.S. domestic. |
+| Geography | **US only** for v1 (seller ships from the United States). Avoids import-duty paperwork. Later: possible exception for a large collection; not advertised. |
 | Launch | **Invite-only** (`INVITE_CODE` / `?invite=`). Public later. |
 | Minimum | No minimum photos/pins. |
 | Homepage | “We pay reasonable prices for authentic Disney pins.” |
