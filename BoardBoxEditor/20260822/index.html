@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Board Box Editor — 20260822</title>
+  <title>Board Box Editor</title>
   <style>
     :root {
       --bg: #12141a;
@@ -156,8 +156,8 @@
   <header>
     <div class="row">
       <div class="title">Board Box Editor</div>
-      <div class="meta">20260822 · <strong id="pinCount">0</strong> pins · board <strong id="boardIdx">1</strong>/<span id="boardTotal">0</span></div>
-      <a id="btnReports" class="btn-link" href="../../20260822/reports.html">← Reports</a>
+      <div class="meta"><span id="showSlugLabel">…</span> · <strong id="pinCount">0</strong> pins · board <strong id="boardIdx">1</strong>/<span id="boardTotal">0</span></div>
+      <a id="btnReports" class="btn-link" href="#">← Reports</a>
     </div>
     <div class="row">
       <button type="button" id="btnPrev" title="Previous board">◀ Prev</button>
@@ -210,10 +210,19 @@
   if (authMsg) authMsg.style.display = "none";
   if (authContent) authContent.style.display = "block";
 
-  const SHOW_SLUG = "20260822";
+  const SHOW_SLUG = (function () {
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    const i = parts.indexOf("BoardBoxEditor");
+    if (i >= 0 && parts[i + 1]) return decodeURIComponent(parts[i + 1]);
+    return "20260822";
+  })();
   const REPORTS_HREF = `../../${SHOW_SLUG}/reports.html?admin=${ADMIN_KEY}`;
   const FIREBASE_ROOT = `boardBoxEditor/${SHOW_SLUG}`;
   const MIN_BOX = 24;
+  const showSlugLabel = document.getElementById("showSlugLabel");
+  if (showSlugLabel) showSlugLabel.textContent = SHOW_SLUG;
+  const btnReports = document.getElementById("btnReports");
+  if (btnReports) btnReports.href = REPORTS_HREF;
 
   const firebaseConfig = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
