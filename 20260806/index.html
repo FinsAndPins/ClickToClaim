@@ -1107,7 +1107,7 @@ function scheduleAvailablePinTotalsRefresh() {
 }
 window._ctcOnPinAvailabilityChanged = scheduleAvailablePinTotalsRefresh;
 
-/** Admin: map every pin key → crop_stem so $ requested can include boards not yet rendered (lite). */
+/** Map every pin key → crop_stem so $ totals work for boards not yet rendered (lite). Read-only. */
 async function loadAdminCropStemMap(boardNames) {
     const chunk = 12;
     for (let i = 0; i < boardNames.length; i += chunk) {
@@ -1143,9 +1143,8 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
         } else {
             globalAllBoardPinCountReady = false;
         }
-        if (isAdmin) {
-            loadAdminCropStemMap(manifestBoardNames);
-        }
+        // Needed for admin $ and each user's running $ on the virtual-board button.
+        loadAdminCropStemMap(manifestBoardNames);
         const totalBoards = list.length;
         const rank = {};
         list.forEach((name, idx) => { rank[name] = idx; });
