@@ -47,7 +47,7 @@
 </head>
 <body>
 <div id="authContent" style="display:none;">
-    <div class="header"><h1>Reports</h1><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="mark_pending.html" class="btn" style="background:#444">Mark pending auth</a><a href="mark_leftover_sold.html" class="btn" style="background:#444">Mark leftover sold</a><a href="leftover_sheet.html" class="btn" style="background:#444">Leftover sheet</a><a id="boardBoxEditorBtn" href="../BoardBoxEditor/20260822/" class="btn" style="background:#0b6e4f">Board box editor</a><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
+    <div class="header"><h1>Reports</h1><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="mark_pending.html" class="btn" style="background:#444">Mark pending auth</a><a href="mark_leftover_sold.html" class="btn" style="background:#444">Mark leftover sold</a><a href="leftover_sheet.html" class="btn" style="background:#444">Leftover sheet</a><a id="boardBoxEditorBtn" href="../BoardBoxEditor/" class="btn" style="background:#0b6e4f">Board box editor</a><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
 
     <section id="showWindowSection">
         <h2>Show window (Eastern Time)</h2>
@@ -62,7 +62,7 @@
             <h2 style="margin:0 0 8px;font-size:1.17em;">Box tools (admin only)</h2>
             <p class="box-tools-note"><strong>Board box editor</strong> — move, resize, add, or delete pin boxes. Save syncs across devices. Same admin key as this page. After edits, ask to sync JSON into the live CTR boards folder before relying on them for clicks/prices.</p>
             <div class="box-tools-row">
-                <a id="boardBoxEditorBtn2" href="../BoardBoxEditor/20260822/" class="btn" style="background:#0b6e4f">Open board box editor</a>
+                <a id="boardBoxEditorBtn2" href="../BoardBoxEditor/" class="btn" style="background:#0b6e4f">Open board box editor</a>
             </div>
         </div>
         <div class="reports-phase-wrap" id="reportsPhaseBar">
@@ -153,7 +153,8 @@ function checkAuth(m=false) {
         document.getElementById('authMsg').style.display = 'none';
         document.getElementById('authContent').style.display = 'block';
         document.getElementById('backBtn').href = `index.html?admin=${ADMIN_KEY}`;
-        const editorHref = `../BoardBoxEditor/20260822/?admin=${ADMIN_KEY}`;
+        const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
+        const editorHref = `../BoardBoxEditor/${showDateSlug}/?admin=${ADMIN_KEY}`;
         ["boardBoxEditorBtn", "boardBoxEditorBtn2"].forEach((id) => {
             const a = document.getElementById(id);
             if (a) a.href = editorHref;
@@ -229,11 +230,11 @@ async function loadData() {
 
     // Price overlay control — shared via showConfig/{show}/priceMode (all devices).
     // localStorage/BroadcastChannel remain as same-browser cache only.
-    const _PO_MODE_KEY = "_ctcPriceMode_20260723";
+    const _PO_MODE_KEY = "_ctcPriceMode_20260822";
     const priceSel = document.getElementById("_po-sel-reports");
     if (priceSel) {
         let bc = null;
-        try { bc = new BroadcastChannel("ctc_price_mode_20260723"); } catch (_) {}
+        try { bc = new BroadcastChannel("ctc_price_mode_20260822"); } catch (_) {}
         function applyPriceSel(mode) {
             if (!["all", "clicked", "none"].includes(mode)) mode = "none";
             priceSel.value = mode;
@@ -322,7 +323,7 @@ async function loadData() {
 
 // ── Dollar value support (same as boards badges: list round, then 25% off) ──
 const PRICING_RUN_ID = 'test_CTR_20260822_pricing_unset';
-const PRICING_RUN_ID_LEFTOVER = 'test_CTR_20260810_pricing_unset';
+const PRICING_RUN_ID_LEFTOVER = 'test_CTR_20260822_pricing_unset';
 const pinKeyToStem = {};   // "IMG_8127-3" / "LO03_IMG_8621-0" → crop_stem
 const stemToPricePrimary = {};
 const stemToPriceLeftover = {};
