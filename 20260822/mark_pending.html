@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mark pending auth · 20260822</title>
+<style>
+  :root {
+    --bg: #111; --panel: #1a1a1a; --line: #2a2a2a; --text: #f2f2f2;
+    --muted: #9a9a9a; --accent: #4a9eff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  body { padding-bottom: 40px; }
+  header {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 10px 12px; background: #0d0d0d; border-bottom: 1px solid var(--line);
+  }
+  header h1 { margin: 0; font-size: 16px; font-weight: 700; flex: 1; min-width: 180px; }
+  header .sub { display: block; font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+  header a.btn {
+    height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #333;
+    background: #222; color: var(--text); font-size: 13px; text-decoration: none;
+    display: inline-flex; align-items: center;
+  }
+  header a.btn.primary { background: #1e4fa0; border-color: #2a6eff; }
+  #totals {
+    margin: 12px 12px 0; padding: 10px 14px; border-radius: 12px;
+    background: #2a2415; border: 1px solid #6a5a2a; max-width: 480px;
+  }
+  #totals .label { font-size: 11px; color: #e6d49a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  #totals table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  #totals th { text-align: right; font-size: 11px; color: #e6d49a; font-weight: 600; padding: 0 0 4px; }
+  #totals th:first-child { text-align: left; }
+  #totals td { padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.08); font-weight: 700; }
+  #totals td:first-child { text-align: left; font-weight: 600; color: #f0e6c8; }
+  #totals td.num, #totals th.num { text-align: right; font-variant-numeric: tabular-nums; padding-left: 12px; }
+  #totals tr.total td { border-top: 2px solid rgba(230,212,154,0.35); color: #fff; }
+  #hint { padding: 8px 12px 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  #boards { padding: 12px; display: flex; flex-direction: column; gap: 18px; }
+  .board-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .board-head {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+    padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--line);
+  }
+  .board-head .title { font-weight: 600; }
+  .board-head .stats { text-align: right; color: var(--muted); font-size: 12px; line-height: 1.35; }
+  .board-head .stats b { color: var(--text); font-weight: 700; }
+  .board-wrap { position: relative; width: 100%; background: #000; }
+  .board-wrap img { display: block; width: 100%; height: auto; }
+  .pin {
+    position: absolute; border: 2px solid rgba(255,255,255,0.35);
+    border-radius: 4px; cursor: pointer; touch-action: manipulation;
+  }
+  .pin.pin-nap { visibility: hidden; pointer-events: none; }
+  .pin.pin-sold {
+    background: rgba(0, 0, 0, 0.42) !important;
+    border: 2px solid rgba(255, 80, 80, 0.85) !important;
+    pointer-events: none;
+    cursor: default;
+  }
+  .pin.pin-sold::after {
+    content: "SOLD";
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%) rotate(-28deg);
+    font-size: clamp(11px, 2.8vw, 18px); font-weight: 900; letter-spacing: 0.06em;
+    color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+    pointer-events: none; z-index: 6; line-height: 1; white-space: nowrap;
+  }
+  .pin.pin-pending {
+    background: rgba(40, 30, 0, 0.45) !important;
+    border: 2px solid rgba(230, 180, 40, 0.9) !important;
+  }
+  .pin.pin-pending::after {
+    content: "PENDING";
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%) rotate(-28deg);
+    font-size: clamp(10px, 2.5vw, 16px); font-weight: 900; letter-spacing: 0.04em;
+    color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+    pointer-events: none; z-index: 5; line-height: 1; white-space: nowrap;
+  }
+  .pin { z-index: 1; }
+  .pin-pb {
+    position: absolute; top: 2px; right: 2px;
+    background: rgba(0,0,0,0.78); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 1px 5px;
+    border-radius: 4px; pointer-events: none; white-space: nowrap; z-index: 3;
+  }
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: #1a5e1a; color: #fff; padding: 8px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .25s;
+    pointer-events: none; z-index: 10000;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mark pending auth
+    <span class="sub">20260822 · tap = PENDING (hold for authentication)</span>
+  </h1>
+  <a class="btn" href="./index.html">Open CTR 20260822</a>
+  <a class="btn primary" href="./reports.html">Reports</a>
+</header>
+
+<div id="totals">
+  <div class="label">Pending auth status</div>
+  <table>
+    <thead>
+      <tr><th></th><th class="num">Count</th><th class="num">$</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Pending</td><td class="num" id="tot-pend-n">0</td><td class="num" id="tot-pend-d">$0</td></tr>
+      <tr><td>Sold (leftover)</td><td class="num" id="tot-sold-n">0</td><td class="num" id="tot-sold-d">$0</td></tr>
+      <tr><td>Clear to check</td><td class="num" id="tot-clear-n">0</td><td class="num" id="tot-clear-d">$0</td></tr>
+      <tr class="total"><td>Total (excl. NaP)</td><td class="num" id="tot-all-n">0</td><td class="num" id="tot-all-d">$0</td></tr>
+    </tbody>
+  </table>
+</div>
+<p id="hint">
+  Tap a pin to mark it <b>PENDING</b> (Lexi still authenticating — still clickable on CTR, excluded from Whatnot upload).
+  Tap again to undo. Saves to <code>showConfig/20260822/pendingStems</code> only.
+  Leftover <b>SOLD</b> pins are labeled and not tappable here (same as CTR).
+  Does <b>not</b> change claims, leftover SOLD marks, or Lexi pricing.
+</p>
+<div id="boards"></div>
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+(function () {
+  const FB_CFG = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+  };
+  const RUN_PRIMARY = "test_CTR_20260822_pricing_unset";
+  const RUN_LEFTOVER = "test_PriceCollection_20260802_1354__build_23549_visual_baseline";
+  const APPROACH_ID = "visual_baseline";
+  const PENDING_PATH = "showConfig/20260822/pendingStems";
+  const SOLD_PATH = "showConfig/20260803_leftover/soldStems";
+  const MANIFEST_VER = "4";
+
+  firebase.initializeApp(FB_CFG);
+  const db = firebase.database();
+
+  const boardsEl = document.getElementById("boards");
+  const toast = document.getElementById("toast");
+  const pendingStems = new Set();
+  const soldStems = new Set();
+  // Dual maps — leftover Firebase run reuses crop names like img8652_pin01.
+  // Merging into one map was marking show pins NaP / wiping prices.
+  const napPrimary = new Set();
+  const napLeftover = new Set();
+  const stemToPricePrimary = Object.create(null);
+  const stemToPriceLeftover = Object.create(null);
+  const pinElsByStem = Object.create(null); // stem -> [pinEl, ...]
+  const boardMeta = Object.create(null);
+  let reviewer = localStorage.getItem("fpins_pending_reviewer") || "";
+
+  function toastMsg(msg, ok) {
+    toast.textContent = msg;
+    toast.style.background = ok === false ? "#8b0000" : "#1a5e1a";
+    toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.remove("show"), 1400);
+  }
+
+  function ensureReviewer() {
+    if (reviewer) return reviewer;
+    try {
+      reviewer = (window.prompt("Your name (saved for pending marks):") || "").trim().slice(0, 30);
+    } catch (_) { reviewer = ""; }
+    if (!reviewer) reviewer = "operator";
+    localStorage.setItem("fpins_pending_reviewer", reviewer);
+    return reviewer;
+  }
+
+  function normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, "_") : "";
+  }
+
+  function roundForShow(raw) {
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    if (raw < 10) return 10;
+    return Math.ceil(raw / 5) * 5;
+  }
+
+  function money(n) { return "$" + Number(n || 0).toLocaleString(); }
+
+  function isPending(stem) {
+    return pendingStems.has(stem) || pendingStems.has(normStem(stem));
+  }
+
+  function isSoldStem(stem) {
+    return soldStems.has(stem) || soldStems.has(normStem(stem));
+  }
+
+  /** Sold FOMO only applies to leftover (LO03_) boards, same as CTR. */
+  function isSold(stem, leftover) {
+    return !!(leftover && isSoldStem(stem));
+  }
+
+  function isLeftoverPin(pinEl) {
+    return !!(pinEl && pinEl.dataset && pinEl.dataset.leftover === "1");
+  }
+
+  function napSetFor(leftover) {
+    return leftover ? napLeftover : napPrimary;
+  }
+
+  function priceMapFor(leftover) {
+    return leftover ? stemToPriceLeftover : stemToPricePrimary;
+  }
+
+  function isNap(stem, leftover) {
+    const set = napSetFor(leftover);
+    return set.has(stem) || set.has(normStem(stem));
+  }
+
+  function priceOf(stem, leftover) {
+    const map = priceMapFor(leftover);
+    return roundForShow(map[stem] || map[normStem(stem)]);
+  }
+
+  function applyPinVisual(pinEl) {
+    const stem = pinEl.dataset.cropStem;
+    const leftover = isLeftoverPin(pinEl);
+    if (isNap(stem, leftover)) {
+      pinEl.classList.add("pin-nap");
+      pinEl.classList.remove("pin-sold", "pin-pending");
+      return;
+    }
+    pinEl.classList.remove("pin-nap");
+    const sold = isSold(stem, leftover);
+    pinEl.classList.toggle("pin-sold", sold);
+    if (sold) {
+      pinEl.classList.remove("pin-pending");
+      const badge = pinEl.querySelector(".pin-pb");
+      if (badge) badge.remove();
+      return;
+    }
+    const pending = isPending(stem);
+    pinEl.classList.toggle("pin-pending", pending);
+    let badge = pinEl.querySelector(".pin-pb");
+    if (pending) {
+      if (badge) badge.remove();
+      return;
+    }
+    const rounded = priceOf(stem, leftover);
+    if (!rounded) {
+      if (badge) badge.remove();
+      return;
+    }
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "pin-pb";
+      pinEl.appendChild(badge);
+    }
+    badge.textContent = "$" + rounded;
+  }
+
+  function refreshBoardStats(name) {
+    const meta = boardMeta[name];
+    if (!meta || !meta.statsEl) return;
+    let pend = 0, clear = 0, sold = 0, total = 0;
+    meta.stems.forEach((stem) => {
+      if (isNap(stem, meta.leftover)) return;
+      total++;
+      if (isSold(stem, meta.leftover)) sold++;
+      else if (isPending(stem)) pend++;
+      else clear++;
+    });
+    meta.statsEl.innerHTML =
+      `<b>${total}</b> pins<br>` +
+      `<b>${pend}</b> pending · <b>${sold}</b> sold · <b>${clear}</b> clear`;
+  }
+
+  function refreshTotals() {
+    let pendN = 0, clearN = 0, soldN = 0, pendD = 0, clearD = 0, soldD = 0;
+    Object.keys(boardMeta).forEach((name) => {
+      const meta = boardMeta[name];
+      (meta.stems || []).forEach((stem) => {
+        if (isNap(stem, meta.leftover)) return;
+        const p = priceOf(stem, meta.leftover);
+        if (isSold(stem, meta.leftover)) { soldN++; soldD += p; }
+        else if (isPending(stem)) { pendN++; pendD += p; }
+        else { clearN++; clearD += p; }
+      });
+    });
+    document.getElementById("tot-pend-n").textContent = String(pendN);
+    document.getElementById("tot-pend-d").textContent = money(pendD);
+    document.getElementById("tot-sold-n").textContent = String(soldN);
+    document.getElementById("tot-sold-d").textContent = money(soldD);
+    document.getElementById("tot-clear-n").textContent = String(clearN);
+    document.getElementById("tot-clear-d").textContent = money(clearD);
+    document.getElementById("tot-all-n").textContent = String(pendN + soldN + clearN);
+    document.getElementById("tot-all-d").textContent = money(pendD + soldD + clearD);
+    Object.keys(boardMeta).forEach(refreshBoardStats);
+  }
+
+  function refreshAllPins() {
+    Object.keys(pinElsByStem).forEach((stem) => {
+      (pinElsByStem[stem] || []).forEach(applyPinVisual);
+    });
+    refreshTotals();
+  }
+
+  async function togglePending(pinEl) {
+    const stem = pinEl.dataset.cropStem;
+    const leftover = isLeftoverPin(pinEl);
+    if (!stem || isNap(stem, leftover)) return;
+    if (isSold(stem, leftover)) {
+      toastMsg("Sold — can't mark pending", false);
+      return;
+    }
+    const user = ensureReviewer();
+    const key = normStem(stem);
+    const path = `${PENDING_PATH}/${key}`;
+    try {
+      if (isPending(stem)) {
+        await db.ref(path).set(null);
+        pendingStems.delete(stem);
+        pendingStems.delete(key);
+        toastMsg("Cleared PENDING");
+      } else {
+        await db.ref(path).set({
+          pending: true,
+          crop_stem: stem,
+          at: new Date().toISOString(),
+          by: user
+        });
+        pendingStems.add(stem);
+        pendingStems.add(key);
+        toastMsg("Marked PENDING");
+      }
+      applyPinVisual(pinEl);
+      refreshTotals();
+    } catch (e) {
+      console.warn(e);
+      toastMsg("Save failed", false);
+    }
+  }
+
+  function placeBoard(name, boardIndex, data) {
+    const pins = data.predictions || data.output?.predictions || [];
+    const leftover = String(name).startsWith("LO03_");
+    const card = document.createElement("div");
+    card.className = "board-card";
+    card.innerHTML = `
+      <div class="board-head">
+        <span class="title">Board ${boardIndex}${leftover ? " · From Monday's show" : ""} · ${name.replace(/^LO03_/, "")}</span>
+        <span class="stats" data-board-stats="${name}"><b>${pins.length}</b> pins</span>
+      </div>
+      <div class="board-wrap">
+        <img alt="${name}" src="./boards/${name}.JPG?v=${MANIFEST_VER}">
+      </div>`;
+    boardsEl.appendChild(card);
+    const img = card.querySelector("img");
+    const wrap = card.querySelector(".board-wrap");
+    const statsEl = card.querySelector("[data-board-stats]");
+    boardMeta[name] = { stems: [], statsEl, leftover };
+    const render = () => {
+      let ORIG_W = data.image?.width || img.naturalWidth;
+      let ORIG_H = data.image?.height || img.naturalHeight;
+      const rotated = (ORIG_W > ORIG_H) !== (img.clientWidth > img.clientHeight);
+      const scale = img.clientWidth / (rotated ? ORIG_H : ORIG_W);
+      pins.forEach((pin) => {
+        const div = document.createElement("div");
+        div.className = "pin";
+        div.style.left = ((rotated ? (ORIG_H - pin.y) : pin.x) - (rotated ? pin.height : pin.width) / 2) * scale + "px";
+        div.style.top = ((rotated ? pin.x : pin.y) - (rotated ? pin.width : pin.height) / 2) * scale + "px";
+        div.style.width = ((rotated ? pin.height : pin.width) * scale) + "px";
+        div.style.height = ((rotated ? pin.width : pin.height) * scale) + "px";
+        if (pin.crop_stem) {
+          div.dataset.cropStem = pin.crop_stem;
+          if (leftover) div.dataset.leftover = "1";
+          if (!pinElsByStem[pin.crop_stem]) pinElsByStem[pin.crop_stem] = [];
+          pinElsByStem[pin.crop_stem].push(div);
+          boardMeta[name].stems.push(pin.crop_stem);
+        }
+        div.addEventListener("click", (e) => {
+          e.preventDefault();
+          togglePending(div);
+        });
+        wrap.appendChild(div);
+        applyPinVisual(div);
+      });
+      refreshTotals();
+    };
+    if (img.complete) render(); else img.onload = render;
+  }
+
+  function stemFromFbPin(domKey, pin) {
+    const cf = pin.crop_filename || "";
+    const cropStem = cf.replace(/\.(jpe?g|png)$/i, "");
+    if (cropStem) return cropStem;
+    const pk = pin.pin_key || domKey || "";
+    if (pk.includes(".jpg__")) return pk.split(".jpg__")[0];
+    // Firebase RTDB keys cannot contain "."; pipeline stores "…_jpg__hash"
+    if (String(domKey).includes("_jpg__")) {
+      return String(domKey).split("_jpg__")[0].replace(/_jpg$/, "");
+    }
+    if (pk.includes("_jpg__")) return pk.split("_jpg__")[0].replace(/_jpg$/, "");
+    return null;
+  }
+
+  function priceFromFbPin(pin) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === "object") {
+      const sp = Number(sc.price != null ? sc.price : sc.total_price);
+      if (isFinite(sp) && sp > 0) return sp;
+    }
+    return null;
+  }
+
+  function clearMap(map, napSet) {
+    for (const k of Object.keys(map)) delete map[k];
+    napSet.clear();
+  }
+
+  function ingestPrices(all, leftover) {
+    const map = priceMapFor(leftover);
+    const napSet = napSetFor(leftover);
+    clearMap(map, napSet);
+    for (const [domKey, pin] of Object.entries(all || {})) {
+      if (!pin) continue;
+      const stem = stemFromFbPin(domKey, pin);
+      if (!stem) continue;
+      if (pin.match_status === "not_a_pin" || pin.not_a_pin === true) {
+        napSet.add(stem);
+        napSet.add(normStem(stem));
+        continue;
+      }
+      if (pin.match_status !== "match" && pin.match_status !== "priced") continue;
+      const raw = priceFromFbPin(pin);
+      if (raw == null) continue;
+      map[stem] = raw;
+      map[normStem(stem)] = raw;
+    }
+    refreshAllPins();
+  }
+
+  function ingestPending(val) {
+    pendingStems.clear();
+    for (const [k, v] of Object.entries(val || {})) {
+      if (v === true || (v && typeof v === "object" && v.pending !== false)) {
+        pendingStems.add(k);
+        pendingStems.add(normStem(k));
+        if (v && v.crop_stem) {
+          pendingStems.add(v.crop_stem);
+          pendingStems.add(normStem(v.crop_stem));
+        }
+      }
+    }
+    refreshAllPins();
+  }
+
+  function ingestSold(val) {
+    soldStems.clear();
+    for (const [k, v] of Object.entries(val || {})) {
+      if (v === true || (v && typeof v === "object" && v.sold !== false)) {
+        soldStems.add(k);
+        soldStems.add(normStem(k));
+        if (v && v.crop_stem) {
+          soldStems.add(v.crop_stem);
+          soldStems.add(normStem(v.crop_stem));
+        }
+      }
+    }
+    refreshAllPins();
+  }
+
+  async function boot() {
+    const manifest = await (await fetch(`./boards/manifest.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
+    for (let i = 0; i < manifest.length; i++) {
+      const name = manifest[i];
+      const data = await (await fetch(`./boards/${name}.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
+      placeBoard(name, i + 1, data);
+    }
+    db.ref(`pin_pricing_tests/${RUN_PRIMARY}/${APPROACH_ID}/pins`).on("value", (snap) => {
+      ingestPrices(snap.val() || {}, false /* primary show boards */);
+    });
+    db.ref(`pin_pricing_tests/${RUN_LEFTOVER}/${APPROACH_ID}/pins`).on("value", (snap) => {
+      ingestPrices(snap.val() || {}, true /* LO03 leftover boards only */);
+    });
+    db.ref(PENDING_PATH).on("value", (snap) => {
+      ingestPending(snap.val() || {});
+    });
+    db.ref(SOLD_PATH).on("value", (snap) => {
+      ingestSold(snap.val() || {});
+    });
+  }
+
+  boot().catch((e) => {
+    console.error(e);
+    toastMsg("Load failed", false);
+  });
+})();
+</script>
+</body>
+</html>
