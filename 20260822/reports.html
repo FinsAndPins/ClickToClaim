@@ -63,12 +63,12 @@
         details.report-section > summary:hover { background: #f1f7ff; }
         details.report-section .section-body { padding: 16px 20px 20px; overflow-x: auto; }
         .pin-thumb {
-            width: 56px; height: 56px; object-fit: cover; border-radius: 6px;
+            width: 80px; height: 80px; object-fit: cover; border-radius: 6px;
             border: 1px solid #ddd; background: #f3f3f3; flex: 0 0 auto;
-            vertical-align: middle;
+            vertical-align: middle; image-rendering: auto;
         }
-        .pin-thumb-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 100%; }
-        .pin-cell { width: 64px; vertical-align: middle; }
+        .pin-thumb-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; }
+        .pin-cell { width: 88px; vertical-align: middle; }
         #popularityTable td, #summaryTable td { vertical-align: middle; }
     </style>
 </head>
@@ -76,7 +76,7 @@
 <div id="authContent" style="display:none;">
     <div class="header"><h1>Reports</h1><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="mark_pending.html" class="btn" style="background:#444">Mark pending auth</a><a href="mark_leftover_sold.html" class="btn" style="background:#444">Mark leftover sold</a><a href="leftover_sheet.html" class="btn" style="background:#444">Leftover sheet</a><a id="boardBoxEditorBtn" href="../BoardBoxEditor/" class="btn" style="background:#0b6e4f">Board box editor</a><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
 
-    <details class="report-section" open id="showWindowSection">
+    <details class="report-section" open id="showWindowSection" data-section-key="show-window">
         <summary>Show window (Eastern Time)</summary>
         <div class="section-body">
         <p style="font-size:14px;color:#555;margin:0 0 12px;">Applies to folder date <strong id="showWindowSlugLabel"></strong> (America/New_York). The banner counts down to the <strong>End</strong> time (“Request window closes in …”). <strong>Start</strong> still controls when the request window opens for B/N badges and phase logic. Click <strong>Save Window</strong> after changes. On the boards page, <strong>Schedule</strong> uses this clock; <strong>Pre-Show</strong> shows the same close countdown until the end time passes.</p>
@@ -114,31 +114,70 @@
         </div>
     </details>
 
-    <details class="report-section" open>
+    <details class="report-section" open data-section-key="user-tally">
         <summary>1. User Tally</summary>
         <div class="section-body"><table id="userTallyTable"><thead><tr><th>User</th><th>VB gen</th><th>VB save</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></div>
     </details>
 
-    <details class="report-section" open>
+    <details class="report-section" open data-section-key="live-feed">
         <summary>2. Live Request Feed</summary>
         <div class="section-body"><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></div>
     </details>
 
-    <details class="report-section" open>
+    <details class="report-section" open data-section-key="popularity">
         <summary>3. Popularity (2+ Clicks)</summary>
         <div class="section-body"><table id="popularityTable"><thead><tr><th>Pin</th><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></div>
     </details>
 
-    <details class="report-section" open>
+    <details class="report-section" open data-section-key="click-summary">
         <summary>4. Click Summary</summary>
         <div class="section-body"><table id="summaryTable"><thead><tr><th>Pins</th><th>Clicks</th><th>Count</th></tr></thead><tbody></tbody></table></div>
     </details>
 
-    <details class="report-section" open>
+    <details class="report-section" open data-section-key="feedback">
         <summary>5. Tester Feedback</summary>
         <div class="section-body"><div id="feedbackContainer">None yet.</div></div>
     </details>
 </div>
+<script>
+/* Persist collapse/expand across Boards ↔ Reports (same browser). Runs before auth UI so no open/close flash. */
+(function () {
+    const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
+    const segments = pathClean.split("/").filter(Boolean);
+    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+    const m = last.match(/(\d{8})/);
+    const slug = m ? m[1] : "20260822";
+    const storageKey = `fp_reports_sections_${slug}`;
+    const sections = () => [...document.querySelectorAll("details.report-section[data-section-key]")];
+
+    function readState() {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) return null;
+            const obj = JSON.parse(raw);
+            return obj && typeof obj === "object" ? obj : null;
+        } catch (_) { return null; }
+    }
+    function writeState() {
+        const out = {};
+        sections().forEach((el) => { out[el.getAttribute("data-section-key")] = !!el.open; });
+        try { localStorage.setItem(storageKey, JSON.stringify(out)); } catch (_) {}
+    }
+    const saved = readState();
+    if (saved) {
+        sections().forEach((el) => {
+            const k = el.getAttribute("data-section-key");
+            if (Object.prototype.hasOwnProperty.call(saved, k)) {
+                if (saved[k]) el.setAttribute("open", "");
+                else el.removeAttribute("open");
+            }
+        });
+    }
+    sections().forEach((el) => {
+        el.addEventListener("toggle", writeState);
+    });
+})();
+</script>
 <div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -402,7 +441,12 @@ function loadBoardImage(name) {
     return boardImgCache[name];
 }
 
-async function pinThumbDataUrl(pk, maxSide = 56) {
+// Thumbs come from CTR board JPGs (~1280px), not full-res originals.
+// Render ~2× CSS size for retina sharpness; full-res crops would re-download huge photos and slow §4.
+const PIN_THUMB_CSS_PX = 80;
+const PIN_THUMB_RENDER_PX = Math.min(160, Math.round(PIN_THUMB_CSS_PX * Math.min(window.devicePixelRatio || 1, 2)));
+
+async function pinThumbDataUrl(pk, maxSide = PIN_THUMB_RENDER_PX) {
     if (pinThumbCache[pk]) return pinThumbCache[pk];
     const g = pinKeyToGeom[pk];
     if (!g) return "";
@@ -424,6 +468,7 @@ async function pinThumbDataUrl(pk, maxSide = 56) {
     b = Math.min(img.naturalHeight, b + padY);
     const sw = Math.max(1, r - l);
     const sh = Math.max(1, b - t);
+    // Prefer downscale from board pixels; allow up to render size (retina) but not beyond source.
     const scale = Math.min(maxSide / sw, maxSide / sh, 1);
     const dw = Math.max(1, Math.round(sw * scale));
     const dh = Math.max(1, Math.round(sh * scale));
@@ -431,8 +476,10 @@ async function pinThumbDataUrl(pk, maxSide = 56) {
     c.width = dw;
     c.height = dh;
     const ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, l, t, sw, sh, 0, 0, dw, dh);
-    const url = c.toDataURL("image/jpeg", 0.85);
+    const url = c.toDataURL("image/jpeg", 0.92);
     pinThumbCache[pk] = url;
     return url;
 }
