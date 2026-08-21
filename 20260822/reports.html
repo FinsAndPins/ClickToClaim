@@ -43,14 +43,42 @@
         }
         .box-tools-note { font-size: 13px; color: #555; margin: 0 0 12px; line-height: 1.45; }
         .box-tools-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        /* Collapsible report sections */
+        details.report-section {
+            background: white; padding: 0; border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow: hidden;
+        }
+        details.report-section > summary {
+            list-style: none; cursor: pointer; user-select: none;
+            display: flex; align-items: center; gap: 10px;
+            padding: 16px 20px; background: #f9f9f9; border-bottom: 1px solid #eee;
+            font-size: 1.17em; font-weight: bold;
+        }
+        details.report-section > summary::-webkit-details-marker { display: none; }
+        details.report-section > summary::before {
+            content: "▸"; display: inline-block; width: 1em; color: #0066aa;
+            transition: transform 0.15s ease;
+        }
+        details.report-section[open] > summary::before { transform: rotate(90deg); }
+        details.report-section > summary:hover { background: #f1f7ff; }
+        details.report-section .section-body { padding: 16px 20px 20px; overflow-x: auto; }
+        .pin-thumb {
+            width: 56px; height: 56px; object-fit: cover; border-radius: 6px;
+            border: 1px solid #ddd; background: #f3f3f3; flex: 0 0 auto;
+            vertical-align: middle;
+        }
+        .pin-thumb-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 100%; }
+        .pin-cell { width: 64px; vertical-align: middle; }
+        #popularityTable td, #summaryTable td { vertical-align: middle; }
     </style>
 </head>
 <body>
 <div id="authContent" style="display:none;">
     <div class="header"><h1>Reports</h1><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="mark_pending.html" class="btn" style="background:#444">Mark pending auth</a><a href="mark_leftover_sold.html" class="btn" style="background:#444">Mark leftover sold</a><a href="leftover_sheet.html" class="btn" style="background:#444">Leftover sheet</a><a id="boardBoxEditorBtn" href="../BoardBoxEditor/" class="btn" style="background:#0b6e4f">Board box editor</a><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
 
-    <section id="showWindowSection">
-        <h2>Show window (Eastern Time)</h2>
+    <details class="report-section" open id="showWindowSection">
+        <summary>Show window (Eastern Time)</summary>
+        <div class="section-body">
         <p style="font-size:14px;color:#555;margin:0 0 12px;">Applies to folder date <strong id="showWindowSlugLabel"></strong> (America/New_York). The banner counts down to the <strong>End</strong> time (“Request window closes in …”). <strong>Start</strong> still controls when the request window opens for B/N badges and phase logic. Click <strong>Save Window</strong> after changes. On the boards page, <strong>Schedule</strong> uses this clock; <strong>Pre-Show</strong> shows the same close countdown until the end time passes.</p>
         <div class="show-window-form">
             <label>Start <select id="cfgStartH"></select><span class="tz-colon">:</span><select id="cfgStartM"></select></label>
@@ -83,17 +111,33 @@
                 <span id="reportsPhaseStatus" class="reports-phase-status" aria-live="polite"></span>
             </div>
         </div>
-    </section>
+        </div>
+    </details>
 
-    <section><h2>1. User Tally</h2><table id="userTallyTable"><thead><tr><th>User</th><th>VB gen</th><th>VB save</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></section>
+    <details class="report-section" open>
+        <summary>1. User Tally</summary>
+        <div class="section-body"><table id="userTallyTable"><thead><tr><th>User</th><th>VB gen</th><th>VB save</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table></div>
+    </details>
 
-    <section><h2>2. Live Request Feed</h2><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+    <details class="report-section" open>
+        <summary>2. Live Request Feed</summary>
+        <div class="section-body"><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+    </details>
 
-    <section><h2>3. Popularity (2+ Clicks)</h2><table id="popularityTable"><thead><tr><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></section>
+    <details class="report-section" open>
+        <summary>3. Popularity (2+ Clicks)</summary>
+        <div class="section-body"><table id="popularityTable"><thead><tr><th>Pin</th><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+    </details>
 
-    <section><h2>4. Click Summary</h2><table id="summaryTable"><thead><tr><th>Clicks</th><th>Pins</th></tr></thead><tbody></tbody></table></section>
+    <details class="report-section" open>
+        <summary>4. Click Summary</summary>
+        <div class="section-body"><table id="summaryTable"><thead><tr><th>Pins</th><th>Clicks</th><th>Count</th></tr></thead><tbody></tbody></table></div>
+    </details>
 
-    <section><h2>5. Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
+    <details class="report-section" open>
+        <summary>5. Tester Feedback</summary>
+        <div class="section-body"><div id="feedbackContainer">None yet.</div></div>
+    </details>
 </div>
 <div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
 
@@ -325,8 +369,12 @@ async function loadData() {
 const PRICING_RUN_ID = 'test_CTR_20260822_pricing_unset';
 const PRICING_RUN_ID_LEFTOVER = 'test_CTR_20260822_pricing_unset';
 const pinKeyToStem = {};   // "IMG_8127-3" / "LO03_IMG_8621-0" → crop_stem
+const pinKeyToGeom = {};   // pinKey → { board, x, y, width, height, iw, ih }
+const boardImgCache = {};  // board stem → HTMLImageElement
+const pinThumbCache = {};  // pinKey → data URL
 const stemToPricePrimary = {};
 const stemToPriceLeftover = {};
+let boardsManifestVer = "1";
 
 /** List: <$10 → $10, else round UP to nearest $5. Sale: Math.round(list × 0.75). */
 function dollarValueForPk(pk) {
@@ -338,6 +386,68 @@ function dollarValueForPk(pk) {
     const list = raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
     return Math.round(list * 0.75);
 }
+
+function loadBoardImage(name) {
+    if (boardImgCache[name]) return boardImgCache[name];
+    boardImgCache[name] = new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("board img " + name));
+        img.src = `./boards/${name}.JPG?v=${boardsManifestVer}`;
+    }).catch((e) => {
+        console.warn(e);
+        delete boardImgCache[name];
+        return null;
+    });
+    return boardImgCache[name];
+}
+
+async function pinThumbDataUrl(pk, maxSide = 56) {
+    if (pinThumbCache[pk]) return pinThumbCache[pk];
+    const g = pinKeyToGeom[pk];
+    if (!g) return "";
+    const img = await loadBoardImage(g.board);
+    if (!img || !img.naturalWidth) return "";
+    const sx = img.naturalWidth / (g.iw || img.naturalWidth);
+    const sy = img.naturalHeight / (g.ih || img.naturalHeight);
+    const halfW = g.width / 2;
+    const halfH = g.height / 2;
+    let l = (g.x - halfW) * sx;
+    let t = (g.y - halfH) * sy;
+    let r = (g.x + halfW) * sx;
+    let b = (g.y + halfH) * sy;
+    const padX = (r - l) * 0.04;
+    const padY = (b - t) * 0.04;
+    l = Math.max(0, l - padX);
+    t = Math.max(0, t - padY);
+    r = Math.min(img.naturalWidth, r + padX);
+    b = Math.min(img.naturalHeight, b + padY);
+    const sw = Math.max(1, r - l);
+    const sh = Math.max(1, b - t);
+    const scale = Math.min(maxSide / sw, maxSide / sh, 1);
+    const dw = Math.max(1, Math.round(sw * scale));
+    const dh = Math.max(1, Math.round(sh * scale));
+    const c = document.createElement("canvas");
+    c.width = dw;
+    c.height = dh;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(img, l, t, sw, sh, 0, 0, dw, dh);
+    const url = c.toDataURL("image/jpeg", 0.85);
+    pinThumbCache[pk] = url;
+    return url;
+}
+
+function pinThumbHtmlSync(pk) {
+    const url = pinThumbCache[pk];
+    if (!url) return `<span class="pin-thumb" style="display:inline-block;" title="${pk}"></span>`;
+    return `<img class="pin-thumb" src="${url}" alt="" title="${pk}">`;
+}
+
+async function warmPinThumbs(pinKeys) {
+    const uniq = [...new Set(pinKeys.filter(Boolean))];
+    await Promise.all(uniq.map((pk) => pinThumbDataUrl(pk).catch(() => "")));
+}
+
 
 function stemFromPricingPin(pin, domKey) {
     const cf = String(pin.crop_filename || "");
@@ -375,12 +485,28 @@ async function loadPricingRunInto(runId, targetMap) {
 }
 
 async function loadDollarValues(manifest, ver) {
+    boardsManifestVer = String(ver || "1");
     await Promise.all(manifest.map(async name => {
         try {
             const data = await (await fetch(`./boards/${name}.json?v=${ver}`, { cache: "no-store" })).json();
+            const iw = Number((data.image && data.image.width) || 0);
+            const ih = Number((data.image && data.image.height) || 0);
             (data.predictions || []).forEach((p, idx) => {
-                if (p.crop_stem) pinKeyToStem[`${name}-${idx}`] = p.crop_stem;
+                const pk = `${name}-${idx}`;
+                if (p.crop_stem) pinKeyToStem[pk] = p.crop_stem;
+                if (p && p.width > 0 && p.height > 0) {
+                    pinKeyToGeom[pk] = {
+                        board: name,
+                        x: Number(p.x),
+                        y: Number(p.y),
+                        width: Number(p.width),
+                        height: Number(p.height),
+                        iw: iw || 0,
+                        ih: ih || 0
+                    };
+                }
             });
+            loadBoardImage(name); // warm board rasters in background
         } catch (e) { console.warn("boards json load failed for $ values:", name, e); }
     }));
     try {
@@ -485,20 +611,58 @@ function renderReports() {
             <td><a href="index.html?admin=${ADMIN_KEY}#pin-${f.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
         </tr>`).join('');
 
-    // Popularity: only show pins with 2+ clicks
-    document.querySelector("#popularityTable tbody").innerHTML = popularity.sort((a,b) => b.count - a.count).filter(p => p.count > 1).map(p => `
+    const contested = popularity.filter(p => p.count > 1).sort((a,b) => b.count - a.count);
+    document.querySelector("#popularityTable tbody").innerHTML = contested.length
+        ? contested.map(p => `
         <tr>
+            <td class="pin-cell">${pinThumbHtmlSync(p.pin)}</td>
             <td>${p.display}</td><td>${p.count}</td><td>${p.users}</td>
             <td><a href="index.html?admin=${ADMIN_KEY}#pin-${p.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
-        </tr>`).join('') || '<tr><td colspan="4" style="color:#999;">No contested pins yet.</td></tr>';
+        </tr>`).join('')
+        : '<tr><td colspan="5" style="color:#999;">No contested pins yet.</td></tr>';
 
-    // Click summary: distribution in descending order by click count
-    const clickDist = {};
-    popularity.forEach(p => { if (p.count > 0) clickDist[p.count] = (clickDist[p.count] || 0) + 1; });
-    const sortedCounts = Object.keys(clickDist).map(Number).sort((a, b) => b - a);
+    // Click summary: each click-count bucket with thumbs of every pin in that bucket
+    const byCount = {};
+    popularity.forEach(p => {
+        if (p.count > 0) {
+            if (!byCount[p.count]) byCount[p.count] = [];
+            byCount[p.count].push(p);
+        }
+    });
+    const sortedCounts = Object.keys(byCount).map(Number).sort((a, b) => b - a);
     document.querySelector('#summaryTable tbody').innerHTML = sortedCounts.length
-        ? sortedCounts.map(c => `<tr><td>${c} click${c !== 1 ? 's' : ''}</td><td>${clickDist[c]} pin${clickDist[c] !== 1 ? 's' : ''}</td></tr>`).join('')
-        : '<tr><td colspan="2" style="color:#999;">No data yet.</td></tr>';
+        ? sortedCounts.map(c => {
+            const pins = byCount[c];
+            const thumbs = `<div class="pin-thumb-row">${pins.map(p => pinThumbHtmlSync(p.pin)).join("")}</div>`;
+            return `<tr><td>${thumbs}</td><td>${c} click${c !== 1 ? "s" : ""}</td><td>${pins.length} pin${pins.length !== 1 ? "s" : ""}</td></tr>`;
+        }).join("")
+        : '<tr><td colspan="3" style="color:#999;">No data yet.</td></tr>';
+
+    // Fill thumbs asynchronously once board rasters / crops are ready
+    const thumbKeys = [
+        ...contested.map(p => p.pin),
+        ...sortedCounts.flatMap(c => byCount[c].map(p => p.pin))
+    ];
+    warmPinThumbs(thumbKeys).then(() => {
+        contested.forEach(p => {
+            // no-op; re-render tables with cached thumbs
+        });
+        if (!globalData) return;
+        // Re-paint only thumb cells using cache
+        document.querySelectorAll("#popularityTable tbody tr").forEach((tr, i) => {
+            const p = contested[i];
+            if (!p) return;
+            const cell = tr.querySelector(".pin-cell");
+            if (cell) cell.innerHTML = pinThumbHtmlSync(p.pin);
+        });
+        document.querySelectorAll("#summaryTable tbody tr").forEach((tr, i) => {
+            const c = sortedCounts[i];
+            if (c == null) return;
+            const pins = byCount[c] || [];
+            const cell = tr.querySelector("td");
+            if (cell) cell.innerHTML = `<div class="pin-thumb-row">${pins.map(p => pinThumbHtmlSync(p.pin)).join("")}</div>`;
+        });
+    });
 }
 </script>
 </body>
