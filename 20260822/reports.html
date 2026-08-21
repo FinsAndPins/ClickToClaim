@@ -70,6 +70,38 @@
         .pin-thumb-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; }
         .pin-cell { width: 88px; vertical-align: middle; }
         #popularityTable td, #summaryTable td { vertical-align: middle; }
+        .pd-note { font-size: 13px; color: #555; margin: 0 0 14px; line-height: 1.45; }
+        .pd-grid {
+            display: grid;
+            grid-template-columns: minmax(110px, 140px) 1fr 1fr minmax(90px, 120px);
+            grid-template-rows: auto auto auto auto;
+            gap: 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            min-width: 640px;
+        }
+        .pd-cell {
+            border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;
+            padding: 10px 12px; vertical-align: top;
+        }
+        .pd-grid > :nth-child(4n) { border-right: none; }
+        .pd-grid > :nth-last-child(-n+4) { border-bottom: none; }
+        .pd-corner, .pd-colhead, .pd-rowhead, .pd-margin {
+            background: #f5f7fa; font-size: 13px; font-weight: bold; color: #333;
+        }
+        .pd-corner { display: flex; align-items: flex-end; justify-content: flex-start; }
+        .pd-colhead { text-align: center; }
+        .pd-rowhead { display: flex; align-items: center; }
+        .pd-box-head {
+            display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px;
+            margin-bottom: 8px; font-size: 13px; color: #333;
+        }
+        .pd-box-head strong { color: #0066aa; font-size: 15px; }
+        .pd-margin { text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+        .pd-margin .pd-m-val { color: #0066aa; font-size: 15px; }
+        .pd-unpriced { font-size: 13px; color: #666; margin: 12px 0 0; line-height: 1.45; }
     </style>
 </head>
 <body>
@@ -134,8 +166,16 @@
         <div class="section-body"><table id="summaryTable"><thead><tr><th>Pins</th><th>Clicks</th><th>Count</th></tr></thead><tbody></tbody></table></div>
     </details>
 
+    <details class="report-section" open data-section-key="price-demand-matrix">
+        <summary>5. Price × Demand</summary>
+        <div class="section-body" id="priceDemandMatrixBody">
+            <p class="pd-note">Clicked pins only, each in exactly one box. Price = same sale $ as User Tally. Above = strictly greater than median; ties go to Below. Unpriced clicked pins are listed under the grid, not placed in a box.</p>
+            <div id="priceDemandMatrix">Loading…</div>
+        </div>
+    </details>
+
     <details class="report-section" open data-section-key="feedback">
-        <summary>5. Tester Feedback</summary>
+        <summary>6. Tester Feedback</summary>
         <div class="section-body"><div id="feedbackContainer">None yet.</div></div>
     </details>
 </div>
@@ -589,6 +629,102 @@ function rowTime(m) {
     return 0;
 }
 
+function medianOf(nums) {
+    const a = nums.filter((n) => isFinite(n)).slice().sort((x, y) => x - y);
+    if (!a.length) return 0;
+    const mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+}
+
+function pdBoxStats(pins) {
+    const value = pins.reduce((s, p) => s + (p.value || 0), 0);
+    return { pins, count: pins.length, value };
+}
+
+function pdBoxHtml(stats, emptyLabel) {
+    if (!stats.count) {
+        return `<div class="pd-box-head"><span>${emptyLabel || "None"}</span><strong>$0</strong></div>`;
+    }
+    const thumbs = `<div class="pin-thumb-row">${stats.pins.map((p) => pinThumbHtmlSync(p.pin)).join("")}</div>`;
+    return `<div class="pd-box-head"><span>${stats.count} pin${stats.count !== 1 ? "s" : ""}</span><strong>$${stats.value}</strong></div>${thumbs}`;
+}
+
+function pdMarginHtml(label, stats) {
+    return `<div>${label}</div><div class="pd-m-val">$${stats.value}</div><div style="font-weight:normal;color:#555;">${stats.count} pin${stats.count !== 1 ? "s" : ""}</div>`;
+}
+
+/** 2×2: columns = price (Above | Below median), rows = demand (Above | Below median). */
+function renderPriceDemandMatrix(popularity) {
+    const host = document.getElementById("priceDemandMatrix");
+    if (!host) return [];
+
+    const clicked = (popularity || []).filter((p) => p && p.count > 0);
+    const priced = [];
+    const unpriced = [];
+    clicked.forEach((p) => {
+        const value = dollarValueForPk(p.pin);
+        if (value > 0) priced.push({ pin: p.pin, display: p.display, count: p.count, value });
+        else unpriced.push(p);
+    });
+
+    if (!priced.length) {
+        host.innerHTML = `<p style="color:#999;margin:0;">No priced clicked pins yet.</p>` +
+            (unpriced.length
+                ? `<p class="pd-unpriced"><strong>${unpriced.length}</strong> clicked pin${unpriced.length !== 1 ? "s" : ""} unpriced (left out of grid).</p>`
+                : "");
+        return unpriced.map((p) => p.pin);
+    }
+
+    const medPrice = medianOf(priced.map((p) => p.value));
+    const medClicks = medianOf(priced.map((p) => p.count));
+    const boxes = { aa: [], ab: [], ba: [], bb: [] }; // demandAbove-priceAbove, demandAbove-priceBelow, …
+    priced.forEach((p) => {
+        const demandAbove = p.count > medClicks;
+        const priceAbove = p.value > medPrice;
+        const key = (demandAbove ? "a" : "b") + (priceAbove ? "a" : "b");
+        boxes[key].push(p);
+    });
+
+    const aa = pdBoxStats(boxes.aa);
+    const ab = pdBoxStats(boxes.ab);
+    const ba = pdBoxStats(boxes.ba);
+    const bb = pdBoxStats(boxes.bb);
+    const rowAbove = pdBoxStats([...boxes.aa, ...boxes.ab]);
+    const rowBelow = pdBoxStats([...boxes.ba, ...boxes.bb]);
+    const colAbove = pdBoxStats([...boxes.aa, ...boxes.ba]);
+    const colBelow = pdBoxStats([...boxes.ab, ...boxes.bb]);
+    const all = pdBoxStats(priced);
+
+    host.innerHTML = `
+        <p class="pd-note" style="margin-top:0;">Medians among priced clicked pins: <strong>$${medPrice}</strong> sale · <strong>${medClicks}</strong> click${medClicks !== 1 ? "s" : ""}.</p>
+        <div class="pd-grid" role="table" aria-label="Price by demand matrix">
+            <div class="pd-cell pd-corner">Demand ↓ · Price →</div>
+            <div class="pd-cell pd-colhead">Above median price<br><span style="font-weight:normal;color:#555;">&gt; $${medPrice}</span></div>
+            <div class="pd-cell pd-colhead">Below median price<br><span style="font-weight:normal;color:#555;">≤ $${medPrice}</span></div>
+            <div class="pd-cell pd-colhead">Row total</div>
+
+            <div class="pd-cell pd-rowhead">Above median demand<br><span style="font-weight:normal;color:#555;">&gt; ${medClicks} click${medClicks !== 1 ? "s" : ""}</span></div>
+            <div class="pd-cell pd-box" data-pd-box="aa">${pdBoxHtml(aa, "None")}</div>
+            <div class="pd-cell pd-box" data-pd-box="ab">${pdBoxHtml(ab, "None")}</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("Above demand", rowAbove)}</div>
+
+            <div class="pd-cell pd-rowhead">Below median demand<br><span style="font-weight:normal;color:#555;">≤ ${medClicks} click${medClicks !== 1 ? "s" : ""}</span></div>
+            <div class="pd-cell pd-box" data-pd-box="ba">${pdBoxHtml(ba, "None")}</div>
+            <div class="pd-cell pd-box" data-pd-box="bb">${pdBoxHtml(bb, "None")}</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("Below demand", rowBelow)}</div>
+
+            <div class="pd-cell pd-margin">Col total</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("Above price", colAbove)}</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("Below price", colBelow)}</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("All priced", all)}</div>
+        </div>
+        <p class="pd-unpriced">${unpriced.length
+            ? `<strong>${unpriced.length}</strong> clicked pin${unpriced.length !== 1 ? "s" : ""} unpriced — left out of the grid (no sale $ yet): ${unpriced.map((p) => p.display || p.pin).join(", ")}.`
+            : `All clicked pins have a sale $ and are in exactly one box.`}</p>
+    `;
+    return priced.map((p) => p.pin).concat(unpriced.map((p) => p.pin));
+}
+
 function renderReports() {
     const userStats = {}; const liveFeed = []; const popularity = [];
     Object.entries(globalData.raw).forEach(([pk, users]) => {
@@ -685,15 +821,15 @@ function renderReports() {
         }).join("")
         : '<tr><td colspan="3" style="color:#999;">No data yet.</td></tr>';
 
+    const matrixThumbKeys = renderPriceDemandMatrix(popularity);
+
     // Fill thumbs asynchronously once board rasters / crops are ready
     const thumbKeys = [
         ...contested.map(p => p.pin),
-        ...sortedCounts.flatMap(c => byCount[c].map(p => p.pin))
+        ...sortedCounts.flatMap(c => byCount[c].map(p => p.pin)),
+        ...matrixThumbKeys
     ];
     warmPinThumbs(thumbKeys).then(() => {
-        contested.forEach(p => {
-            // no-op; re-render tables with cached thumbs
-        });
         if (!globalData) return;
         // Re-paint only thumb cells using cache
         document.querySelectorAll("#popularityTable tbody tr").forEach((tr, i) => {
@@ -709,6 +845,8 @@ function renderReports() {
             const cell = tr.querySelector("td");
             if (cell) cell.innerHTML = `<div class="pin-thumb-row">${pins.map(p => pinThumbHtmlSync(p.pin)).join("")}</div>`;
         });
+        // Re-render matrix so box thumbs pick up cache (keeps same medians/assignment)
+        renderPriceDemandMatrix(popularity);
     });
 }
 </script>
