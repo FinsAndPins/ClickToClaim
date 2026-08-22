@@ -69,7 +69,8 @@
         }
         .pin-thumb-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; }
         .pin-cell { width: 88px; vertical-align: middle; }
-        #popularityTable td, #summaryTable td { vertical-align: middle; }
+        #popularityTable td, #summaryTable td, #soldPinsTable td { vertical-align: middle; }
+        #soldPinsTable td.sold-hammer { color: #198754; font-weight: bold; }
         .pd-note { font-size: 13px; color: #555; margin: 0 0 14px; line-height: 1.45; }
         .pd-grid {
             display: grid;
@@ -174,8 +175,16 @@
         </div>
     </details>
 
+    <details class="report-section" open data-section-key="sold-pins">
+        <summary>6. Sold Pins (Hammer)</summary>
+        <div class="section-body">
+            <p class="pd-note" style="margin-top:0;">From pricing harness <strong>Sale Mode</strong> (Firebase <code>sale_price</code>). List = harness list price ($10 min, round up to $5). Sold = hammer entered on overlay.</p>
+            <table id="soldPinsTable"><thead><tr><th>Pin</th><th>Location</th><th>List</th><th>Sold</th><th>Recorded by</th></tr></thead><tbody></tbody><tfoot id="soldPinsFooter" style="background:#eee;font-weight:bold;"></tfoot></table>
+        </div>
+    </details>
+
     <details class="report-section" open data-section-key="feedback">
-        <summary>6. Tester Feedback</summary>
+        <summary>7. Tester Feedback</summary>
         <div class="section-body"><div id="feedbackContainer">None yet.</div></div>
     </details>
 </div>
@@ -453,7 +462,20 @@ const boardImgCache = {};  // board stem → HTMLImageElement
 const pinThumbCache = {};  // pinKey → data URL
 const stemToPricePrimary = {};
 const stemToPriceLeftover = {};
+const stemToSale = {};     // crop_stem → { sale_price, sale_recorded_by, sale_recorded_at, … }
+const stemToPk = {};       // crop_stem → CTR pin key (IMG_…-idx)
+let saleFbUnsub = null;
 let boardsManifestVer = "1";
+
+/** Harness list price ($10 min, round up to $5) — same list used before 25% show sale $. */
+function listPriceForPk(pk) {
+    const stem = pinKeyToStem[pk];
+    if (!stem) return 0;
+    const map = String(pk).startsWith("LO03_") ? stemToPriceLeftover : stemToPricePrimary;
+    const raw = map[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    return raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
+}
 
 /** List: <$10 → $10, else round UP to nearest $5. Sale: Math.round(list × 0.75). */
 function dollarValueForPk(pk) {
@@ -581,6 +603,49 @@ async function loadPricingRunInto(runId, targetMap) {
     return n;
 }
 
+function ingestSaleRecord(domKey, pin) {
+    if (!pin) return;
+    const stem = stemFromPricingPin(pin, domKey);
+    if (!stem) return;
+    const sp = Number(pin.sale_price);
+    if (!(isFinite(sp) && sp > 0)) {
+        delete stemToSale[stem];
+        return;
+    }
+    stemToSale[stem] = {
+        sale_price: sp,
+        sale_recorded_by: pin.sale_recorded_by || "",
+        sale_recorded_date: pin.sale_recorded_date || "",
+        sale_recorded_at: pin.sale_recorded_at || 0,
+        board_num: pin.board_num,
+        pin_n: pin.pin_n,
+    };
+}
+
+async function loadSaleRecordsFromRun(runId) {
+    const snap = await db.ref(`pin_pricing_tests/${runId}/visual_baseline/pins`).once("value");
+    const all = snap.val() || {};
+    Object.keys(stemToSale).forEach((k) => delete stemToSale[k]);
+    for (const [domKey, pin] of Object.entries(all)) ingestSaleRecord(domKey, pin);
+    return Object.keys(stemToSale).length;
+}
+
+function wireSaleRecordsListener() {
+    if (saleFbUnsub) return;
+    const r = db.ref(`pin_pricing_tests/${PRICING_RUN_ID}/visual_baseline/pins`);
+    const onSnap = (snap) => {
+        ingestSaleRecord(snap.key, snap.val());
+        if (globalData) renderReports();
+    };
+    r.on("child_added", onSnap);
+    r.on("child_changed", onSnap);
+    saleFbUnsub = () => {
+        r.off("child_added", onSnap);
+        r.off("child_changed", onSnap);
+        saleFbUnsub = null;
+    };
+}
+
 async function loadDollarValues(manifest, ver) {
     boardsManifestVer = String(ver || "1");
     await Promise.all(manifest.map(async name => {
@@ -590,7 +655,10 @@ async function loadDollarValues(manifest, ver) {
             const ih = Number((data.image && data.image.height) || 0);
             (data.predictions || []).forEach((p, idx) => {
                 const pk = `${name}-${idx}`;
-                if (p.crop_stem) pinKeyToStem[pk] = p.crop_stem;
+                if (p.crop_stem) {
+                    pinKeyToStem[pk] = p.crop_stem;
+                    if (!stemToPk[p.crop_stem]) stemToPk[p.crop_stem] = pk;
+                }
                 if (p && p.width > 0 && p.height > 0) {
                     pinKeyToGeom[pk] = {
                         board: name,
@@ -618,6 +686,11 @@ async function loadDollarValues(manifest, ver) {
         const n2 = await loadPricingRunInto(PRICING_RUN_ID_LEFTOVER, stemToPriceLeftover);
         console.info(`[$Value] Firebase overlay: primary=${n1} leftover=${n2}`);
     } catch (e) { console.warn("[$Value] Firebase overlay failed (using snapshot only):", e); }
+    try {
+        const ns = await loadSaleRecordsFromRun(PRICING_RUN_ID);
+        wireSaleRecordsListener();
+        console.info(`[SoldPins] Firebase sale_price records: ${ns}`);
+    } catch (e) { console.warn("[SoldPins] Firebase sale load failed:", e); }
 }
 
 function normalizeUserDisplayName(raw) {
@@ -735,6 +808,63 @@ function renderPriceDemandMatrix(popularity) {
     return priced.map((p) => p.pin).concat(unpriced.map((p) => p.pin));
 }
 
+/** §6 Sold pins from harness Sale Mode (sale_price in Firebase). */
+function renderSoldPinsReport() {
+    const tbody = document.querySelector("#soldPinsTable tbody");
+    const tfoot = document.getElementById("soldPinsFooter");
+    if (!tbody) return [];
+    const rows = [];
+    for (const [stem, sale] of Object.entries(stemToSale)) {
+        const soldPrice = Number(sale.sale_price);
+        if (!isFinite(soldPrice) || soldPrice <= 0) continue;
+        const pk = stemToPk[stem] || null;
+        let display = stem;
+        if (pk && globalData && globalData.boardList) {
+            const [bName, pIdx] = pk.split("-");
+            const bNum = globalData.boardList.indexOf(bName) + 1;
+            if (bNum > 0) display = `Board ${bNum} (Pin ${parseInt(pIdx, 10) + 1})`;
+        } else if (sale.board_num != null && sale.pin_n != null) {
+            display = `Board ${sale.board_num} (Pin ${sale.pin_n})`;
+        }
+        const listPrice = pk ? listPriceForPk(pk) : 0;
+        rows.push({
+            pk,
+            stem,
+            display,
+            listPrice,
+            soldPrice,
+            recordedAt: Number(sale.sale_recorded_at) || 0,
+            by: String(sale.sale_recorded_by || ""),
+        });
+    }
+    rows.sort((a, b) => (b.recordedAt - a.recordedAt) || a.display.localeCompare(b.display));
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="color:#999;">No hammer sales recorded yet. Use <strong>Sale Mode</strong> on the pricing overlay.</td></tr>';
+        if (tfoot) tfoot.innerHTML = "";
+        return [];
+    }
+    let totList = 0;
+    let totSold = 0;
+    tbody.innerHTML = rows.map((r) => {
+        totList += r.listPrice;
+        totSold += r.soldPrice;
+        const view = r.pk
+            ? `<a href="index.html?admin=${ADMIN_KEY}#pin-${r.pk}" style="color:#0066aa;font-weight:bold;">View</a>`
+            : "";
+        return `<tr data-sold-pk="${r.pk || ""}">
+            <td class="pin-cell">${r.pk ? pinThumbHtmlSync(r.pk) : ""}</td>
+            <td>${r.display} ${view ? "<br>" + view : ""}</td>
+            <td>$${r.listPrice}</td>
+            <td class="sold-hammer">$${r.soldPrice}</td>
+            <td><small>${r.by.replace(/</g, "&lt;")}</small></td>
+        </tr>`;
+    }).join("");
+    if (tfoot) {
+        tfoot.innerHTML = `<tr><td colspan="2">TOTALS (${rows.length} pin${rows.length !== 1 ? "s" : ""})</td><td>$${totList}</td><td class="sold-hammer">$${totSold}</td><td></td></tr>`;
+    }
+    return rows.map((r) => r.pk).filter(Boolean);
+}
+
 function renderReports() {
     const userStats = {}; const liveFeed = []; const popularity = [];
     Object.entries(globalData.raw).forEach(([pk, users]) => {
@@ -832,12 +962,14 @@ function renderReports() {
         : '<tr><td colspan="3" style="color:#999;">No data yet.</td></tr>';
 
     const matrixThumbKeys = renderPriceDemandMatrix(popularity);
+    const soldThumbKeys = renderSoldPinsReport();
 
     // Fill thumbs asynchronously once board rasters / crops are ready
     const thumbKeys = [
         ...contested.map(p => p.pin),
         ...sortedCounts.flatMap(c => byCount[c].map(p => p.pin)),
-        ...matrixThumbKeys
+        ...matrixThumbKeys,
+        ...soldThumbKeys
     ];
     warmPinThumbs(thumbKeys).then(() => {
         if (!globalData) return;
@@ -855,8 +987,15 @@ function renderReports() {
             const cell = tr.querySelector("td");
             if (cell) cell.innerHTML = `<div class="pin-thumb-row">${pins.map(p => pinThumbHtmlSync(p.pin)).join("")}</div>`;
         });
+        document.querySelectorAll("#soldPinsTable tbody tr[data-sold-pk]").forEach((tr) => {
+            const pk = tr.getAttribute("data-sold-pk");
+            if (!pk) return;
+            const cell = tr.querySelector(".pin-cell");
+            if (cell) cell.innerHTML = pinThumbHtmlSync(pk);
+        });
         // Re-render matrix so box thumbs pick up cache (keeps same medians/assignment)
         renderPriceDemandMatrix(popularity);
+        renderSoldPinsReport();
     });
 }
 </script>
