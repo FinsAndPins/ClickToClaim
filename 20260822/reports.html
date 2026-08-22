@@ -562,7 +562,17 @@ async function loadPricingRunInto(runId, targetMap) {
     const all = snap.val() || {};
     let n = 0;
     for (const [domKey, pin] of Object.entries(all)) {
-        if (!pin || pin.match_status !== "match") continue;
+        if (!pin) continue;
+        const status = pin.match_status || "";
+        // match = eBay lookalike; priced = CTP/search/manual. Skip not_a_pin / bare no_match.
+        if (status === "priced") {
+            const dp = Number(pin.display_price);
+            if (!(isFinite(dp) && dp > 0)) continue;
+            const stem = stemFromPricingPin(pin, domKey);
+            if (stem) { targetMap[stem] = dp; n++; }
+            continue;
+        }
+        if (status !== "match") continue;
         const raw = rawPriceFromMatchPin(pin);
         if (raw == null) continue;
         const stem = stemFromPricingPin(pin, domKey);
