@@ -2595,6 +2595,15 @@ function _ingestFirebasePins(all, map, napSet, label) {
             nNap++;
             continue;
         }
+        // match = eBay lookalike accepted; priced = CTP/search/manual locked $.
+        // Skip bare no_match (and anything else). NaP tracked above; clickability unchanged for now.
+        if (status === 'priced') {
+            const dp = Number(pin.display_price);
+            if (!(isFinite(dp) && dp > 0)) continue;
+            _indexStem(map, stem, dp);
+            nPriced++;
+            continue;
+        }
         if (status !== 'match') continue;
         nMatch++;
         const raw = _priceFromMatchPin(pin, stem);
