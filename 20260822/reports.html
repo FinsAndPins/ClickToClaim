@@ -465,6 +465,7 @@ const stemToPriceLeftover = {};
 const stemToSale = {};     // crop_stem → { sale_price, sale_recorded_by, sale_recorded_at, … }
 const stemToPk = {};       // crop_stem → CTR pin key (IMG_…-idx)
 let saleFbUnsub = null;
+let salePaintTimer = null;
 let boardsManifestVer = "1";
 
 /** Harness list price ($10 min, round up to $5) — same list used before 25% show sale $. */
@@ -630,18 +631,37 @@ async function loadSaleRecordsFromRun(runId) {
     return Object.keys(stemToSale).length;
 }
 
+function repaintSoldPinThumbs() {
+    document.querySelectorAll("#soldPinsTable tbody tr[data-sold-pk]").forEach((tr) => {
+        const pk = tr.getAttribute("data-sold-pk");
+        if (!pk) return;
+        const cell = tr.querySelector(".pin-cell");
+        if (cell) cell.innerHTML = pinThumbHtmlSync(pk);
+    });
+}
+
+function scheduleSoldPinsRefresh() {
+    if (salePaintTimer) clearTimeout(salePaintTimer);
+    salePaintTimer = setTimeout(() => {
+        salePaintTimer = null;
+        if (!globalData) return;
+        const soldThumbKeys = renderSoldPinsReport();
+        warmPinThumbs(soldThumbKeys).then(repaintSoldPinThumbs);
+    }, 120);
+}
+
 function wireSaleRecordsListener() {
     if (saleFbUnsub) return;
     const r = db.ref(`pin_pricing_tests/${PRICING_RUN_ID}/visual_baseline/pins`);
     const onSnap = (snap) => {
         ingestSaleRecord(snap.key, snap.val());
-        if (globalData) renderReports();
+        scheduleSoldPinsRefresh();
     };
-    r.on("child_added", onSnap);
+    // child_added replays all ~320 pins on attach and was freezing the page.
     r.on("child_changed", onSnap);
     saleFbUnsub = () => {
-        r.off("child_added", onSnap);
         r.off("child_changed", onSnap);
+        if (salePaintTimer) clearTimeout(salePaintTimer);
         saleFbUnsub = null;
     };
 }
@@ -987,12 +1007,7 @@ function renderReports() {
             const cell = tr.querySelector("td");
             if (cell) cell.innerHTML = `<div class="pin-thumb-row">${pins.map(p => pinThumbHtmlSync(p.pin)).join("")}</div>`;
         });
-        document.querySelectorAll("#soldPinsTable tbody tr[data-sold-pk]").forEach((tr) => {
-            const pk = tr.getAttribute("data-sold-pk");
-            if (!pk) return;
-            const cell = tr.querySelector(".pin-cell");
-            if (cell) cell.innerHTML = pinThumbHtmlSync(pk);
-        });
+        repaintSoldPinThumbs();
         // Re-render matrix so box thumbs pick up cache (keeps same medians/assignment)
         renderPriceDemandMatrix(popularity);
         renderSoldPinsReport();
