@@ -431,7 +431,7 @@
 </div>
 
 <button type="button" id="reportIssueFab" onclick="document.getElementById('reportIssueOverlay').style.display='flex'" title="Report Issue" aria-label="Report Issue">Report Issue</button>
-<button type="button" id="virtualBoardExportFab" disabled title="Create Virtual Pin Board of your clicked pins" aria-label="Create Virtual Pin Board of your clicked pins">Create Virtual Pin Board of 0 Clicked Pins · $0</button>
+<button type="button" id="virtualBoardExportFab" disabled title="Create Virtual Pin Board of your clicked pins" aria-label="Create Virtual Pin Board of your clicked pins">Create Virtual Pin Board of 0 Clicked Pins</button>
 <div id="virtualBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="virtualBoardExportTitle">
     <div class="modal-box" style="max-width:400px;">
         <h3 id="virtualBoardExportTitle">Building virtual pin board</h3>
@@ -1688,7 +1688,11 @@ function refreshVirtualBoardExportFab(myCount) {
     }
     fab.style.display = "block";
     const { count: n, dollars } = computeMyClickedRunningTotals(myCount);
-    const label = `Create Virtual Pin Board of ${n} Clicked Pins · $${dollars}`;
+    const showPrices = typeof window._ctcGetPriceMode === "function"
+        && window._ctcGetPriceMode() !== "none";
+    const label = showPrices
+        ? `Create Virtual Pin Board of ${n} Clicked Pins · $${dollars}`
+        : `Create Virtual Pin Board of ${n} Clicked Pin${n === 1 ? "" : "s"}`;
     fab.textContent = label;
     fab.title = label;
     fab.setAttribute("aria-label", label);
@@ -2322,11 +2326,8 @@ const _PENDING_STEMS_PATH = `showConfig/${_PO_SHOW_ID}/pendingStems`;
 const _PO_MODE_PATH = `showConfig/${_PO_SHOW_ID}/priceMode`;
 const _PO_DISCOUNT = 0.75;
 
+// Safe default: hide until Firebase showConfig confirms otherwise (localStorage is write-only cache).
 let _priceMode = 'none';
-try {
-  const cached = localStorage.getItem(_PO_MODE_KEY);
-  if (['all', 'clicked', 'none'].includes(cached)) _priceMode = cached;
-} catch (_) {}
 const _pricesSnap = {};
 const _stemToPricePrimary = {};
 const _stemToPriceLeftover = {};
@@ -2459,6 +2460,11 @@ function _applyPin(pinEl) {
         if (old) old.remove();
         return;
     }
+    if (_priceMode === 'none') {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
     const raw = _rawForPin(pinEl);
     if (raw == null) {
         const old = pinEl.querySelector('.pin-pb');
@@ -2498,11 +2504,20 @@ function _applyAllPins() {
 
 function _applyMode(mode) {
     if (!['all', 'clicked', 'none'].includes(mode)) mode = 'none';
+    const prev = _priceMode;
     _priceMode = mode;
     try { localStorage.setItem(_PO_MODE_KEY, mode); } catch (_) {}
-    _refreshAllBadges();
+    if (mode === 'none') {
+        document.querySelectorAll('.pin-pb').forEach(b => b.remove());
+    } else if (prev === 'none') {
+        _applyAllPins();
+    } else {
+        _refreshAllBadges();
+    }
+    if (typeof refreshVirtualBoardExportFab === 'function') refreshVirtualBoardExportFab();
 }
 
+window._ctcGetPriceMode = () => _priceMode;
 window._ctcApplyPinPriceGate = _applyPin;
 window._ctcApplySoldGate = _applySoldGate;
 window._ctcApplyPendingGate = _applyPendingGate;
