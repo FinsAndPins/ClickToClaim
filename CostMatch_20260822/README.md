@@ -7,7 +7,9 @@ Match **sold CTR pins** (20260822) to **D23 inventory** so Report 6 can later sh
 ## Open (any device)
 
 - Browse exports: https://finsandpins.github.io/ClickToClaim/CostMatch_20260822/
-- **Review (ClickToMatch + Find alts):** https://finsandpins.github.io/ClickToClaim/CostMatch_20260822/review.html
+- **Review v2 (masked CLIP + pHash):** https://finsandpins.github.io/ClickToClaim/CostMatch_20260822/review_v2.html
+- **Mask QC preview:** https://finsandpins.github.io/ClickToClaim/CostMatch_20260822/mask_preview.html
+- **Review v1 (ResNet18):** https://finsandpins.github.io/ClickToClaim/CostMatch_20260822/review.html
 
 ## How review works
 
@@ -23,10 +25,15 @@ CTP-style picking is **in this same flow** (Find alts), not a separate later app
 |------|------|
 | `exports/sold_ctr_pins.*` | 133 sold CTR pins |
 | `exports/inventory_units.*` | 238 D23 inventory units |
-| `exports/proposals.json` | Top‑12 visual candidates per sold pin |
+| `exports/proposals.json` | Top‑12 visual candidates per sold pin (ResNet18 v1) |
+| `exports/proposals_v2.json` | Top‑12 masked CLIP + pHash candidates (v2) |
 | `thumbs/` | Thumbnails for Pages |
+| `previews/mask_qc/` | Before/after mask previews (run script 03) |
 | `scripts/01_export_sides.py` | Re-export sides |
-| `scripts/02_build_proposals.py` | Rebuild proposals (App Support torch venv) |
+| `scripts/02_build_proposals.py` | Rebuild v1 proposals (App Support torch venv) |
+| `scripts/02_build_proposals_v2.py` | Rebuild v2 masked proposals |
+| `scripts/03_mask_preview.py` | Regenerate mask QC images |
+| `scripts/image_prep.py` | Mask/crop tuning (sold vs catalog presets) |
 
 ## Safety
 

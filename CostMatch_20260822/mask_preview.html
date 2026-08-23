@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CostMatch mask QC</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    header { padding: 14px 16px; border-bottom: 1px solid #333; }
+    h1 { margin: 0 0 6px; font-size: 1.1rem; }
+    p { margin: 0; color: #999; font-size: 0.9rem; line-height: 1.4; }
+    nav { display: flex; gap: 8px; padding: 10px 16px; flex-wrap: wrap; }
+    nav a { color: #4a9eff; text-decoration: none; font-size: 0.9rem; }
+    nav button { background: #222; color: #ddd; border: 1px solid #444; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+    nav button.active { background: #1e4fa0; color: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; padding: 12px 16px 40px; }
+    .card { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+    .card img { width: 100%; display: block; background: #000; }
+    .card .lbl { padding: 6px 8px; font-size: 0.75rem; color: #aaa; }
+    .note { padding: 0 16px 12px; color: #888; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CostMatch mask preview</h1>
+    <p>Left = original thumb, right = masked input used for v2 matching. Tune <code>scripts/image_prep.py</code> if card/badge chrome is still dominant.</p>
+  </header>
+  <nav>
+    <a href="./">← Browse</a>
+    <a href="review_v2.html">Review v2 proposals</a>
+    <button type="button" id="btnSold" class="active">Sold CTR</button>
+    <button type="button" id="btnCat">Catalog</button>
+  </nav>
+  <p class="note" id="meta">Run <code>scripts/03_mask_preview.py</code> to refresh previews.</p>
+  <div class="grid" id="grid"></div>
+  <script>
+    const soldDir = "previews/mask_qc/sold/";
+    const catDir = "previews/mask_qc/catalog/";
+    let soldFiles = [], catFiles = [];
+    const grid = document.getElementById("grid");
+    const meta = document.getElementById("meta");
+
+    async function listDir(prefix) {
+      const res = await fetch("previews/mask_qc/summary.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("Run 03_mask_preview.py first");
+      return (await res.json());
+    }
+
+    function showSold() {
+      document.getElementById("btnSold").classList.add("active");
+      document.getElementById("btnCat").classList.remove("active");
+      meta.textContent = `${soldFiles.length} sold previews (sample)`;
+      grid.innerHTML = soldFiles.map((f) => `
+        <div class="card"><img src="${soldDir}${f}" alt="" loading="lazy"><div class="lbl">${f.replace(/\.jpg$/,"")}</div></div>`).join("");
+    }
+
+    function showCat() {
+      document.getElementById("btnCat").classList.add("active");
+      document.getElementById("btnSold").classList.remove("active");
+      meta.textContent = `${catFiles.length} catalog previews (sample)`;
+      grid.innerHTML = catFiles.map((f) => `
+        <div class="card"><img src="${catDir}${f}" alt="" loading="lazy"><div class="lbl">${f.replace(/\.jpg$/,"")}</div></div>`).join("");
+    }
+
+    document.getElementById("btnSold").onclick = showSold;
+    document.getElementById("btnCat").onclick = showCat;
+
+    fetch("exports/sold_ctr_pins.json").then((r) => r.json()).then((sold) => {
+      soldFiles = sold.slice(0, 24).map((r) => (r.crop_stem || "") + ".jpg").filter(Boolean);
+      return fetch("exports/inventory_units.json").then((r) => r.json());
+    }).then((inv) => {
+      catFiles = inv.slice(0, 24).map((r) => (r.inventory_key || "") + ".jpg").filter(Boolean);
+      showSold();
+    }).catch((e) => { meta.textContent = String(e); });
+  </script>
+</body>
+</html>
