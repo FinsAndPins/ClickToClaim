@@ -274,9 +274,17 @@ function openCtp(){
   $("ctpConfirm").disabled=true;
   renderTiles();
 }
+function claimedKeys(){
+  const s=new Set();
+  Object.values(decisions).forEach(d=>{
+    if(d&&d.status==="match"&&d.inventory_key) s.add(d.inventory_key);
+  });
+  return s;
+}
 function renderTiles(){
   const p=currentProposal();
   if(!p) return;
+  const claimed=claimedKeys();
   const q=($("ctpSearch").value||"").trim().toLowerCase();
   let rows;
   if(ctpMode==="top"){
@@ -284,6 +292,7 @@ function renderTiles(){
   }else{
     rows=inventory.map(r=>({inventory_key:r.inventory_key,thumb:r.thumb,catalog_cost:r.catalog_cost,score:null}));
   }
+  rows=rows.filter(r=>!claimed.has(r.inventory_key));
   if(q) rows=rows.filter(r=>String(r.inventory_key).toLowerCase().includes(q));
   $("tileGrid").innerHTML=rows.map(r=>{
     const chosen=ctpPick&&ctpPick.inventory_key===r.inventory_key?" chosen":"";

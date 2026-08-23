@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CostMatch · Pick catalog</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#111;color:#eee;height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0)}
+#loginGate{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px}
+#loginGate.hidden{display:none}
+.loginBox{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:22px;width:100%;max-width:380px}
+.loginBox h1{font-size:18px;margin-bottom:8px}
+.loginBox p{font-size:13px;color:#888;margin-bottom:14px;line-height:1.45}
+.loginBox input{width:100%;padding:12px;border-radius:8px;border:1px solid #333;background:#222;color:#fff;font-size:16px;margin-bottom:12px}
+.loginBox button{width:100%;padding:12px;border:none;border-radius:8px;background:#1e4fa0;color:#fff;font-weight:700;font-size:16px;cursor:pointer}
+#hdr{flex-shrink:0;background:#1a1a1a;border-bottom:1px solid #333;padding-top:env(safe-area-inset-top,0)}
+.hdrRow{min-height:44px;display:flex;align-items:center;padding:6px 12px;gap:8px;flex-wrap:wrap}
+.hdrTitle{font-size:15px;font-weight:700;flex:1}
+.hdrSub{font-size:12px;color:#888}
+a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
+#progWrap{height:4px;background:#2a2a2a;flex-shrink:0}
+#progFill{height:100%;background:#2a6eff;width:0%;transition:width .2s}
+#soldBar{flex-shrink:0;display:flex;gap:10px;padding:8px 10px;border-bottom:1px solid #222;background:#141414;align-items:flex-start}
+#soldBar img{width:96px;height:96px;object-fit:contain;background:#000;border-radius:8px;flex-shrink:0}
+#soldMeta{flex:1;min-width:0;font-size:12px;line-height:1.4;color:#bbb}
+#soldMeta strong{color:#fff;font-size:14px;display:block;margin-bottom:4px;word-break:break-word}
+#soldMeta .prices{color:#8fef8f;font-weight:600;margin-bottom:4px}
+#soldMeta .title{font-size:11px;color:#999;max-height:3.2em;overflow:hidden}
+#tools{flex-shrink:0;display:flex;gap:6px;padding:6px 10px;border-bottom:1px solid #222;align-items:center}
+#tools input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #333;background:#222;color:#fff;font-size:14px}
+#tools .hint{font-size:11px;color:#666;white-space:nowrap}
+#scrollArea{flex:1;overflow-y:auto;min-height:0;padding:8px;-webkit-overflow-scrolling:touch}
+#tileGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(min-width:700px){#tileGrid{grid-template-columns:repeat(4,1fr)}}
+.tile{position:relative;border-radius:8px;overflow:hidden;background:#1a1a1a;border:2px solid transparent;cursor:pointer}
+.tile img{width:100%;aspect-ratio:1;object-fit:contain;background:#0a0a0a;display:block}
+.tile .rank{position:absolute;top:4px;left:4px;font-size:10px;font-weight:700;background:rgba(0,0,0,.75);padding:2px 5px;border-radius:4px;color:#ffdd57}
+.tile .tbar{background:rgba(0,0,0,.92);padding:4px 6px;font-size:10px;line-height:1.25}
+.tile .tbar .key{color:#ccc;word-break:break-all}
+.tile .tbar .p{color:#8fef8f;font-weight:700}
+.tile .tbar .s{color:#888}
+.tile.chosen{border-color:#f0c040;box-shadow:0 0 0 1px #f0c040}
+.tile.claimed{opacity:.35;pointer-events:none}
+#btnArea{flex-shrink:0;display:flex;gap:6px;padding:8px;border-top:1px solid #222;background:#111}
+#btnArea button{flex:1;height:48px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation}
+#btnNoMatch{background:#6b1a1a;color:#ff8e8e}
+#btnMatch{background:#1a6b1a;color:#6eff6e}
+#btnMatch:disabled{opacity:.35}
+#btnSkip{background:#2a2a2a;color:#aaa}
+#btnBack{background:#1a1a3a;color:#99f}
+#doneGate{display:none;position:fixed;inset:0;background:#111;z-index:400;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+#doneGate.show{display:flex}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #444;padding:10px 14px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:6000}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="loginGate">
+  <div class="loginBox">
+    <h1>CostMatch · Pick from catalog</h1>
+    <p>Your sold pin stays on top. Scroll the ranked D23 inventory below, tap a catalog unit, then <strong>Match</strong>. Once matched, that catalog unit disappears from all later pins (one pin per SKU at the show).</p>
+    <input id="nameInput" type="text" placeholder="@name" autocomplete="username">
+    <button type="button" id="loginBtn">Start</button>
+  </div>
+</div>
+
+<div id="hdr">
+  <div class="hdrRow">
+    <a class="navLink" href="./">Browse</a>
+    <div class="hdrTitle">CostMatch · Catalog pick</div>
+    <div class="hdrSub" id="whoLabel"></div>
+  </div>
+</div>
+<div id="progWrap"><div id="progFill"></div></div>
+
+<div id="soldBar">
+  <img id="soldImg" alt="Sold pin">
+  <div id="soldMeta">
+    <strong id="soldStem">—</strong>
+    <div class="prices" id="soldPrices"></div>
+    <div class="title" id="soldTitle"></div>
+    <div id="progressLabel" style="margin-top:6px;color:#888">—</div>
+  </div>
+</div>
+
+<div id="tools">
+  <input id="search" type="search" placeholder="Filter catalog key or board…">
+  <span class="hint" id="availHint">—</span>
+</div>
+
+<div id="scrollArea">
+  <div id="tileGrid"></div>
+</div>
+
+<div id="btnArea">
+  <button type="button" id="btnBack">Back</button>
+  <button type="button" id="btnNoMatch">No Match</button>
+  <button type="button" id="btnSkip">Skip</button>
+  <button type="button" id="btnMatch" disabled>Match</button>
+</div>
+
+<div id="doneGate">
+  <h2>All done</h2>
+  <p>Every sold pin has Match or No Match.</p>
+  <a class="navLink" href="./">Back to browse</a>
+</div>
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+  authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+  databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+  projectId: "fins-and-pins-click-to-claim",
+  storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+  messagingSenderId: "31512845258",
+  appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const DECISIONS_PATH = "costMatch/20260822/decisions";
+
+let reviewer = localStorage.getItem("costMatch_reviewer") || "";
+let soldRows = [];
+let rankings = {};
+let invByKey = {};
+let decisions = {};
+let queue = [];
+let qi = 0;
+let pickKey = null;
+let historyStack = [];
+
+function $(id){ return document.getElementById(id); }
+function money(n){
+  if(n==null||!isFinite(Number(n))) return "—";
+  const v=Number(n);
+  return "$"+(v%1?v.toFixed(2):String(v));
+}
+function toast(msg){
+  const el=$("toast");
+  el.textContent=msg;
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),1800);
+}
+function normalizeName(raw){
+  const inner=String(raw||"").trim().replace(/^@+/,"").trim();
+  return inner?"@"+inner.toLowerCase():"";
+}
+function claimedKeys(){
+  const s=new Set();
+  Object.values(decisions).forEach(d=>{
+    if(d&&d.status==="match"&&d.inventory_key) s.add(d.inventory_key);
+  });
+  return s;
+}
+function currentSold(){
+  const stem=queue[qi];
+  return soldRows.find(r=>r.crop_stem===stem)||null;
+}
+function currentRanking(){
+  const s=currentSold();
+  return s?(rankings[s.crop_stem]||[]):[];
+}
+function rebuildQueue(){
+  queue=soldRows.filter(r=>{
+    const d=decisions[r.crop_stem];
+    return !d||d.status==="skip";
+  }).map(r=>r.crop_stem);
+  if(qi>=queue.length) qi=Math.max(0,queue.length-1);
+  pickKey=null;
+  $("btnMatch").disabled=true;
+  if(!queue.length) $("doneGate").classList.add("show");
+  else { $("doneGate").classList.remove("show"); render(); }
+  updateProgress();
+}
+function updateProgress(){
+  const vals=Object.values(decisions);
+  const matched=vals.filter(d=>d&&d.status==="match").length;
+  const nomatch=vals.filter(d=>d&&d.status==="no_match").length;
+  const total=soldRows.length||1;
+  const done=matched+nomatch;
+  $("progressLabel").textContent=`${queue.length?(qi+1):0}/${queue.length} left · ✓${matched} · ✗${nomatch} · claimed catalog ${claimedKeys().size}`;
+  $("progFill").style.width=Math.round((done/total)*100)+"%";
+}
+function render(){
+  const s=currentSold();
+  if(!s){ updateProgress(); return; }
+  $("soldImg").src=s.thumb||"";
+  $("soldStem").textContent=s.crop_stem+(s.board_num!=null?` · Board ${s.board_num} pin ${s.pin_n}`:"");
+  $("soldPrices").textContent=`Sold ${money(s.sold_price)} · List ${money(s.list_price)}`;
+  $("soldTitle").textContent=s.listing_title||"(no eBay title on file)";
+  const claimed=claimedKeys();
+  const q=($("search").value||"").trim().toLowerCase();
+  const rows=currentRanking().filter(r=>{
+    if(claimed.has(r.inventory_key)) return false;
+    if(!q) return true;
+    const blob=(r.inventory_key+" "+(r.board_id||"")).toLowerCase();
+    return blob.includes(q);
+  });
+  $("availHint").textContent=rows.length+" choices";
+  $("tileGrid").innerHTML=rows.map((r,i)=>{
+    const chosen=pickKey===r.inventory_key?" chosen":"";
+    const cost=r.catalog_cost!=null?money(r.catalog_cost):"no cost";
+    const sc=r.score!=null?Number(r.score).toFixed(3):"";
+    return `<div class="tile${chosen}" data-key="${r.inventory_key}"><span class="rank">#${i+1}</span><img src="${r.thumb||""}" alt="" loading="lazy"><div class="tbar"><div class="key">${r.inventory_key}</div><div class="p">${cost}</div><div class="s">score ${sc}</div></div></div>`;
+  }).join("")||`<p style="color:#888;padding:12px;">No catalog units left (all claimed or filtered).</p>`;
+  updateProgress();
+}
+function saveDecision(payload){
+  decisions[payload.crop_stem]=payload;
+  return db.ref(`${DECISIONS_PATH}/${payload.crop_stem}`).set(payload)
+    .then(()=>toast(payload.status==="match"?"Matched — catalog unit claimed":payload.status==="no_match"?"No match":"Skipped"))
+    .catch(e=>{ console.warn(e); toast("Local ok; Firebase: "+e.message); });
+}
+function advanceFirm(){
+  const stem=queue[qi];
+  historyStack.push({stem, pickKey});
+  queue.splice(qi,1);
+  if(qi>=queue.length) qi=Math.max(0,queue.length-1);
+  pickKey=null;
+  $("btnMatch").disabled=true;
+  if(!queue.length){ $("doneGate").classList.add("show"); updateProgress(); return; }
+  render();
+}
+function decideMatch(){
+  const s=currentSold();
+  if(!s||!pickKey){ toast("Pick a catalog unit"); return; }
+  if(claimedKeys().has(pickKey)){ toast("Already claimed"); return; }
+  const row=currentRanking().find(r=>r.inventory_key===pickKey)||{};
+  const inv=invByKey[pickKey]||{};
+  saveDecision({
+    crop_stem:s.crop_stem, fb_key:s.fb_key||"", status:"match",
+    inventory_key:pickKey,
+    catalog_cost:inv.catalog_cost!=null?inv.catalog_cost:row.catalog_cost,
+    score:row.score!=null?row.score:null,
+    via:"pick",
+    listing_title:s.listing_title||"",
+    sold_price:s.sold_price, list_price:s.list_price,
+    reviewed_by:reviewer, reviewed_at:firebase.database.ServerValue.TIMESTAMP
+  }).then(advanceFirm);
+}
+function decideNoMatch(){
+  const s=currentSold();
+  if(!s) return;
+  saveDecision({
+    crop_stem:s.crop_stem, fb_key:s.fb_key||"", status:"no_match",
+    inventory_key:null, catalog_cost:null, score:null, via:"pick",
+    listing_title:s.listing_title||"",
+    sold_price:s.sold_price, list_price:s.list_price,
+    reviewed_by:reviewer, reviewed_at:firebase.database.ServerValue.TIMESTAMP
+  }).then(advanceFirm);
+}
+function decideSkip(){
+  const s=currentSold();
+  if(!s) return;
+  const stem=s.crop_stem;
+  saveDecision({
+    crop_stem:stem, fb_key:s.fb_key||"", status:"skip",
+    inventory_key:null, catalog_cost:null, score:null, via:"pick",
+    listing_title:s.listing_title||"",
+    sold_price:s.sold_price, list_price:s.list_price,
+    reviewed_by:reviewer, reviewed_at:firebase.database.ServerValue.TIMESTAMP
+  }).then(()=>{
+    queue.splice(qi,1); queue.push(stem);
+    if(qi>=queue.length) qi=0;
+    pickKey=null; render();
+  });
+}
+function goBack(){
+  if(!historyStack.length){ toast("Nothing to undo"); return; }
+  const prev=historyStack.pop();
+  if(!queue.includes(prev.stem)) queue.splice(qi,0,prev.stem);
+  else qi=queue.indexOf(prev.stem);
+  pickKey=prev.pickKey||null;
+  $("btnMatch").disabled=!pickKey;
+  if(decisions[prev.stem]&&(decisions[prev.stem].status==="match"||decisions[prev.stem].status==="no_match")){
+    db.ref(`${DECISIONS_PATH}/${prev.stem}`).remove().catch(()=>{});
+    delete decisions[prev.stem];
+  }
+  $("doneGate").classList.remove("show");
+  render();
+}
+
+$("btnMatch").onclick=()=>decideMatch();
+$("btnNoMatch").onclick=()=>decideNoMatch();
+$("btnSkip").onclick=()=>decideSkip();
+$("btnBack").onclick=()=>goBack();
+$("search").oninput=()=>render();
+$("tileGrid").onclick=(e)=>{
+  const tile=e.target.closest(".tile");
+  if(!tile) return;
+  pickKey=tile.getAttribute("data-key");
+  $("btnMatch").disabled=!pickKey;
+  render();
+};
+
+function start(){
+  reviewer=normalizeName($("nameInput").value)||normalizeName(reviewer);
+  if(!reviewer){ toast("Enter a name"); return; }
+  localStorage.setItem("costMatch_reviewer",reviewer);
+  $("whoLabel").textContent=reviewer;
+  $("loginGate").classList.add("hidden");
+  boot();
+}
+$("loginBtn").onclick=start;
+$("nameInput").addEventListener("keydown",e=>{ if(e.key==="Enter") start(); });
+
+async function boot(){
+  const data=await fetch("exports/catalog_rankings.json",{cache:"no-store"}).then(r=>{
+    if(!r.ok) throw new Error("Missing catalog_rankings.json — run scripts/04_build_catalog_rankings.py");
+    return r.json();
+  });
+  soldRows=data.sold||[];
+  rankings=data.rankings||{};
+  const inv=await fetch("exports/inventory_units.json",{cache:"no-store"}).then(r=>r.json());
+  invByKey={}; inv.forEach(r=>{ invByKey[r.inventory_key]=r; });
+  try{
+    const snap=await db.ref(DECISIONS_PATH).once("value");
+    decisions=snap.val()||{};
+  }catch(e){ console.warn(e); decisions={}; }
+  db.ref(DECISIONS_PATH).on("value",snap=>{
+    decisions=snap.val()||{};
+    render();
+    updateProgress();
+  });
+  rebuildQueue();
+}
+
+if(reviewer){
+  $("nameInput").value=reviewer;
+  $("whoLabel").textContent=reviewer;
+  $("loginGate").classList.add("hidden");
+  boot();
+}
+</script>
+</body>
+</html>
