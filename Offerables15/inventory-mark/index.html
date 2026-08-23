@@ -565,18 +565,19 @@
     const boardInfoByStem = Object.create(null);
     for (const b of (soldData.boards || [])) boardInfoByStem[b.stem] = b;
 
-    for (const stem of manifest) {
+    for (let manifestIdx = 0; manifestIdx < manifest.length; manifestIdx++) {
+      const stem = manifest[manifestIdx];
       const info = boardInfoByStem[stem] || {};
+      const boardNum = info.board || ((soldData.board_base || 48) + manifestIdx);
       const data = await fetch(`${BOARDS_BASE}${stem}.json?v=${MANIFEST_VER}`, { cache: "no-store" }).then((r) => r.json());
       const pins = data.predictions || [];
-      const boardNum = info.board || (soldData.board_base || 48);
       const stems = [];
       pins.forEach((pin) => {
         if (!pin.crop_stem) return;
         const pinNum = pinNumFromStem(pin.crop_stem);
-        const label = `Board ${info.board || boardNum} Pin ${pinNum}`;
+        const label = `Board ${boardNum} Pin ${pinNum}`;
         pinMeta[pin.crop_stem] = {
-          board: info.board || boardNum,
+          board: boardNum,
           pin: pinNum,
           label,
           cropFile: cropFile(pin.crop_stem)
@@ -585,8 +586,8 @@
       });
       boardRecords.push({
         stem,
-        label: info.label || `Board ${info.board || "?"}`,
-        board: info.board,
+        label: info.label || `Board ${boardNum}`,
+        board: boardNum,
         image: info.image || data.image,
         pins,
         stems
