@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CostMatch · ClickToMatch</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#111;color:#eee;height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0)}
+#loginGate{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px}
+#loginGate.hidden{display:none}
+.loginBox{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:22px;width:100%;max-width:340px}
+.loginBox h1{font-size:18px;margin-bottom:8px}
+.loginBox p{font-size:13px;color:#888;margin-bottom:14px;line-height:1.4}
+.loginBox input{width:100%;padding:12px;border-radius:8px;border:1px solid #333;background:#222;color:#fff;font-size:16px;margin-bottom:12px}
+.loginBox button{width:100%;padding:12px;border:none;border-radius:8px;background:#1e4fa0;color:#fff;font-weight:700;font-size:16px;cursor:pointer}
+#hdr{flex-shrink:0;background:#1a1a1a;border-bottom:1px solid #333;padding-top:env(safe-area-inset-top,0)}
+.hdrRow{height:48px;display:flex;align-items:center;padding:0 12px;gap:8px}
+.hdrTitle{font-size:15px;font-weight:700;flex:1}
+.hdrSub{font-size:12px;color:#888}
+a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
+#progWrap{height:4px;background:#2a2a2a;flex-shrink:0}
+#progFill{height:100%;background:#2a6eff;width:0%;transition:width .2s}
+#modeBar{flex-shrink:0;display:flex;gap:6px;padding:6px 10px;border-bottom:1px solid #222;align-items:center;flex-wrap:wrap}
+.modePill{font-size:11px;padding:4px 10px;border-radius:14px;border:1px solid #3a3a3a;background:#222;color:#aaa}
+.modePill.active{background:#1e4fa0;color:#fff;border-color:#2a5298}
+#metaRow{flex-shrink:0;padding:4px 12px 6px;font-size:12px;color:#888;display:flex;gap:12px;flex-wrap:wrap}
+#metaRow strong{color:#eee}
+#ctmView{flex:1;display:flex;flex-direction:column;min-height:0}
+#photos{flex:1;display:flex;min-height:0;overflow:hidden}
+.pane{flex:1;position:relative;background:#0e0e0e;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pane+.pane{border-left:2px solid #333}
+.pane img{width:100%;height:100%;object-fit:contain}
+.lbl{position:absolute;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.65);padding:2px 6px;border-radius:4px;color:#bbb}
+.badge{position:absolute;bottom:8px;left:8px;font-size:13px;font-weight:700;background:rgba(0,0,0,.75);padding:3px 8px;border-radius:5px}
+.badge.score{right:8px;left:auto;font-size:11px;color:#ffdd57}
+#btnArea{display:flex;height:170px;flex-shrink:0}
+.btnCol{flex:1;display:flex;flex-direction:column}
+.rail{flex:1;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.2;padding:0 6px;touch-action:manipulation}
+#btnMatch{background:#1a6b1a;color:#6eff6e;flex:2}
+#btnNoMatch{background:#6b1a1a;color:#ff6e6e;flex:2}
+#btnFind{background:#5a3a00;color:#ffb84d;width:88px;flex-shrink:0;font-size:13px}
+#btnBack{background:#1a1a3a;color:#8888ff;flex:1}
+#btnSkip{background:#2a2a2a;color:#aaa;flex:1}
+#ctpView{display:none;flex:1;flex-direction:column;min-height:0}
+#ctpView.open{display:flex}
+#ctpPin{flex-shrink:0;display:flex;gap:10px;padding:8px 10px;border-bottom:1px solid #222;align-items:center;background:#141414}
+#ctpPin img{width:72px;height:72px;object-fit:contain;background:#000;border-radius:6px}
+#ctpPin .info{font-size:12px;line-height:1.35;color:#bbb}
+#ctpPin .info strong{color:#fff;display:block;font-size:13px}
+#ctpTools{flex-shrink:0;display:flex;gap:8px;padding:6px 10px;border-bottom:1px solid #222}
+#ctpTools input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #333;background:#222;color:#fff;font-size:14px}
+#ctpTools button{padding:8px 10px;border-radius:8px;border:1px solid #333;background:#2a2a2a;color:#ddd;font-weight:600;cursor:pointer}
+#tileArea{flex:1;overflow-y:auto;min-height:0;padding:6px;-webkit-overflow-scrolling:touch}
+#tileGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tile{position:relative;border-radius:6px;overflow:hidden;background:#1a1a1a;border:2px solid transparent;cursor:pointer}
+.tile img{width:100%;aspect-ratio:1;object-fit:contain;background:#111;display:block}
+.tile .tbar{background:rgba(0,0,0,.9);padding:3px 5px;display:flex;justify-content:space-between;font-size:10px}
+.tile .tbar .p{font-weight:700;color:#8fef8f}
+.tile .tbar .s{color:#ffdd57}
+.tile.chosen{border-color:#f0c040}
+#ctpNav{flex-shrink:0;display:flex;gap:6px;padding:8px;border-top:1px solid #222;background:#111}
+#ctpNav button{flex:1;height:44px;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer}
+#ctpCancel{background:#2a2a2a;color:#aaa}
+#ctpConfirm{background:#1a6b1a;color:#6eff6e}
+#ctpConfirm:disabled{opacity:.35}
+#doneGate{display:none;position:fixed;inset:0;background:#111;z-index:400;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+#doneGate.show{display:flex}
+#doneGate h2{font-size:22px}
+#doneGate p{color:#888;font-size:14px;max-width:360px;line-height:1.4}
+#redoUnmatched{max-width:280px;height:48px;border-radius:8px;background:#5a3a00;color:#ffb84d;border:none;font-weight:700;cursor:pointer;padding:0 16px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #444;padding:10px 14px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:6000}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="loginGate">
+  <div class="loginBox">
+    <h1>CostMatch review</h1>
+    <p><strong>ClickToMatch:</strong> sold CTR (left) vs top inventory candidate (right). <strong>Find alts</strong> is the ClickToPrice-style picker when top pick is wrong. Decisions sync for Steve &amp; Lexi.</p>
+    <input id="nameInput" type="text" placeholder="@name" autocomplete="username">
+    <button type="button" id="loginBtn">Start reviewing</button>
+  </div>
+</div>
+
+<div id="hdr">
+  <div class="hdrRow">
+    <a class="navLink" href="./">Browse</a>
+    <div class="hdrTitle">CostMatch · CTM</div>
+    <div class="hdrSub" id="whoLabel"></div>
+  </div>
+</div>
+<div id="progWrap"><div id="progFill"></div></div>
+<div id="modeBar">
+  <span class="modePill active" id="pillCtm">ClickToMatch</span>
+  <span class="modePill" id="pillCtp">Find alts (CTP)</span>
+  <span class="hdrSub" id="progressLabel">—</span>
+</div>
+<div id="metaRow">
+  <span id="metaSold">Sold —</span>
+  <span id="metaCand">Candidate —</span>
+</div>
+
+<div id="ctmView">
+  <div id="photos">
+    <div class="pane">
+      <img id="soldImg" alt="Sold CTR pin">
+      <div class="lbl">Sold CTR</div>
+      <div class="badge" id="soldBadge"></div>
+    </div>
+    <div class="pane" id="candPane">
+      <img id="candImg" alt="Inventory candidate">
+      <div class="lbl">Inventory · tap next cand</div>
+      <div class="badge" id="costBadge"></div>
+      <div class="badge score" id="scoreBadge"></div>
+    </div>
+  </div>
+  <div id="btnArea">
+    <div class="btnCol">
+      <button type="button" class="rail" id="btnBack">Back</button>
+      <button type="button" class="rail" id="btnNoMatch">No Match</button>
+    </div>
+    <button type="button" class="rail" id="btnFind">Find<br>alts</button>
+    <div class="btnCol">
+      <button type="button" class="rail" id="btnSkip">Skip</button>
+      <button type="button" class="rail" id="btnMatch">Match</button>
+    </div>
+  </div>
+</div>
+
+<div id="ctpView">
+  <div id="ctpPin">
+    <img id="ctpSoldImg" alt="">
+    <div class="info">
+      <strong id="ctpSoldTitle">Sold pin</strong>
+      <span id="ctpSoldMeta"></span><br>
+      Tap an inventory pin, then Confirm.
+    </div>
+  </div>
+  <div id="ctpTools">
+    <input id="ctpSearch" type="search" placeholder="Filter inventory key…">
+    <button type="button" id="ctpShowTop">Top K</button>
+    <button type="button" id="ctpShowAll">All</button>
+  </div>
+  <div id="tileArea"><div id="tileGrid"></div></div>
+  <div id="ctpNav">
+    <button type="button" id="ctpCancel">Back to CTM</button>
+    <button type="button" id="ctpConfirm" disabled>Confirm pick</button>
+  </div>
+</div>
+
+<div id="doneGate">
+  <h2>Queue clear</h2>
+  <p>Every sold pin has Match or No Match. Use Find alts anytime for hard ones.</p>
+  <a class="navLink" href="./">Back to browse</a>
+  <button type="button" id="redoUnmatched">Review unmatched only</button>
+</div>
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const DECISIONS_PATH = "costMatch/20260822/decisions";
+
+let reviewer = localStorage.getItem("costMatch_reviewer") || "";
+let proposals = [];
+let inventory = [];
+let invByKey = {};
+let decisions = {};
+let queue = [];
+let qi = 0;
+let candIdx = 0;
+let ctpPick = null;
+let ctpMode = "top";
+let historyStack = [];
+
+function $(id){ return document.getElementById(id); }
+function money(n){
+  if(n==null||!isFinite(Number(n))) return "—";
+  const v=Number(n);
+  return "$"+(v%1?v.toFixed(2):String(v));
+}
+function toast(msg){
+  const el=$("toast");
+  el.textContent=msg;
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),1600);
+}
+function normalizeName(raw){
+  const inner=String(raw||"").trim().replace(/^@+/,"").trim();
+  return inner?"@"+inner.toLowerCase():"";
+}
+function currentProposal(){
+  return proposals.find(p=>p.crop_stem===queue[qi])||null;
+}
+function currentCand(p){
+  if(!p||!p.candidates||!p.candidates.length) return null;
+  return p.candidates[Math.min(candIdx,p.candidates.length-1)];
+}
+function rebuildQueue(unmatchedOnly){
+  if(unmatchedOnly){
+    queue=proposals.filter(p=>{
+      const d=decisions[p.crop_stem];
+      return !d||d.status==="no_match"||d.status==="skip";
+    }).map(p=>p.crop_stem);
+  }else{
+    queue=proposals.filter(p=>{
+      const d=decisions[p.crop_stem];
+      return !d||d.status==="skip";
+    }).map(p=>p.crop_stem);
+  }
+  qi=0; candIdx=0;
+  if(!queue.length) $("doneGate").classList.add("show");
+  else { $("doneGate").classList.remove("show"); showCtm(); }
+  updateProgress();
+}
+function updateProgress(){
+  const vals=Object.values(decisions);
+  const matched=vals.filter(d=>d&&d.status==="match").length;
+  const nomatch=vals.filter(d=>d&&d.status==="no_match").length;
+  const skipped=vals.filter(d=>d&&d.status==="skip").length;
+  const total=proposals.length||1;
+  const done=matched+nomatch;
+  const qn=Math.max(queue.length,1);
+  $("progressLabel").textContent=`${queue.length?(qi+1):0}/${qn} left · ✓${matched} · ✗${nomatch} · skip ${skipped}`;
+  $("progFill").style.width=Math.round((done/total)*100)+"%";
+}
+function showCtm(){
+  $("ctmView").style.display="flex";
+  $("ctpView").classList.remove("open");
+  $("pillCtm").classList.add("active");
+  $("pillCtp").classList.remove("active");
+  const p=currentProposal();
+  if(!p){ $("doneGate").classList.add("show"); updateProgress(); return; }
+  const c=currentCand(p);
+  $("soldImg").src=p.thumb||"";
+  $("soldBadge").textContent=`Sold ${money(p.sold_price)} · List ${money(p.list_price)}`;
+  $("metaSold").innerHTML=`<strong>${p.crop_stem}</strong>`+(p.board_num!=null?` · Board ${p.board_num} · Pin ${p.pin_n}`:"");
+  if(c){
+    $("candImg").src=c.thumb||"";
+    $("costBadge").textContent=`Cost ${money(c.catalog_cost)}`;
+    $("scoreBadge").textContent=`score ${c.score}`;
+    $("metaCand").innerHTML=`<strong>${c.inventory_key}</strong> · cand ${candIdx+1}/${p.candidates.length}`;
+  }else{
+    $("candImg").removeAttribute("src");
+    $("costBadge").textContent="No candidates";
+    $("scoreBadge").textContent="";
+    $("metaCand").textContent="—";
+  }
+  updateProgress();
+}
+function openCtp(){
+  const p=currentProposal();
+  if(!p) return;
+  $("ctmView").style.display="none";
+  $("ctpView").classList.add("open");
+  $("pillCtm").classList.remove("active");
+  $("pillCtp").classList.add("active");
+  $("ctpSoldImg").src=p.thumb||"";
+  $("ctpSoldTitle").textContent=p.crop_stem;
+  $("ctpSoldMeta").textContent=`Sold ${money(p.sold_price)} · List ${money(p.list_price)}`;
+  ctpPick=null;
+  $("ctpConfirm").disabled=true;
+  renderTiles();
+}
+function renderTiles(){
+  const p=currentProposal();
+  if(!p) return;
+  const q=($("ctpSearch").value||"").trim().toLowerCase();
+  let rows;
+  if(ctpMode==="top"){
+    rows=(p.candidates||[]).map(c=>({inventory_key:c.inventory_key,thumb:c.thumb,catalog_cost:c.catalog_cost,score:c.score}));
+  }else{
+    rows=inventory.map(r=>({inventory_key:r.inventory_key,thumb:r.thumb,catalog_cost:r.catalog_cost,score:null}));
+  }
+  if(q) rows=rows.filter(r=>String(r.inventory_key).toLowerCase().includes(q));
+  $("tileGrid").innerHTML=rows.map(r=>{
+    const chosen=ctpPick&&ctpPick.inventory_key===r.inventory_key?" chosen":"";
+    return `<div class="tile${chosen}" data-key="${r.inventory_key}"><img src="${r.thumb||""}" alt="" loading="lazy"><div class="tbar"><span class="p">${money(r.catalog_cost)}</span><span class="s">${r.score!=null?r.score:""}</span></div></div>`;
+  }).join("")||`<p style="color:#888;padding:12px;">No rows.</p>`;
+}
+function saveDecision(payload){
+  decisions[payload.crop_stem]=payload;
+  return db.ref(`${DECISIONS_PATH}/${payload.crop_stem}`).set(payload)
+    .then(()=>toast(payload.status==="match"?"Matched":payload.status==="no_match"?"No match":"Skipped"))
+    .catch(e=>{ console.warn(e); toast("Saved locally; Firebase: "+e.message); });
+}
+function advanceAfterFirm(){
+  const stem=queue[qi];
+  historyStack.push({stem,candIdx});
+  queue.splice(qi,1);
+  if(qi>=queue.length) qi=Math.max(0,queue.length-1);
+  candIdx=0;
+  if(!queue.length){ $("doneGate").classList.add("show"); updateProgress(); return; }
+  showCtm();
+}
+function decideMatch(inventoryKey,score,via){
+  const p=currentProposal();
+  if(!p) return;
+  const inv=invByKey[inventoryKey]||{};
+  saveDecision({
+    crop_stem:p.crop_stem, fb_key:p.fb_key||"", status:"match",
+    inventory_key:inventoryKey,
+    catalog_cost:inv.catalog_cost!=null?inv.catalog_cost:null,
+    score:score!=null?score:null, via:via||"ctm",
+    sold_price:p.sold_price, list_price:p.list_price,
+    reviewed_by:reviewer, reviewed_at:firebase.database.ServerValue.TIMESTAMP
+  }).then(()=>{
+    $("ctpView").classList.remove("open");
+    $("ctmView").style.display="flex";
+    advanceAfterFirm();
+  });
+}
+function decideNoMatch(){
+  const p=currentProposal();
+  if(!p) return;
+  saveDecision({
+    crop_stem:p.crop_stem, fb_key:p.fb_key||"", status:"no_match",
+    inventory_key:null, catalog_cost:null, score:null, via:"ctm",
+    sold_price:p.sold_price, list_price:p.list_price,
+    reviewed_by:reviewer, reviewed_at:firebase.database.ServerValue.TIMESTAMP
+  }).then(advanceAfterFirm);
+}
+function decideSkip(){
+  const p=currentProposal();
+  if(!p) return;
+  const stem=p.crop_stem;
+  saveDecision({
+    crop_stem:stem, fb_key:p.fb_key||"", status:"skip",
+    inventory_key:null, catalog_cost:null, score:null, via:"ctm",
+    sold_price:p.sold_price, list_price:p.list_price,
+    reviewed_by:reviewer, reviewed_at:firebase.database.ServerValue.TIMESTAMP
+  }).then(()=>{
+    queue.splice(qi,1); queue.push(stem);
+    if(qi>=queue.length) qi=0;
+    candIdx=0; showCtm();
+  });
+}
+function goBack(){
+  if(candIdx>0){ candIdx-=1; showCtm(); return; }
+  if(!historyStack.length){ toast("Nothing to undo"); return; }
+  const prev=historyStack.pop();
+  if(!queue.includes(prev.stem)) queue.splice(qi,0,prev.stem);
+  else qi=queue.indexOf(prev.stem);
+  candIdx=prev.candIdx||0;
+  if(decisions[prev.stem]&&(decisions[prev.stem].status==="match"||decisions[prev.stem].status==="no_match")){
+    db.ref(`${DECISIONS_PATH}/${prev.stem}`).remove().catch(()=>{});
+    delete decisions[prev.stem];
+  }
+  $("doneGate").classList.remove("show");
+  showCtm();
+}
+
+$("btnMatch").onclick=()=>{ const p=currentProposal(); const c=currentCand(p); if(!c){toast("No candidate");return;} decideMatch(c.inventory_key,c.score,"ctm"); };
+$("btnNoMatch").onclick=()=>decideNoMatch();
+$("btnSkip").onclick=()=>decideSkip();
+$("btnBack").onclick=()=>goBack();
+$("btnFind").onclick=()=>openCtp();
+$("ctpCancel").onclick=()=>showCtm();
+$("ctpShowTop").onclick=()=>{ ctpMode="top"; renderTiles(); };
+$("ctpShowAll").onclick=()=>{ ctpMode="all"; renderTiles(); };
+$("ctpSearch").oninput=()=>renderTiles();
+$("tileGrid").onclick=(e)=>{
+  const tile=e.target.closest(".tile"); if(!tile) return;
+  ctpPick={inventory_key:tile.getAttribute("data-key")};
+  $("ctpConfirm").disabled=false; renderTiles();
+};
+$("ctpConfirm").onclick=()=>{
+  if(!ctpPick) return;
+  const p=currentProposal();
+  const c=(p.candidates||[]).find(x=>x.inventory_key===ctpPick.inventory_key);
+  decideMatch(ctpPick.inventory_key,c?c.score:null,"ctp");
+};
+$("redoUnmatched").onclick=()=>rebuildQueue(true);
+$("candPane").addEventListener("click",()=>{
+  const p=currentProposal();
+  if(!p||!p.candidates||p.candidates.length<2) return;
+  candIdx=(candIdx+1)%p.candidates.length; showCtm();
+});
+
+function start(){
+  reviewer=normalizeName($("nameInput").value)||normalizeName(reviewer);
+  if(!reviewer){ toast("Enter a name"); return; }
+  localStorage.setItem("costMatch_reviewer",reviewer);
+  $("whoLabel").textContent=reviewer;
+  $("loginGate").classList.add("hidden");
+  boot();
+}
+$("loginBtn").onclick=start;
+$("nameInput").addEventListener("keydown",e=>{ if(e.key==="Enter") start(); });
+
+async function boot(){
+  const [prop,inv]=await Promise.all([
+    fetch("exports/proposals.json",{cache:"no-store"}).then(r=>r.json()),
+    fetch("exports/inventory_units.json",{cache:"no-store"}).then(r=>r.json())
+  ]);
+  proposals=prop.proposals||[];
+  inventory=inv||[];
+  invByKey={}; inventory.forEach(r=>{ invByKey[r.inventory_key]=r; });
+  try{
+    const snap=await db.ref(DECISIONS_PATH).once("value");
+    decisions=snap.val()||{};
+  }catch(e){ console.warn(e); decisions={}; }
+  db.ref(DECISIONS_PATH).on("value",snap=>{ decisions=snap.val()||{}; updateProgress(); });
+  rebuildQueue(false);
+}
+
+if(reviewer){
+  $("nameInput").value=reviewer;
+  $("whoLabel").textContent=reviewer;
+  $("loginGate").classList.add("hidden");
+  boot();
+}
+</script>
+</body>
+</html>
