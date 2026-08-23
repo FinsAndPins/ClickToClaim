@@ -8,7 +8,7 @@ Goal: match **sold CTR pins** (20260822) to **D23 inventory** so Report 6 can sh
 
 https://finsandpins.github.io/ClickToClaim/CostMatch_20260822/
 
-Until then, open `index.html` from this folder on GitHub (`cursor/cost-match-20260822-c8d5` branch) or locally.
+Also open `index.html` from this folder on GitHub or locally if Pages is still updating.
 
 ## What’s here
 
