@@ -11,4 +11,7 @@ https://finsandpins.github.io/ClickToClaim/character-review-offerables15/
 **Sold overlay (boards 48+ from shipping ledger):**  
 https://finsandpins.github.io/ClickToClaim/Offerables15/sold-overlay/
 
+**Mark gone pins (tap sold / pulled / traded — saves to Firebase):**  
+https://finsandpins.github.io/ClickToClaim/Offerables15/inventory-mark/
+
 Firebase progress: `pin_title_review/shows/offerables15/vlm_state` only.
