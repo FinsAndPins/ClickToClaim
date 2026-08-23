@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CostMatch 20260822 — exports</title>
+  <style>
+    :root { --bg: #1a1a2e; --card: #252540; --text: #f0f0f5; --muted: #a0a0b8; --accent: #4da3ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.4; }
+    header { padding: 16px 20px; border-bottom: 1px solid #333; }
+    h1 { margin: 0 0 6px; font-size: 1.25rem; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin: 0; }
+    .warn { background: #3a3020; color: #ffd89a; padding: 10px 20px; font-size: 0.9rem; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 20px; }
+    nav button { background: var(--card); color: var(--text); border: 1px solid #444; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 600; }
+    nav button.active { background: var(--accent); color: #111; border-color: var(--accent); }
+    #meta { padding: 0 20px 12px; color: var(--muted); font-size: 0.9rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 0 16px 32px; }
+    .card { background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid #333; }
+    .card img { width: 100%; aspect-ratio: 1; object-fit: cover; background: #111; display: block; }
+    .card .info { padding: 8px; font-size: 0.75rem; }
+    .card .price { font-weight: 700; color: #8fef8f; }
+    .card .muted { color: var(--muted); }
+    a.csv { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CostMatch 20260822</h1>
+    <p class="sub">One-off browse of sold CTR pins vs D23 inventory (catalog cost). Not a CTR template.</p>
+  </header>
+  <p class="warn"><a class="csv" href="review.html"><strong>Open ClickToMatch review →</strong></a> (Match / No Match / Find alts). This page is the export browser.</p>
+  <nav>
+    <a class="csv" href="review.html" style="font-weight:700;">Review (CTM + alts)</a>
+    <button type="button" id="btnSold" class="active">Sold CTR</button>
+    <button type="button" id="btnInv">Inventory</button>
+    <a class="csv" href="exports/sold_ctr_pins.csv">sold CSV</a>
+    <a class="csv" href="exports/inventory_units.csv">inventory CSV</a>
+    <a class="csv" href="README.md">README</a>
+  </nav>
+  <div id="meta">Loading…</div>
+  <div class="grid" id="grid"></div>
+  <script>
+    let sold = [], inv = [], summary = {};
+    const grid = document.getElementById("grid");
+    const meta = document.getElementById("meta");
+
+    function money(n) {
+      if (n == null || !isFinite(n)) return "—";
+      return "$" + Number(n).toFixed(Number(n) % 1 ? 2 : 0);
+    }
+
+    function showSold() {
+      document.getElementById("btnSold").classList.add("active");
+      document.getElementById("btnInv").classList.remove("active");
+      meta.textContent = `${sold.length} sold · list ${money(summary.sold_list_total)} · hammer ${money(summary.sold_hammer_total)}`;
+      grid.innerHTML = sold.map((r) => `
+        <div class="card">
+          <img src="${r.thumb || ""}" alt="" loading="lazy" />
+          <div class="info">
+            <div>${r.crop_stem || r.pin_key}</div>
+            <div class="price">Sold ${money(r.sold_price)} · List ${money(r.list_price)}</div>
+            <div class="muted">${(r.sale_recorded_by || "").replace(/</g, "")}</div>
+          </div>
+        </div>`).join("");
+    }
+
+    function showInv() {
+      document.getElementById("btnInv").classList.add("active");
+      document.getElementById("btnSold").classList.remove("active");
+      const priced = inv.filter((r) => r.catalog_cost != null).length;
+      meta.textContent = `${inv.length} inventory units · ${priced} with catalog cost`;
+      grid.innerHTML = inv.map((r) => `
+        <div class="card">
+          <img src="${r.thumb || ""}" alt="" loading="lazy" />
+          <div class="info">
+            <div>${r.inventory_key}</div>
+            <div class="price">Cost ${money(r.catalog_cost)}</div>
+            <div class="muted">${r.crop_stem || ""}</div>
+          </div>
+        </div>`).join("");
+    }
+
+    document.getElementById("btnSold").onclick = showSold;
+    document.getElementById("btnInv").onclick = showInv;
+
+    Promise.all([
+      fetch("exports/sold_ctr_pins.json").then((r) => r.json()),
+      fetch("exports/inventory_units.json").then((r) => r.json()),
+      fetch("exports/summary.json").then((r) => r.json()),
+    ]).then(([s, i, sum]) => {
+      sold = s; inv = i; summary = sum;
+      showSold();
+    }).catch((e) => {
+      meta.textContent = "Failed to load exports: " + e;
+    });
+  </script>
+</body>
+</html>
