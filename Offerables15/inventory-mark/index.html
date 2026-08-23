@@ -147,6 +147,8 @@
     </div>
     <div class="row">
       <button type="button" class="ok" id="btnSeedLedger">Seed Thursday ledger (58)</button>
+      <button type="button" class="accent" id="btnImportLedgerCsv">Import show ledger CSV</button>
+      <input type="file" id="ledgerFile" accept=".csv,text/csv" hidden>
       <button type="button" class="accent" id="btnExportCsv">Export Whatnot CSV</button>
     </div>
     <div class="meta" id="boardMeta">—</div>
@@ -197,6 +199,8 @@
     btnNext: document.getElementById("btnNext"),
     btnNextGone: document.getElementById("btnNextGone"),
     btnSeedLedger: document.getElementById("btnSeedLedger"),
+    btnImportLedgerCsv: document.getElementById("btnImportLedgerCsv"),
+    ledgerFile: document.getElementById("ledgerFile"),
     btnExportCsv: document.getElementById("btnExportCsv"),
   };
 
@@ -208,11 +212,13 @@
   const pinMeta = Object.create(null); // stem -> { board, pin, label, cropFile }
   const pinElsByStem = Object.create(null);
   const boardRecords = [];
+  const boardToImgStem = Object.create(null);
   let view = [];
   let idx = 0;
   let scale = 1;
   let characterMap = Object.create(null);
   let reviewer = localStorage.getItem("fpins_offerables15_reviewer") || "";
+  const BOARD_PIN_RE = /Board\s+(\d+)\s+Pin\s+(\d+)/gi;
 
   function setStatus(msg, kind) {
     el.status.textContent = msg || "";
@@ -250,6 +256,99 @@
   function pinNumFromStem(stem) {
     const m = String(stem || "").match(/_pin0*(\d+)$/i);
     return m ? parseInt(m[1], 10) : 0;
+  }
+
+  function pinSuffix(pin) {
+    return pin < 10 ? `pin0${pin}` : `pin${pin}`;
+  }
+
+  function cropStemForBoardPin(board, pin) {
+    const img = boardToImgStem[board];
+    if (!img) return null;
+    return `${String(img).replace(/^IMG_/i, "img").toLowerCase()}_${pinSuffix(pin)}`;
+  }
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = "";
+    let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (q) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else q = false;
+        } else cur += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function rowLooksCancelled(cells) {
+    const joined = cells.join(" ").toLowerCase();
+    return joined.includes("cancel") && !joined.includes("uncancel");
+  }
+
+  function parseLedgerCsvText(text, minBoard, sourceTag) {
+    const lines = String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
+    if (!lines.length) return [];
+    const headers = parseCsvLine(lines[0]);
+    const out = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cells = parseCsvLine(lines[i]);
+      if (rowLooksCancelled(cells)) continue;
+      const joined = cells.join(" ");
+      let m;
+      BOARD_PIN_RE.lastIndex = 0;
+      const seen = new Set();
+      while ((m = BOARD_PIN_RE.exec(joined)) !== null) {
+        const board = parseInt(m[1], 10);
+        const pin = parseInt(m[2], 10);
+        if (board < minBoard) continue;
+        const key = `${board}:${pin}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const crop = cropStemForBoardPin(board, pin);
+        if (!crop) continue;
+        out.push({ board, pin, crop, label: `Board ${board} Pin ${pin}`, source: sourceTag });
+      }
+    }
+    return out;
+  }
+
+  async function importLedgerRows(rows, sourceTag) {
+    if (!rows.length) {
+      toast("No Board N Pin M rows found (boards 48+)", false);
+      return;
+    }
+    const user = ensureReviewer();
+    const updates = {};
+    let skipped = 0;
+    rows.forEach((r) => {
+      if (isGone(r.crop)) { skipped++; return; }
+      const key = normStem(r.crop);
+      updates[`${GONE_PATH}/${key}`] = {
+        gone: true,
+        crop_stem: r.crop,
+        at: new Date().toISOString(),
+        by: user,
+        source: sourceTag || "ledger_import",
+        board: r.board,
+        pin: r.pin,
+        label: r.label,
+      };
+    });
+    const addN = Object.keys(updates).length;
+    if (!addN) {
+      toast(`Ledger already applied (${skipped} already gone)`);
+      return;
+    }
+    if (!window.confirm(`Add ${addN} gone marks from ledger? (${skipped} already marked)`)) return;
+    await db.ref().update(updates);
+    toast(`Imported ${addN} ledger marks`);
   }
 
   function fromFbKey(key) {
@@ -584,6 +683,7 @@
         };
         stems.push(pin.crop_stem);
       });
+      boardToImgStem[boardNum] = stem;
       boardRecords.push({
         stem,
         label: info.label || `Board ${boardNum}`,
@@ -627,6 +727,23 @@
       console.error(e);
       toast("Ledger seed failed", false);
     });
+  });
+  el.btnImportLedgerCsv.addEventListener("click", () => el.ledgerFile.click());
+  el.ledgerFile.addEventListener("change", () => {
+    const file = el.ledgerFile.files && el.ledgerFile.files[0];
+    el.ledgerFile.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const tag = `ledger_${file.name.replace(/\.[^.]+$/, "").slice(0, 40)}`;
+      const rows = parseLedgerCsvText(reader.result, 48, tag);
+      importLedgerRows(rows, tag).catch((e) => {
+        console.error(e);
+        toast("Ledger import failed", false);
+      });
+    };
+    reader.onerror = () => toast("Could not read CSV", false);
+    reader.readAsText(file);
   });
   el.btnExportCsv.addEventListener("click", exportWhatnotCsv);
   window.addEventListener("resize", () => { if (view[idx]) renderBoard(); });
