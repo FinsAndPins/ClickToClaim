@@ -27,7 +27,7 @@
     padding: 12px 14px calc(12px + env(safe-area-inset-top));
   }
   header h1 { margin: 0 0 4px; font-size: 18px; font-weight: 800; }
-  header p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; max-width: 720px; }
+  header p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; max-width: 760px; }
   .toolbar {
     display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center;
   }
@@ -40,10 +40,11 @@
   button.primary { background: #1a4a7a; border-color: var(--accent); }
   #summary {
     margin: 12px 14px 0; padding: 12px 14px; border-radius: 12px;
-    background: #1a2438; border: 1px solid #33507a; max-width: 520px;
-    font-size: 14px; line-height: 1.5;
+    background: #1a2438; border: 1px solid #33507a; max-width: 620px;
+    font-size: 14px; line-height: 1.55;
   }
   #summary strong { color: #9ec8ff; }
+  #summary .skip { color: var(--muted); font-size: 13px; margin-top: 6px; }
   #status { padding: 10px 14px 0; font-size: 13px; color: var(--muted); }
   #status.err { color: #ff6b6b; }
   main { padding: 12px 14px 24px; max-width: 1100px; }
@@ -82,7 +83,7 @@
     color: var(--muted); word-break: break-all;
   }
   .empty {
-    padding: 40px 14px; text-align: center; color: var(--muted); font-size: 15px;
+    padding: 40px 14px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.5;
   }
   @media print {
     header { position: static; }
@@ -95,8 +96,9 @@
 <header>
   <h1>Remove from Whatnot clone</h1>
   <p>
-    Pins you <strong>tapped gone manually</strong> (D23 pulls, park traders, etc.) — <em>not</em> from ledger CSV imports.
-    When cloning Aug 10 inventory for a new show, delete these listings. Sorted by board, then pin number.
+    Pins you <strong>tapped gone manually</strong> that may still appear when you clone Aug 10 inventory.
+  Sold ledger pins are <strong>excluded</strong> — Whatnot already drops those from the clone.
+  Search Whatnot for <strong>Board N Pin M</strong> and delete each listing below.
   </p>
   <div class="toolbar">
     <a class="btn" href="./index.html">← Mark gone</a>
@@ -114,7 +116,9 @@
 (function () {
   const GONE_PATH = "showConfig/offerables15_inventory/goneStems";
   const CROP_BASE = "../crops/";
-  const LEDGER_SOURCES = new Set(["ledger", "ledger_20260810"]);
+  const SOLD_JSON = "../sold-overlay/sold.json";
+  const AUG10_LEDGER = "./ledgers/20260810_ledger.csv";
+  const BOARD_PIN_RE = /Board\s+(\d+)\s+Pin\s+(\d+)/gi;
 
   const FB_CFG = {
     apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
@@ -127,11 +131,17 @@
   const db = firebase.database();
 
   let boardByImgStem = Object.create(null);
+  /** @type {Set<string>} keys "board:pin" */
+  let ledgerSold = new Set();
 
   function setStatus(msg, err) {
     const el = document.getElementById("status");
     el.textContent = msg || "";
     el.className = err ? "err" : "";
+  }
+
+  function bpKey(board, pin) {
+    return `${board}:${pin}`;
   }
 
   function cropFile(stem) {
@@ -152,13 +162,75 @@
   function isManualGone(entry) {
     if (!entry || typeof entry !== "object") return false;
     const src = String(entry.source || "");
-    if (LEDGER_SOURCES.has(src)) return false;
-    if (src.startsWith("ledger")) return false;
-    return src === "manual" || (!src && entry.by && entry.by !== "cloud-agent-seed");
+    if (src === "ledger" || src === "ledger_20260810" || src.startsWith("ledger")) return false;
+    return src === "manual";
   }
 
-  function collectManual(goneVal) {
-    const items = [];
+  function isLedgerSold(board, pin) {
+    return board != null && pin != null && ledgerSold.has(bpKey(board, pin));
+  }
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = "";
+    let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (q) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else q = false;
+        } else cur += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function addBoardPinsFromText(text, minBoard) {
+    let m;
+    BOARD_PIN_RE.lastIndex = 0;
+    while ((m = BOARD_PIN_RE.exec(text)) !== null) {
+      const board = parseInt(m[1], 10);
+      const pin = parseInt(m[2], 10);
+      if (board >= minBoard) ledgerSold.add(bpKey(board, pin));
+    }
+  }
+
+  async function loadLedgerSold() {
+    ledgerSold = new Set();
+    const sold = await fetch(`${SOLD_JSON}?v=2`, { cache: "no-store" }).then((r) => r.json());
+    boardByImgStem = Object.create(null);
+    (sold.boards || []).forEach((b) => {
+      boardByImgStem[b.stem] = b.board;
+      (b.sold || []).forEach((p) => {
+        if (b.board != null && p.pin != null) ledgerSold.add(bpKey(b.board, p.pin));
+      });
+    });
+    const thuCount = ledgerSold.size;
+
+    try {
+      const csvText = await fetch(`${AUG10_LEDGER}?v=1`, { cache: "no-store" }).then((r) => r.text());
+      const lines = csvText.replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
+      const headers = parseCsvLine(lines[0]);
+      const cancelIdx = headers.findIndex((h) => /cancel/i.test(h));
+      for (let i = 1; i < lines.length; i++) {
+        const cells = parseCsvLine(lines[i]);
+        if (cancelIdx >= 0 && cells[cancelIdx] && /cancel/i.test(cells[cancelIdx])) continue;
+        addBoardPinsFromText(cells.join(" "), 48);
+      }
+    } catch (e) {
+      console.warn("Aug 10 ledger CSV not loaded", e);
+    }
+    const total = ledgerSold.size;
+    return { thuCount, aug10Added: total - thuCount, total };
+  }
+
+  function collectCloneRemovals(goneVal) {
+    const allManual = [];
+    const skippedLedger = [];
     for (const v of Object.values(goneVal || {})) {
       if (!isManualGone(v)) continue;
       const crop = v.crop_stem || "";
@@ -166,17 +238,22 @@
       const board = v.board || meta.board;
       const pin = v.pin || meta.pin;
       const label = board && pin ? `Board ${board} Pin ${pin}` : meta.label;
-      items.push({
+      const item = {
         crop,
         board: board || 9999,
         pin: pin || 0,
         label,
         by: v.by || "",
         at: v.at || "",
-      });
+      };
+      if (isLedgerSold(board, pin)) {
+        skippedLedger.push(item);
+        continue;
+      }
+      allManual.push(item);
     }
-    items.sort((a, b) => a.board - b.board || a.pin - b.pin);
-    return items;
+    allManual.sort((a, b) => a.board - b.board || a.pin - b.pin);
+    return { items: allManual, skippedLedger };
   }
 
   function groupByBoard(items) {
@@ -193,19 +270,30 @@
     return groups;
   }
 
-  function render(items) {
+  function render(result, ledgerMeta) {
+    const { items, skippedLedger } = result;
     const summary = document.getElementById("summary");
     const main = document.getElementById("main");
+
     if (!items.length) {
-      summary.innerHTML = "<strong>0</strong> manual-remove pins — nothing to delete from a clone.";
-      main.innerHTML = '<div class="empty">No manual gone marks found. Ledger imports are excluded.</div>';
+      summary.innerHTML =
+        "<strong>0</strong> pins to remove from clone." +
+        (skippedLedger.length
+          ? `<div class="skip">Skipped <strong>${skippedLedger.length}</strong> manual taps already sold per ledger (not cloneable).</div>`
+          : "");
+      main.innerHTML =
+        '<div class="empty">Nothing to delete — either no manual gone marks, or they were all already sold on Whatnot.</div>';
       return;
     }
+
     const boards = new Set(items.map((i) => i.board).filter((b) => b !== 9999));
     summary.innerHTML =
-      `<strong>${items.length}</strong> pins to remove manually · ` +
-      `<strong>${boards.size}</strong> boards · ` +
-      `search Whatnot for <strong>Board N Pin M</strong>`;
+      `<strong>${items.length}</strong> pins to remove from clone · ` +
+      `<strong>${boards.size}</strong> boards` +
+      (skippedLedger.length
+        ? `<div class="skip">Skipped <strong>${skippedLedger.length}</strong> manual taps already in ledger sales (Aug 10 + Thursday) — Whatnot won’t clone those.</div>`
+        : "") +
+      `<div class="skip">Ledger refs loaded: Thursday <strong>${ledgerMeta.thuCount}</strong> · Aug 10 + <strong>${ledgerMeta.aug10Added}</strong> extra · <strong>${ledgerMeta.total}</strong> sold total</div>`;
 
     const groups = groupByBoard(items);
     main.innerHTML = "";
@@ -233,25 +321,25 @@
     });
   }
 
-  async function loadBoardMap() {
-    const sold = await fetch("../sold-overlay/sold.json?v=1", { cache: "no-store" }).then((r) => r.json());
-    boardByImgStem = Object.create(null);
-    (sold.boards || []).forEach((b) => { boardByImgStem[b.stem] = b.board; });
-  }
+  let ledgerMeta = { thuCount: 0, aug10Added: 0, total: 0 };
 
   function refresh(goneVal) {
-    const items = collectManual(goneVal);
-    render(items);
-    setStatus(`Updated ${new Date().toLocaleString()} · ledger imports excluded`);
+    const result = collectCloneRemovals(goneVal);
+    render(result, ledgerMeta);
+    setStatus(`Updated ${new Date().toLocaleString()} · manual gone minus ledger sales`);
   }
 
   document.getElementById("btnRefresh").addEventListener("click", () => {
-    db.ref(GONE_PATH).once("value").then((snap) => refresh(snap.val() || {}));
+    Promise.all([
+      loadLedgerSold().then((m) => { ledgerMeta = m; }),
+      db.ref(GONE_PATH).once("value"),
+    ]).then(([, snap]) => refresh(snap.val() || {}));
   });
   document.getElementById("btnPrint").addEventListener("click", () => window.print());
 
-  loadBoardMap()
-    .then(() => {
+  loadLedgerSold()
+    .then((m) => {
+      ledgerMeta = m;
       db.ref(GONE_PATH).on("value", (snap) => refresh(snap.val() || {}));
     })
     .catch((e) => {
