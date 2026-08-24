@@ -33,6 +33,9 @@ CROPS_DIR = Path.home() / (
 CATALOG_PRICES = REPO / "D23Inventory2026" / "catalog-prices.json"
 D23_BOARDS = REPO / "2026D23" / "boards"
 EXTRA_BOARDS = REPO / "D23Inventory2026" / "extra-boards"
+FB_BASE = "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com"
+INVENTORY_FB_SLUG = "D23Inventory2026"
+CTR_HIDDEN_SLUG = "2026D23"
 EXTRA_BOARD_TITLES = {
     "D23MP_AUG14": "D23 Marketplace · Fri Aug 14",
     "D23MP_AUG15": "D23 Marketplace · Sat Aug 15",
@@ -145,6 +148,75 @@ def export_sold() -> list[dict]:
     return rows
 
 
+def fetch_json(url: str):
+    with urllib.request.urlopen(url, timeout=90) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def inventory_staff_count(entry) -> int:
+    if entry is None:
+        return 0
+    if isinstance(entry, (int, float)):
+        return max(0, int(entry))
+    if isinstance(entry, dict):
+        try:
+            return max(0, int(entry.get("count") or 0))
+        except (TypeError, ValueError):
+            return 0
+    return 0
+
+
+def inventory_count_from_row(row) -> int:
+    """Same rules as D23Inventory2026/reports.html inventoryCountFromRow."""
+    if row is None:
+        return 0
+    if isinstance(row, (int, float)):
+        return max(0, int(row))
+    if isinstance(row, dict):
+        staff = row.get("staff")
+        if isinstance(staff, dict) and staff:
+            total = sum(inventory_staff_count(v) for v in staff.values())
+            if total > 0:
+                return total
+        try:
+            return max(0, int(row.get("count") or 0))
+        except (TypeError, ValueError):
+            return 0
+    return 0
+
+
+def load_report1_instock_keys() -> tuple[dict[str, int], set[str]]:
+    """Pins with qty >= 1 in Report 1 (Firebase inventory), minus hidden pins."""
+    inv_data = fetch_json(f"{FB_BASE}/inventory/{INVENTORY_FB_SLUG}.json") or {}
+    qty_by_key: dict[str, int] = {}
+    for pin_key, row in inv_data.items():
+        qty = inventory_count_from_row(row)
+        if qty >= 1:
+            qty_by_key[str(pin_key)] = qty
+
+    hidden: set[str] = set()
+    for slug in (CTR_HIDDEN_SLUG, INVENTORY_FB_SLUG):
+        try:
+            raw = fetch_json(f"{FB_BASE}/hiddenPins/{slug}.json") or {}
+        except Exception as e:
+            print(f"  WARN hiddenPins/{slug}: {e}")
+            continue
+        if isinstance(raw, dict):
+            for k, v in raw.items():
+                if v:
+                    hidden.add(str(k))
+
+    before = len(qty_by_key)
+    for k in list(qty_by_key):
+        if k in hidden:
+            del qty_by_key[k]
+    print(
+        f"  Report 1 in-stock: {before} keys · after hide filter: {len(qty_by_key)}"
+        f" · hidden skipped: {before - len(qty_by_key)}"
+    )
+    return qty_by_key, hidden
+
+
 def load_inventory_manifest() -> list[tuple[str, Path, str]]:
     """Match D23Inventory2026/index.html: 2026D23 boards then extra marketplace flyers."""
     entries: list[tuple[str, Path, str]] = []
@@ -174,10 +246,40 @@ def board_label(board_id: str, manifest_index: int) -> str:
 
 
 def export_inventory(table: dict) -> list[dict]:
+    """Only Report 1 in-stock pins (qty >= 1), not every detected box on the boards."""
     rows: list[dict] = []
+    qty_by_key, _hidden = load_report1_instock_keys()
+    if not qty_by_key:
+        print("  ERROR: no in-stock inventory keys from Firebase — refusing empty catalog")
+        return rows
+
     manifest = load_inventory_manifest()
     board_rank = {board_id: idx for idx, (board_id, _, _) in enumerate(manifest)}
-    for board_id, board_dir, label in manifest:
+    board_by_id = {board_id: (board_dir, label) for board_id, board_dir, label in manifest}
+
+    # Group keys by board so we open each board image once.
+    by_board: dict[str, list[tuple[str, int]]] = {}
+    missing_board = 0
+    for pin_key, qty in sorted(qty_by_key.items()):
+        if "-" not in pin_key:
+            print(f"  WARN bad pin key {pin_key}")
+            continue
+        board_id, idx_s = pin_key.rsplit("-", 1)
+        try:
+            idx = int(idx_s)
+        except ValueError:
+            print(f"  WARN bad pin index {pin_key}")
+            continue
+        if board_id not in board_by_id:
+            missing_board += 1
+            continue
+        by_board.setdefault(board_id, []).append((pin_key, idx))
+
+    if missing_board:
+        print(f"  WARN {missing_board} in-stock keys not in D23 manifest")
+
+    for board_id, pin_list in sorted(by_board.items(), key=lambda kv: board_rank.get(kv[0], 9999)):
+        board_dir, label = board_by_id[board_id]
         jp = board_dir / f"{board_id}.json"
         if not jp.is_file():
             print(f"  WARN missing {jp}")
@@ -194,10 +296,11 @@ def export_inventory(table: dict) -> list[dict]:
             continue
         rank = board_rank.get(board_id, 0)
         blabel = board_label(board_id, rank)
-        for idx, pred in enumerate(preds):
-            if not isinstance(pred, dict):
+        for pin_key, idx in pin_list:
+            if idx < 0 or idx >= len(preds) or not isinstance(preds[idx], dict):
+                print(f"  WARN no prediction for {pin_key}")
                 continue
-            pin_key = f"{board_id}-{idx}"
+            pred = preds[idx]
             pin_n = idx + 1
             cost = catalog_unit_price(table, pin_key)
             crop_stem = str(pred.get("crop_stem") or f"{board_id}_pin{idx:02d}")
@@ -219,12 +322,13 @@ def export_inventory(table: dict) -> list[dict]:
                     "crop_stem": crop_stem,
                     "thumb": thumb_rel,
                     "catalog_cost": cost,
+                    "stock_qty": qty_by_key.get(pin_key),
                     "source_folder": label,
                     "board_image": f"{label}/{jpg.name}",
                 }
             )
     priced = sum(1 for r in rows if r["catalog_cost"] is not None)
-    print(f"  inventory units: {len(rows)}  with catalog cost: {priced}")
+    print(f"  inventory units (Report 1 in-stock): {len(rows)}  with catalog cost: {priced}")
     return rows
 
 
@@ -263,6 +367,7 @@ def main() -> None:
         "crop_stem",
         "thumb",
         "catalog_cost",
+        "stock_qty",
         "source_folder",
         "board_image",
     ]
@@ -290,9 +395,11 @@ def main() -> None:
             sum(r["catalog_cost"] or 0 for r in inv if r.get("catalog_cost") is not None),
             2,
         ),
+        "inventory_stock_units_total": sum(int(r.get("stock_qty") or 0) for r in inv),
         "notes": [
             "One-off CostMatch project — not a CTR template.",
-            "catalog_cost = D23 flyer retail from D23Inventory2026/catalog-prices.json.",
+            "Catalog = D23Inventory2026 Report 1 in-stock pins only (Firebase qty >= 1), not all board detections.",
+            "Board images from 2026D23/boards + marketplace extras; catalog_cost from catalog-prices.json.",
             "Fully loaded cost (travel etc.) is tracked elsewhere and ignored here.",
         ],
     }
