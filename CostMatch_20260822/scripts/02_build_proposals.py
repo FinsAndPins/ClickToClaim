@@ -110,6 +110,10 @@ def main() -> None:
                     "catalog_cost": ir.get("catalog_cost"),
                     "crop_stem": ir.get("crop_stem") or "",
                     "board_id": ir.get("board_id") or "",
+                    "board_num": ir.get("board_num"),
+                    "board_label": ir.get("board_label") or "",
+                    "pin_n": ir.get("pin_n"),
+                    "display_label": ir.get("display_label") or "",
                     "score": round(float(sims[i, int(j)]), 4),
                 }
             )
@@ -123,6 +127,7 @@ def main() -> None:
                 "sale_recorded_by": srow.get("sale_recorded_by") or "",
                 "board_num": srow.get("board_num"),
                 "pin_n": srow.get("pin_n"),
+                "listing_title": srow.get("listing_title") or "",
                 "candidates": cands,
             }
         )
