@@ -12,7 +12,7 @@
     --text: #eef3fb;
     --muted: #8fa0b8;
     --accent: #5aa8ff;
-    --warn: #ffb020;
+    --ok: #3ddc97;
   }
   * { box-sizing: border-box; }
   body {
@@ -38,9 +38,11 @@
     padding: 9px 12px; text-decoration: none; cursor: pointer;
   }
   button.primary { background: #1a4a7a; border-color: var(--accent); }
+  button.ok { background: #174a35; border-color: #2d8a62; }
+  button.small { font-size: 11px; padding: 6px 8px; border-radius: 8px; width: 100%; margin-top: 6px; }
   #summary {
     margin: 12px 14px 0; padding: 12px 14px; border-radius: 12px;
-    background: #1a2438; border: 1px solid #33507a; max-width: 620px;
+    background: #1a2438; border: 1px solid #33507a; max-width: 680px;
     font-size: 14px; line-height: 1.55;
   }
   #summary strong { color: #9ec8ff; }
@@ -55,10 +57,11 @@
   .board-head {
     display: flex; justify-content: space-between; align-items: center; gap: 10px;
     padding: 10px 14px; border-bottom: 1px solid var(--line);
-    background: rgba(0,0,0,.18);
+    background: rgba(0,0,0,.18); flex-wrap: wrap;
   }
   .board-head h2 { margin: 0; font-size: 16px; font-weight: 800; }
   .board-head .count { font-size: 12px; color: var(--muted); font-weight: 700; }
+  .board-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -66,7 +69,7 @@
   }
   .card {
     background: #121820; border: 2px solid #3a4a62; border-radius: 10px;
-    overflow: hidden;
+    overflow: hidden; display: flex; flex-direction: column;
   }
   .card .thumb {
     aspect-ratio: 1; background: #000; display: flex; align-items: center; justify-content: center;
@@ -85,6 +88,13 @@
   .empty {
     padding: 40px 14px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.5;
   }
+  #toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    background: #1a5e1a; color: #fff; padding: 8px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .25s;
+    pointer-events: none; z-index: 100; max-width: 92vw; text-align: center;
+  }
+  #toast.show { opacity: 1; }
   @media print {
     header { position: static; }
     a.btn, button { display: none; }
@@ -96,9 +106,9 @@
 <header>
   <h1>Remove from Whatnot clone</h1>
   <p>
-    Pins you <strong>tapped gone manually</strong> that may still appear when you clone Aug 10 inventory.
-  Sold ledger pins are <strong>excluded</strong> — Whatnot already drops those from the clone.
-  Search Whatnot for <strong>Board N Pin M</strong> and delete each listing below.
+    Manual gone pins that <strong>might</strong> still be in Aug 10 clone inventory (ledger sales excluded).
+    Many pulled pins were <strong>never Whatnot listings</strong> — if you can’t find one in the clone, tap
+    <strong>Not in clone</strong> to hide it. Sorted by board, then pin.
   </p>
   <div class="toolbar">
     <a class="btn" href="./index.html">← Mark gone</a>
@@ -109,12 +119,14 @@
 <div id="summary">Loading…</div>
 <div id="status"></div>
 <main id="main"></main>
+<div id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 (function () {
   const GONE_PATH = "showConfig/offerables15_inventory/goneStems";
+  const NOT_IN_CLONE_PATH = "showConfig/offerables15_inventory/notInCloneStems";
   const CROP_BASE = "../crops/";
   const SOLD_JSON = "../sold-overlay/sold.json";
   const AUG10_LEDGER = "./ledgers/20260810_ledger.csv";
@@ -131,8 +143,29 @@
   const db = firebase.database();
 
   let boardByImgStem = Object.create(null);
-  /** @type {Set<string>} keys "board:pin" */
   let ledgerSold = new Set();
+  let notInClone = new Set();
+  let reviewer = localStorage.getItem("fpins_offerables15_reviewer") || "";
+  let goneVal = {};
+  let ledgerMeta = { thuCount: 0, aug10Added: 0, total: 0 };
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove("show"), 1400);
+  }
+
+  function ensureReviewer() {
+    if (reviewer) return reviewer;
+    try {
+      reviewer = (window.prompt("Your name:") || "").trim().slice(0, 30);
+    } catch (_) { reviewer = ""; }
+    if (!reviewer) reviewer = "operator";
+    localStorage.setItem("fpins_offerables15_reviewer", reviewer);
+    return reviewer;
+  }
 
   function setStatus(msg, err) {
     const el = document.getElementById("status");
@@ -140,9 +173,11 @@
     el.className = err ? "err" : "";
   }
 
-  function bpKey(board, pin) {
-    return `${board}:${pin}`;
+  function normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, "_") : "";
   }
+
+  function bpKey(board, pin) { return `${board}:${pin}`; }
 
   function cropFile(stem) {
     const s = String(stem || "");
@@ -168,6 +203,11 @@
 
   function isLedgerSold(board, pin) {
     return board != null && pin != null && ledgerSold.has(bpKey(board, pin));
+  }
+
+  function isNotInClone(crop) {
+    const k = normStem(crop);
+    return notInClone.has(crop) || notInClone.has(k);
   }
 
   function parseCsvLine(line) {
@@ -210,7 +250,6 @@
       });
     });
     const thuCount = ledgerSold.size;
-
     try {
       const csvText = await fetch(`${AUG10_LEDGER}?v=1`, { cache: "no-store" }).then((r) => r.text());
       const lines = csvText.replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
@@ -224,123 +263,182 @@
     } catch (e) {
       console.warn("Aug 10 ledger CSV not loaded", e);
     }
-    const total = ledgerSold.size;
-    return { thuCount, aug10Added: total - thuCount, total };
+    return { thuCount, aug10Added: ledgerSold.size - thuCount, total: ledgerSold.size };
   }
 
-  function collectCloneRemovals(goneVal) {
-    const allManual = [];
+  function ingestNotInClone(val) {
+    notInClone = new Set();
+    for (const [k, v] of Object.entries(val || {})) {
+      if (!v) continue;
+      notInClone.add(k);
+      notInClone.add(normStem(k));
+      if (v && v.crop_stem) {
+        notInClone.add(v.crop_stem);
+        notInClone.add(normStem(v.crop_stem));
+      }
+    }
+  }
+
+  function collectCloneRemovals(gone) {
+    const items = [];
     const skippedLedger = [];
-    for (const v of Object.values(goneVal || {})) {
+    const skippedNotInClone = [];
+    for (const v of Object.values(gone || {})) {
       if (!isManualGone(v)) continue;
       const crop = v.crop_stem || "";
       const meta = boardPinFromCrop(crop);
       const board = v.board || meta.board;
       const pin = v.pin || meta.pin;
       const label = board && pin ? `Board ${board} Pin ${pin}` : meta.label;
-      const item = {
-        crop,
-        board: board || 9999,
-        pin: pin || 0,
-        label,
-        by: v.by || "",
-        at: v.at || "",
-      };
-      if (isLedgerSold(board, pin)) {
-        skippedLedger.push(item);
-        continue;
-      }
-      allManual.push(item);
+      const item = { crop, board: board || 9999, pin: pin || 0, label, by: v.by || "" };
+      if (isLedgerSold(board, pin)) { skippedLedger.push(item); continue; }
+      if (isNotInClone(crop)) { skippedNotInClone.push(item); continue; }
+      items.push(item);
     }
-    allManual.sort((a, b) => a.board - b.board || a.pin - b.pin);
-    return { items: allManual, skippedLedger };
+    items.sort((a, b) => a.board - b.board || a.pin - b.pin);
+    return { items, skippedLedger, skippedNotInClone };
   }
 
-  function groupByBoard(items) {
-    const groups = [];
-    let cur = null;
-    items.forEach((item) => {
-      const b = item.board === 9999 ? "?" : item.board;
-      if (!cur || cur.board !== b) {
-        cur = { board: b, items: [] };
-        groups.push(cur);
-      }
-      cur.items.push(item);
+  async function markNotInClone(item) {
+    const user = ensureReviewer();
+    const key = normStem(item.crop);
+    await db.ref(`${NOT_IN_CLONE_PATH}/${key}`).set({
+      crop_stem: item.crop,
+      board: item.board === 9999 ? null : item.board,
+      pin: item.pin || null,
+      label: item.label,
+      at: new Date().toISOString(),
+      by: user,
     });
-    return groups;
+    toast("Hidden — not in clone");
   }
 
-  function render(result, ledgerMeta) {
-    const { items, skippedLedger } = result;
+  async function dismissBoard(items) {
+    if (!items.length) return;
+    if (!window.confirm(`Hide all ${items.length} pins on this board as not in clone?`)) return;
+    const user = ensureReviewer();
+    const updates = {};
+    const now = new Date().toISOString();
+    items.forEach((item) => {
+      const key = normStem(item.crop);
+      updates[`${NOT_IN_CLONE_PATH}/${key}`] = {
+        crop_stem: item.crop,
+        board: item.board === 9999 ? null : item.board,
+        pin: item.pin || null,
+        label: item.label,
+        at: now,
+        by: user,
+      };
+    });
+    await db.ref().update(updates);
+    toast(`Hid ${items.length} pins`);
+  }
+
+  function render(result) {
+    const { items, skippedLedger, skippedNotInClone } = result;
     const summary = document.getElementById("summary");
     const main = document.getElementById("main");
 
     if (!items.length) {
       summary.innerHTML =
-        "<strong>0</strong> pins to remove from clone." +
+        "<strong>0</strong> pins left to check in clone." +
+        (skippedNotInClone.length
+          ? `<div class="skip">Hidden <strong>${skippedNotInClone.length}</strong> confirmed not in clone.</div>` : "") +
         (skippedLedger.length
-          ? `<div class="skip">Skipped <strong>${skippedLedger.length}</strong> manual taps already sold per ledger (not cloneable).</div>`
-          : "");
-      main.innerHTML =
-        '<div class="empty">Nothing to delete — either no manual gone marks, or they were all already sold on Whatnot.</div>';
+          ? `<div class="skip">Skipped <strong>${skippedLedger.length}</strong> already sold per ledger.</div>` : "");
+      main.innerHTML = '<div class="empty">Nothing left — nice work. Hidden pins stay in Firebase if you need to undo later.</div>';
       return;
     }
 
     const boards = new Set(items.map((i) => i.board).filter((b) => b !== 9999));
     summary.innerHTML =
-      `<strong>${items.length}</strong> pins to remove from clone · ` +
-      `<strong>${boards.size}</strong> boards` +
+      `<strong>${items.length}</strong> pins to check in clone · <strong>${boards.size}</strong> boards` +
+      (skippedNotInClone.length
+        ? `<div class="skip">Hidden <strong>${skippedNotInClone.length}</strong> not in clone.</div>` : "") +
       (skippedLedger.length
-        ? `<div class="skip">Skipped <strong>${skippedLedger.length}</strong> manual taps already in ledger sales (Aug 10 + Thursday) — Whatnot won’t clone those.</div>`
-        : "") +
-      `<div class="skip">Ledger refs loaded: Thursday <strong>${ledgerMeta.thuCount}</strong> · Aug 10 + <strong>${ledgerMeta.aug10Added}</strong> extra · <strong>${ledgerMeta.total}</strong> sold total</div>`;
+        ? `<div class="skip">Skipped <strong>${skippedLedger.length}</strong> ledger sales.</div>` : "") +
+      `<div class="skip">Can’t find it in clone? Tap <strong>Not in clone</strong> — many D23 pulls were never listed on Whatnot.</div>`;
 
-    const groups = groupByBoard(items);
     main.innerHTML = "";
-    groups.forEach((g) => {
-      const sec = document.createElement("section");
-      sec.className = "board-section";
-      const title = g.board === "?" ? "Unknown board" : `Board ${g.board}`;
-      sec.innerHTML =
-        `<div class="board-head"><h2>${title}</h2>` +
-        `<span class="count">${g.items.length} pin${g.items.length === 1 ? "" : "s"}</span></div>`;
-      const grid = document.createElement("div");
-      grid.className = "grid";
-      g.items.forEach((item) => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML =
-          `<div class="thumb"><img loading="lazy" alt="" src="${CROP_BASE}${encodeURIComponent(cropFile(item.crop))}"></div>` +
-          `<div class="cap">${item.label}` +
-          (item.by ? `<span class="sub">by ${item.by}</span>` : "") +
+    let curBoard = null;
+    let sec = null;
+    let grid = null;
+    let boardItems = [];
+
+    function flushBoard() {
+      if (!sec || !boardItems.length) return;
+      const dismissBtn = document.createElement("button");
+      dismissBtn.type = "button";
+      dismissBtn.className = "ok small";
+      dismissBtn.textContent = "Whole board not in clone";
+      dismissBtn.addEventListener("click", () => dismissBoard(boardItems.slice()));
+      const lastCap = sec.querySelector(".board-actions");
+      if (lastCap) lastCap.appendChild(dismissBtn);
+    }
+
+    items.forEach((item) => {
+      if (item.board !== curBoard) {
+        flushBoard();
+        curBoard = item.board;
+        boardItems = [];
+        sec = document.createElement("section");
+        sec.className = "board-section";
+        const title = item.board === 9999 ? "Unknown board" : `Board ${item.board}`;
+        sec.innerHTML =
+          `<div class="board-head">` +
+          `<h2>${title}</h2>` +
+          `<div class="board-actions"><span class="count">checking…</span></div>` +
           `</div>`;
-        grid.appendChild(card);
-      });
-      sec.appendChild(grid);
-      main.appendChild(sec);
+        grid = document.createElement("div");
+        grid.className = "grid";
+        sec.appendChild(grid);
+        main.appendChild(sec);
+      }
+      boardItems.push(item);
+      const countEl = sec.querySelector(".count");
+      if (countEl) countEl.textContent = `${boardItems.length} pin${boardItems.length === 1 ? "" : "s"}`;
+
+      const card = document.createElement("div");
+      card.className = "card";
+      const cap = document.createElement("div");
+      cap.className = "cap";
+      cap.innerHTML = `${item.label}${item.by ? `<span class="sub">by ${item.by}</span>` : ""}`;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ok small";
+      btn.textContent = "Not in clone";
+      btn.addEventListener("click", () => markNotInClone(item));
+      card.innerHTML = `<div class="thumb"><img loading="lazy" alt="" src="${CROP_BASE}${encodeURIComponent(cropFile(item.crop))}"></div>`;
+      card.appendChild(cap);
+      card.appendChild(btn);
+      grid.appendChild(card);
     });
+    flushBoard();
   }
 
-  let ledgerMeta = { thuCount: 0, aug10Added: 0, total: 0 };
-
-  function refresh(goneVal) {
+  function refresh() {
     const result = collectCloneRemovals(goneVal);
-    render(result, ledgerMeta);
-    setStatus(`Updated ${new Date().toLocaleString()} · manual gone minus ledger sales`);
+    render(result);
+    setStatus(`Updated ${new Date().toLocaleString()}`);
   }
 
   document.getElementById("btnRefresh").addEventListener("click", () => {
-    Promise.all([
-      loadLedgerSold().then((m) => { ledgerMeta = m; }),
-      db.ref(GONE_PATH).once("value"),
-    ]).then(([, snap]) => refresh(snap.val() || {}));
+    Promise.all([loadLedgerSold(), db.ref(GONE_PATH).once("value"), db.ref(NOT_IN_CLONE_PATH).once("value")])
+      .then(([meta, goneSnap, nicSnap]) => {
+        ledgerMeta = meta;
+        goneVal = goneSnap.val() || {};
+        ingestNotInClone(nicSnap.val() || {});
+        refresh();
+      });
   });
   document.getElementById("btnPrint").addEventListener("click", () => window.print());
 
-  loadLedgerSold()
-    .then((m) => {
-      ledgerMeta = m;
-      db.ref(GONE_PATH).on("value", (snap) => refresh(snap.val() || {}));
+  Promise.all([loadLedgerSold(), db.ref(GONE_PATH).once("value")])
+    .then(([meta, goneSnap]) => {
+      ledgerMeta = meta;
+      goneVal = goneSnap.val() || {};
+      db.ref(GONE_PATH).on("value", (snap) => { goneVal = snap.val() || {}; refresh(); });
+      db.ref(NOT_IN_CLONE_PATH).on("value", (snap) => { ingestNotInClone(snap.val() || {}); refresh(); });
     })
     .catch((e) => {
       console.error(e);
