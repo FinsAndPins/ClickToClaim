@@ -1,0 +1,31 @@
+---
+description: Board Box Editor — shipped with CTR shows via PrepareClickToClaim (20260822+ template)
+alwaysApply: true
+---
+
+# Board Box Editor
+
+Shipped with each new CTR show from **PrepareClickToClaim** / the ClickToRequest watcher when the bootstrap template is **20260822+** (Fix boxes on the boards page + Reports → Board Box Editor).
+
+## Production wiring (intentional)
+
+- Prepare bootstraps `BoardBoxEditor/<YYYYMMDD>/` after RF-DETR detect (editor UI + that show’s `boards/`).
+- Reports links use the show slug so the editor always opens the matching boards.
+- Do **not** wire the editor into the pricing inbox watcher, PinPricingStudyMVP pipeline, or launchd pricing agents.
+
+## Locations
+
+| Piece | Path |
+|---|---|
+| Live editor (GitHub Pages) | `BoardBoxEditor/YYYYMMDD/` in ClickToClaim |
+| Firebase edits | `boardBoxEditor/{YYYYMMDD}/{stem}` |
+
+URL: `https://finsandpins.github.io/ClickToClaim/BoardBoxEditor/YYYYMMDD/`
+
+## After editing boxes
+
+Save only writes Firebase. Sync into `ClickToClaim/YYYYMMDD/boards` and bump `BOARDS_MANIFEST_VERSION` before relying on CTR clicks/prices.
+
+## Editor UX to preserve
+
+Bright boxes, corner handles, Add/Delete/Undo, Save/Don’t Save/Cancel on leave, iOS pan-y scroll (touch-action none only on boxes/handles). SHOW_SLUG comes from the URL path.

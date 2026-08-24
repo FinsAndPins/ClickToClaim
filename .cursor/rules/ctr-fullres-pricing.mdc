@@ -1,0 +1,42 @@
+---
+description: CTR-aligned pricing must crop from full-res originals, not web boards
+alwaysApply: true
+---
+
+# CTR-aligned pricing — full-res crops only
+
+Rationale (20260810): Cropping from `ClickToClaim/<show>/boards` (~960×1280) produced soft CTM “Our Pin” images and a weak eBay no-match batch. Originals were ~4284×5712 under `Cursor Projects/<show>/`.
+
+## Required path
+
+For pricing that reuses CTR / Board Box Editor boxes:
+
+1. **Boxes/JSON:** `ClickToClaim/<show>/boards` (manifest + `.json` only for geometry)
+2. **Raster crop source:** full-res originals — usually  
+   `~/Library/Mobile Documents/com~apple~CloudDocs/Cursor Projects/<show>/`
+3. **Runner (use this):**  
+   `Cursor Projects/CtrFullresPricing/run_ctr_fullres_pricing.sh`  
+   Requires `--show-id` and `--source-images-dir`. Opens Terminal + `caffeinate` for eBay, enhances CTM with the App Support pricing **venv** Python, publishes via `PreparingInventoryGit`.
+
+## Do not
+
+- Pass CTR `boards/` as the crop image source
+- Use system `/usr/bin/python3` for `generate_review_pages_enhanced.py` (needs 3.10+; use `PinPricingStudyMVP_RFDETR_TEST/.venv/bin/python`)
+- Push PreparingInventory from the broken iCloud clone when App Support `PreparingInventoryGit` works
+- Regenerate enhanced CTM with an old generator that embeds **120px** thumbs — default must be **720px** max side (`_embed_thumbnails`)
+
+## CTM Match must save eBay price
+
+ClickToMatch **Match** writes `display_price` + `selected_candidate` from the on-screen eBay listing (not status-only). **No match** leaves pricing to CTP/manual. Keep this in `generate_review_pages_enhanced.py` (`recordAction`).
+
+## Enhanced CTM “Our Pin” size
+
+`generate_review_pages_enhanced.py` → `_embed_thumbnails(..., size=720)`. Keep copies in sync:
+
+- `PreparingInventoryGit/scripts/` (and GitHub `main`)
+- `PreparingInventoryWatcherBin/scripts/` (what inbox launchd actually runs)
+- `Cursor Projects/CtrFullresPricing/generate_review_pages_enhanced.py` (CTR full-res runner)
+
+## Normal inbox pricing
+
+`BoardsToPrice` / inbox watcher already crops from inbox photos — unchanged for crop source. It still uses the enhanced generator above for CTM/CTP pages.

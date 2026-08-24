@@ -1,0 +1,37 @@
+---
+description: Where to put new work (iCloud Cursor Projects) vs completed tools (GitHub)
+alwaysApply: true
+---
+
+# Workspace layout — Steve / Fins & Pins
+
+## What belongs in **ClickToClaim** (this GitHub repo)
+
+- **Shareable product work** you intend for other people — e.g. **Click To Request** show folders (`index.html`, `boards/`, Firebase wiring), and similar shipped UX.
+- **Not** private WIP, one-off scripts, or internal tooling unless you explicitly ask to add or promote it.
+
+## New work and work in progress (Cursor Projects)
+
+- **Build new scripts, experiments, `tools/` (Firebase → CSV harnesses, etc.), PinToPull-style folders, and drafts** under iCloud:
+  - `~/Library/Mobile Documents/com~apple~CloudDocs/Cursor Projects`
+- **`tools/`** and other automation the team is still iterating on should live under **Cursor Projects**, not in this repo, until you say it is ready to ship.
+
+### Exception — ClickToCollect iOS app
+
+- The **ClickToCollect** iOS app should live in **one** chosen folder at a time (same tree in Xcode and Cursor). Do **not** apply the general “put WIP under Cursor Projects” habit to mean “also keep a second copy of ClickToCollect there” unless the user explicitly wants that. Prefer **one** workspace, not sync-between-two-trees.
+
+## Completed tools
+
+- **Commit and maintain finished, stable tools** in **GitHub** (e.g. this `ClickToClaim` repository) when you want them versioned and shareable.
+- Promote work from **Cursor Projects** to the repo only when the user says it is **done** and should live in version control.
+
+## Existing folders
+
+- **Legacy/WIP** that already lives elsewhere in iCloud (e.g. `PinToPull20260402` at CloudDocs root) **stays there** unless the user asks to move it. **Only new** work defaults to **Cursor Projects**.
+
+## Short path reference
+
+| Purpose | Location |
+|---------|----------|
+| WIP, `tools/`, experiments | iCloud `Cursor Projects` |
+| Shareable CTR / show builds | GitHub `ClickToClaim` (and similar repos) |

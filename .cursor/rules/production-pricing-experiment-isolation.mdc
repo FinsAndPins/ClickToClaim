@@ -1,0 +1,71 @@
+---
+description: Keep experiments isolated from production CTR and Pricing systems
+alwaysApply: true
+---
+
+# Production systems vs experiments
+
+Rationale: June 2026 `local_visual_pin_library` was wired into `run_visual_baseline_pipeline.py`; the inbox watcher runs from Application Support and a missing import crashed every pricing run. **Two separate production systems** — do not conflate scopes.
+
+## Two production systems
+
+**ClickToClaim (CTR)** — public show site where users click pins they want.
+
+- Show folders (`ClickToClaim/YYYYMMDD/`), `boards/`, Firebase wiring
+- **PrepareClickToClaim** automation, **ClickToRequest** inbox workflow
+- Lives in GitHub **ClickToClaim** repo
+
+**Pricing** — runs pins through eBay API for Lexi to price collections.
+
+- **BoardsToPrice** inbox, `RunBoardsPricing_RFDETR`, `board_inbox_watcher`, **PinPricingStudyMVP** pipeline
+- Business-critical for Lexi's work
+
+## Production = read-only by default
+
+Treat **both** production systems as **read-only** unless the user explicitly says **"SHIP TO PRODUCTION"** (or a clear equivalent: ship to production, deploy production CTR changes, deploy production pricing changes).
+
+Before editing any protected path, restate allowed paths and stop if "SHIP TO PRODUCTION" is missing.
+
+## Experiments — new folders only
+
+- **Create new folders and files only** under `~/Library/Mobile Documents/com~apple~CloudDocs/Cursor Projects/<experiment-name>/`.
+- **Never** add imports, CLI flags, or wiring to either production system for an experiment.
+- If similar logic is needed, **copy** the pipeline or automation into the experiment folder and add a **new** entry script there.
+
+## Protected production paths
+
+### CTR (ClickToClaim)
+
+- `PrepareClickToClaim/prepare_click_to_claim.sh`
+- `watch_click_to_request.sh`
+- `ClickToClaim/YYYYMMDD/` show folders — **only when the user explicitly asks** to modify show files
+- `detect_boards_rfdetr_for_ctr.py` in **PreparingInventory**
+
+### Pricing
+
+**PreparingInventory** (GitHub clone on Mac):
+
+- `price_boards_from_inbox.sh`
+- `board_inbox_watcher.sh`
+- `RunBoardsPricing*.command`
+- `launchd/install_boards_inbox_launchagent.sh`
+
+**PinPricingStudyMVP_RFDETR_TEST** and **PinPricingStudyMVP** — anything the inbox watcher calls, especially:
+
+- `run_visual_baseline_pipeline.py`
+- `phash_utils.py`
+- `roboflow_cropping.py`
+- `prediction_dedupe.py`
+
+**Runtime mirror** (what the pricing watcher actually runs):
+
+- `~/Library/Application Support/FinsAndPins/`
+
+## Deploy rules
+
+- **Do not** run `install_boards_inbox_launchagent.sh` unless shipping intentional production pricing changes.
+- After any intentional production PinPricing change: **must** re-run `install_boards_inbox_launchagent.sh` to sync Application Support.
+
+## Experiment opener (example trigger)
+
+> This is a new project — create new folders and files only under `Cursor Projects/<name>/`. Do not change, move, delete, overwrite, or otherwise modify any existing files, especially protected production paths above. Do not add imports or flags to either production system; copy into the experiment folder instead.
