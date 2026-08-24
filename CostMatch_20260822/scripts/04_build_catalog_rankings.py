@@ -56,7 +56,10 @@ def main() -> None:
         for ir in inv:
             key = ir["inventory_key"]
             board = str(ir.get("board_id") or "").lower()
-            blob = f"{key} {board} {ir.get('crop_stem') or ''}".lower()
+            blob = " ".join(
+                str(ir.get(k) or "")
+                for k in ("inventory_key", "board_id", "board_label", "display_label", "crop_stem")
+            ).lower()
             text_hits = sum(1 for t in title_toks if t in blob)
             text_score = min(1.0, text_hits / max(1, min(6, len(title_toks))))
             vscore = vis.get(key, 0.0)
@@ -68,6 +71,10 @@ def main() -> None:
                     "thumb": ir.get("thumb") or "",
                     "catalog_cost": ir.get("catalog_cost"),
                     "board_id": ir.get("board_id") or "",
+                    "board_num": ir.get("board_num"),
+                    "board_label": ir.get("board_label") or "",
+                    "pin_n": ir.get("pin_n"),
+                    "display_label": ir.get("display_label") or "",
                     "score": hybrid,
                     "visual_score": round(vscore, 4) if vscore else None,
                     "text_score": round(text_score, 4) if text_score else None,

@@ -31,8 +31,13 @@ CROPS_DIR = Path.home() / (
     "PriceCollection_20260821_1147/crops"
 )
 CATALOG_PRICES = REPO / "D23Inventory2026" / "catalog-prices.json"
-A2Z_BOARDS = REPO / "2026A2Z" / "boards"
+D23_BOARDS = REPO / "2026D23" / "boards"
 EXTRA_BOARDS = REPO / "D23Inventory2026" / "extra-boards"
+EXTRA_BOARD_TITLES = {
+    "D23MP_AUG14": "D23 Marketplace · Fri Aug 14",
+    "D23MP_AUG15": "D23 Marketplace · Sat Aug 15",
+    "D23MP_AUG16": "D23 Marketplace · Sun Aug 16",
+}
 
 THUMB_MAX = 320  # long edge — light for GitHub Pages
 
@@ -140,52 +145,84 @@ def export_sold() -> list[dict]:
     return rows
 
 
+def load_inventory_manifest() -> list[tuple[str, Path, str]]:
+    """Match D23Inventory2026/index.html: 2026D23 boards then extra marketplace flyers."""
+    entries: list[tuple[str, Path, str]] = []
+    ctr_manifest = D23_BOARDS / "manifest.json"
+    if ctr_manifest.is_file():
+        ctr_names = json.loads(ctr_manifest.read_text(encoding="utf-8"))
+        if isinstance(ctr_names, list):
+            for name in ctr_names:
+                entries.append((name, D23_BOARDS, "2026D23/boards"))
+    else:
+        for jp in sorted(D23_BOARDS.glob("PAGE_*.json")):
+            entries.append((jp.stem, D23_BOARDS, "2026D23/boards"))
+    extra_manifest = EXTRA_BOARDS / "manifest.json"
+    if extra_manifest.is_file():
+        extra_names = json.loads(extra_manifest.read_text(encoding="utf-8"))
+        if isinstance(extra_names, list):
+            for name in extra_names:
+                entries.append((name, EXTRA_BOARDS, "D23Inventory2026/extra-boards"))
+    else:
+        for jp in sorted(EXTRA_BOARDS.glob("D23MP_*.json")):
+            entries.append((jp.stem, EXTRA_BOARDS, "D23Inventory2026/extra-boards"))
+    return entries
+
+
+def board_label(board_id: str, manifest_index: int) -> str:
+    return EXTRA_BOARD_TITLES.get(board_id) or f"Board {manifest_index + 1}"
+
+
 def export_inventory(table: dict) -> list[dict]:
     rows: list[dict] = []
-    sources = [
-        (A2Z_BOARDS, "PAGE_*.json", "2026A2Z/boards"),
-        (EXTRA_BOARDS, "D23MP_*.json", "D23Inventory2026/extra-boards"),
-    ]
-    for board_dir, pattern, label in sources:
-        if not board_dir.is_dir():
-            print(f"  WARN missing {board_dir}")
+    manifest = load_inventory_manifest()
+    board_rank = {board_id: idx for idx, (board_id, _, _) in enumerate(manifest)}
+    for board_id, board_dir, label in manifest:
+        jp = board_dir / f"{board_id}.json"
+        if not jp.is_file():
+            print(f"  WARN missing {jp}")
             continue
-        for jp in sorted(board_dir.glob(pattern)):
-            board_id = jp.stem
-            jpg = board_dir / f"{board_id}.JPG"
-            if not jpg.is_file():
-                jpg = board_dir / f"{board_id}.jpg"
-            if not jpg.is_file():
-                print(f"  WARN no image for {jp.name}")
+        jpg = board_dir / f"{board_id}.JPG"
+        if not jpg.is_file():
+            jpg = board_dir / f"{board_id}.jpg"
+        if not jpg.is_file():
+            print(f"  WARN no image for {jp.name}")
+            continue
+        data = json.loads(jp.read_text(encoding="utf-8"))
+        preds = data.get("predictions") if isinstance(data, dict) else data
+        if not isinstance(preds, list):
+            continue
+        rank = board_rank.get(board_id, 0)
+        blabel = board_label(board_id, rank)
+        for idx, pred in enumerate(preds):
+            if not isinstance(pred, dict):
                 continue
-            data = json.loads(jp.read_text(encoding="utf-8"))
-            preds = data.get("predictions") if isinstance(data, dict) else data
-            if not isinstance(preds, list):
-                continue
-            for idx, pred in enumerate(preds):
-                if not isinstance(pred, dict):
-                    continue
-                pin_key = f"{board_id}-{idx}"
-                cost = catalog_unit_price(table, pin_key)
-                crop_stem = str(pred.get("crop_stem") or f"{board_id}_pin{idx:02d}")
-                thumb_rel = f"thumbs/inventory/{pin_key}.jpg"
-                try:
-                    save_thumb(crop_from_board(jpg, pred), ROOT / thumb_rel)
-                except Exception as e:
-                    print(f"  WARN crop {pin_key}: {e}")
-                    thumb_rel = ""
-                rows.append(
-                    {
-                        "inventory_key": pin_key,
-                        "board_id": board_id,
-                        "pin_index": idx,
-                        "crop_stem": crop_stem,
-                        "thumb": thumb_rel,
-                        "catalog_cost": cost,
-                        "source_folder": label,
-                        "board_image": f"{label}/{jpg.name}",
-                    }
-                )
+            pin_key = f"{board_id}-{idx}"
+            pin_n = idx + 1
+            cost = catalog_unit_price(table, pin_key)
+            crop_stem = str(pred.get("crop_stem") or f"{board_id}_pin{idx:02d}")
+            thumb_rel = f"thumbs/inventory/{pin_key}.jpg"
+            try:
+                save_thumb(crop_from_board(jpg, pred), ROOT / thumb_rel)
+            except Exception as e:
+                print(f"  WARN crop {pin_key}: {e}")
+                thumb_rel = ""
+            rows.append(
+                {
+                    "inventory_key": pin_key,
+                    "board_id": board_id,
+                    "board_num": rank + 1 if board_id not in EXTRA_BOARD_TITLES else None,
+                    "board_label": blabel,
+                    "pin_index": idx,
+                    "pin_n": pin_n,
+                    "display_label": f"{blabel} pin {pin_n}",
+                    "crop_stem": crop_stem,
+                    "thumb": thumb_rel,
+                    "catalog_cost": cost,
+                    "source_folder": label,
+                    "board_image": f"{label}/{jpg.name}",
+                }
+            )
     priced = sum(1 for r in rows if r["catalog_cost"] is not None)
     print(f"  inventory units: {len(rows)}  with catalog cost: {priced}")
     return rows
@@ -218,7 +255,11 @@ def main() -> None:
     inv_fields = [
         "inventory_key",
         "board_id",
+        "board_num",
+        "board_label",
         "pin_index",
+        "pin_n",
+        "display_label",
         "crop_stem",
         "thumb",
         "catalog_cost",

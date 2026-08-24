@@ -85,7 +85,7 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 </div>
 
 <div id="tools">
-  <input id="search" type="search" placeholder="Filter catalog key or board…">
+  <input id="search" type="search" placeholder="Filter Board 38, PAGE_038, Miguel…">
   <span class="hint" id="availHint">—</span>
 </div>
 
@@ -197,15 +197,16 @@ function render(){
   const rows=currentRanking().filter(r=>{
     if(claimed.has(r.inventory_key)) return false;
     if(!q) return true;
-    const blob=(r.inventory_key+" "+(r.board_id||"")).toLowerCase();
-    return blob.includes(q);
+    const blob=(r.display_label||"")+" "+(r.inventory_key||"")+" "+(r.board_id||"")+" "+(r.board_label||"");
+    return blob.toLowerCase().includes(q);
   });
   $("availHint").textContent=rows.length+" choices";
   $("tileGrid").innerHTML=rows.map((r,i)=>{
     const chosen=pickKey===r.inventory_key?" chosen":"";
     const cost=r.catalog_cost!=null?money(r.catalog_cost):"no cost";
     const sc=r.score!=null?Number(r.score).toFixed(3):"";
-    return `<div class="tile${chosen}" data-key="${r.inventory_key}"><span class="rank">#${i+1}</span><img src="${r.thumb||""}" alt="" loading="lazy"><div class="tbar"><div class="key">${r.inventory_key}</div><div class="p">${cost}</div><div class="s">score ${sc}</div></div></div>`;
+    const label=r.display_label||r.inventory_key;
+    return `<div class="tile${chosen}" data-key="${r.inventory_key}"><span class="rank">#${i+1}</span><img src="${r.thumb||""}" alt="" loading="lazy"><div class="tbar"><div class="key">${label}</div><div class="p">${cost}</div><div class="s">score ${sc}</div></div></div>`;
   }).join("")||`<p style="color:#888;padding:12px;">No catalog units left (all claimed or filtered).</p>`;
   updateProgress();
 }
