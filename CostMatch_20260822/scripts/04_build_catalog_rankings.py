@@ -31,15 +31,24 @@ def main() -> None:
     sold = json.loads((EXPORTS / "sold_ctr_pins.json").read_text(encoding="utf-8"))
     inv = json.loads((EXPORTS / "inventory_units.json").read_text(encoding="utf-8"))
     v2_path = EXPORTS / "proposals_v2.json"
+    v1_path = EXPORTS / "proposals.json"
     visual: dict[str, dict[str, float]] = {}
-    if v2_path.is_file():
-        props = json.loads(v2_path.read_text(encoding="utf-8")).get("proposals") or []
+    for path in (v2_path, v1_path):
+        if not path.is_file():
+            continue
+        props = json.loads(path.read_text(encoding="utf-8")).get("proposals") or []
         for p in props:
             stem = p.get("crop_stem") or ""
-            visual[stem] = {
-                c["inventory_key"]: float(c.get("score") or 0)
-                for c in (p.get("candidates") or [])
-            }
+            if not stem:
+                continue
+            bucket = visual.setdefault(stem, {})
+            for c in p.get("candidates") or []:
+                key = c.get("inventory_key")
+                if not key:
+                    continue
+                score = float(c.get("score") or 0)
+                if key not in bucket or score > bucket[key]:
+                    bucket[key] = score
 
     inv_by_key = {r["inventory_key"]: r for r in inv}
     sold_rows = []
@@ -56,7 +65,10 @@ def main() -> None:
         for ir in inv:
             key = ir["inventory_key"]
             board = str(ir.get("board_id") or "").lower()
-            blob = f"{key} {board} {ir.get('crop_stem') or ''}".lower()
+            blob = " ".join(
+                str(ir.get(k) or "")
+                for k in ("inventory_key", "board_id", "board_label", "display_label", "crop_stem")
+            ).lower()
             text_hits = sum(1 for t in title_toks if t in blob)
             text_score = min(1.0, text_hits / max(1, min(6, len(title_toks))))
             vscore = vis.get(key, 0.0)
@@ -68,6 +80,10 @@ def main() -> None:
                     "thumb": ir.get("thumb") or "",
                     "catalog_cost": ir.get("catalog_cost"),
                     "board_id": ir.get("board_id") or "",
+                    "board_num": ir.get("board_num"),
+                    "board_label": ir.get("board_label") or "",
+                    "pin_n": ir.get("pin_n"),
+                    "display_label": ir.get("display_label") or "",
                     "score": hybrid,
                     "visual_score": round(vscore, 4) if vscore else None,
                     "text_score": round(text_score, 4) if text_score else None,
@@ -78,7 +94,7 @@ def main() -> None:
 
     out = {
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "method": "visual_v2_plus_title_token_hint",
+        "method": "resnet18_v1_plus_title_token_hint",
         "sold_count": len(sold_rows),
         "inventory_count": len(inv),
         "sold": sold_rows,

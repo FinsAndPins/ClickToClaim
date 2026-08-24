@@ -59,7 +59,8 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 <div id="loginGate">
   <div class="loginBox">
     <h1>CostMatch · Pick from catalog</h1>
-    <p>Your sold pin stays on top. Scroll the ranked D23 inventory below, tap a catalog unit, then <strong>Match</strong>. Once matched, that catalog unit disappears from all later pins (one pin per SKU at the show).</p>
+    <p>For pins you marked <strong>No Match</strong> in ClickToMatch. Candidates are only D23 Inventory Report 1 pins (qty ≥ 1). Tap a unit, then <strong>Match</strong>.</p>
+    <p style="margin-top:8px"><a href="review.html" style="color:#4a9eff">← Back to ClickToMatch</a></p>
     <input id="nameInput" type="text" placeholder="@name" autocomplete="username">
     <button type="button" id="loginBtn">Start</button>
   </div>
@@ -68,7 +69,8 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 <div id="hdr">
   <div class="hdrRow">
     <a class="navLink" href="./">Browse</a>
-    <div class="hdrTitle">CostMatch · Catalog pick</div>
+    <a class="navLink" href="review.html">ClickToMatch</a>
+    <div class="hdrTitle">CostMatch · Pick unmatched</div>
     <div class="hdrSub" id="whoLabel"></div>
   </div>
 </div>
@@ -85,7 +87,7 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 </div>
 
 <div id="tools">
-  <input id="search" type="search" placeholder="Filter catalog key or board…">
+  <input id="search" type="search" placeholder="Filter Board 38, PAGE_038, Miguel…">
   <span class="hint" id="availHint">—</span>
 </div>
 
@@ -101,9 +103,15 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 </div>
 
 <div id="doneGate">
-  <h2>All done</h2>
-  <p>Every sold pin has Match or No Match.</p>
-  <a class="navLink" href="./">Back to browse</a>
+  <h2>All unmatched picked</h2>
+  <p>Every No Match pin now has a catalog match or stayed No Match.</p>
+  <a class="navLink" href="review.html">Back to ClickToMatch</a>
+  <a class="navLink" href="./">Browse</a>
+</div>
+<div id="emptyGate" style="display:none;position:fixed;inset:0;background:#111;z-index:400;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center">
+  <h2>No unmatched pins yet</h2>
+  <p>Start with <strong>ClickToMatch</strong> and mark wrong auto-picks as <strong>No Match</strong>. Then come back here to scroll the full catalog.</p>
+  <a class="navLink" href="review.html" style="font-size:16px;font-weight:700">Open ClickToMatch →</a>
 </div>
 <div id="toast"></div>
 
@@ -132,6 +140,9 @@ let queue = [];
 let qi = 0;
 let pickKey = null;
 let historyStack = [];
+const urlParams = new URLSearchParams(location.search);
+const stemParam = urlParams.get("stem");
+const unmatchedOnly = urlParams.has("unmatched") || urlParams.get("mode") === "unmatched" || !!stemParam;
 
 function $(id){ return document.getElementById(id); }
 function money(n){
@@ -165,13 +176,22 @@ function currentRanking(){
   return s?(rankings[s.crop_stem]||[]):[];
 }
 function rebuildQueue(){
-  queue=soldRows.filter(r=>{
+  let stems = soldRows.filter(r=>{
     const d=decisions[r.crop_stem];
+    if(unmatchedOnly) return d&&(d.status==="no_match"||d.status==="skip");
     return !d||d.status==="skip";
   }).map(r=>r.crop_stem);
+  if(stemParam&&soldRows.some(r=>r.crop_stem===stemParam)){
+    const d=decisions[stemParam];
+    if(!d||d.status!=="match"){
+      stems=[stemParam,...stems.filter(s=>s!==stemParam)];
+    }
+  }
+  queue=stems;
   if(qi>=queue.length) qi=Math.max(0,queue.length-1);
   pickKey=null;
   $("btnMatch").disabled=true;
+  $("emptyGate").style.display=(!queue.length&&unmatchedOnly&&!stemParam)?"flex":"none";
   if(!queue.length) $("doneGate").classList.add("show");
   else { $("doneGate").classList.remove("show"); render(); }
   updateProgress();
@@ -182,7 +202,7 @@ function updateProgress(){
   const nomatch=vals.filter(d=>d&&d.status==="no_match").length;
   const total=soldRows.length||1;
   const done=matched+nomatch;
-  $("progressLabel").textContent=`${queue.length?(qi+1):0}/${queue.length} left · ✓${matched} · ✗${nomatch} · claimed catalog ${claimedKeys().size}`;
+  $("progressLabel").textContent=`${queue.length?(qi+1):0}/${queue.length} unmatched · ✓${matched} · ✗${nomatch} · claimed ${claimedKeys().size}`;
   $("progFill").style.width=Math.round((done/total)*100)+"%";
 }
 function render(){
@@ -197,15 +217,16 @@ function render(){
   const rows=currentRanking().filter(r=>{
     if(claimed.has(r.inventory_key)) return false;
     if(!q) return true;
-    const blob=(r.inventory_key+" "+(r.board_id||"")).toLowerCase();
-    return blob.includes(q);
+    const blob=(r.display_label||"")+" "+(r.inventory_key||"")+" "+(r.board_id||"")+" "+(r.board_label||"");
+    return blob.toLowerCase().includes(q);
   });
   $("availHint").textContent=rows.length+" choices";
   $("tileGrid").innerHTML=rows.map((r,i)=>{
     const chosen=pickKey===r.inventory_key?" chosen":"";
     const cost=r.catalog_cost!=null?money(r.catalog_cost):"no cost";
     const sc=r.score!=null?Number(r.score).toFixed(3):"";
-    return `<div class="tile${chosen}" data-key="${r.inventory_key}"><span class="rank">#${i+1}</span><img src="${r.thumb||""}" alt="" loading="lazy"><div class="tbar"><div class="key">${r.inventory_key}</div><div class="p">${cost}</div><div class="s">score ${sc}</div></div></div>`;
+    const label=r.display_label||r.inventory_key;
+    return `<div class="tile${chosen}" data-key="${r.inventory_key}"><span class="rank">#${i+1}</span><img src="${r.thumb||""}" alt="" loading="lazy"><div class="tbar"><div class="key">${label}</div><div class="p">${cost}</div><div class="s">score ${sc}</div></div></div>`;
   }).join("")||`<p style="color:#888;padding:12px;">No catalog units left (all claimed or filtered).</p>`;
   updateProgress();
 }

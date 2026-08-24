@@ -77,7 +77,7 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 <div id="loginGate">
   <div class="loginBox">
     <h1>CostMatch review</h1>
-    <p><strong>ClickToMatch:</strong> sold CTR (left) vs top inventory candidate (right). <strong>Find alts</strong> is the ClickToPrice-style picker when top pick is wrong. Decisions sync for Steve &amp; Lexi.</p>
+    <p><strong>ClickToMatch first:</strong> sold CTR (left) vs top <em>in-stock</em> D23 inventory pick (Report 1 qty ≥ 1). Tap candidate to cycle. <strong>Pick catalog</strong> for full scroll when CTM is wrong.</p>
     <input id="nameInput" type="text" placeholder="@name" autocomplete="username">
     <button type="button" id="loginBtn">Start reviewing</button>
   </div>
@@ -86,14 +86,14 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 <div id="hdr">
   <div class="hdrRow">
     <a class="navLink" href="./">Browse</a>
-    <div class="hdrTitle">CostMatch · CTM</div>
+    <div class="hdrTitle">CostMatch · ClickToMatch</div>
+    <a class="navLink" href="pick.html?unmatched=1" id="pickLink">Pick unmatched</a>
     <div class="hdrSub" id="whoLabel"></div>
   </div>
 </div>
 <div id="progWrap"><div id="progFill"></div></div>
 <div id="modeBar">
-  <span class="modePill active" id="pillCtm">ClickToMatch</span>
-  <span class="modePill" id="pillCtp">Find alts (CTP)</span>
+  <span class="modePill active">ClickToMatch</span>
   <span class="hdrSub" id="progressLabel">—</span>
 </div>
 <div id="metaRow">
@@ -110,7 +110,7 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
     </div>
     <div class="pane" id="candPane">
       <img id="candImg" alt="Inventory candidate">
-      <div class="lbl">Inventory · tap next cand</div>
+      <div class="lbl">Inventory · tap to cycle</div>
       <div class="badge" id="costBadge"></div>
       <div class="badge score" id="scoreBadge"></div>
     </div>
@@ -120,7 +120,7 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
       <button type="button" class="rail" id="btnBack">Back</button>
       <button type="button" class="rail" id="btnNoMatch">No Match</button>
     </div>
-    <button type="button" class="rail" id="btnFind">Find<br>alts</button>
+    <button type="button" class="rail" id="btnFind">Pick<br>catalog</button>
     <div class="btnCol">
       <button type="button" class="rail" id="btnSkip">Skip</button>
       <button type="button" class="rail" id="btnMatch">Match</button>
@@ -128,32 +128,12 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
   </div>
 </div>
 
-<div id="ctpView">
-  <div id="ctpPin">
-    <img id="ctpSoldImg" alt="">
-    <div class="info">
-      <strong id="ctpSoldTitle">Sold pin</strong>
-      <span id="ctpSoldMeta"></span><br>
-      Tap an inventory pin, then Confirm.
-    </div>
-  </div>
-  <div id="ctpTools">
-    <input id="ctpSearch" type="search" placeholder="Filter inventory key…">
-    <button type="button" id="ctpShowTop">Top K</button>
-    <button type="button" id="ctpShowAll">All</button>
-  </div>
-  <div id="tileArea"><div id="tileGrid"></div></div>
-  <div id="ctpNav">
-    <button type="button" id="ctpCancel">Back to CTM</button>
-    <button type="button" id="ctpConfirm" disabled>Confirm pick</button>
-  </div>
-</div>
-
 <div id="doneGate">
-  <h2>Queue clear</h2>
-  <p>Every sold pin has Match or No Match. Use Find alts anytime for hard ones.</p>
+  <h2>ClickToMatch pass done</h2>
+  <p>Every sold pin has Match or No Match. Open <strong>Pick catalog</strong> to scroll the full D23 inventory for No Match pins.</p>
+  <a class="navLink" href="pick.html?unmatched=1" style="font-size:16px;font-weight:700;">Pick unmatched →</a>
   <a class="navLink" href="./">Back to browse</a>
-  <button type="button" id="redoUnmatched">Review unmatched only</button>
+  <button type="button" id="redoUnmatched">Redo No Match only</button>
 </div>
 <div id="toast"></div>
 
@@ -181,8 +161,6 @@ let decisions = {};
 let queue = [];
 let qi = 0;
 let candIdx = 0;
-let ctpPick = null;
-let ctpMode = "top";
 let historyStack = [];
 
 function $(id){ return document.getElementById(id); }
@@ -237,21 +215,20 @@ function updateProgress(){
   $("progFill").style.width=Math.round((done/total)*100)+"%";
 }
 function showCtm(){
-  $("ctmView").style.display="flex";
-  $("ctpView").classList.remove("open");
-  $("pillCtm").classList.add("active");
-  $("pillCtp").classList.remove("active");
   const p=currentProposal();
   if(!p){ $("doneGate").classList.add("show"); updateProgress(); return; }
   const c=currentCand(p);
   $("soldImg").src=p.thumb||"";
   $("soldBadge").textContent=`Sold ${money(p.sold_price)} · List ${money(p.list_price)}`;
-  $("metaSold").innerHTML=`<strong>${p.crop_stem}</strong>`+(p.board_num!=null?` · Board ${p.board_num} · Pin ${p.pin_n}`:"");
+  const soldExtra=p.board_num!=null?` · Board ${p.board_num} pin ${p.pin_n}`:"";
+  const title=p.listing_title?`<br><span style="color:#999">${p.listing_title}</span>`:"";
+  $("metaSold").innerHTML=`<strong>${p.crop_stem}</strong>${soldExtra}${title}`;
   if(c){
     $("candImg").src=c.thumb||"";
     $("costBadge").textContent=`Cost ${money(c.catalog_cost)}`;
     $("scoreBadge").textContent=`score ${c.score}`;
-    $("metaCand").innerHTML=`<strong>${c.inventory_key}</strong> · cand ${candIdx+1}/${p.candidates.length}`;
+    const label=c.display_label||invByKey[c.inventory_key]?.display_label||c.inventory_key;
+    $("metaCand").innerHTML=`<strong>${label}</strong> · cand ${candIdx+1}/${p.candidates.length}`;
   }else{
     $("candImg").removeAttribute("src");
     $("costBadge").textContent="No candidates";
@@ -260,44 +237,10 @@ function showCtm(){
   }
   updateProgress();
 }
-function openCtp(){
+function openPickForCurrent(){
   const p=currentProposal();
   if(!p) return;
-  $("ctmView").style.display="none";
-  $("ctpView").classList.add("open");
-  $("pillCtm").classList.remove("active");
-  $("pillCtp").classList.add("active");
-  $("ctpSoldImg").src=p.thumb||"";
-  $("ctpSoldTitle").textContent=p.crop_stem;
-  $("ctpSoldMeta").textContent=`Sold ${money(p.sold_price)} · List ${money(p.list_price)}`;
-  ctpPick=null;
-  $("ctpConfirm").disabled=true;
-  renderTiles();
-}
-function claimedKeys(){
-  const s=new Set();
-  Object.values(decisions).forEach(d=>{
-    if(d&&d.status==="match"&&d.inventory_key) s.add(d.inventory_key);
-  });
-  return s;
-}
-function renderTiles(){
-  const p=currentProposal();
-  if(!p) return;
-  const claimed=claimedKeys();
-  const q=($("ctpSearch").value||"").trim().toLowerCase();
-  let rows;
-  if(ctpMode==="top"){
-    rows=(p.candidates||[]).map(c=>({inventory_key:c.inventory_key,thumb:c.thumb,catalog_cost:c.catalog_cost,score:c.score}));
-  }else{
-    rows=inventory.map(r=>({inventory_key:r.inventory_key,thumb:r.thumb,catalog_cost:r.catalog_cost,score:null}));
-  }
-  rows=rows.filter(r=>!claimed.has(r.inventory_key));
-  if(q) rows=rows.filter(r=>String(r.inventory_key).toLowerCase().includes(q));
-  $("tileGrid").innerHTML=rows.map(r=>{
-    const chosen=ctpPick&&ctpPick.inventory_key===r.inventory_key?" chosen":"";
-    return `<div class="tile${chosen}" data-key="${r.inventory_key}"><img src="${r.thumb||""}" alt="" loading="lazy"><div class="tbar"><span class="p">${money(r.catalog_cost)}</span><span class="s">${r.score!=null?r.score:""}</span></div></div>`;
-  }).join("")||`<p style="color:#888;padding:12px;">No rows.</p>`;
+  location.href=`pick.html?stem=${encodeURIComponent(p.crop_stem)}`;
 }
 function saveDecision(payload){
   decisions[payload.crop_stem]=payload;
@@ -325,11 +268,7 @@ function decideMatch(inventoryKey,score,via){
     score:score!=null?score:null, via:via||"ctm",
     sold_price:p.sold_price, list_price:p.list_price,
     reviewed_by:reviewer, reviewed_at:firebase.database.ServerValue.TIMESTAMP
-  }).then(()=>{
-    $("ctpView").classList.remove("open");
-    $("ctmView").style.display="flex";
-    advanceAfterFirm();
-  });
+  }).then(()=>advanceAfterFirm());
 }
 function decideNoMatch(){
   const p=currentProposal();
@@ -375,23 +314,8 @@ $("btnMatch").onclick=()=>{ const p=currentProposal(); const c=currentCand(p); i
 $("btnNoMatch").onclick=()=>decideNoMatch();
 $("btnSkip").onclick=()=>decideSkip();
 $("btnBack").onclick=()=>goBack();
-$("btnFind").onclick=()=>openCtp();
-$("ctpCancel").onclick=()=>showCtm();
-$("ctpShowTop").onclick=()=>{ ctpMode="top"; renderTiles(); };
-$("ctpShowAll").onclick=()=>{ ctpMode="all"; renderTiles(); };
-$("ctpSearch").oninput=()=>renderTiles();
-$("tileGrid").onclick=(e)=>{
-  const tile=e.target.closest(".tile"); if(!tile) return;
-  ctpPick={inventory_key:tile.getAttribute("data-key")};
-  $("ctpConfirm").disabled=false; renderTiles();
-};
-$("ctpConfirm").onclick=()=>{
-  if(!ctpPick) return;
-  const p=currentProposal();
-  const c=(p.candidates||[]).find(x=>x.inventory_key===ctpPick.inventory_key);
-  decideMatch(ctpPick.inventory_key,c?c.score:null,"ctp");
-};
-$("redoUnmatched").onclick=()=>rebuildQueue(true);
+$("btnFind").onclick=()=>openPickForCurrent();
+$("redoUnmatched").onclick=()=>{ location.href="pick.html?unmatched=1"; };
 $("candPane").addEventListener("click",()=>{
   const p=currentProposal();
   if(!p||!p.candidates||p.candidates.length<2) return;
