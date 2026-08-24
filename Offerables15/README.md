@@ -15,7 +15,8 @@ https://finsandpins.github.io/ClickToClaim/Offerables15/sold-overlay/
 https://finsandpins.github.io/ClickToClaim/Offerables15/inventory-mark/
 
 **Manual-remove list (clone Aug 10 → delete these from Whatnot):**  
-https://finsandpins.github.io/ClickToClaim/Offerables15/inventory-mark/manual-remove-list.html
+https://finsandpins.github.io/ClickToClaim/Offerables15/inventory-mark/manual-remove-list.html  
+Shows manual gone pins **minus ledger sales** (only listings that may still clone).
 
 Drop Whatnot ledger CSVs in `Offerables15/inventory-mark/ledgers/` for `tools/import_whatnot_ledger.py`, or use **Import show ledger CSV** on the page.
 
