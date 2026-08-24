@@ -21,12 +21,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 #progWrap{height:4px;background:#2a2a2a;flex-shrink:0}
 #progFill{height:100%;background:#2a6eff;width:0%;transition:width .2s}
-#soldBar{flex-shrink:0;display:flex;gap:10px;padding:8px 10px;border-bottom:1px solid #222;background:#141414;align-items:flex-start}
-#soldBar img{width:96px;height:96px;object-fit:contain;background:#000;border-radius:8px;flex-shrink:0}
-#soldMeta{flex:1;min-width:0;font-size:12px;line-height:1.4;color:#bbb}
-#soldMeta strong{color:#fff;font-size:14px;display:block;margin-bottom:4px;word-break:break-word}
-#soldMeta .prices{color:#8fef8f;font-weight:600;margin-bottom:4px}
-#soldMeta .title{font-size:11px;color:#999;max-height:3.2em;overflow:hidden}
+#soldBar{flex-shrink:0;display:flex;flex-direction:column;gap:6px;padding:8px 10px 10px;border-bottom:1px solid #222;background:#141414}
+#soldImgWrap{position:relative;width:100%;height:min(34vh,280px);background:#000;border-radius:10px;border:2px solid #1a3a1a;border-left:4px solid #6eff6e;overflow:hidden}
+#soldImgWrap img{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+#soldImgWrap .mypin{position:absolute;bottom:8px;left:8px;background:rgba(20,70,20,.92);color:#6eff6e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+#soldMeta{width:100%;min-width:0;font-size:12px;line-height:1.4;color:#bbb}
+#soldMeta strong{color:#fff;font-size:14px;display:block;margin-bottom:2px;word-break:break-word}
+#soldMeta .prices{color:#8fef8f;font-weight:600;margin-bottom:2px}
+#soldMeta .title{font-size:11px;color:#999;max-height:2.6em;overflow:hidden}
 #tools{flex-shrink:0;display:flex;gap:6px;padding:6px 10px;border-bottom:1px solid #222;align-items:center}
 #tools input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #333;background:#222;color:#fff;font-size:14px}
 #tools .hint{font-size:11px;color:#666;white-space:nowrap}
@@ -77,12 +79,15 @@ a.navLink{color:#4a9eff;font-size:13px;text-decoration:none}
 <div id="progWrap"><div id="progFill"></div></div>
 
 <div id="soldBar">
-  <img id="soldImg" alt="Sold pin">
+  <div id="soldImgWrap">
+    <img id="soldImg" alt="Sold pin">
+    <span class="mypin">Sold pin</span>
+  </div>
   <div id="soldMeta">
     <strong id="soldStem">—</strong>
     <div class="prices" id="soldPrices"></div>
     <div class="title" id="soldTitle"></div>
-    <div id="progressLabel" style="margin-top:6px;color:#888">—</div>
+    <div id="progressLabel" style="margin-top:4px;color:#888">—</div>
   </div>
 </div>
 
