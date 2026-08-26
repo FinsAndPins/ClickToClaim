@@ -129,7 +129,7 @@
     "wreck it ralph",
     "the emperors new groove"
   ],
-  "notes": "Title prefers acronyms (WDI, DSSH, DEC, MOG, D23, DLP), not spelled-out expansions (Walt Disney Imagineering, Disney Studio Store Hollywood, Mickey's of Glendale). Spelled-out forms are description-only for search. Hollywood alone may stay when it means Hollywood Studios park; it is stripped only as part of DSSH expansion phrases. Character \u00b7 Manufacturer acronym \u00b7 Set \u00b7 LE.",
+  "notes": "Title prefers acronyms (WDI, DSSH, \u2026) not spelled-out expansions. Each normalized word appears at most once (Adorbs/adorb/aDorbs! collapse to one). Repeating a word does not help search. Hollywood alone may stay for Hollywood Studios park.",
   "conditional_drops": [
     {
       "drop": "luca",

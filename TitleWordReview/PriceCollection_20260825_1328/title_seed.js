@@ -83,6 +83,19 @@
     }
   }
 
+  /** Prefer aDorbs! / Adorbs over adorb when collapsing duplicates. */
+  function preferredTokenForKey(candidates) {
+    if (!candidates.length) return null;
+    const score = (t) => {
+      const x = String(t.text || "");
+      if (/^a?dorbs!$/i.test(x)) return 4;
+      if (/^a?dorbs$/i.test(x)) return 3;
+      if (/^adorb$/i.test(x)) return 1;
+      return 2 + Math.min(x.length, 20) / 100;
+    };
+    return candidates.slice().sort((a, b) => score(b) - score(a))[0];
+  }
+
   function seedSuggestion(tokens, rules) {
     const never = new Set((rules.never_words || []).map(normalizeKey));
     const stop = new Set((rules.stop_words || []).map(normalizeKey));
@@ -124,14 +137,32 @@
       charToks.push(tok);
     }
 
+    // One normalized word once — repeating it does not help search.
     const ordered = [];
-    const seenKeys = new Set();
-    for (const t of [...charToks, ...makerToks, ...setToks, ...leToks]) {
-      if (seenKeys.has(t.key)) continue;
-      seenKeys.add(t.key);
-      if (t.state !== "never") t.state = "on";
-      ordered.push(t);
+    const chosenByKey = new Map();
+    for (const group of [charToks, makerToks, setToks, leToks]) {
+      const byKey = new Map();
+      for (const t of group) {
+        if (!byKey.has(t.key)) byKey.set(t.key, []);
+        byKey.get(t.key).push(t);
+      }
+      for (const [key, cands] of byKey) {
+        if (chosenByKey.has(key)) continue;
+        const pick = preferredTokenForKey(cands);
+        chosenByKey.set(key, pick);
+        if (pick.state !== "never") pick.state = "on";
+        ordered.push(pick);
+      }
     }
+
+    // Extra occurrences of the same word → title-off
+    for (const tok of tokens) {
+      const chosen = chosenByKey.get(tok.key);
+      if (chosen && tok.id !== chosen.id && tok.state !== "never") {
+        tok.state = "never";
+      }
+    }
+
     return ordered.map((t) => t.id);
   }
 
@@ -156,22 +187,27 @@
 
   function titleFromOrder(tokens, orderIds) {
     const byId = Object.fromEntries(tokens.map((t) => [t.id, t]));
-    return orderIds
-      .map((id) => byId[id]?.text)
-      .filter(Boolean)
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
+    const seenKeys = new Set();
+    const parts = [];
+    for (const id of orderIds) {
+      const t = byId[id];
+      if (!t) continue;
+      if (seenKeys.has(t.key)) continue;
+      seenKeys.add(t.key);
+      parts.push(t.text);
+    }
+    return parts.join(" ").replace(/\s+/g, " ").trim();
   }
 
   function descriptionOnlyWords(tokens) {
-    return tokens.filter((t) => t.desc_only || (t.state === "never" && t.desc_only)).map((t) => t.text);
+    return tokens.filter((t) => t.desc_only && t.state === "never").map((t) => t.text);
   }
 
   global.TitleSeed = {
     normalizeKey,
     tokenize,
     markMoviePhraseTokens,
+    markExpansionPhraseTokens,
     seedSuggestion,
     guessSlots,
     titleFromOrder,
