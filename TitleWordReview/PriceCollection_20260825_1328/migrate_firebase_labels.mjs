@@ -11,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DRY = process.argv.includes("--dry-run");
 const DB =
   "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/title_word_review/PriceCollection_20260825_1328/batch_full_98_v1/pins.json";
-const RULES_VERSION = "v7_no_chaser_le_num";
+const RULES_VERSION = "v7_sanitize_le";
 const BATCH_ID = "batch_full_98_v1";
 const COLLECTION = "PriceCollection_20260825_1328";
 const EXPORT_PATH = path.join(__dirname, "training_exports/accepted_labels_latest.json");
