@@ -1,12 +1,18 @@
 /** Shared title tokenization + seed suggestion (loads rules from title_seed_rules.json). */
 (function (global) {
   function normalizeKey(t) {
-    return String(t || "")
+    let k = String(t || "")
       .toLowerCase()
       .replace(/[!.,:;()]+$/g, "")
       .replace(/^adorbs!$/i, "adorbs")
       .replace(/^adorb$/i, "adorbs")
       .trim();
+    if (/^le\s*-?\s*\d+$/.test(k) || /^le\d+$/.test(k)) return "le";
+    return k;
+  }
+
+  function isLeKey(key) {
+    return key === "le";
   }
 
   function tokenize(title) {
@@ -118,7 +124,7 @@
         tok.state = "never";
         continue;
       }
-      if (/^le\s*-?\s*\d+$/.test(k) || /^le\d+$/.test(k)) {
+      if (isLeKey(k)) {
         leToks.push(tok);
         continue;
       }
@@ -175,7 +181,7 @@
     for (const t of includedTokens) {
       const k = t.key;
       if (makers.has(k)) manufacturer.push(t.text);
-      else if (setHints.has(k) || /^le\s*-?\s*\d+$/.test(k) || /^le\d+$/.test(k)) set.push(t.text);
+      else if (setHints.has(k) || isLeKey(k)) set.push(t.text);
       else character.push(t.text);
     }
     return {
@@ -190,10 +196,12 @@
     if (key === "adorbs") {
       return (rules && rules.adorbs_canonical) || "Adorbs";
     }
+    if (isLeKey(key)) {
+      return (rules && rules.le_in_title) || "LE";
+    }
     let text = String(token.text || "");
     const strip = !rules || rules.strip_punctuation !== false;
     if (strip) {
-      // Keep LE number forms readable; drop other punctuation
       text = text.replace(/[!?,.;:()\"“”‘’]/g, "");
       text = text.replace(/\.(?=\s|$)/g, "");
     }
@@ -219,6 +227,15 @@
     return tokens.filter((t) => t.desc_only && t.state === "never").map((t) => t.text);
   }
 
+  function descriptionPreview(label, rules) {
+    const parts = [];
+    const descOnly = descriptionOnlyWords(label.tokens || []);
+    if (descOnly.length) parts.push(descOnly.join(" "));
+    const title = String(label.cleaned_title || titleFromOrder(label.tokens || [], label.include_order || [], rules) || "");
+    if (/\bLE\b/i.test(title)) parts.push("Limited Edition");
+    return parts.filter(Boolean).join(" · ");
+  }
+
   global.TitleSeed = {
     normalizeKey,
     tokenize,
@@ -229,5 +246,7 @@
     titleFromOrder,
     displayText,
     descriptionOnlyWords,
+    descriptionPreview,
+    isLeKey,
   };
 })(typeof window !== "undefined" ? window : globalThis);
