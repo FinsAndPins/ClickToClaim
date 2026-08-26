@@ -1,9 +1,9 @@
 {
-  "exported_at": "2026-08-26T22:18:04.426834+00:00",
+  "exported_at": "2026-08-26T23:04:56.419467+00:00",
   "collection": "PriceCollection_20260825_1328",
   "batch_id": "batch_full_98_v1",
-  "rules_version_at_export": "v7_no_chaser_le_num",
-  "accepted_count": 84,
+  "rules_version_at_export": "v7_sanitize_le2",
+  "accepted_count": 97,
   "pins": [
     {
       "pin_key": "img1_pin01.jpg__6b25e6bd4b2a",
@@ -22,7 +22,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:02:18.407Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin02.jpg__fe53176455ca",
@@ -40,7 +40,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:02:25.540Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin03.jpg__19cd76455111",
@@ -61,7 +61,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T04:23:39.044Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin05.jpg__cddbe1d76043",
@@ -78,7 +78,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:03:06.642Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin06.jpg__cfd129bd1091",
@@ -100,7 +100,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:03:10.865Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin07.jpg__54af34e3d68b",
@@ -119,7 +119,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:03:16.501Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin08.jpg__de685a5b9742",
@@ -140,7 +140,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:03:22.352Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin09.jpg__a334ec891cc9",
@@ -161,7 +161,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:03:28.930Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin10.jpg__8b38dd8c87de",
@@ -183,7 +183,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:23.292Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin11.jpg__5cd41a95568b",
@@ -205,7 +205,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:27.702Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin12.jpg__147ae282c667",
@@ -227,7 +227,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:30.796Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin13.jpg__cf8c22d88248",
@@ -249,7 +249,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:33.520Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin14.jpg__43833ff1d650",
@@ -269,7 +269,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:37.663Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin15.jpg__397c9e6e35db",
@@ -290,7 +290,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:39.398Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin16.jpg__b79f044f1276",
@@ -311,7 +311,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:48.458Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin17.jpg__a51a1414bb47",
@@ -334,7 +334,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:52.693Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin18.jpg__d4549ec0a8db",
@@ -356,7 +356,75 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:11:56.721Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img1_pin19.jpg__d1af6b6f0830",
+      "crop_filename": "img1_pin19.jpg",
+      "ebay_title": "WDI Adventures of Gummi Bears aDorbs! Mystery Tummi Gummi LE 400 Disney Pin",
+      "cleaned_title": "Tummi WDI Adorbs LE",
+      "included_words_ordered": [
+        "Tummi",
+        "WDI",
+        "aDorbs!",
+        "LE 400"
+      ],
+      "description_only_words": [
+        "Adventures",
+        "of",
+        "Gummi",
+        "Bears"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:02:22.135Z",
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img1_pin20.jpg__e0eca4140ee4",
+      "crop_filename": "img1_pin20.jpg",
+      "ebay_title": "WDI Adorbs Mystery Pirates of the Caribbean The Old Man Bayou LE 500 Disney Pin",
+      "cleaned_title": "Old Man Bayou WDI Adorbs LE",
+      "included_words_ordered": [
+        "Old",
+        "Man",
+        "Bayou",
+        "WDI",
+        "Adorbs",
+        "LE 500"
+      ],
+      "description_only_words": [
+        "Pirates",
+        "of",
+        "the",
+        "Caribbean"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:02:23.118Z",
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img1_pin21.jpg__b4d278db1fb8",
+      "crop_filename": "img1_pin21.jpg",
+      "ebay_title": "Disney WDI MOG aDorbs pin Adventures of the Gummi Bears Duke Igthorn CHASER LE",
+      "cleaned_title": "Duke Igthorn WDI MOG Adorbs LE",
+      "included_words_ordered": [
+        "Duke",
+        "Igthorn",
+        "WDI",
+        "MOG",
+        "aDorbs",
+        "LE"
+      ],
+      "description_only_words": [
+        "Adventures",
+        "of",
+        "the",
+        "Gummi",
+        "Bears"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:02:23.984Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin23.jpg__e5ba3e993444",
@@ -375,7 +443,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:12:26.382Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin24.jpg__52341ddecf6b",
@@ -394,7 +462,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:12:32.400Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img1_pin25.jpg__ce1959f2178d",
@@ -416,7 +484,48 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:13:37.017Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img1_pin26.jpg__b1fb17411bbe",
+      "crop_filename": "img1_pin26.jpg",
+      "ebay_title": "Disney WDI Pinocchio and Lampwick Silhouette LE 300 Cast Jumbo Pin",
+      "cleaned_title": "Pinocchio Lampwick Cast WDI Silhouette Jumbo LE",
+      "included_words_ordered": [
+        "Pinocchio",
+        "Lampwick",
+        "Cast",
+        "WDI",
+        "Silhouette",
+        "Jumbo",
+        "LE 300"
+      ],
+      "description_only_words": null,
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:02:24.935Z",
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img1_pin27.jpg__21cd0e63116d",
+      "crop_filename": "img1_pin27.jpg",
+      "ebay_title": "WDI MOG Disney Afternoon The Adventure of the Gummi Bears Jumbo Pin",
+      "cleaned_title": "WDI MOG Jumbo Disney Afternoon Adventure of the Gummi Bears",
+      "included_words_ordered": [
+        "WDI",
+        "MOG",
+        "Jumbo",
+        "Disney",
+        "Afternoon",
+        "Adventure",
+        "of",
+        "the",
+        "Gummi",
+        "Bears"
+      ],
+      "description_only_words": null,
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:02:57.746Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img2_pin02.jpg__f90a3c1a2d48",
@@ -436,7 +545,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:13:43.953Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img2_pin03.jpg__734512043e57",
@@ -457,7 +566,27 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:14:02.345Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img2_pin04.jpg__07df6ebc0e22",
+      "crop_filename": "img2_pin04.jpg",
+      "ebay_title": "Disney WDI MOG Pixar Luca Pin Human Sea Monster in Water LE 300 Pin",
+      "cleaned_title": "Luca Human Sea Monster Water WDI MOG LE",
+      "included_words_ordered": [
+        "Luca",
+        "Human",
+        "Sea",
+        "Monster",
+        "Water",
+        "WDI",
+        "MOG",
+        "LE 300"
+      ],
+      "description_only_words": null,
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:03:09.564Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img2_pin05.jpg__d350dfc9a813",
@@ -477,7 +606,54 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:14:13.623Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img2_pin06.jpg__a3d523d1b478",
+      "crop_filename": "img2_pin06.jpg",
+      "ebay_title": "2019 Disney D23 Expo Best In Show Tramp Pin - Lady and the Tramp LE 300 WDI MOG",
+      "cleaned_title": "Expo Best Show Tramp D23 WDI MOG LE",
+      "included_words_ordered": [
+        "Expo",
+        "Best",
+        "Show",
+        "Tramp",
+        "D23",
+        "WDI",
+        "MOG",
+        "LE 300"
+      ],
+      "description_only_words": [
+        "Lady",
+        "and",
+        "the",
+        "Tramp"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:03:15.815Z",
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img2_pin07.jpg__79ac4430c961",
+      "crop_filename": "img2_pin07.jpg",
+      "ebay_title": "Disney DSF DSSH Pink Dress Aurora Sleeping Beauty Cutie Cuties Pin LE 300",
+      "cleaned_title": "Pink Dress Aurora DSF DSSH Cutie LE",
+      "included_words_ordered": [
+        "Pink",
+        "Dress",
+        "Aurora",
+        "DSF",
+        "DSSH",
+        "Cutie",
+        "LE 300"
+      ],
+      "description_only_words": [
+        "Sleeping",
+        "Beauty"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:03:26.770Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin01.jpg__88c28d2cd9ba",
@@ -497,7 +673,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:15:13.746Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin02.jpg__cdab6c2f1928",
@@ -517,7 +693,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:15:17.350Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin03.jpg__5b7ef3cea039",
@@ -539,7 +715,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:15:29.069Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin04.jpg__d8a4de50fb38",
@@ -561,7 +737,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:15:39.305Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin05.jpg__f9295a3742c9",
@@ -584,7 +760,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:35:08.408Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin06.jpg__cbcd4e8d9152",
@@ -604,7 +780,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:35:10.248Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin07.jpg__1586b85eb01b",
@@ -627,7 +803,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:35:13.016Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin08.jpg__af4e14ec311d",
@@ -647,7 +823,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:35:16.487Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin09.jpg__5c3cfaf885fd",
@@ -668,7 +844,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:35:19.462Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin10.jpg__0f8b5ae0d568",
@@ -685,7 +861,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:35:37.334Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin11.jpg__dfc7eb23e7f7",
@@ -705,7 +881,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:35:44.179Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin12.jpg__a7eb517f8dc7",
@@ -725,7 +901,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:35:47.480Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin13.jpg__eb555dc7a12e",
@@ -745,7 +921,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:36:02.378Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin14.jpg__18d250f4e5dc",
@@ -766,7 +942,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:36:05.287Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin15.jpg__66fccb2f2490",
@@ -786,7 +962,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:36:10.132Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin16.jpg__d2fc8b9e9368",
@@ -807,7 +983,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:36:12.432Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin17.jpg__e9dd102619d5",
@@ -826,7 +1002,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:36:24.028Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin18.jpg__efa8f646844b",
@@ -846,7 +1022,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:36:35.940Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin19.jpg__c1848398111c",
@@ -868,7 +1044,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:36:40.368Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin20.jpg__340e2786c339",
@@ -889,7 +1065,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:36:56.800Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin21.jpg__399558521aaa",
@@ -908,7 +1084,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:37:00.051Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin22.jpg__12393e9b1715",
@@ -929,7 +1105,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:37:03.010Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin23.jpg__356e7e8591e8",
@@ -951,7 +1127,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:37:05.119Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin24.jpg__dd82fa7e1f6d",
@@ -973,7 +1149,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:37:08.313Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin25.jpg__fd67d4e226ac",
@@ -989,7 +1165,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:37:22.983Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin26.jpg__58bea4ef910c",
@@ -1005,7 +1181,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:52:32.482Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin27.jpg__aad768866611",
@@ -1025,7 +1201,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:56:06.300Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin28.jpg__0298cfc66f9e",
@@ -1046,7 +1222,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:56:08.499Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin29.jpg__7eb1b03eb994",
@@ -1066,7 +1242,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:56:09.664Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin30.jpg__5e6d86feee81",
@@ -1080,7 +1256,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:56:40.386Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin31.jpg__aec4c67f099e",
@@ -1102,7 +1278,28 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:56:44.361Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img3_pin32.jpg__ff666178e8f3",
+      "crop_filename": "img3_pin32.jpg",
+      "ebay_title": "WDI MOG Disney Darkwing Duck Drake Mallard Super Chaser LE200 Adorb Pin",
+      "cleaned_title": "Drake Mallard WDI MOG Adorbs LE",
+      "included_words_ordered": [
+        "Drake",
+        "Mallard",
+        "WDI",
+        "MOG",
+        "Adorb",
+        "LE200"
+      ],
+      "description_only_words": [
+        "Darkwing",
+        "Duck"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:03:29.454Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin33.jpg__fac899998980",
@@ -1122,7 +1319,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:57:05.570Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin34.jpg__0d4c2961039e",
@@ -1143,7 +1340,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:57:08.838Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin35.jpg__effe39ba712e",
@@ -1161,7 +1358,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:57:17.074Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin36.jpg__5f39d5185028",
@@ -1184,7 +1381,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:57:22.219Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin37.jpg__93d021fa167f",
@@ -1201,7 +1398,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:57:38.467Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin38.jpg__ebd1fc9b939b",
@@ -1224,7 +1421,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:57:42.300Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin39.jpg__0315442a884a",
@@ -1241,7 +1438,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:57:56.766Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin40.jpg__d731942141d4",
@@ -1259,7 +1456,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:58:03.542Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin41.jpg__11463c51781d",
@@ -1277,7 +1474,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:58:10.220Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin42.jpg__816307d49a47",
@@ -1298,7 +1495,28 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:58:14.447Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img3_pin43.jpg__d3a41cdfaa74",
+      "crop_filename": "img3_pin43.jpg",
+      "ebay_title": "Esmeralda SUPER CHASER - The Hunchback of Notre Dame Adorbs Mystery Set LE 200",
+      "cleaned_title": "Esmeralda Adorbs LE",
+      "included_words_ordered": [
+        "Esmeralda",
+        "Adorbs",
+        "LE 200"
+      ],
+      "description_only_words": [
+        "The",
+        "Hunchback",
+        "of",
+        "Notre",
+        "Dame"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:03:34.087Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin44.jpg__de95eaada087",
@@ -1318,7 +1536,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:59:21.232Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin45.jpg__02486028ab23",
@@ -1336,7 +1554,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:59:28.350Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin46.jpg__c0fb0f20f5d1",
@@ -1353,7 +1571,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:59:39.722Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img3_pin47.jpg__635d505c13dc",
@@ -1369,7 +1587,26 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T16:59:46.574Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img4_pin01.jpg__957f4eefbd93",
+      "crop_filename": "img4_pin01.jpg",
+      "ebay_title": "DEC Star Wars Jabba the Hut Stamp Pin",
+      "cleaned_title": "Jabba Hut DEC Stamp",
+      "included_words_ordered": [
+        "Jabba",
+        "Hut",
+        "DEC",
+        "Stamp"
+      ],
+      "description_only_words": [
+        "Star",
+        "Wars"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:03:37.138Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img4_pin02.jpg__00da29684419",
@@ -1391,7 +1628,29 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:00:00.630Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img4_pin03.jpg__c479ca8f03d9",
+      "crop_filename": "img4_pin03.jpg",
+      "ebay_title": "Disney WDI Pin - Off the Page Jim Hawkins - LE 300 Sketch Treasure Planet",
+      "cleaned_title": "Jim Hawkins WDI Off Page Sketch LE",
+      "included_words_ordered": [
+        "Jim",
+        "Hawkins",
+        "WDI",
+        "Off",
+        "Page",
+        "Sketch",
+        "LE 300"
+      ],
+      "description_only_words": [
+        "Treasure",
+        "Planet"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:03:38.921Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img4_pin04.jpg__b2b7abe4cd0a",
@@ -1411,7 +1670,28 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:00:09.526Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img4_pin05.jpg__8b6a641578d8",
+      "crop_filename": "img4_pin05.jpg",
+      "ebay_title": "TWDC Store Disney DEC Pin - Stamp 1951 White Rabbit - LE 300 Alice in Wonderland",
+      "cleaned_title": "White Rabbit DEC Stamp LE",
+      "included_words_ordered": [
+        "White",
+        "Rabbit",
+        "DEC",
+        "Stamp",
+        "LE 300"
+      ],
+      "description_only_words": [
+        "Alice",
+        "in",
+        "Wonderland"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:03:44.901Z",
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img4_pin06.jpg__24cf50264238",
@@ -1430,7 +1710,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:00:13.576Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img5_pin01.jpg__86f69b574ed0",
@@ -1447,7 +1727,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:00:55.636Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img5_pin02.jpg__b4f854c03f38",
@@ -1465,7 +1745,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:01:44.220Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img5_pin03.jpg__d50a5a8f6b23",
@@ -1482,7 +1762,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:01:57.876Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img5_pin04.jpg__362e9fcee66d",
@@ -1501,7 +1781,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:02:01.635Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img5_pin05.jpg__9bae1cd7b01a",
@@ -1519,7 +1799,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:02:04.686Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img5_pin07.jpg__89d65c1b070c",
@@ -1540,7 +1820,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:02:11.088Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img5_pin08.jpg__208350fdb56c",
@@ -1563,7 +1843,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:02:14.466Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img5_pin09.jpg__d0f4bb8af535",
@@ -1583,7 +1863,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:02:16.773Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img6_pin01.jpg__373209e0139c",
@@ -1602,7 +1882,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:02:41.243Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img6_pin02.jpg__b6560ebc28a8",
@@ -1622,7 +1902,7 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:03:04.486Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img6_pin05.jpg__0c3208cdb99b",
@@ -1642,7 +1922,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:03:08.570Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img6_pin06.jpg__312eec3f1e8c",
@@ -1662,7 +1942,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:04:17.620Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     },
     {
       "pin_key": "img6_pin07.jpg__bc078490084a",
@@ -1682,7 +1962,7 @@
       ],
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T17:04:24.466Z",
-      "rules_version": "v7_no_chaser_le_num"
+      "rules_version": "v7_sanitize_le2"
     }
   ]
 }
