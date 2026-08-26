@@ -1,16 +1,76 @@
 {
   "never_words": [
-    "disney", "pin", "pins", "enamel", "brooch", "jewelry", "jewellery", "new", "authentic",
-    "rare", "htf", "nib", "free", "shipping", "ship", "lot", "oem", "fast", "super", "store",
-    "twdc", "2020", "2019", "2024", "2026", "n3", "exclusive", "limited", "edition"
+    "disney",
+    "pin",
+    "pins",
+    "enamel",
+    "brooch",
+    "jewelry",
+    "jewellery",
+    "new",
+    "authentic",
+    "rare",
+    "htf",
+    "nib",
+    "free",
+    "shipping",
+    "ship",
+    "lot",
+    "oem",
+    "fast",
+    "super",
+    "store",
+    "twdc",
+    "2020",
+    "2019",
+    "2024",
+    "2026",
+    "n3",
+    "exclusive",
+    "limited",
+    "edition",
+    "mystery"
   ],
   "stop_words": [
-    "the", "of", "and", "a", "an", "in", "on", "for", "with", "from", "set", "series", "-"
+    "the",
+    "of",
+    "and",
+    "a",
+    "an",
+    "in",
+    "on",
+    "for",
+    "with",
+    "from",
+    "set",
+    "series",
+    "-"
   ],
-  "makers": ["wdi", "mog", "dec", "dssh", "dsf", "d23", "dlp", "wdw", "wdcs"],
+  "makers": [
+    "wdi",
+    "mog",
+    "dec",
+    "dssh",
+    "dsf",
+    "d23",
+    "dlp",
+    "wdw",
+    "wdcs"
+  ],
   "set_hints": [
-    "adorbs", "adorbs!", "adorb", "cuties", "cutie", "mystery", "stamp", "stamps",
-    "jumbo", "chaser", "silhouette", "sketch", "off", "page"
+    "adorbs",
+    "adorbs!",
+    "adorb",
+    "cuties",
+    "cutie",
+    "stamp",
+    "stamps",
+    "jumbo",
+    "chaser",
+    "silhouette",
+    "sketch",
+    "off",
+    "page"
   ],
   "movie_phrases": [
     "pirates of the caribbean",
@@ -57,5 +117,5 @@
     "wreck it ralph",
     "the emperors new groove"
   ],
-  "notes": "Movie/show phrases default to red (title-off). Character names like Robin Hood, Pinocchio, Luca may stay green when not part of a matched phrase."
+  "notes": "Movie/show phrases and 'mystery' default to red (title-off). Most Adorbs are mystery-box pins \u2014 Mystery is not useful in the Whatnot title. Character names like Robin Hood, Pinocchio, Luca may stay green when not part of a matched phrase."
 }

@@ -211,6 +211,7 @@ const PRIOR_BATCH_ID = "batch_15_v2_chosen_listing";
 const COLLECTION = "PriceCollection_20260825_1328";
 const PRICING_TEST_RUN = "test_PriceCollection_20260825_1328__build_18953_visual_baseline";
 const PRICING_APPROACH = "visual_baseline";
+const RULES_VERSION = "v2_no_mystery";
 const LS_KEY = `title_word_review:${COLLECTION}:${BATCH_ID}`;
 const LS_NAME = "title_word_review:reviewer";
 
@@ -244,15 +245,11 @@ function acceptedCount() {
   return Object.values(labels).filter((l) => l.accepted).length;
 }
 
-function ensureLabel(pin) {
-  const k = pinStateKey(pin);
-  const prev = labels[k];
-  if (prev && prev.ebay_title === pin.ebay_title && prev.tokens) return prev;
-
+function makeSeedLabel(pin) {
   const tokens = tokenize(pin.ebay_title);
   const order = seedSuggestion(tokens, RULES);
   const cleaned = titleFromOrder(tokens, order);
-  labels[k] = {
+  return {
     pin_key: pin.pin_key,
     crop_filename: pin.crop_filename,
     ebay_title: pin.ebay_title,
@@ -261,13 +258,53 @@ function ensureLabel(pin) {
     cleaned_title: cleaned,
     accepted: false,
     reviewed_by: "",
-    updated_at: null,
+    updated_at: new Date().toISOString(),
     accepted_at: null,
+    rules_version: RULES_VERSION,
   };
-  if (prev && prev.accepted && prev.ebay_title === pin.ebay_title) {
-    labels[k] = { ...prev };
+}
+
+function ensureLabel(pin) {
+  const k = pinStateKey(pin);
+  const prev = labels[k];
+  if (prev && prev.accepted && prev.ebay_title === pin.ebay_title && prev.tokens) {
+    return prev;
   }
+  if (
+    prev &&
+    !prev.accepted &&
+    prev.rules_version === RULES_VERSION &&
+    prev.ebay_title === pin.ebay_title &&
+    prev.tokens
+  ) {
+    return prev;
+  }
+  labels[k] = makeSeedLabel(pin);
   return labels[k];
+}
+
+/** Regenerate suggestions for pins not yet accepted (e.g. after rule updates). */
+function reseedUnaccepted() {
+  let n = 0;
+  const writes = [];
+  for (const pin of SEED) {
+    const k = pinStateKey(pin);
+    const prev = labels[k];
+    if (prev && prev.accepted) continue;
+    if (prev && prev.rules_version === RULES_VERSION && prev.tokens && prev.ebay_title === pin.ebay_title) {
+      continue;
+    }
+    labels[k] = makeSeedLabel(pin);
+    n += 1;
+    if (fbReady && fbRoot) {
+      writes.push(fbRoot.child("pins").child(k).set(labelPayload(labels[k])));
+    }
+  }
+  persistLocal();
+  if (writes.length) {
+    Promise.all(writes).catch((err) => console.warn("reseed write failed", err));
+  }
+  return n;
 }
 
 function includedTokens(label) {
@@ -312,6 +349,7 @@ function importRemoteLabel(k, r) {
     reviewed_by: r.reviewed_by || "",
     updated_at: r.updated_at || null,
     accepted_at: r.accepted_at || null,
+    rules_version: r.rules_version || (r.accepted ? RULES_VERSION : ""),
   };
 }
 
@@ -541,6 +579,7 @@ function labelPayload(label) {
     accepted_at: label.accepted_at || null,
     batch_id: BATCH_ID,
     collection: COLLECTION,
+    rules_version: label.rules_version || RULES_VERSION,
   };
 }
 
@@ -607,9 +646,11 @@ function initFirebase() {
   Promise.all([priorRef.once("value"), fullRef.once("value")]).then(([priorSnap, fullSnap]) => {
     mergeRemoteLabels(priorSnap.val() || {}, true);
     mergeRemoteLabels(fullSnap.val() || {}, false);
+    const reseeds = reseedUnaccepted();
     persistLocal();
     const imported = acceptedCount();
-    if (imported) toast(`Loaded ${imported} accepted pin(s)`);
+    if (imported) toast(`Loaded ${imported} accepted · reseeded ${reseeds}`);
+    else if (reseeds) toast(`Updated ${reseeds} open titles`);
     setSaveUI("ok", "Firebase connected");
     render();
   }).catch(() => setSaveUI("local", "Firebase read failed"));
