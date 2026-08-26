@@ -194,7 +194,7 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="title_seed.js"></script>
+<script src="title_seed.js?v=v7_sanitize_le2"></script>
 <script>
 const FB_CONFIG = {
   apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
@@ -742,8 +742,8 @@ function initFirebase() {
 function boot() {
   loadLocal();
   Promise.all([
-    fetch("seed.json").then((r) => { if (!r.ok) throw new Error("seed.json"); return r.json(); }),
-    fetch("title_seed_rules.json").then((r) => { if (!r.ok) throw new Error("rules"); return r.json(); }),
+    fetch(`seed.json?v=${RULES_VERSION}`).then((r) => { if (!r.ok) throw new Error("seed.json"); return r.json(); }),
+    fetch(`title_seed_rules.json?v=${RULES_VERSION}`).then((r) => { if (!r.ok) throw new Error("rules"); return r.json(); }),
   ]).then(([seedDoc, rules]) => {
     SEED = seedDoc.pins || seedDoc;
     RULES = rules;
