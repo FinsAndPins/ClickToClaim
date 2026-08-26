@@ -135,7 +135,7 @@
     "winnie the pooh",
     "winnie-the-pooh"
   ],
-  "notes": "Character \u00b7 Maker acronym \u00b7 Set \u00b7 LE. No punctuation in titles (Adorbs not aDorbs!). No movie/show titles in titles (description later). Each word once. Acronyms not spelled-out expansions. Gold labels: training_exports/accepted_labels_latest.json + Firebase title_word_review/\u2026",
+  "notes": "Title: Character \u00b7 Maker acronym \u00b7 Set \u00b7 LE; no punctuation; each word once; no movies. Whatnot CSV description (future): include spelled-out acronym_expansions + relevant movie/TV show for search. Gold labels in training_exports/ + Firebase title_word_review/.",
   "conditional_drops": [
     {
       "drop": "luca",
@@ -173,5 +173,30 @@
     "disneyland paris"
   ],
   "strip_punctuation": true,
-  "adorbs_canonical": "Adorbs"
+  "adorbs_canonical": "Adorbs",
+  "acronym_expansions": {
+    "wdi": "Walt Disney Imagineering",
+    "mog": "Mickey's of Glendale",
+    "dssh": "Disney Studio Store Hollywood",
+    "dsf": "Disney Studio Store",
+    "dec": "Disney Employee Center",
+    "d23": "D23",
+    "dlp": "Disneyland Paris",
+    "wdw": "Walt Disney World",
+    "wdcs": "Walt Disney Collectors Society"
+  },
+  "whatnot_csv": {
+    "title": "Short cleaned title from Title Word Review (Character \u00b7 Maker acronym \u00b7 Set \u00b7 LE). No punctuation; each word once.",
+    "description_must_include": [
+      "Please rely on the photo, rather than the description.",
+      "Full spelled-out name for every acronym used in the title (see acronym_expansions).",
+      "Relevant movie or TV show for searchability (from movie phrases / character mapping \u2014 even when omitted from title).",
+      "IMG board-pin reference when we add that step."
+    ],
+    "description_not_in_title": [
+      "Spelled-out acronym expansions",
+      "Movie / TV show names"
+    ],
+    "status": "Agreed for future CSV builder. Not wired into production Whatnot upload yet."
+  }
 }

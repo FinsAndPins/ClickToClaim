@@ -26,7 +26,17 @@ Uses Firebase `selected_candidate` only (ClickToMatch match or ClickToPrice pick
 
 - **Title:** Character · Maker acronym (WDI/DSSH/…) · Set · LE — short, **no punctuation**, **each word once**
 - **Title-off:** movie/show names, Mystery, spelled-out “Walt Disney Imagineering” / “Studio Store Hollywood”, etc.
-- **Description (later):** those red/movie/expansion words + “Please rely on the photo…” for search
+
+### Whatnot CSV description (agreed — build later)
+
+When we generate the Whatnot upload CSV, each listing **description** must include:
+
+1. “Please rely on the photo, rather than the description.”
+2. **Full spelled-out name** for every acronym in the title (from `acronym_expansions` in `title_seed_rules.json` — e.g. WDI → Walt Disney Imagineering, DSSH → Disney Studio Store Hollywood)
+3. The **relevant movie or TV show** (for search), even though it stays out of the short title
+4. IMG board–pin reference when we add that step
+
+Titles stay short; descriptions carry the searchable long forms. **Not** wired into production CSV builders until you say to ship.
 
 ## Files
 
