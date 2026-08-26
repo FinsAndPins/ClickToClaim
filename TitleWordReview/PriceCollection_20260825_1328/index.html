@@ -268,7 +268,7 @@ function ensureLabel(pin) {
   const k = pinStateKey(pin);
   const prev = labels[k];
   if (prev && prev.accepted && prev.ebay_title === pin.ebay_title && prev.tokens) {
-    return prev;
+    return normalizeLabelTitle(prev, pin);
   }
   if (
     prev &&
@@ -278,7 +278,7 @@ function ensureLabel(pin) {
     prev.tokens &&
     !titleNeedsSanitize(prev.cleaned_title)
   ) {
-    return prev;
+    return normalizeLabelTitle(prev, pin);
   }
   labels[k] = makeSeedLabel(pin);
   return labels[k];
@@ -325,6 +325,31 @@ function descOnlyPreview(label) {
 
 function applyCleanedTitle(label, cleaned) {
   label.cleaned_title = sanitizeCleanedTitle(cleaned, RULES);
+}
+
+/** Strip LE numbers / Chaser from any loaded or displayed title. */
+function normalizeLabelTitle(label, pin) {
+  if (!label) return label;
+  const before = label.cleaned_title || "";
+  applyCleanedTitle(label, before);
+  if (label.cleaned_title === before) return label;
+  if (label.accepted) label.accepted = false;
+  label.rules_version = RULES_VERSION;
+  label.updated_at = new Date().toISOString();
+  if (pin && label.ebay_title === pin.ebay_title && label.tokens) {
+    const cleanedKeys = new Set(label.cleaned_title.split(/\s+/).map(normalizeKey).filter(Boolean));
+    label.include_order = [];
+    for (const t of label.tokens) {
+      if (t.state === "never" && t.desc_only) continue;
+      if (cleanedKeys.has(t.key)) {
+        t.state = "on";
+        label.include_order.push(t.id);
+      } else if (t.state === "on") {
+        t.state = "off";
+      }
+    }
+  }
+  return label;
 }
 
 function rebuildCleanedFromChips(label) {
@@ -432,6 +457,7 @@ function render() {
 
   const cleanedEl = document.getElementById("cleaned");
   const editingTitle = document.activeElement === cleanedEl;
+  normalizeLabelTitle(label, pin);
   if (!editingTitle) {
     suppressCleanedInput = true;
     cleanedEl.value = label.cleaned_title || "";
