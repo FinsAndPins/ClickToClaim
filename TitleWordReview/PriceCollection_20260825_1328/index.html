@@ -75,10 +75,6 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
 }
 .ebay-ref-body { flex: 1; min-width: 0; }
 .ebay-title { font-size: 14px; font-weight: 650; line-height: 1.35; word-break: break-word; }
-.slots-section { display: none; }
-@media (min-width: 768px) {
-  .slots-section { display: block; }
-}
 @media (max-width: 767px) {
   header h1 { font-size: 13px; width: 100%; }
   .controls { width: 100%; }
@@ -99,9 +95,6 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
 .section:last-child { border-bottom: 0; }
 .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-bottom: 6px; font-weight: 700; }
 .desc-note { margin-top: 8px; font-size: 12px; color: #64748b; font-style: italic; }
-.slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
-.slot { border: 1px dashed #cbd5e1; border-radius: 10px; padding: 8px 10px; min-height: 42px; background: #fafafa; }
-.slot-val { font-size: 13px; font-weight: 650; min-height: 1.2em; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 7px 11px;
@@ -176,14 +169,6 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
           </div>
         </div>
       </div>
-      <div class="section slots-section">
-        <div class="lbl">Suggested structure</div>
-        <div class="slots">
-          <div class="slot"><div class="lbl">Character</div><div class="slot-val" id="slot-character">—</div></div>
-          <div class="slot"><div class="lbl">Manufacturer</div><div class="slot-val" id="slot-manufacturer">—</div></div>
-          <div class="slot"><div class="lbl">Set</div><div class="slot-val" id="slot-set">—</div></div>
-        </div>
-      </div>
       <div class="section">
         <div class="lbl">Words from chosen eBay title</div>
         <div class="chips" id="chips"></div>
@@ -238,7 +223,7 @@ let fbRoot = null;
 let saveTimer = null;
 let suppressCleanedInput = false;
 
-const { normalizeKey, tokenize, seedSuggestion, guessSlots, titleFromOrder } = TitleSeed;
+const { normalizeKey, tokenize, seedSuggestion, titleFromOrder } = TitleSeed;
 
 function toast(msg) {
   const el = document.getElementById("toast");
@@ -396,11 +381,6 @@ function render() {
   document.getElementById("desc-note").textContent = descWords
     ? `Description-only (red): ${descWords}` : "";
 
-  const slots = guessSlots(includedTokens(label), RULES);
-  document.getElementById("slot-character").textContent = slots.character;
-  document.getElementById("slot-manufacturer").textContent = slots.manufacturer;
-  document.getElementById("slot-set").textContent = slots.set;
-
   const cleanedEl = document.getElementById("cleaned");
   const editingTitle = document.activeElement === cleanedEl;
   if (!editingTitle) {
@@ -531,7 +511,8 @@ function onCleanedInput() {
     }
   }
   scheduleSave(label);
-  render();
+  resizeCleanedField();
+  rebuildPinJump();
 }
 
 function persistLocal() {
