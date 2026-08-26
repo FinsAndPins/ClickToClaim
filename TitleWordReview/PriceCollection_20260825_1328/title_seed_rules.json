@@ -1,0 +1,61 @@
+{
+  "never_words": [
+    "disney", "pin", "pins", "enamel", "brooch", "jewelry", "jewellery", "new", "authentic",
+    "rare", "htf", "nib", "free", "shipping", "ship", "lot", "oem", "fast", "super", "store",
+    "twdc", "2020", "2019", "2024", "2026", "n3", "exclusive", "limited", "edition"
+  ],
+  "stop_words": [
+    "the", "of", "and", "a", "an", "in", "on", "for", "with", "from", "set", "series", "-"
+  ],
+  "makers": ["wdi", "mog", "dec", "dssh", "dsf", "d23", "dlp", "wdw", "wdcs"],
+  "set_hints": [
+    "adorbs", "adorbs!", "adorb", "cuties", "cutie", "mystery", "stamp", "stamps",
+    "jumbo", "chaser", "silhouette", "sketch", "off", "page"
+  ],
+  "movie_phrases": [
+    "pirates of the caribbean",
+    "adventures of the gummi bears",
+    "the adventure of the gummi bears",
+    "adventures of gummi bears",
+    "the hunchback of notre dame",
+    "hunchback of notre dame",
+    "treasure planet",
+    "alice in wonderland",
+    "lady and the tramp",
+    "sleeping beauty",
+    "the little mermaid",
+    "lion king",
+    "the lion king",
+    "beauty and the beast",
+    "emperor's new groove",
+    "emperors new groove",
+    "star wars",
+    "the rescuers down under",
+    "rescuers down under",
+    "the rescuers",
+    "disney afternoon",
+    "the black cauldron",
+    "101 dalmatians",
+    "the incredibles",
+    "inside out",
+    "monsters inc",
+    "toy story",
+    "finding nemo",
+    "the jungle book",
+    "snow white",
+    "cinderella",
+    "mulan",
+    "aladdin",
+    "hercules",
+    "tarzan",
+    "atlantis",
+    "encanto",
+    "frozen",
+    "moana",
+    "zootopia",
+    "big hero 6",
+    "wreck it ralph",
+    "the emperors new groove"
+  ],
+  "notes": "Movie/show phrases default to red (title-off). Character names like Robin Hood, Pinocchio, Luca may stay green when not part of a matched phrase."
+}

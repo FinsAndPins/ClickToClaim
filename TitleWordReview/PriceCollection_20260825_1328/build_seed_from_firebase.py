@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
 """Build Title Word Review seed.json from pricing harness Firebase (read-only).
 
-Uses ONLY the listing Lexi/Steve chose:
-  - ClickToMatch match → selected_candidate (often also pipeline slot 0)
-  - ClickToPrice choice → selected_candidate (may differ from pipeline slot 0)
-
-Never uses pipeline_slot0 as the title/thumb source when selected_candidate exists.
-Pins without selected_candidate (e.g. manual price only) are skipped.
-
-Does not modify pin_pricing_tests. Writes only the local --out file.
+Uses ONLY selected_candidate (CTM match or CTP pick). Never pipeline_slot0.
 
 Example:
-  python3 build_seed_from_firebase.py --count 15 --out seed.json --download-crops
+  python3 build_seed_from_firebase.py --all --out seed.json --download-crops
+  python3 build_seed_from_firebase.py --count 15 --out seed_pilot.json
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import urllib.request
 from pathlib import Path
 
@@ -26,51 +21,19 @@ CROP_RAW = (
     "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/"
     "{collection}/crops/{filename}"
 )
+RULES_PATH = Path(__file__).with_name("title_seed_rules.json")
 
 
 def fetch_json(url: str):
-    with urllib.request.urlopen(url, timeout=60) as r:
+    with urllib.request.urlopen(url, timeout=120) as r:
         return json.load(r)
 
 
-def diversity_tags(v: dict, title: str) -> list[str]:
-    low = (title or "").lower()
-    tags = []
-    if v.get("ctm_match_status") == "match":
-        tags.append("ctm")
-    else:
-        tags.append("ctp")
-    for m in (
-        "wdi",
-        "dssh",
-        "dsf",
-        "dec",
-        "adorbs",
-        "d23",
-        "le ",
-        "mog",
-        "star wars",
-        "gummi",
-        "hunchback",
-        "darkwing",
-        "pirates",
-        "aurora",
-        "alice",
-        "tramp",
-    ):
-        if m in low:
-            tags.append(m.strip())
-    if len(title) < 50:
-        tags.append("short")
-    elif len(title) > 70:
-        tags.append("long")
-    else:
-        tags.append("mid")
-    return tags
+def load_rules() -> dict:
+    return json.loads(RULES_PATH.read_text(encoding="utf-8"))
 
 
 def chosen_listing(v: dict) -> dict | None:
-    """Return the operator-chosen eBay listing, or None if none was chosen."""
     sc = v.get("selected_candidate")
     if not isinstance(sc, dict):
         return None
@@ -79,13 +42,19 @@ def chosen_listing(v: dict) -> dict | None:
     return sc
 
 
+def sort_key(v: dict) -> tuple:
+    bn = v.get("board_num")
+    pn = v.get("pin_n")
+    try:
+        return (int(bn), int(pn), v.get("crop_filename") or "")
+    except (TypeError, ValueError):
+        return (999, 999, v.get("crop_filename") or "")
+
+
 def to_seed_row(v: dict, collection: str) -> dict:
     sc = chosen_listing(v)
     assert sc is not None
     fn = v.get("crop_filename") or ""
-    listing_source = (
-        "ctm_match" if v.get("ctm_match_status") == "match" else "click_to_price"
-    )
     return {
         "pin_key": v.get("pin_key"),
         "crop_filename": fn,
@@ -96,8 +65,9 @@ def to_seed_row(v: dict, collection: str) -> dict:
         "price_source": v.get("price_source"),
         "display_price": v.get("display_price"),
         "selected_candidate_idx": v.get("selected_candidate_idx"),
-        "listing_source": listing_source,
-        # Chosen listing ONLY — never pipeline_slot0
+        "listing_source": (
+            "ctm_match" if v.get("ctm_match_status") == "match" else "click_to_price"
+        ),
         "ebay_title": sc.get("title") or "",
         "ebay_price": sc.get("total_price")
         if sc.get("total_price") is not None
@@ -110,6 +80,8 @@ def to_seed_row(v: dict, collection: str) -> dict:
 
 
 def pick_diverse(rows: list[dict], count: int) -> list[dict]:
+    """Greedy diversity pick for pilot batches."""
+    rules = load_rules()
     picked: list[dict] = []
     seen: set[str] = set()
     titles_seen: set[str] = set()
@@ -118,6 +90,20 @@ def pick_diverse(rows: list[dict], count: int) -> list[dict]:
         sc = chosen_listing(v) or {}
         return (sc.get("title") or "").strip().lower()
 
+    def tags(v: dict) -> list[str]:
+        t = title_of(v)
+        out = ["ctm" if v.get("ctm_match_status") == "match" else "ctp"]
+        for m in rules.get("makers", []) + ["star wars", "gummi", "hunchback", "darkwing"]:
+            if m in t:
+                out.append(m)
+        if len(t) < 50:
+            out.append("short")
+        elif len(t) > 70:
+            out.append("long")
+        else:
+            out.append("mid")
+        return out
+
     def add(v: dict) -> bool:
         title = title_of(v)
         if title and title in titles_seen:
@@ -125,16 +111,15 @@ def pick_diverse(rows: list[dict], count: int) -> list[dict]:
         picked.append(v)
         if title:
             titles_seen.add(title)
-        sc = chosen_listing(v) or {}
-        for tag in diversity_tags(v, sc.get("title") or ""):
+        for tag in tags(v):
             seen.add(tag)
         return True
 
-    ctm = [v for v in rows if v.get("ctm_match_status") == "match"]
-    for v in ctm:
-        add(v)
-        if len(picked) >= max(1, count // 3):
-            break
+    for v in rows:
+        if v.get("ctm_match_status") == "match":
+            add(v)
+            if len(picked) >= max(1, count // 3):
+                break
 
     rest = [v for v in rows if v not in picked]
     while len(picked) < count and rest:
@@ -144,10 +129,8 @@ def pick_diverse(rows: list[dict], count: int) -> list[dict]:
             title = title_of(v)
             if title in titles_seen:
                 continue
-            sc = chosen_listing(v) or {}
-            tags = diversity_tags(v, sc.get("title") or "")
-            new = len(set(tags) - seen)
-            score = new + 0.05 * len((sc.get("title") or "").split())
+            tg = tags(v)
+            score = len(set(tg) - seen) + 0.05 * len(title.split())
             if score > best_score:
                 best_score = score
                 best = v
@@ -166,7 +149,8 @@ def main() -> None:
     )
     ap.add_argument("--approach-id", default="visual_baseline")
     ap.add_argument("--collection", default="PriceCollection_20260825_1328")
-    ap.add_argument("--count", type=int, default=15)
+    ap.add_argument("--count", type=int, default=0, help="0 = all eligible pins")
+    ap.add_argument("--all", action="store_true", help="Include all eligible pins")
     ap.add_argument("--out", type=Path, default=Path("seed.json"))
     ap.add_argument("--download-crops", action="store_true")
     args = ap.parse_args()
@@ -186,13 +170,26 @@ def main() -> None:
             continue
         rows.append(v)
 
+    rows.sort(key=sort_key)
     print(f"Eligible (match + selected_candidate): {len(rows)}")
-    picked = pick_diverse(rows, args.count)
+
+    if args.all or args.count <= 0:
+        picked = rows
+    else:
+        picked = pick_diverse(rows, args.count)
+
     seed = [to_seed_row(v, args.collection) for v in picked]
-    args.out.write_text(json.dumps(seed, indent=2) + "\n", encoding="utf-8")
+    meta = {
+        "collection": args.collection,
+        "pin_count": len(seed),
+        "generated_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+        "rules_file": "title_seed_rules.json",
+    }
+    args.out.write_text(
+        json.dumps({"meta": meta, "pins": seed}, indent=2) + "\n",
+        encoding="utf-8",
+    )
     print(f"Wrote {len(seed)} pins -> {args.out}")
-    for s in seed:
-        print(f"  {s['listing_source']:14} {s['crop_filename']} | {s['ebay_title'][:70]}")
 
     if args.download_crops:
         crop_dir = args.out.parent / "crops"
@@ -201,11 +198,12 @@ def main() -> None:
         for existing in crop_dir.glob("*.jpg"):
             if existing.name not in wanted:
                 existing.unlink()
-        for s in seed:
+                print("removed", existing.name)
+        for i, s in enumerate(seed, 1):
             dest = crop_dir / s["crop_filename"]
             if dest.exists():
                 continue
-            print("crop", dest.name)
+            print(f"crop [{i}/{len(seed)}]", dest.name)
             urllib.request.urlretrieve(s["crop_source_url"], dest)
 
 
