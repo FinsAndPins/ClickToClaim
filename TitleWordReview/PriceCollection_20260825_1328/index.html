@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Title Word Review · 20260825 (15)</title>
+<style>
+:root {
+  --bg: #eef1f4;
+  --card: #fff;
+  --ink: #15202b;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --green: #16a34a;
+  --green-bg: #dcfce7;
+  --red: #dc2626;
+  --red-bg: #fee2e2;
+  --chip: #f3f4f6;
+  --accent: #0f766e;
+  --accent-ink: #fff;
+  --shadow: 0 2px 14px rgba(15, 23, 42, .08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #d9f3ef 0%, transparent 55%),
+    radial-gradient(900px 400px at 100% 0%, #e8eefc 0%, transparent 50%),
+    var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  padding-bottom: 96px;
+}
+header {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(21, 32, 43, .94);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  padding: 10px 14px;
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+header h1 { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.stats { display: flex; gap: 10px; flex: 1; flex-wrap: wrap; }
+.stat { min-width: 52px; text-align: center; }
+.stat b { display: block; font-size: 16px; line-height: 1.1; }
+.stat span { font-size: 9px; text-transform: uppercase; opacity: .65; letter-spacing: .04em; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+select, button, input[type="text"] {
+  font: inherit;
+}
+select, .name-input {
+  background: #1f2a37; color: #fff; border: 1px solid #334155;
+  border-radius: 8px; padding: 6px 10px; font-size: 13px;
+}
+button {
+  border: 0; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 650;
+  cursor: pointer; background: var(--accent); color: var(--accent-ink);
+}
+button.secondary { background: #334155; color: #fff; }
+button:disabled { opacity: .45; cursor: default; }
+main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
+.hint {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 12px; color: var(--muted); font-size: 13px; line-height: 1.45;
+  box-shadow: var(--shadow);
+}
+.hint strong { color: var(--ink); }
+.card {
+  background: var(--card); border-radius: 16px; overflow: hidden;
+  box-shadow: var(--shadow); border: 1px solid #e8ecf1;
+}
+.imgs {
+  display: flex; gap: 12px; flex-wrap: wrap; padding: 14px;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  border-bottom: 1px solid var(--line);
+  align-items: flex-end;
+}
+.img-col { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.img-col label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.img-col img {
+  width: 168px; height: 168px; object-fit: contain; background: #fff;
+  border-radius: 10px; border: 2px solid #0f766e33;
+}
+.img-col img.ebay { width: 128px; height: 128px; border-color: #cbd5e1; }
+.meta { font-size: 12px; color: var(--muted); text-align: center; }
+.meta a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.section:last-child { border-bottom: 0; }
+.lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-bottom: 6px; font-weight: 700; }
+.ebay-title { font-size: 15px; font-weight: 650; line-height: 1.35; }
+.slots {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;
+}
+@media (max-width: 640px) { .slots { grid-template-columns: 1fr; } .img-col img { width: 140px; height: 140px; } }
+.slot {
+  border: 1px dashed #cbd5e1; border-radius: 10px; padding: 8px 10px; min-height: 42px;
+  background: #fafafa;
+}
+.slot .lbl { margin-bottom: 4px; }
+.slot-val { font-size: 13px; font-weight: 650; min-height: 1.2em; }
+.cleaned-row { display: flex; gap: 8px; align-items: stretch; }
+.cleaned-row input {
+  flex: 1; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px 12px;
+  font-size: 16px; font-weight: 650;
+}
+.cleaned-row input:focus { outline: 2px solid #99f6e4; border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 999px; padding: 7px 11px; font-size: 13px; font-weight: 650;
+  background: var(--chip); color: #374151; border: 1px solid #e5e7eb;
+  cursor: pointer; user-select: none; -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.chip.on { background: var(--green-bg); color: #14532d; border-color: #86efac; }
+.chip.never { background: var(--red-bg); color: #7f1d1d; border-color: #fca5a5; text-decoration: line-through; }
+.chip .ord {
+  display: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--green); color: #fff; font-size: 10px; align-items: center; justify-content: center;
+}
+.chip.on .ord { display: inline-flex; }
+.chip-tools { display: inline-flex; gap: 2px; margin-left: 2px; }
+.chip-tools button {
+  padding: 0; width: 22px; height: 22px; border-radius: 6px; background: #14532d; color: #fff;
+  font-size: 12px; line-height: 1;
+}
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.legend i { font-style: normal; font-weight: 700; }
+.footer-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  background: rgba(255,255,255,.96); border-top: 1px solid var(--line);
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+}
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--muted); padding: 0 6px;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+.dot.ok { background: var(--green); }
+.dot.warn { background: #f59e0b; }
+.toast {
+  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%);
+  background: #111827; color: #fff; padding: 8px 14px; border-radius: 999px;
+  font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s;
+  z-index: 60;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Title Word Review · 15 pins</h1>
+  <div class="stats">
+    <div class="stat"><b id="stat-idx">1/15</b><span>Pin</span></div>
+    <div class="stat"><b id="stat-done">0</b><span>Accepted</span></div>
+    <div class="stat"><b id="stat-sync">—</b><span>Sync</span></div>
+  </div>
+  <div class="controls">
+    <input class="name-input" id="reviewer" list="reviewers" placeholder="Your name" maxlength="40">
+    <datalist id="reviewers">
+      <option value="Steve"></option>
+      <option value="Lexi"></option>
+      <option value="PinDad"></option>
+    </datalist>
+    <button type="button" class="secondary" id="btn-export">Export JSON</button>
+  </div>
+</header>
+
+<main>
+  <div class="hint">
+    <strong>Goal:</strong> build short Whatnot titles from eBay title words.
+    Ideal order: <strong>Character · Manufacturer · Set</strong> (plus any extras you want).
+    Tap a word: off → green (include) → red (never) → off. Use ↑↓ on green chips to reorder.
+    No IMG suffix in this pilot. Saves to a separate Firebase path (not pricing).
+  </div>
+
+  <div class="card" id="card">
+    <div class="imgs">
+      <div class="img-col">
+        <label>Our pin</label>
+        <img id="our-img" alt="Our crop">
+        <div class="meta" id="our-meta"></div>
+      </div>
+      <div class="img-col">
+        <label>eBay listing</label>
+        <img id="ebay-img" class="ebay" alt="eBay thumb">
+        <div class="meta" id="ebay-meta"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="lbl">eBay title</div>
+      <div class="ebay-title" id="ebay-title"></div>
+    </div>
+
+    <div class="section">
+      <div class="lbl">Suggested structure</div>
+      <div class="slots">
+        <div class="slot"><div class="lbl">Character</div><div class="slot-val" id="slot-character">—</div></div>
+        <div class="slot"><div class="lbl">Manufacturer</div><div class="slot-val" id="slot-manufacturer">—</div></div>
+        <div class="slot"><div class="lbl">Set</div><div class="slot-val" id="slot-set">—</div></div>
+      </div>
+      <div class="lbl">Cleaned title (editable)</div>
+      <div class="cleaned-row">
+        <input id="cleaned" type="text" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="lbl">Words from eBay title</div>
+      <div class="chips" id="chips"></div>
+      <div class="legend">
+        <span><i style="color:#16a34a">Green</i> = include</span>
+        <span><i>Gray</i> = available</span>
+        <span><i style="color:#dc2626">Red</i> = never use</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="footer-bar">
+  <button type="button" class="secondary" id="btn-prev">← Prev</button>
+  <button type="button" class="secondary" id="btn-reset">Reset seed</button>
+  <button type="button" id="btn-accept">Accept ✓</button>
+  <button type="button" class="secondary" id="btn-next">Next →</button>
+  <div class="status-pill"><span class="dot" id="save-dot"></span><span id="save-msg">Ready</span></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const SEED = [
+  {
+    "pin_key": "img1_pin04.jpg__b648f3f3deb2",
+    "crop_filename": "img1_pin04.jpg",
+    "board_num": "1",
+    "pin_n": 4,
+    "match_status": "priced",
+    "ctm_match_status": "no_match",
+    "price_source": "manual",
+    "display_price": 100,
+    "ebay_title": "2020 Nintendo Animal Crossing Doggy Pin Brooch Jewelry N3",
+    "ebay_price": 12,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/ExcAAeSw7H5o4ryG/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/398164218198?hash=item5cb46fd156:g:ExcAAeSw7H5o4ryG",
+    "crop_url": "crops/img1_pin04.jpg"
+  },
+  {
+    "pin_key": "img1_pin22.jpg__8c15cb8bc66a",
+    "crop_filename": "img1_pin22.jpg",
+    "board_num": "1",
+    "pin_n": 22,
+    "match_status": "priced",
+    "ctm_match_status": "no_match",
+    "price_source": "manual",
+    "display_price": 450,
+    "ebay_title": "Origami Owl Disney Can\u2019t Stop Won\u2019t Stop Mickey Mouse Face Plate ",
+    "ebay_price": 10,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/z68AAeSwSytqh8cl/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/178428614270?hash=item298b2c967e:g:z68AAeSwSytqh8cl",
+    "crop_url": "crops/img1_pin22.jpg"
+  },
+  {
+    "pin_key": "img5_pin06.jpg__7db489452fe9",
+    "crop_filename": "img5_pin06.jpg",
+    "board_num": "5",
+    "pin_n": 6,
+    "match_status": "priced",
+    "ctm_match_status": "no_match",
+    "price_source": "manual",
+    "display_price": 1200,
+    "ebay_title": "Disneyland Paris Mermaid Ariel The Little Mermaid Enamel Pin Set New",
+    "ebay_price": 34,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/sjsAAeSwcLlqOUIu/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/188555739213?hash=item2be6cc404d:g:sjsAAeSwcLlqOUIu",
+    "crop_url": "crops/img5_pin06.jpg"
+  },
+  {
+    "pin_key": "img1_pin19.jpg__d1af6b6f0830",
+    "crop_filename": "img1_pin19.jpg",
+    "board_num": "1",
+    "pin_n": 19,
+    "match_status": "match",
+    "ctm_match_status": "match",
+    "price_source": "listing",
+    "display_price": 45,
+    "ebay_title": "WDI Adventures of Gummi Bears aDorbs! Mystery Tummi Gummi LE 400 Disney Pin",
+    "ebay_price": 45,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/V~kAAeSwsehqZYrI/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/227447970884?hash=item34f4f49c44:g:V~kAAeSwsehqZYrI",
+    "crop_url": "crops/img1_pin19.jpg"
+  },
+  {
+    "pin_key": "img1_pin20.jpg__e0eca4140ee4",
+    "crop_filename": "img1_pin20.jpg",
+    "board_num": "1",
+    "pin_n": 20,
+    "match_status": "match",
+    "ctm_match_status": "match",
+    "price_source": "listing",
+    "display_price": 44,
+    "ebay_title": "WDI Adorbs Mystery Pirates of the Caribbean The Old Man Bayou LE 500 Disney Pin",
+    "ebay_price": 44,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/k0AAAeSwh~xqXP7O/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/137529439834?hash=item200564b65a:g:k0AAAeSwh~xqXP7O",
+    "crop_url": "crops/img1_pin20.jpg"
+  },
+  {
+    "pin_key": "img1_pin26.jpg__b1fb17411bbe",
+    "crop_filename": "img1_pin26.jpg",
+    "board_num": "1",
+    "pin_n": 26,
+    "match_status": "match",
+    "ctm_match_status": "match",
+    "price_source": "listing",
+    "display_price": 85,
+    "ebay_title": "Disney WDI Pinocchio and Lampwick Silhouette LE 300 Cast Jumbo Pin",
+    "ebay_price": 85,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/adMAAeSwQ5tpASQN/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/146925941198?hash=item223577f1ce:g:adMAAeSwQ5tpASQN",
+    "crop_url": "crops/img1_pin26.jpg"
+  },
+  {
+    "pin_key": "img1_pin27.jpg__21cd0e63116d",
+    "crop_filename": "img1_pin27.jpg",
+    "board_num": "1",
+    "pin_n": 27,
+    "match_status": "match",
+    "ctm_match_status": "match",
+    "price_source": "listing",
+    "display_price": 124,
+    "ebay_title": "WDI MOG Disney Afternoon The Adventure of the Gummi Bears Jumbo Pin",
+    "ebay_price": 124,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/ujEAAeSwAFFp~2~7/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/336575667095?hash=item4e5d791b97:g:ujEAAeSwAFFp~2~7",
+    "crop_url": "crops/img1_pin27.jpg"
+  },
+  {
+    "pin_key": "img4_pin01.jpg__957f4eefbd93",
+    "crop_filename": "img4_pin01.jpg",
+    "board_num": "4",
+    "pin_n": 1,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 200,
+    "ebay_title": "DEC Star Wars Jabba the Hut Stamp Pin",
+    "ebay_price": 200,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/IyIAAeSw5qlopOT4/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/357487385545?hash=item533be89bc9:g:IyIAAeSw5qlopOT4",
+    "crop_url": "crops/img4_pin01.jpg"
+  },
+  {
+    "pin_key": "img2_pin06.jpg__a3d523d1b478",
+    "crop_filename": "img2_pin06.jpg",
+    "board_num": "2",
+    "pin_n": 6,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 150,
+    "ebay_title": "2019 Disney D23 Expo Best In Show Tramp Pin - Lady and the Tramp LE 300 WDI MOG",
+    "ebay_price": 150,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/9sMAAOSw24Rli9SI/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/276251263437?hash=item4051dbc1cd:g:9sMAAOSw24Rli9SI",
+    "crop_url": "crops/img2_pin06.jpg"
+  },
+  {
+    "pin_key": "img3_pin43.jpg__d3a41cdfaa74",
+    "crop_filename": "img3_pin43.jpg",
+    "board_num": "3",
+    "pin_n": 43,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 575,
+    "ebay_title": "Esmeralda SUPER CHASER - The Hunchback of Notre Dame Adorbs Mystery Set LE 200",
+    "ebay_price": 575,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/CHsAAeSw1vZqYW3N/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/236985654211?hash=item372d721bc3:g:CHsAAeSw1vZqYW3N",
+    "crop_url": "crops/img3_pin43.jpg"
+  },
+  {
+    "pin_key": "img2_pin07.jpg__79ac4430c961",
+    "crop_filename": "img2_pin07.jpg",
+    "board_num": "2",
+    "pin_n": 7,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 400,
+    "ebay_title": "Disney DSF DSSH Pink Dress Aurora Sleeping Beauty Cutie Cuties Pin LE 300",
+    "ebay_price": 400,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/qaQAAOSw3mlmUfLu/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/235580119382?hash=item36d9ab5956:g:qaQAAOSw3mlmUfLu",
+    "crop_url": "crops/img2_pin07.jpg"
+  },
+  {
+    "pin_key": "img3_pin45.jpg__02486028ab23",
+    "crop_filename": "img3_pin45.jpg",
+    "board_num": "3",
+    "pin_n": 45,
+    "match_status": "match",
+    "ctm_match_status": "match",
+    "price_source": "listing",
+    "display_price": 57,
+    "ebay_title": "Disney WDI MOG aDorbs! Mystery Darkwing Duck Pin Honker Muddlefoot LE 400 Pin",
+    "ebay_price": 57,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/IHwAAeSwRT1qaexb/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/198532637385?hash=item2e3977a2c9:g:IHwAAeSwRT1qaexb",
+    "crop_url": "crops/img3_pin45.jpg"
+  },
+  {
+    "pin_key": "img4_pin05.jpg__8b6a641578d8",
+    "crop_filename": "img4_pin05.jpg",
+    "board_num": "4",
+    "pin_n": 5,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 500,
+    "ebay_title": "TWDC Store Disney DEC Pin - Stamp 1951 White Rabbit - LE 300 Alice in Wonderland",
+    "ebay_price": 500,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/SNkAAeSw69Jp873p/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/157873923903?_skw=Dec+stamp+white+rabbit+-2026&hash=item24c204e73f:g:SNkAAeSw69Jp873p",
+    "crop_url": "crops/img4_pin05.jpg"
+  },
+  {
+    "pin_key": "img4_pin03.jpg__c479ca8f03d9",
+    "crop_filename": "img4_pin03.jpg",
+    "board_num": "4",
+    "pin_n": 3,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 358,
+    "ebay_title": "Disney WDI Pin - Off the Page Jim Hawkins - LE 300 Sketch Treasure Planet",
+    "ebay_price": 358,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/lmQAAeSwEFNqW5hc/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/267731559160?hash=item3e560b62f8:g:lmQAAeSwEFNqW5hc",
+    "crop_url": "crops/img4_pin03.jpg"
+  },
+  {
+    "pin_key": "img2_pin05.jpg__d350dfc9a813",
+    "crop_filename": "img2_pin05.jpg",
+    "board_num": "2",
+    "pin_n": 5,
+    "match_status": "match",
+    "ctm_match_status": "match",
+    "price_source": "listing",
+    "display_price": 75,
+    "ebay_title": "Disney Studio Store Hollywood DSSH Cuties Pin - Wasabi",
+    "ebay_price": 75,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/rWcAAeSwRxtqEL~s/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/206292350877?hash=item3007fb779d:g:rWcAAeSwRxtqEL~s",
+    "crop_url": "crops/img2_pin05.jpg"
+  }
+];
+
+const FB_CONFIG = {
+  apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+  authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+  databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+  projectId: "fins-and-pins-click-to-claim",
+  storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+  messagingSenderId: "31512845258",
+  appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+
+const BATCH_ID = "batch_15_v1";
+const COLLECTION = "PriceCollection_20260825_1328";
+const LS_KEY = `title_word_review:${COLLECTION}:${BATCH_ID}`;
+const LS_NAME = "title_word_review:reviewer";
+
+const NEVER_DEFAULT = new Set([
+  "disney","pin","pins","enamel","brooch","jewelry","jewellery","new","authentic",
+  "rare","htf","nib","free","shipping","ship","lot","oem","fast","super","store",
+  "twdc","2020","2019","n3"
+]);
+const MAKERS = new Set(["wdi","mog","dec","dssh","dsf","d23","dlp"]);
+const SET_HINTS = new Set(["adorbs","adorbs!","adorb","cuties","cutie","mystery","stamp","stamps","jumbo","chaser","silhouette","sketch"]);
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove("show"), 1600);
+}
+
+function safePk(pinKey) {
+  return String(pinKey || "").replace(/[.#$/\[\]]/g, "_");
+}
+
+function tokenize(title) {
+  const raw = String(title || "").trim();
+  if (!raw) return [];
+  // Keep LE + number as one token; keep hyphenated chunks
+  const parts = [];
+  const re = /LE\s*[-]?\s*\d+|[A-Za-z0-9][A-Za-z0-9'’.\-]*[!]?|[^\s]/gi;
+  let m;
+  while ((m = re.exec(raw)) !== null) {
+    const text = m[0].trim();
+    if (!text) continue;
+    // skip pure punctuation leftovers
+    if (/^[\-–—•|/]+$/.test(text)) continue;
+    parts.push({ text, key: normalizeKey(text) });
+  }
+  // Dedupe consecutive identical keys while keeping first display text
+  const out = [];
+  for (const p of parts) {
+    if (out.length && out[out.length - 1].key === p.key) continue;
+    out.push({ id: `${out.length}_${p.key}`, text: p.text, key: p.key, state: "off" });
+  }
+  return out;
+}
+
+function normalizeKey(t) {
+  return String(t || "")
+    .toLowerCase()
+    .replace(/[!.,:;]+$/g, "")
+    .replace(/^adorbs!$/,"adorbs")
+    .replace(/^adorb$/,"adorbs")
+    .trim();
+}
+
+function seedSuggestion(tokens) {
+  // Prefer: character-ish words, makers, set hints, LE units. Drop NEVER_DEFAULT.
+  const include = [];
+  const makers = [];
+  const sets = [];
+  const les = [];
+  const chars = [];
+  for (const tok of tokens) {
+    const k = tok.key;
+    if (NEVER_DEFAULT.has(k)) {
+      tok.state = "never";
+      continue;
+    }
+    if (/^le\s*-?\s*\d+$/.test(k) || /^le\d+$/.test(k)) {
+      les.push(tok);
+      continue;
+    }
+    if (MAKERS.has(k)) {
+      makers.push(tok);
+      continue;
+    }
+    if (SET_HINTS.has(k) || k === "adorbs") {
+      sets.push(tok);
+      continue;
+    }
+    // Skip very generic leftovers already covered
+    if (["the","of","and","a","in","on","for","with","from","set","series"].includes(k)) {
+      tok.state = "off";
+      continue;
+    }
+    chars.push(tok);
+  }
+  // Order: Character · Manufacturer · Set · LE
+  const ordered = [...chars, ...makers, ...sets, ...les];
+  ordered.forEach((t) => { t.state = "on"; });
+  return ordered.map((t) => t.id);
+}
+
+function guessSlots(includedTokens) {
+  const character = [];
+  const manufacturer = [];
+  const set = [];
+  for (const t of includedTokens) {
+    const k = t.key;
+    if (MAKERS.has(k)) manufacturer.push(t.text);
+    else if (SET_HINTS.has(k) || /^le\s*-?\s*\d+$/.test(k) || /^le\d+$/.test(k)) set.push(t.text);
+    else character.push(t.text);
+  }
+  return {
+    character: character.join(" ") || "—",
+    manufacturer: manufacturer.join(" ") || "—",
+    set: set.join(" ") || "—",
+  };
+}
+
+function titleFromOrder(tokens, orderIds) {
+  const byId = Object.fromEntries(tokens.map((t) => [t.id, t]));
+  return orderIds.map((id) => byId[id]?.text).filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+}
+
+// ---- state ----
+let idx = 0;
+/** @type {Record<string, any>} */
+let labels = {};
+let fbReady = false;
+let fbRoot = null;
+let saveTimer = null;
+let suppressCleanedInput = false;
+
+function currentPin() { return SEED[idx]; }
+function pinStateKey(pin) { return safePk(pin.pin_key); }
+
+function ensureLabel(pin) {
+  const k = pinStateKey(pin);
+  if (labels[k]) return labels[k];
+  const tokens = tokenize(pin.ebay_title);
+  const order = seedSuggestion(tokens);
+  const cleaned = titleFromOrder(tokens, order);
+  labels[k] = {
+    pin_key: pin.pin_key,
+    crop_filename: pin.crop_filename,
+    ebay_title: pin.ebay_title,
+    tokens,
+    include_order: order,
+    cleaned_title: cleaned,
+    accepted: false,
+    reviewed_by: "",
+    updated_at: null,
+    accepted_at: null,
+  };
+  return labels[k];
+}
+
+function includedTokens(label) {
+  const byId = Object.fromEntries(label.tokens.map((t) => [t.id, t]));
+  return label.include_order.map((id) => byId[id]).filter(Boolean);
+}
+
+function rebuildCleanedFromChips(label) {
+  label.cleaned_title = titleFromOrder(label.tokens, label.include_order);
+}
+
+function syncChipStatesFromOrder(label) {
+  const on = new Set(label.include_order);
+  for (const t of label.tokens) {
+    if (t.state === "never") continue;
+    t.state = on.has(t.id) ? "on" : "off";
+  }
+}
+
+function render() {
+  const pin = currentPin();
+  const label = ensureLabel(pin);
+  document.getElementById("stat-idx").textContent = `${idx + 1}/${SEED.length}`;
+  document.getElementById("stat-done").textContent = String(Object.values(labels).filter((l) => l.accepted).length);
+
+  document.getElementById("our-img").src = pin.crop_url;
+  document.getElementById("our-meta").textContent = `${pin.crop_filename} · board ${pin.board_num} · our $${pin.display_price ?? "—"} · ${pin.price_source}/${pin.ctm_match_status}`;
+  document.getElementById("ebay-img").src = pin.ebay_thumb_url || "";
+  const ebayMeta = document.getElementById("ebay-meta");
+  const price = pin.ebay_price != null ? `$${pin.ebay_price}` : "—";
+  ebayMeta.innerHTML = pin.ebay_item_url
+    ? `${price} · <a href="${pin.ebay_item_url}" target="_blank" rel="noopener">Open eBay</a>`
+    : price;
+
+  document.getElementById("ebay-title").textContent = pin.ebay_title || "(no title)";
+
+  const slots = guessSlots(includedTokens(label));
+  document.getElementById("slot-character").textContent = slots.character;
+  document.getElementById("slot-manufacturer").textContent = slots.manufacturer;
+  document.getElementById("slot-set").textContent = slots.set;
+
+  suppressCleanedInput = true;
+  document.getElementById("cleaned").value = label.cleaned_title || "";
+  suppressCleanedInput = false;
+
+  const chips = document.getElementById("chips");
+  chips.innerHTML = "";
+  // Show tokens in original title order for discovery; green ones show order index
+  const orderIndex = Object.fromEntries(label.include_order.map((id, i) => [id, i + 1]));
+  label.tokens.forEach((tok) => {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "chip" + (tok.state === "on" ? " on" : tok.state === "never" ? " never" : "");
+    el.dataset.id = tok.id;
+    const ord = document.createElement("span");
+    ord.className = "ord";
+    ord.textContent = orderIndex[tok.id] || "";
+    const txt = document.createElement("span");
+    txt.textContent = tok.text;
+    el.appendChild(ord);
+    el.appendChild(txt);
+    if (tok.state === "on") {
+      const tools = document.createElement("span");
+      tools.className = "chip-tools";
+      const up = document.createElement("button");
+      up.type = "button"; up.textContent = "↑"; up.title = "Move earlier";
+      up.addEventListener("click", (e) => { e.stopPropagation(); moveIncluded(tok.id, -1); });
+      const down = document.createElement("button");
+      down.type = "button"; down.textContent = "↓"; down.title = "Move later";
+      down.addEventListener("click", (e) => { e.stopPropagation(); moveIncluded(tok.id, 1); });
+      tools.appendChild(up); tools.appendChild(down);
+      el.appendChild(tools);
+    }
+    el.addEventListener("click", () => cycleToken(tok.id));
+    chips.appendChild(el);
+  });
+
+  document.getElementById("btn-prev").disabled = idx <= 0;
+  document.getElementById("btn-next").disabled = idx >= SEED.length - 1;
+  document.getElementById("btn-accept").textContent = label.accepted ? "Accepted ✓" : "Accept ✓";
+}
+
+function cycleToken(id) {
+  const label = ensureLabel(currentPin());
+  const tok = label.tokens.find((t) => t.id === id);
+  if (!tok) return;
+  if (tok.state === "off") {
+    tok.state = "on";
+    if (!label.include_order.includes(id)) label.include_order.push(id);
+  } else if (tok.state === "on") {
+    tok.state = "never";
+    label.include_order = label.include_order.filter((x) => x !== id);
+  } else {
+    tok.state = "off";
+    label.include_order = label.include_order.filter((x) => x !== id);
+  }
+  rebuildCleanedFromChips(label);
+  label.accepted = false;
+  scheduleSave(label);
+  render();
+}
+
+function moveIncluded(id, delta) {
+  const label = ensureLabel(currentPin());
+  const arr = label.include_order.slice();
+  const i = arr.indexOf(id);
+  if (i < 0) return;
+  const j = i + delta;
+  if (j < 0 || j >= arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  label.include_order = arr;
+  rebuildCleanedFromChips(label);
+  label.accepted = false;
+  scheduleSave(label);
+  render();
+}
+
+function resetSeed() {
+  const pin = currentPin();
+  const k = pinStateKey(pin);
+  delete labels[k];
+  ensureLabel(pin);
+  scheduleSave(labels[k]);
+  render();
+  toast("Reset to seed suggestion");
+}
+
+function acceptCurrent() {
+  const pin = currentPin();
+  const label = ensureLabel(pin);
+  const name = (document.getElementById("reviewer").value || "").trim();
+  if (!name) {
+    toast("Enter your name first");
+    document.getElementById("reviewer").focus();
+    return;
+  }
+  label.cleaned_title = document.getElementById("cleaned").value.trim();
+  label.reviewed_by = name;
+  label.accepted = true;
+  label.accepted_at = new Date().toISOString();
+  label.updated_at = label.accepted_at;
+  // Align include_order to cleaned title words when possible
+  alignOrderToCleaned(label);
+  scheduleSave(label, true);
+  render();
+  toast("Accepted");
+  if (idx < SEED.length - 1) {
+    idx += 1;
+    render();
+  }
+}
+
+function alignOrderToCleaned(label) {
+  const words = label.cleaned_title.split(/\s+/).filter(Boolean);
+  const used = new Set();
+  const order = [];
+  for (const w of words) {
+    const key = normalizeKey(w);
+    const tok = label.tokens.find((t) => t.key === key && !used.has(t.id) && t.state !== "never");
+    if (tok) {
+      tok.state = "on";
+      used.add(tok.id);
+      order.push(tok.id);
+    }
+  }
+  if (order.length) label.include_order = order;
+  syncChipStatesFromOrder(label);
+}
+
+function onCleanedInput() {
+  if (suppressCleanedInput) return;
+  const label = ensureLabel(currentPin());
+  label.cleaned_title = document.getElementById("cleaned").value;
+  label.accepted = false;
+  // Soft sync: mark tokens on if present in cleaned text
+  const cleanedKeys = new Set(label.cleaned_title.split(/\s+/).map(normalizeKey).filter(Boolean));
+  label.include_order = [];
+  for (const t of label.tokens) {
+    if (t.state === "never") continue;
+    if (cleanedKeys.has(t.key)) {
+      t.state = "on";
+      label.include_order.push(t.id);
+    } else if (t.state === "on") {
+      t.state = "off";
+    }
+  }
+  scheduleSave(label);
+  // update slots without fighting caret too hard
+  const slots = guessSlots(includedTokens(label));
+  document.getElementById("slot-character").textContent = slots.character;
+  document.getElementById("slot-manufacturer").textContent = slots.manufacturer;
+  document.getElementById("slot-set").textContent = slots.set;
+}
+
+function persistLocal() {
+  localStorage.setItem(LS_KEY, JSON.stringify(labels));
+}
+
+function scheduleSave(label, immediate) {
+  label.updated_at = new Date().toISOString();
+  persistLocal();
+  setSaveUI("pending", "Saving…");
+  clearTimeout(saveTimer);
+  const run = () => pushFirebase(label);
+  if (immediate) run();
+  else saveTimer = setTimeout(run, 350);
+}
+
+function setSaveUI(kind, msg) {
+  const dot = document.getElementById("save-dot");
+  dot.className = "dot" + (kind === "ok" ? " ok" : kind === "pending" ? " warn" : "");
+  document.getElementById("save-msg").textContent = msg;
+  document.getElementById("stat-sync").textContent = kind === "ok" ? "OK" : kind === "pending" ? "…" : "Local";
+}
+
+function labelPayload(label) {
+  return {
+    pin_key: label.pin_key,
+    crop_filename: label.crop_filename,
+    ebay_title: label.ebay_title,
+    cleaned_title: label.cleaned_title,
+    include_order: label.include_order,
+    tokens: label.tokens.map((t) => ({ id: t.id, text: t.text, key: t.key, state: t.state })),
+    included_words_ordered: includedTokens(label).map((t) => t.text),
+    accepted: !!label.accepted,
+    reviewed_by: label.reviewed_by || "",
+    updated_at: label.updated_at,
+    accepted_at: label.accepted_at || null,
+    batch_id: BATCH_ID,
+    collection: COLLECTION,
+  };
+}
+
+function pushFirebase(label) {
+  persistLocal();
+  if (!fbReady || !fbRoot) {
+    setSaveUI("local", "Saved locally");
+    return;
+  }
+  const k = safePk(label.pin_key);
+  fbRoot.child("pins").child(k).set(labelPayload(label))
+    .then(() => setSaveUI("ok", "Saved to Firebase"))
+    .catch((err) => {
+      console.warn(err);
+      setSaveUI("local", "Firebase error — local only");
+      toast("Firebase save failed; kept local");
+    });
+}
+
+function exportTraining() {
+  const rows = SEED.map((pin) => {
+    const label = ensureLabel(pin);
+    return {
+      ...labelPayload(label),
+      display_price: pin.display_price,
+      ebay_price: pin.ebay_price,
+      price_source: pin.price_source,
+      ctm_match_status: pin.ctm_match_status,
+      crop_url: pin.crop_url,
+      ebay_thumb_url: pin.ebay_thumb_url,
+      ebay_item_url: pin.ebay_item_url,
+    };
+  });
+  const blob = new Blob([JSON.stringify({ collection: COLLECTION, batch_id: BATCH_ID, exported_at: new Date().toISOString(), pins: rows }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `title_word_review_${COLLECTION}_${BATCH_ID}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Exported training JSON");
+}
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(FB_CONFIG);
+    fbRoot = firebase.database().ref(`title_word_review/${COLLECTION}/${BATCH_ID}`);
+    fbReady = true;
+    fbRoot.child("pins").once("value").then((snap) => {
+      const remote = snap.val() || {};
+      // Merge: remote accepted wins over local empty; otherwise keep newer updated_at
+      Object.keys(remote).forEach((k) => {
+        const r = remote[k];
+        if (!r || !r.tokens) return;
+        const local = labels[k];
+        if (!local || (r.updated_at || "") >= (local.updated_at || "") || (r.accepted && !local.accepted)) {
+          labels[k] = {
+            pin_key: r.pin_key,
+            crop_filename: r.crop_filename,
+            ebay_title: r.ebay_title,
+            tokens: r.tokens,
+            include_order: r.include_order || [],
+            cleaned_title: r.cleaned_title || "",
+            accepted: !!r.accepted,
+            reviewed_by: r.reviewed_by || "",
+            updated_at: r.updated_at || null,
+            accepted_at: r.accepted_at || null,
+          };
+        }
+      });
+      persistLocal();
+      setSaveUI("ok", "Firebase connected");
+      render();
+    }).catch((err) => {
+      console.warn(err);
+      setSaveUI("local", "Firebase read failed");
+    });
+  } catch (err) {
+    console.warn(err);
+    fbReady = false;
+    setSaveUI("local", "Local only");
+  }
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) labels = JSON.parse(raw) || {};
+  } catch (_) { labels = {}; }
+  const name = localStorage.getItem(LS_NAME) || "";
+  if (name) document.getElementById("reviewer").value = name;
+}
+
+document.getElementById("btn-prev").addEventListener("click", () => { if (idx > 0) { idx -= 1; render(); } });
+document.getElementById("btn-next").addEventListener("click", () => { if (idx < SEED.length - 1) { idx += 1; render(); } });
+document.getElementById("btn-reset").addEventListener("click", resetSeed);
+document.getElementById("btn-accept").addEventListener("click", acceptCurrent);
+document.getElementById("btn-export").addEventListener("click", exportTraining);
+document.getElementById("cleaned").addEventListener("input", onCleanedInput);
+document.getElementById("reviewer").addEventListener("change", (e) => {
+  localStorage.setItem(LS_NAME, e.target.value.trim());
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT")) return;
+  if (e.key === "ArrowLeft") document.getElementById("btn-prev").click();
+  if (e.key === "ArrowRight") document.getElementById("btn-next").click();
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) document.getElementById("btn-accept").click();
+});
+
+loadLocal();
+initFirebase();
+render();
+</script>
+</body>
+</html>
