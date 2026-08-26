@@ -27,7 +27,22 @@ Uses Firebase `selected_candidate` only (ClickToMatch match or ClickToPrice pick
 - **Title:** Character · Maker acronym (WDI/DSSH/…) · Set · **LE** — short, **no punctuation**, **each word once**, **no edition number**, **no Chaser**
 - **Title-off:** movie/show names, Mystery, Chaser, spelled-out “Walt Disney Imagineering” / “Studio Store Hollywood”, LE run sizes (400, 300, …)
 
-### Whatnot CSV description (agreed — build later)
+### Whatnot CSV (ready)
+
+Build the bulk-upload CSV from accepted labels:
+
+```bash
+python3 build_whatnot_csv.py
+```
+
+Output: `training_exports/whatnot_upload_PriceCollection_20260825_1328.csv` (84 accepted pins).
+
+- **Title:** accepted cleaned title from Title Word Review
+- **Description:** photo disclaimer, acronym expansions, movie/show, Limited Edition when title has LE, IMG board-pin
+- **Price:** `display_price` from pricing Firebase, **rounded up to nearest $5** (51→55, 56→60, 50→50)
+- **14 open pins** without Accept are excluded until reviewed
+
+### Whatnot CSV description policy
 
 When we generate the Whatnot upload CSV, each listing **description** must include:
 
@@ -37,7 +52,7 @@ When we generate the Whatnot upload CSV, each listing **description** must inclu
 4. **Limited Edition** spelled out when the title contains **LE**
 5. IMG board–pin reference when we add that step
 
-Titles stay short; descriptions carry the searchable long forms. **Not** wired into production CSV builders until you say to ship.
+Titles stay short; descriptions carry the searchable long forms. Use `build_whatnot_csv.py` in this folder (not wired into production pricing/CTR watchers).
 
 ## Files
 
