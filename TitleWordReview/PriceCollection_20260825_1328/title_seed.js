@@ -185,7 +185,22 @@
     };
   }
 
-  function titleFromOrder(tokens, orderIds) {
+  function displayText(token, rules) {
+    const key = token.key;
+    if (key === "adorbs") {
+      return (rules && rules.adorbs_canonical) || "Adorbs";
+    }
+    let text = String(token.text || "");
+    const strip = !rules || rules.strip_punctuation !== false;
+    if (strip) {
+      // Keep LE number forms readable; drop other punctuation
+      text = text.replace(/[!?,.;:()\"“”‘’]/g, "");
+      text = text.replace(/\.(?=\s|$)/g, "");
+    }
+    return text.replace(/\s+/g, " ").trim();
+  }
+
+  function titleFromOrder(tokens, orderIds, rules) {
     const byId = Object.fromEntries(tokens.map((t) => [t.id, t]));
     const seenKeys = new Set();
     const parts = [];
@@ -194,7 +209,8 @@
       if (!t) continue;
       if (seenKeys.has(t.key)) continue;
       seenKeys.add(t.key);
-      parts.push(t.text);
+      const piece = displayText(t, rules || {});
+      if (piece) parts.push(piece);
     }
     return parts.join(" ").replace(/\s+/g, " ").trim();
   }
@@ -211,6 +227,7 @@
     seedSuggestion,
     guessSlots,
     titleFromOrder,
+    displayText,
     descriptionOnlyWords,
   };
 })(typeof window !== "undefined" ? window : globalThis);

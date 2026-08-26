@@ -41,7 +41,11 @@
     "flawed",
     "flaw",
     "description",
-    "please"
+    "please",
+    "villain",
+    "bears",
+    "pooh",
+    "winnie"
   ],
   "stop_words": [
     "the",
@@ -127,9 +131,11 @@
     "zootopia",
     "big hero 6",
     "wreck it ralph",
-    "the emperors new groove"
+    "the emperors new groove",
+    "winnie the pooh",
+    "winnie-the-pooh"
   ],
-  "notes": "Title prefers acronyms (WDI, DSSH, \u2026) not spelled-out expansions. Each normalized word appears at most once (Adorbs/adorb/aDorbs! collapse to one). Repeating a word does not help search. Hollywood alone may stay for Hollywood Studios park.",
+  "notes": "Character \u00b7 Maker acronym \u00b7 Set \u00b7 LE. No punctuation in titles (Adorbs not aDorbs!). No movie/show titles in titles (description later). Each word once. Acronyms not spelled-out expansions. Gold labels: training_exports/accepted_labels_latest.json + Firebase title_word_review/\u2026",
   "conditional_drops": [
     {
       "drop": "luca",
@@ -165,5 +171,7 @@
     "mickey of glendale",
     "mickeys of glendale",
     "disneyland paris"
-  ]
+  ],
+  "strip_punctuation": true,
+  "adorbs_canonical": "Adorbs"
 }
