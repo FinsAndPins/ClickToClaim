@@ -58,6 +58,23 @@
     }
   }
 
+  function applyConditionalDrops(tokens, rules) {
+    const drops = rules.conditional_drops || [];
+    if (!drops.length) return;
+    const present = new Set(tokens.map((t) => t.key));
+    for (const rule of drops) {
+      const dropKey = normalizeKey(rule.drop);
+      const triggers = (rule.if_any || []).map(normalizeKey);
+      if (!triggers.some((t) => present.has(t))) continue;
+      for (const tok of tokens) {
+        if (tok.key === dropKey && tok.state !== "never") {
+          tok.state = "never";
+          tok.desc_only = true;
+        }
+      }
+    }
+  }
+
   function seedSuggestion(tokens, rules) {
     const never = new Set((rules.never_words || []).map(normalizeKey));
     const stop = new Set((rules.stop_words || []).map(normalizeKey));
@@ -65,6 +82,7 @@
     const setHints = new Set((rules.set_hints || []).map(normalizeKey));
 
     markMoviePhraseTokens(tokens, rules);
+    applyConditionalDrops(tokens, rules);
 
     const makerToks = [];
     const setToks = [];
@@ -74,7 +92,7 @@
     for (const tok of tokens) {
       const k = tok.key;
       if (tok.state === "never" && tok.desc_only) continue;
-      if (never.has(k)) {
+      if (never.has(k) || tok.state === "never") {
         tok.state = "never";
         continue;
       }
@@ -97,10 +115,14 @@
       charToks.push(tok);
     }
 
-    const ordered = [...charToks, ...makerToks, ...setToks, ...leToks];
-    ordered.forEach((t) => {
+    const ordered = [];
+    const seenKeys = new Set();
+    for (const t of [...charToks, ...makerToks, ...setToks, ...leToks]) {
+      if (seenKeys.has(t.key)) continue;
+      seenKeys.add(t.key);
       if (t.state !== "never") t.state = "on";
-    });
+      ordered.push(t);
+    }
     return ordered.map((t) => t.id);
   }
 

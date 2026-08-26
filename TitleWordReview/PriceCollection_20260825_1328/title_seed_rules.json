@@ -29,7 +29,20 @@
     "exclusive",
     "limited",
     "edition",
-    "mystery"
+    "mystery",
+    "pixar",
+    "walt",
+    "imagineering",
+    "hollywood",
+    "pack",
+    "glendale",
+    "studio",
+    "gummi",
+    "read",
+    "flawed",
+    "flaw",
+    "description",
+    "please"
   ],
   "stop_words": [
     "the",
@@ -117,5 +130,30 @@
     "wreck it ralph",
     "the emperors new groove"
   ],
-  "notes": "Movie/show phrases and 'mystery' default to red (title-off). Most Adorbs are mystery-box pins \u2014 Mystery is not useful in the Whatnot title. Character names like Robin Hood, Pinocchio, Luca may stay green when not part of a matched phrase."
+  "notes": "Title = Character \u00b7 Manufacturer \u00b7 Set \u00b7 LE. Drop Mystery (Adorbs are mystery-box), Pixar/Walt/Imagineering/Hollywood/Pack, and movie/show phrases. Conditional: drop Luca if Ciccio/Guido; drop Aladdin if Genie/Iago/Jasmine. Accepted labels are never overwritten.",
+  "conditional_drops": [
+    {
+      "drop": "luca",
+      "if_any": [
+        "ciccio",
+        "guido"
+      ]
+    },
+    {
+      "drop": "aladdin",
+      "if_any": [
+        "genie",
+        "iago",
+        "jasmine"
+      ]
+    },
+    {
+      "drop": "aladdin",
+      "if_any": [
+        "jafar",
+        "abu",
+        "rajah"
+      ]
+    }
+  ]
 }
