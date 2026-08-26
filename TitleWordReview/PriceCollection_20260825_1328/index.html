@@ -275,7 +275,8 @@ function ensureLabel(pin) {
     !prev.accepted &&
     prev.rules_version === RULES_VERSION &&
     prev.ebay_title === pin.ebay_title &&
-    prev.tokens
+    prev.tokens &&
+    !titleNeedsSanitize(prev.cleaned_title)
   ) {
     return prev;
   }
