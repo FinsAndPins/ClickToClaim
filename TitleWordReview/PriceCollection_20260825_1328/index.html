@@ -211,7 +211,7 @@ const PRIOR_BATCH_ID = "batch_15_v2_chosen_listing";
 const COLLECTION = "PriceCollection_20260825_1328";
 const PRICING_TEST_RUN = "test_PriceCollection_20260825_1328__build_18953_visual_baseline";
 const PRICING_APPROACH = "visual_baseline";
-const RULES_VERSION = "v6_no_punct_movies";
+const RULES_VERSION = "v7_no_chaser_le_num";
 const LS_KEY = `title_word_review:${COLLECTION}:${BATCH_ID}`;
 const LS_NAME = "title_word_review:reviewer";
 
@@ -224,7 +224,7 @@ let fbRoot = null;
 let saveTimer = null;
 let suppressCleanedInput = false;
 
-const { normalizeKey, tokenize, seedSuggestion, titleFromOrder } = TitleSeed;
+const { normalizeKey, tokenize, seedSuggestion, titleFromOrder, descriptionPreview } = TitleSeed;
 
 function toast(msg) {
   const el = document.getElementById("toast");
@@ -313,7 +313,7 @@ function includedTokens(label) {
 }
 
 function descOnlyPreview(label) {
-  return label.tokens.filter((t) => t.desc_only && t.state === "never").map((t) => t.text).join(" ");
+  return descriptionPreview(label, RULES);
 }
 
 function rebuildCleanedFromChips(label) {
@@ -417,7 +417,7 @@ function render() {
   document.getElementById("ebay-title").textContent = pin.ebay_title || "(no title)";
   const descWords = descOnlyPreview(label);
   document.getElementById("desc-note").textContent = descWords
-    ? `Description-only (red): ${descWords}` : "";
+    ? `Whatnot description will include: ${descWords}` : "";
 
   const cleanedEl = document.getElementById("cleaned");
   const editingTitle = document.activeElement === cleanedEl;

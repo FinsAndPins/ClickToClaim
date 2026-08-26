@@ -45,7 +45,8 @@
     "villain",
     "bears",
     "pooh",
-    "winnie"
+    "winnie",
+    "chaser"
   ],
   "stop_words": [
     "the",
@@ -135,7 +136,9 @@
     "winnie the pooh",
     "winnie-the-pooh"
   ],
-  "notes": "Title: Character \u00b7 Maker acronym \u00b7 Set \u00b7 LE; no punctuation; each word once; no movies. Whatnot CSV description (future): include spelled-out acronym_expansions + relevant movie/TV show for search. Gold labels in training_exports/ + Firebase title_word_review/.",
+  "notes": "Title: Character \u00b7 Maker acronym \u00b7 Set \u00b7 LE (no edition number); no Chaser; no punctuation; each word once; movies in description only. Whatnot CSV description: acronym expansions + movie/TV + Limited Edition when title has LE.",
+  "le_in_title": "LE",
+  "strip_le_numbers": true,
   "conditional_drops": [
     {
       "drop": "luca",
@@ -191,11 +194,15 @@
       "Please rely on the photo, rather than the description.",
       "Full spelled-out name for every acronym used in the title (see acronym_expansions).",
       "Relevant movie or TV show for searchability (from movie phrases / character mapping \u2014 even when omitted from title).",
+      "When the title contains LE, spell out Limited Edition in the description.",
       "IMG board-pin reference when we add that step."
     ],
     "description_not_in_title": [
       "Spelled-out acronym expansions",
-      "Movie / TV show names"
+      "Movie / TV show names",
+      "Limited Edition (spell out in description when title has LE)",
+      "LE edition size / run number (e.g. 400, 300)",
+      "Chaser"
     ],
     "status": "Agreed for future CSV builder. Not wired into production Whatnot upload yet."
   }
