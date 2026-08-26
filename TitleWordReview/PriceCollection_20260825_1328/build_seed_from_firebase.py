@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Build a Title Word Review seed.json from pricing harness Firebase (read-only).
+"""Build Title Word Review seed.json from pricing harness Firebase (read-only).
 
-Does not modify pin_pricing_tests. Writes only the local seed file you pass via --out.
+Uses ONLY the listing Lexi/Steve chose:
+  - ClickToMatch match → selected_candidate (often also pipeline slot 0)
+  - ClickToPrice choice → selected_candidate (may differ from pipeline slot 0)
+
+Never uses pipeline_slot0 as the title/thumb source when selected_candidate exists.
+Pins without selected_candidate (e.g. manual price only) are skipped.
+
+Does not modify pin_pricing_tests. Writes only the local --out file.
 
 Example:
-  python3 build_seed_from_firebase.py \\
-    --test-run-id test_PriceCollection_20260825_1328__build_18953_visual_baseline \\
-    --collection PriceCollection_20260825_1328 \\
-    --count 15 \\
-    --out seed.json \\
-    --download-crops
+  python3 build_seed_from_firebase.py --count 15 --out seed.json --download-crops
 """
 
 from __future__ import annotations
@@ -31,16 +33,13 @@ def fetch_json(url: str):
         return json.load(r)
 
 
-def diversity_tags(v: dict) -> list[str]:
-    t = (v.get("listing_title") or "")
-    low = t.lower()
+def diversity_tags(v: dict, title: str) -> list[str]:
+    low = (title or "").lower()
     tags = []
     if v.get("ctm_match_status") == "match":
         tags.append("ctm")
-    if v.get("price_source") == "manual":
-        tags.append("manual")
-    elif v.get("price_source") == "listing":
-        tags.append("ctp" if v.get("ctm_match_status") != "match" else "listing")
+    else:
+        tags.append("ctp")
     for m in (
         "wdi",
         "dssh",
@@ -55,23 +54,38 @@ def diversity_tags(v: dict) -> list[str]:
         "hunchback",
         "darkwing",
         "pirates",
+        "aurora",
+        "alice",
+        "tramp",
     ):
         if m in low:
             tags.append(m.strip())
-    if len(t) < 50:
+    if len(title) < 50:
         tags.append("short")
-    elif len(t) > 70:
+    elif len(title) > 70:
         tags.append("long")
     else:
         tags.append("mid")
     return tags
 
 
+def chosen_listing(v: dict) -> dict | None:
+    """Return the operator-chosen eBay listing, or None if none was chosen."""
+    sc = v.get("selected_candidate")
+    if not isinstance(sc, dict):
+        return None
+    if not (sc.get("title") or sc.get("itemUrl") or sc.get("itemId")):
+        return None
+    return sc
+
+
 def to_seed_row(v: dict, collection: str) -> dict:
-    sc = v.get("selected_candidate") if isinstance(v.get("selected_candidate"), dict) else {}
-    slot = v.get("pipeline_slot0") if isinstance(v.get("pipeline_slot0"), dict) else {}
-    src = sc or slot
+    sc = chosen_listing(v)
+    assert sc is not None
     fn = v.get("crop_filename") or ""
+    listing_source = (
+        "ctm_match" if v.get("ctm_match_status") == "match" else "click_to_price"
+    )
     return {
         "pin_key": v.get("pin_key"),
         "crop_filename": fn,
@@ -81,10 +95,15 @@ def to_seed_row(v: dict, collection: str) -> dict:
         "ctm_match_status": v.get("ctm_match_status"),
         "price_source": v.get("price_source"),
         "display_price": v.get("display_price"),
-        "ebay_title": v.get("listing_title") or src.get("title") or "",
-        "ebay_price": src.get("total_price") if src.get("total_price") is not None else src.get("price"),
-        "ebay_thumb_url": src.get("thumbUrl") or "",
-        "ebay_item_url": src.get("itemUrl") or src.get("itemId") or "",
+        "selected_candidate_idx": v.get("selected_candidate_idx"),
+        "listing_source": listing_source,
+        # Chosen listing ONLY — never pipeline_slot0
+        "ebay_title": sc.get("title") or "",
+        "ebay_price": sc.get("total_price")
+        if sc.get("total_price") is not None
+        else sc.get("price"),
+        "ebay_thumb_url": sc.get("thumbUrl") or "",
+        "ebay_item_url": sc.get("itemUrl") or sc.get("itemId") or "",
         "crop_url": f"crops/{fn}",
         "crop_source_url": CROP_RAW.format(collection=collection, filename=fn),
     }
@@ -95,40 +114,40 @@ def pick_diverse(rows: list[dict], count: int) -> list[dict]:
     seen: set[str] = set()
     titles_seen: set[str] = set()
 
+    def title_of(v: dict) -> str:
+        sc = chosen_listing(v) or {}
+        return (sc.get("title") or "").strip().lower()
+
     def add(v: dict) -> bool:
-        title = (v.get("listing_title") or "").strip().lower()
+        title = title_of(v)
         if title and title in titles_seen:
             return False
         picked.append(v)
         if title:
             titles_seen.add(title)
-        for tag in diversity_tags(v):
+        sc = chosen_listing(v) or {}
+        for tag in diversity_tags(v, sc.get("title") or ""):
             seen.add(tag)
         return True
 
-    for v in rows:
-        if v.get("price_source") == "manual":
-            add(v)
-            if len(picked) >= count:
-                return picked
-
-    for v in rows:
-        if v.get("ctm_match_status") == "match" and v not in picked:
-            add(v)
-            if len(picked) >= count:
-                return picked
+    ctm = [v for v in rows if v.get("ctm_match_status") == "match"]
+    for v in ctm:
+        add(v)
+        if len(picked) >= max(1, count // 3):
+            break
 
     rest = [v for v in rows if v not in picked]
     while len(picked) < count and rest:
         best = None
         best_score = -1.0
         for v in rest:
-            tags = diversity_tags(v)
-            new = len(set(tags) - seen)
-            title = (v.get("listing_title") or "").strip().lower()
+            title = title_of(v)
             if title in titles_seen:
                 continue
-            score = new + 0.05 * len((v.get("listing_title") or "").split())
+            sc = chosen_listing(v) or {}
+            tags = diversity_tags(v, sc.get("title") or "")
+            new = len(set(tags) - seen)
+            score = new + 0.05 * len((sc.get("title") or "").split())
             if score > best_score:
                 best_score = score
                 best = v
@@ -155,24 +174,39 @@ def main() -> None:
     url = f"{DB}/pin_pricing_tests/{args.test_run_id}/{args.approach_id}/pins.json"
     print("Fetching", url)
     pins = fetch_json(url)
-    rows = [
-        v
-        for v in pins.values()
-        if isinstance(v, dict) and v.get("match_status") in ("match", "priced")
-    ]
+    rows = []
+    for v in pins.values():
+        if not isinstance(v, dict):
+            continue
+        if v.get("match_status") != "match":
+            continue
+        if v.get("price_source") != "listing":
+            continue
+        if not chosen_listing(v):
+            continue
+        rows.append(v)
+
+    print(f"Eligible (match + selected_candidate): {len(rows)}")
     picked = pick_diverse(rows, args.count)
     seed = [to_seed_row(v, args.collection) for v in picked]
     args.out.write_text(json.dumps(seed, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {len(seed)} pins -> {args.out}")
+    for s in seed:
+        print(f"  {s['listing_source']:14} {s['crop_filename']} | {s['ebay_title'][:70]}")
 
     if args.download_crops:
         crop_dir = args.out.parent / "crops"
         crop_dir.mkdir(parents=True, exist_ok=True)
+        wanted = {s["crop_filename"] for s in seed}
+        for existing in crop_dir.glob("*.jpg"):
+            if existing.name not in wanted:
+                existing.unlink()
         for s in seed:
             dest = crop_dir / s["crop_filename"]
-            src = s["crop_source_url"]
+            if dest.exists():
+                continue
             print("crop", dest.name)
-            urllib.request.urlretrieve(src, dest)
+            urllib.request.urlretrieve(s["crop_source_url"], dest)
 
 
 if __name__ == "__main__":

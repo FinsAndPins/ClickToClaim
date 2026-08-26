@@ -46,9 +46,7 @@ header h1 { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
 .stat b { display: block; font-size: 16px; line-height: 1.1; }
 .stat span { font-size: 9px; text-transform: uppercase; opacity: .65; letter-spacing: .04em; }
 .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-select, button, input[type="text"] {
-  font: inherit;
-}
+select, button, input[type="text"] { font: inherit; }
 select, .name-input {
   background: #1f2a37; color: #fff; border: 1px solid #334155;
   border-radius: 8px; padding: 6px 10px; font-size: 13px;
@@ -83,8 +81,14 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
   border-radius: 10px; border: 2px solid #0f766e33;
 }
 .img-col img.ebay { width: 128px; height: 128px; border-color: #cbd5e1; }
-.meta { font-size: 12px; color: var(--muted); text-align: center; }
+.meta { font-size: 12px; color: var(--muted); text-align: center; max-width: 200px; }
 .meta a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.badge {
+  display: inline-block; margin-top: 4px; padding: 3px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+}
+.badge.ctm { background: #dcfce7; color: #166534; }
+.badge.ctp { background: #e0e7ff; color: #3730a3; }
 .section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .section:last-child { border-bottom: 0; }
 .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-bottom: 6px; font-weight: 700; }
@@ -171,10 +175,11 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
 
 <main>
   <div class="hint">
-    <strong>Goal:</strong> build short Whatnot titles from eBay title words.
-    Ideal order: <strong>Character · Manufacturer · Set</strong> (plus any extras you want).
-    Tap a word: off → green (include) → red (never) → off. Use ↑↓ on green chips to reorder.
-    No IMG suffix in this pilot. Saves to a separate Firebase path (not pricing).
+    <strong>Listing source:</strong> the eBay listing you <em>chose</em> —
+    ClickToMatch when it matched, otherwise the ClickToPrice pick.
+    Not the original rank‑1 suggestion unless that was the match.
+    Ideal title order: <strong>Character · Manufacturer · Set</strong>.
+    Tap words: off → green → red (never) → off. ↑↓ reorders greens.
   </div>
 
   <div class="card" id="card">
@@ -185,14 +190,15 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
         <div class="meta" id="our-meta"></div>
       </div>
       <div class="img-col">
-        <label>eBay listing</label>
+        <label>Chosen eBay listing</label>
         <img id="ebay-img" class="ebay" alt="eBay thumb">
         <div class="meta" id="ebay-meta"></div>
+        <div id="listing-badge" class="badge"></div>
       </div>
     </div>
 
     <div class="section">
-      <div class="lbl">eBay title</div>
+      <div class="lbl">Chosen eBay title</div>
       <div class="ebay-title" id="ebay-title"></div>
     </div>
 
@@ -210,7 +216,7 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
     </div>
 
     <div class="section">
-      <div class="lbl">Words from eBay title</div>
+      <div class="lbl">Words from chosen eBay title</div>
       <div class="chips" id="chips"></div>
       <div class="legend">
         <span><i style="color:#16a34a">Green</i> = include</span>
@@ -235,51 +241,6 @@ main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
 <script>
 const SEED = [
   {
-    "pin_key": "img1_pin04.jpg__b648f3f3deb2",
-    "crop_filename": "img1_pin04.jpg",
-    "board_num": "1",
-    "pin_n": 4,
-    "match_status": "priced",
-    "ctm_match_status": "no_match",
-    "price_source": "manual",
-    "display_price": 100,
-    "ebay_title": "2020 Nintendo Animal Crossing Doggy Pin Brooch Jewelry N3",
-    "ebay_price": 12,
-    "ebay_thumb_url": "https://i.ebayimg.com/images/g/ExcAAeSw7H5o4ryG/s-l225.jpg",
-    "ebay_item_url": "https://www.ebay.com/itm/398164218198?hash=item5cb46fd156:g:ExcAAeSw7H5o4ryG",
-    "crop_url": "crops/img1_pin04.jpg"
-  },
-  {
-    "pin_key": "img1_pin22.jpg__8c15cb8bc66a",
-    "crop_filename": "img1_pin22.jpg",
-    "board_num": "1",
-    "pin_n": 22,
-    "match_status": "priced",
-    "ctm_match_status": "no_match",
-    "price_source": "manual",
-    "display_price": 450,
-    "ebay_title": "Origami Owl Disney Can\u2019t Stop Won\u2019t Stop Mickey Mouse Face Plate ",
-    "ebay_price": 10,
-    "ebay_thumb_url": "https://i.ebayimg.com/images/g/z68AAeSwSytqh8cl/s-l225.jpg",
-    "ebay_item_url": "https://www.ebay.com/itm/178428614270?hash=item298b2c967e:g:z68AAeSwSytqh8cl",
-    "crop_url": "crops/img1_pin22.jpg"
-  },
-  {
-    "pin_key": "img5_pin06.jpg__7db489452fe9",
-    "crop_filename": "img5_pin06.jpg",
-    "board_num": "5",
-    "pin_n": 6,
-    "match_status": "priced",
-    "ctm_match_status": "no_match",
-    "price_source": "manual",
-    "display_price": 1200,
-    "ebay_title": "Disneyland Paris Mermaid Ariel The Little Mermaid Enamel Pin Set New",
-    "ebay_price": 34,
-    "ebay_thumb_url": "https://i.ebayimg.com/images/g/sjsAAeSwcLlqOUIu/s-l225.jpg",
-    "ebay_item_url": "https://www.ebay.com/itm/188555739213?hash=item2be6cc404d:g:sjsAAeSwcLlqOUIu",
-    "crop_url": "crops/img5_pin06.jpg"
-  },
-  {
     "pin_key": "img1_pin19.jpg__d1af6b6f0830",
     "crop_filename": "img1_pin19.jpg",
     "board_num": "1",
@@ -288,11 +249,14 @@ const SEED = [
     "ctm_match_status": "match",
     "price_source": "listing",
     "display_price": 45,
+    "selected_candidate_idx": 0,
+    "listing_source": "ctm_match",
     "ebay_title": "WDI Adventures of Gummi Bears aDorbs! Mystery Tummi Gummi LE 400 Disney Pin",
     "ebay_price": 45,
     "ebay_thumb_url": "https://i.ebayimg.com/images/g/V~kAAeSwsehqZYrI/s-l225.jpg",
     "ebay_item_url": "https://www.ebay.com/itm/227447970884?hash=item34f4f49c44:g:V~kAAeSwsehqZYrI",
-    "crop_url": "crops/img1_pin19.jpg"
+    "crop_url": "crops/img1_pin19.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img1_pin19.jpg"
   },
   {
     "pin_key": "img1_pin20.jpg__e0eca4140ee4",
@@ -303,11 +267,14 @@ const SEED = [
     "ctm_match_status": "match",
     "price_source": "listing",
     "display_price": 44,
+    "selected_candidate_idx": 0,
+    "listing_source": "ctm_match",
     "ebay_title": "WDI Adorbs Mystery Pirates of the Caribbean The Old Man Bayou LE 500 Disney Pin",
     "ebay_price": 44,
     "ebay_thumb_url": "https://i.ebayimg.com/images/g/k0AAAeSwh~xqXP7O/s-l225.jpg",
     "ebay_item_url": "https://www.ebay.com/itm/137529439834?hash=item200564b65a:g:k0AAAeSwh~xqXP7O",
-    "crop_url": "crops/img1_pin20.jpg"
+    "crop_url": "crops/img1_pin20.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img1_pin20.jpg"
   },
   {
     "pin_key": "img1_pin26.jpg__b1fb17411bbe",
@@ -318,11 +285,14 @@ const SEED = [
     "ctm_match_status": "match",
     "price_source": "listing",
     "display_price": 85,
+    "selected_candidate_idx": 0,
+    "listing_source": "ctm_match",
     "ebay_title": "Disney WDI Pinocchio and Lampwick Silhouette LE 300 Cast Jumbo Pin",
     "ebay_price": 85,
     "ebay_thumb_url": "https://i.ebayimg.com/images/g/adMAAeSwQ5tpASQN/s-l225.jpg",
     "ebay_item_url": "https://www.ebay.com/itm/146925941198?hash=item223577f1ce:g:adMAAeSwQ5tpASQN",
-    "crop_url": "crops/img1_pin26.jpg"
+    "crop_url": "crops/img1_pin26.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img1_pin26.jpg"
   },
   {
     "pin_key": "img1_pin27.jpg__21cd0e63116d",
@@ -333,56 +303,50 @@ const SEED = [
     "ctm_match_status": "match",
     "price_source": "listing",
     "display_price": 124,
+    "selected_candidate_idx": 0,
+    "listing_source": "ctm_match",
     "ebay_title": "WDI MOG Disney Afternoon The Adventure of the Gummi Bears Jumbo Pin",
     "ebay_price": 124,
     "ebay_thumb_url": "https://i.ebayimg.com/images/g/ujEAAeSwAFFp~2~7/s-l225.jpg",
     "ebay_item_url": "https://www.ebay.com/itm/336575667095?hash=item4e5d791b97:g:ujEAAeSwAFFp~2~7",
-    "crop_url": "crops/img1_pin27.jpg"
+    "crop_url": "crops/img1_pin27.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img1_pin27.jpg"
   },
   {
-    "pin_key": "img4_pin01.jpg__957f4eefbd93",
-    "crop_filename": "img4_pin01.jpg",
-    "board_num": "4",
+    "pin_key": "img2_pin01.jpg__2a40656f10aa",
+    "crop_filename": "img2_pin01.jpg",
+    "board_num": "2",
     "pin_n": 1,
     "match_status": "match",
-    "ctm_match_status": "no_match",
+    "ctm_match_status": "match",
     "price_source": "listing",
-    "display_price": 200,
-    "ebay_title": "DEC Star Wars Jabba the Hut Stamp Pin",
-    "ebay_price": 200,
-    "ebay_thumb_url": "https://i.ebayimg.com/images/g/IyIAAeSw5qlopOT4/s-l225.jpg",
-    "ebay_item_url": "https://www.ebay.com/itm/357487385545?hash=item533be89bc9:g:IyIAAeSw5qlopOT4",
-    "crop_url": "crops/img4_pin01.jpg"
+    "display_price": 110,
+    "selected_candidate_idx": 0,
+    "listing_source": "ctm_match",
+    "ebay_title": "Disney WDI MOG Mickey's of Glendale Pixar Luca Giulia Stained Glass Pin LE 300",
+    "ebay_price": 110,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/KqEAAeSwizZqaTwN/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/398225323900?hash=item5cb814377c:g:KqEAAeSwizZqaTwN",
+    "crop_url": "crops/img2_pin01.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img2_pin01.jpg"
   },
   {
-    "pin_key": "img2_pin06.jpg__a3d523d1b478",
-    "crop_filename": "img2_pin06.jpg",
+    "pin_key": "img2_pin04.jpg__07df6ebc0e22",
+    "crop_filename": "img2_pin04.jpg",
     "board_num": "2",
-    "pin_n": 6,
+    "pin_n": 4,
     "match_status": "match",
-    "ctm_match_status": "no_match",
+    "ctm_match_status": "match",
     "price_source": "listing",
-    "display_price": 150,
-    "ebay_title": "2019 Disney D23 Expo Best In Show Tramp Pin - Lady and the Tramp LE 300 WDI MOG",
-    "ebay_price": 150,
-    "ebay_thumb_url": "https://i.ebayimg.com/images/g/9sMAAOSw24Rli9SI/s-l225.jpg",
-    "ebay_item_url": "https://www.ebay.com/itm/276251263437?hash=item4051dbc1cd:g:9sMAAOSw24Rli9SI",
-    "crop_url": "crops/img2_pin06.jpg"
-  },
-  {
-    "pin_key": "img3_pin43.jpg__d3a41cdfaa74",
-    "crop_filename": "img3_pin43.jpg",
-    "board_num": "3",
-    "pin_n": 43,
-    "match_status": "match",
-    "ctm_match_status": "no_match",
-    "price_source": "listing",
-    "display_price": 575,
-    "ebay_title": "Esmeralda SUPER CHASER - The Hunchback of Notre Dame Adorbs Mystery Set LE 200",
-    "ebay_price": 575,
-    "ebay_thumb_url": "https://i.ebayimg.com/images/g/CHsAAeSw1vZqYW3N/s-l225.jpg",
-    "ebay_item_url": "https://www.ebay.com/itm/236985654211?hash=item372d721bc3:g:CHsAAeSw1vZqYW3N",
-    "crop_url": "crops/img3_pin43.jpg"
+    "display_price": 130,
+    "selected_candidate_idx": 0,
+    "listing_source": "ctm_match",
+    "ebay_title": "Disney WDI MOG Pixar Luca Pin Human Sea Monster in Water LE 300 Pin",
+    "ebay_price": 130,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/XcQAAeSwgCRqW3xT/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/398188226212?hash=item5cb5de26a4:g:XcQAAeSwgCRqW3xT",
+    "crop_url": "crops/img2_pin04.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img2_pin04.jpg"
   },
   {
     "pin_key": "img2_pin07.jpg__79ac4430c961",
@@ -393,26 +357,50 @@ const SEED = [
     "ctm_match_status": "no_match",
     "price_source": "listing",
     "display_price": 400,
+    "selected_candidate_idx": 8,
+    "listing_source": "click_to_price",
     "ebay_title": "Disney DSF DSSH Pink Dress Aurora Sleeping Beauty Cutie Cuties Pin LE 300",
     "ebay_price": 400,
     "ebay_thumb_url": "https://i.ebayimg.com/images/g/qaQAAOSw3mlmUfLu/s-l225.jpg",
     "ebay_item_url": "https://www.ebay.com/itm/235580119382?hash=item36d9ab5956:g:qaQAAOSw3mlmUfLu",
-    "crop_url": "crops/img2_pin07.jpg"
+    "crop_url": "crops/img2_pin07.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img2_pin07.jpg"
   },
   {
-    "pin_key": "img3_pin45.jpg__02486028ab23",
-    "crop_filename": "img3_pin45.jpg",
-    "board_num": "3",
-    "pin_n": 45,
+    "pin_key": "img4_pin01.jpg__957f4eefbd93",
+    "crop_filename": "img4_pin01.jpg",
+    "board_num": "4",
+    "pin_n": 1,
     "match_status": "match",
-    "ctm_match_status": "match",
+    "ctm_match_status": "no_match",
     "price_source": "listing",
-    "display_price": 57,
-    "ebay_title": "Disney WDI MOG aDorbs! Mystery Darkwing Duck Pin Honker Muddlefoot LE 400 Pin",
-    "ebay_price": 57,
-    "ebay_thumb_url": "https://i.ebayimg.com/images/g/IHwAAeSwRT1qaexb/s-l225.jpg",
-    "ebay_item_url": "https://www.ebay.com/itm/198532637385?hash=item2e3977a2c9:g:IHwAAeSwRT1qaexb",
-    "crop_url": "crops/img3_pin45.jpg"
+    "display_price": 200,
+    "selected_candidate_idx": 6,
+    "listing_source": "click_to_price",
+    "ebay_title": "DEC Star Wars Jabba the Hut Stamp Pin",
+    "ebay_price": 200,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/IyIAAeSw5qlopOT4/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/357487385545?hash=item533be89bc9:g:IyIAAeSw5qlopOT4",
+    "crop_url": "crops/img4_pin01.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img4_pin01.jpg"
+  },
+  {
+    "pin_key": "img2_pin06.jpg__a3d523d1b478",
+    "crop_filename": "img2_pin06.jpg",
+    "board_num": "2",
+    "pin_n": 6,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 150,
+    "selected_candidate_idx": 4,
+    "listing_source": "click_to_price",
+    "ebay_title": "2019 Disney D23 Expo Best In Show Tramp Pin - Lady and the Tramp LE 300 WDI MOG",
+    "ebay_price": 150,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/9sMAAOSw24Rli9SI/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/276251263437?hash=item4051dbc1cd:g:9sMAAOSw24Rli9SI",
+    "crop_url": "crops/img2_pin06.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img2_pin06.jpg"
   },
   {
     "pin_key": "img4_pin05.jpg__8b6a641578d8",
@@ -423,11 +411,50 @@ const SEED = [
     "ctm_match_status": "no_match",
     "price_source": "listing",
     "display_price": 500,
+    "selected_candidate_idx": 0,
+    "listing_source": "click_to_price",
     "ebay_title": "TWDC Store Disney DEC Pin - Stamp 1951 White Rabbit - LE 300 Alice in Wonderland",
     "ebay_price": 500,
     "ebay_thumb_url": "https://i.ebayimg.com/images/g/SNkAAeSw69Jp873p/s-l225.jpg",
     "ebay_item_url": "https://www.ebay.com/itm/157873923903?_skw=Dec+stamp+white+rabbit+-2026&hash=item24c204e73f:g:SNkAAeSw69Jp873p",
-    "crop_url": "crops/img4_pin05.jpg"
+    "crop_url": "crops/img4_pin05.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img4_pin05.jpg"
+  },
+  {
+    "pin_key": "img3_pin43.jpg__d3a41cdfaa74",
+    "crop_filename": "img3_pin43.jpg",
+    "board_num": "3",
+    "pin_n": 43,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 575,
+    "selected_candidate_idx": 7,
+    "listing_source": "click_to_price",
+    "ebay_title": "Esmeralda SUPER CHASER - The Hunchback of Notre Dame Adorbs Mystery Set LE 200",
+    "ebay_price": 575,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/CHsAAeSw1vZqYW3N/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/236985654211?hash=item372d721bc3:g:CHsAAeSw1vZqYW3N",
+    "crop_url": "crops/img3_pin43.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img3_pin43.jpg"
+  },
+  {
+    "pin_key": "img3_pin32.jpg__ff666178e8f3",
+    "crop_filename": "img3_pin32.jpg",
+    "board_num": "3",
+    "pin_n": 32,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 250,
+    "selected_candidate_idx": 7,
+    "listing_source": "click_to_price",
+    "ebay_title": "WDI MOG Disney Darkwing Duck Drake Mallard Super Chaser LE200 Adorb Pin",
+    "ebay_price": 250,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/vjEAAeSwMDlqY2Z8/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/407095576233?hash=item5ec8c986a9:g:vjEAAeSwMDlqY2Z8",
+    "crop_url": "crops/img3_pin32.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img3_pin32.jpg"
   },
   {
     "pin_key": "img4_pin03.jpg__c479ca8f03d9",
@@ -438,26 +465,50 @@ const SEED = [
     "ctm_match_status": "no_match",
     "price_source": "listing",
     "display_price": 358,
+    "selected_candidate_idx": 7,
+    "listing_source": "click_to_price",
     "ebay_title": "Disney WDI Pin - Off the Page Jim Hawkins - LE 300 Sketch Treasure Planet",
     "ebay_price": 358,
     "ebay_thumb_url": "https://i.ebayimg.com/images/g/lmQAAeSwEFNqW5hc/s-l225.jpg",
     "ebay_item_url": "https://www.ebay.com/itm/267731559160?hash=item3e560b62f8:g:lmQAAeSwEFNqW5hc",
-    "crop_url": "crops/img4_pin03.jpg"
+    "crop_url": "crops/img4_pin03.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img4_pin03.jpg"
   },
   {
-    "pin_key": "img2_pin05.jpg__d350dfc9a813",
-    "crop_filename": "img2_pin05.jpg",
-    "board_num": "2",
-    "pin_n": 5,
+    "pin_key": "img1_pin03.jpg__19cd76455111",
+    "crop_filename": "img1_pin03.jpg",
+    "board_num": "1",
+    "pin_n": 3,
     "match_status": "match",
-    "ctm_match_status": "match",
+    "ctm_match_status": "no_match",
     "price_source": "listing",
-    "display_price": 75,
-    "ebay_title": "Disney Studio Store Hollywood DSSH Cuties Pin - Wasabi",
-    "ebay_price": 75,
-    "ebay_thumb_url": "https://i.ebayimg.com/images/g/rWcAAeSwRxtqEL~s/s-l225.jpg",
-    "ebay_item_url": "https://www.ebay.com/itm/206292350877?hash=item3007fb779d:g:rWcAAeSwRxtqEL~s",
-    "crop_url": "crops/img2_pin05.jpg"
+    "display_price": 157,
+    "selected_candidate_idx": 9,
+    "listing_source": "click_to_price",
+    "ebay_title": "D23 Exclusive Adorbs Set - Robin Hood & Little John Archery Disguises (LE 400)",
+    "ebay_price": 157,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/3GsAAeSwOT5qeoJ5/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/236998585876?var=537407485780&hash=item372e376e14:g:3GsAAeSwOT5qeoJ5",
+    "crop_url": "crops/img1_pin03.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img1_pin03.jpg"
+  },
+  {
+    "pin_key": "img1_pin21.jpg__b4d278db1fb8",
+    "crop_filename": "img1_pin21.jpg",
+    "board_num": "1",
+    "pin_n": 21,
+    "match_status": "match",
+    "ctm_match_status": "no_match",
+    "price_source": "listing",
+    "display_price": 90,
+    "selected_candidate_idx": 2,
+    "listing_source": "click_to_price",
+    "ebay_title": "Disney WDI MOG aDorbs pin Adventures of the Gummi Bears Duke Igthorn CHASER LE",
+    "ebay_price": 90,
+    "ebay_thumb_url": "https://i.ebayimg.com/images/g/zx0AAeSwahlqVVFD/s-l225.jpg",
+    "ebay_item_url": "https://www.ebay.com/itm/257619977581?hash=item3bfb58e56d:g:zx0AAeSwahlqVVFD",
+    "crop_url": "crops/img1_pin21.jpg",
+    "crop_source_url": "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260825_1328/crops/img1_pin21.jpg"
   }
 ];
 
@@ -471,8 +522,10 @@ const FB_CONFIG = {
   appId: "1:31512845258:web:2124fae24cfee229084d33"
 };
 
-const BATCH_ID = "batch_15_v1";
+const BATCH_ID = "batch_15_v2_chosen_listing";
 const COLLECTION = "PriceCollection_20260825_1328";
+const PRICING_TEST_RUN = "test_PriceCollection_20260825_1328__build_18953_visual_baseline";
+const PRICING_APPROACH = "visual_baseline";
 const LS_KEY = `title_word_review:${COLLECTION}:${BATCH_ID}`;
 const LS_NAME = "title_word_review:reviewer";
 
@@ -499,18 +552,15 @@ function safePk(pinKey) {
 function tokenize(title) {
   const raw = String(title || "").trim();
   if (!raw) return [];
-  // Keep LE + number as one token; keep hyphenated chunks
   const parts = [];
   const re = /LE\s*[-]?\s*\d+|[A-Za-z0-9][A-Za-z0-9'’.\-]*[!]?|[^\s]/gi;
   let m;
   while ((m = re.exec(raw)) !== null) {
     const text = m[0].trim();
     if (!text) continue;
-    // skip pure punctuation leftovers
     if (/^[\-–—•|/]+$/.test(text)) continue;
     parts.push({ text, key: normalizeKey(text) });
   }
-  // Dedupe consecutive identical keys while keeping first display text
   const out = [];
   for (const p of parts) {
     if (out.length && out[out.length - 1].key === p.key) continue;
@@ -529,38 +579,21 @@ function normalizeKey(t) {
 }
 
 function seedSuggestion(tokens) {
-  // Prefer: character-ish words, makers, set hints, LE units. Drop NEVER_DEFAULT.
-  const include = [];
   const makers = [];
   const sets = [];
   const les = [];
   const chars = [];
   for (const tok of tokens) {
     const k = tok.key;
-    if (NEVER_DEFAULT.has(k)) {
-      tok.state = "never";
-      continue;
-    }
-    if (/^le\s*-?\s*\d+$/.test(k) || /^le\d+$/.test(k)) {
-      les.push(tok);
-      continue;
-    }
-    if (MAKERS.has(k)) {
-      makers.push(tok);
-      continue;
-    }
-    if (SET_HINTS.has(k) || k === "adorbs") {
-      sets.push(tok);
-      continue;
-    }
-    // Skip very generic leftovers already covered
+    if (NEVER_DEFAULT.has(k)) { tok.state = "never"; continue; }
+    if (/^le\s*-?\s*\d+$/.test(k) || /^le\d+$/.test(k)) { les.push(tok); continue; }
+    if (MAKERS.has(k)) { makers.push(tok); continue; }
+    if (SET_HINTS.has(k) || k === "adorbs") { sets.push(tok); continue; }
     if (["the","of","and","a","in","on","for","with","from","set","series"].includes(k)) {
-      tok.state = "off";
-      continue;
+      tok.state = "off"; continue;
     }
     chars.push(tok);
   }
-  // Order: Character · Manufacturer · Set · LE
   const ordered = [...chars, ...makers, ...sets, ...les];
   ordered.forEach((t) => { t.state = "on"; });
   return ordered.map((t) => t.id);
@@ -588,9 +621,25 @@ function titleFromOrder(tokens, orderIds) {
   return orderIds.map((id) => byId[id]?.text).filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
 }
 
-// ---- state ----
+/** Apply chosen listing fields from pricing Firebase selected_candidate (never pipeline_slot0). */
+function applyChosenListing(pin, fbPin) {
+  if (!fbPin || typeof fbPin !== "object") return false;
+  const sc = fbPin.selected_candidate;
+  if (!sc || typeof sc !== "object") return false;
+  if (!(sc.title || sc.itemUrl || sc.itemId)) return false;
+  const prevTitle = pin.ebay_title;
+  pin.ebay_title = sc.title || "";
+  pin.ebay_price = sc.total_price != null ? sc.total_price : sc.price;
+  pin.ebay_thumb_url = sc.thumbUrl || "";
+  pin.ebay_item_url = sc.itemUrl || sc.itemId || "";
+  pin.selected_candidate_idx = fbPin.selected_candidate_idx;
+  pin.ctm_match_status = fbPin.ctm_match_status || pin.ctm_match_status;
+  pin.display_price = fbPin.display_price != null ? fbPin.display_price : pin.display_price;
+  pin.listing_source = (pin.ctm_match_status === "match") ? "ctm_match" : "click_to_price";
+  return prevTitle !== pin.ebay_title;
+}
+
 let idx = 0;
-/** @type {Record<string, any>} */
 let labels = {};
 let fbReady = false;
 let fbRoot = null;
@@ -602,7 +651,9 @@ function pinStateKey(pin) { return safePk(pin.pin_key); }
 
 function ensureLabel(pin) {
   const k = pinStateKey(pin);
-  if (labels[k]) return labels[k];
+  if (labels[k] && labels[k].ebay_title === pin.ebay_title) return labels[k];
+  // If listing title changed after hydrate, rebuild token seed but keep accepted cleaned if same pin
+  const prev = labels[k];
   const tokens = tokenize(pin.ebay_title);
   const order = seedSuggestion(tokens);
   const cleaned = titleFromOrder(tokens, order);
@@ -612,12 +663,17 @@ function ensureLabel(pin) {
     ebay_title: pin.ebay_title,
     tokens,
     include_order: order,
-    cleaned_title: cleaned,
-    accepted: false,
-    reviewed_by: "",
-    updated_at: null,
-    accepted_at: null,
+    cleaned_title: (prev && prev.accepted && prev.ebay_title === pin.ebay_title) ? prev.cleaned_title : cleaned,
+    accepted: (prev && prev.ebay_title === pin.ebay_title) ? !!prev.accepted : false,
+    reviewed_by: prev?.reviewed_by || "",
+    updated_at: prev?.updated_at || null,
+    accepted_at: prev?.accepted_at || null,
   };
+  if (prev && prev.accepted && prev.ebay_title === pin.ebay_title) {
+    labels[k].tokens = prev.tokens;
+    labels[k].include_order = prev.include_order;
+    labels[k].cleaned_title = prev.cleaned_title;
+  }
   return labels[k];
 }
 
@@ -638,6 +694,17 @@ function syncChipStatesFromOrder(label) {
   }
 }
 
+function listingBadge(pin) {
+  const el = document.getElementById("listing-badge");
+  if (pin.listing_source === "ctm_match") {
+    el.className = "badge ctm";
+    el.textContent = "ClickToMatch";
+  } else {
+    el.className = "badge ctp";
+    el.textContent = "ClickToPrice pick";
+  }
+}
+
 function render() {
   const pin = currentPin();
   const label = ensureLabel(pin);
@@ -645,15 +712,16 @@ function render() {
   document.getElementById("stat-done").textContent = String(Object.values(labels).filter((l) => l.accepted).length);
 
   document.getElementById("our-img").src = pin.crop_url;
-  document.getElementById("our-meta").textContent = `${pin.crop_filename} · board ${pin.board_num} · our $${pin.display_price ?? "—"} · ${pin.price_source}/${pin.ctm_match_status}`;
+  document.getElementById("our-meta").textContent = `${pin.crop_filename} · board ${pin.board_num} · our $${pin.display_price ?? "—"}`;
   document.getElementById("ebay-img").src = pin.ebay_thumb_url || "";
   const ebayMeta = document.getElementById("ebay-meta");
   const price = pin.ebay_price != null ? `$${pin.ebay_price}` : "—";
   ebayMeta.innerHTML = pin.ebay_item_url
     ? `${price} · <a href="${pin.ebay_item_url}" target="_blank" rel="noopener">Open eBay</a>`
     : price;
+  listingBadge(pin);
 
-  document.getElementById("ebay-title").textContent = pin.ebay_title || "(no title)";
+  document.getElementById("ebay-title").textContent = pin.ebay_title || "(no chosen listing title)";
 
   const slots = guessSlots(includedTokens(label));
   document.getElementById("slot-character").textContent = slots.character;
@@ -666,7 +734,6 @@ function render() {
 
   const chips = document.getElementById("chips");
   chips.innerHTML = "";
-  // Show tokens in original title order for discovery; green ones show order index
   const orderIndex = Object.fromEntries(label.include_order.map((id, i) => [id, i + 1]));
   label.tokens.forEach((tok) => {
     const el = document.createElement("button");
@@ -760,7 +827,6 @@ function acceptCurrent() {
   label.accepted = true;
   label.accepted_at = new Date().toISOString();
   label.updated_at = label.accepted_at;
-  // Align include_order to cleaned title words when possible
   alignOrderToCleaned(label);
   scheduleSave(label, true);
   render();
@@ -793,7 +859,6 @@ function onCleanedInput() {
   const label = ensureLabel(currentPin());
   label.cleaned_title = document.getElementById("cleaned").value;
   label.accepted = false;
-  // Soft sync: mark tokens on if present in cleaned text
   const cleanedKeys = new Set(label.cleaned_title.split(/\s+/).map(normalizeKey).filter(Boolean));
   label.include_order = [];
   for (const t of label.tokens) {
@@ -806,7 +871,6 @@ function onCleanedInput() {
     }
   }
   scheduleSave(label);
-  // update slots without fighting caret too hard
   const slots = guessSlots(includedTokens(label));
   document.getElementById("slot-character").textContent = slots.character;
   document.getElementById("slot-manufacturer").textContent = slots.manufacturer;
@@ -873,6 +937,7 @@ function exportTraining() {
     const label = ensureLabel(pin);
     return {
       ...labelPayload(label),
+      listing_source: pin.listing_source,
       display_price: pin.display_price,
       ebay_price: pin.ebay_price,
       price_source: pin.price_source,
@@ -896,9 +961,23 @@ function initFirebase() {
     firebase.initializeApp(FB_CONFIG);
     fbRoot = firebase.database().ref(`title_word_review/${COLLECTION}/${BATCH_ID}`);
     fbReady = true;
+
+    // Read-only: refresh chosen listings from pricing harness selected_candidate
+    const pricingRef = firebase.database().ref(`pin_pricing_tests/${PRICING_TEST_RUN}/${PRICING_APPROACH}/pins`);
+    pricingRef.once("value").then((snap) => {
+      const all = snap.val() || {};
+      let changed = 0;
+      for (const pin of SEED) {
+        const fbPin = all[safePk(pin.pin_key)] || all[pin.pin_key];
+        if (applyChosenListing(pin, fbPin)) changed += 1;
+        else applyChosenListing(pin, fbPin); // still apply even if title same
+      }
+      if (changed) toast(`Refreshed ${changed} chosen listing(s)`);
+      render();
+    }).catch((err) => console.warn("pricing hydrate failed", err));
+
     fbRoot.child("pins").once("value").then((snap) => {
       const remote = snap.val() || {};
-      // Merge: remote accepted wins over local empty; otherwise keep newer updated_at
       Object.keys(remote).forEach((k) => {
         const r = remote[k];
         if (!r || !r.tokens) return;
