@@ -33,7 +33,6 @@
     "pixar",
     "walt",
     "imagineering",
-    "hollywood",
     "pack",
     "glendale",
     "studio",
@@ -130,7 +129,7 @@
     "wreck it ralph",
     "the emperors new groove"
   ],
-  "notes": "Title = Character \u00b7 Manufacturer \u00b7 Set \u00b7 LE. Drop Mystery (Adorbs are mystery-box), Pixar/Walt/Imagineering/Hollywood/Pack, and movie/show phrases. Conditional: drop Luca if Ciccio/Guido; drop Aladdin if Genie/Iago/Jasmine. Accepted labels are never overwritten.",
+  "notes": "Title prefers acronyms (WDI, DSSH, DEC, MOG, D23, DLP), not spelled-out expansions (Walt Disney Imagineering, Disney Studio Store Hollywood, Mickey's of Glendale). Spelled-out forms are description-only for search. Hollywood alone may stay when it means Hollywood Studios park; it is stripped only as part of DSSH expansion phrases. Character \u00b7 Manufacturer acronym \u00b7 Set \u00b7 LE.",
   "conditional_drops": [
     {
       "drop": "luca",
@@ -155,5 +154,16 @@
         "rajah"
       ]
     }
+  ],
+  "expansion_phrases": [
+    "walt disney imagineering",
+    "walt disney",
+    "disney studio store hollywood",
+    "disney studio store",
+    "studio store hollywood",
+    "mickey's of glendale",
+    "mickey of glendale",
+    "mickeys of glendale",
+    "disneyland paris"
   ]
 }

@@ -35,10 +35,9 @@
     return out;
   }
 
-  function markMoviePhraseTokens(tokens, rules) {
-    const phrases = rules.movie_phrases || [];
+  function markPhraseTokens(tokens, phrases) {
     const keys = tokens.map((t) => t.key);
-    for (const phrase of phrases) {
+    for (const phrase of phrases || []) {
       const pwords = phrase.split(/\s+/).map(normalizeKey).filter(Boolean);
       if (!pwords.length) continue;
       for (let i = 0; i <= keys.length - pwords.length; i++) {
@@ -56,6 +55,15 @@
         }
       }
     }
+  }
+
+  function markMoviePhraseTokens(tokens, rules) {
+    markPhraseTokens(tokens, rules.movie_phrases || []);
+  }
+
+  function markExpansionPhraseTokens(tokens, rules) {
+    // Spelled-out acronym expansions (Walt Disney Imagineering, Studio Store Hollywood, …)
+    markPhraseTokens(tokens, rules.expansion_phrases || []);
   }
 
   function applyConditionalDrops(tokens, rules) {
@@ -82,6 +90,7 @@
     const setHints = new Set((rules.set_hints || []).map(normalizeKey));
 
     markMoviePhraseTokens(tokens, rules);
+    markExpansionPhraseTokens(tokens, rules);
     applyConditionalDrops(tokens, rules);
 
     const makerToks = [];
