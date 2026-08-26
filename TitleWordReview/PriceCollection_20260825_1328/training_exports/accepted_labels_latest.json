@@ -1,9 +1,9 @@
 {
-  "exported_at": "2026-08-26T23:04:56.419467+00:00",
+  "exported_at": "2026-08-26T23:07:10.619634+00:00",
   "collection": "PriceCollection_20260825_1328",
   "batch_id": "batch_full_98_v1",
   "rules_version_at_export": "v7_sanitize_le2",
-  "accepted_count": 97,
+  "accepted_count": 98,
   "pins": [
     {
       "pin_key": "img1_pin01.jpg__6b25e6bd4b2a",
@@ -525,6 +525,28 @@
       "description_only_words": null,
       "reviewed_by": "PinDad",
       "accepted_at": "2026-08-26T23:02:57.746Z",
+      "rules_version": "v7_sanitize_le2"
+    },
+    {
+      "pin_key": "img2_pin01.jpg__2a40656f10aa",
+      "crop_filename": "img2_pin01.jpg",
+      "ebay_title": "Disney WDI MOG Mickey's of Glendale Pixar Luca Giulia Stained Glass Pin LE 300",
+      "cleaned_title": "Giulia Stained Glass WDI MOG LE",
+      "included_words_ordered": [
+        "Giulia",
+        "Stained",
+        "Glass",
+        "WDI",
+        "MOG",
+        "LE 300"
+      ],
+      "description_only_words": [
+        "Mickey's",
+        "of",
+        "Glendale"
+      ],
+      "reviewed_by": "PinDad",
+      "accepted_at": "2026-08-26T23:06:44.122Z",
       "rules_version": "v7_sanitize_le2"
     },
     {
