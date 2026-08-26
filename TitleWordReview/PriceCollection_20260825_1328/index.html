@@ -211,7 +211,7 @@ const PRIOR_BATCH_ID = "batch_15_v2_chosen_listing";
 const COLLECTION = "PriceCollection_20260825_1328";
 const PRICING_TEST_RUN = "test_PriceCollection_20260825_1328__build_18953_visual_baseline";
 const PRICING_APPROACH = "visual_baseline";
-const RULES_VERSION = "v7_sanitize_le";
+const RULES_VERSION = "v7_sanitize_le2";
 const LS_KEY = `title_word_review:${COLLECTION}:${BATCH_ID}`;
 const LS_NAME = "title_word_review:reviewer";
 
@@ -268,7 +268,8 @@ function ensureLabel(pin) {
   const k = pinStateKey(pin);
   const prev = labels[k];
   if (prev && prev.accepted && prev.ebay_title === pin.ebay_title && prev.tokens) {
-    return normalizeLabelTitle(prev, pin);
+    normalizeLabelTitle(prev, pin);
+    return prev;
   }
   if (
     prev &&
@@ -278,7 +279,8 @@ function ensureLabel(pin) {
     prev.tokens &&
     !titleNeedsSanitize(prev.cleaned_title)
   ) {
-    return normalizeLabelTitle(prev, pin);
+    normalizeLabelTitle(prev, pin);
+    return prev;
   }
   labels[k] = makeSeedLabel(pin);
   return labels[k];
@@ -327,12 +329,12 @@ function applyCleanedTitle(label, cleaned) {
   label.cleaned_title = sanitizeCleanedTitle(cleaned, RULES);
 }
 
-/** Strip LE numbers / Chaser from any loaded or displayed title. */
+/** Strip LE numbers / Chaser from any loaded or displayed title. Returns true if changed. */
 function normalizeLabelTitle(label, pin) {
-  if (!label) return label;
+  if (!label) return false;
   const before = label.cleaned_title || "";
   applyCleanedTitle(label, before);
-  if (label.cleaned_title === before) return label;
+  if (label.cleaned_title === before) return false;
   if (label.accepted) label.accepted = false;
   label.rules_version = RULES_VERSION;
   label.updated_at = new Date().toISOString();
@@ -349,7 +351,35 @@ function normalizeLabelTitle(label, pin) {
       }
     }
   }
-  return label;
+  return true;
+}
+
+function shouldImportRemote(local, remote) {
+  if (!local) return true;
+  if (remote.accepted && !local.accepted) return true;
+  if (titleNeedsSanitize(local.cleaned_title) && !titleNeedsSanitize(remote.cleaned_title || "")) return true;
+  return (remote.updated_at || "") >= (local.updated_at || "");
+}
+
+function sanitizeAllLabels() {
+  let n = 0;
+  const writes = [];
+  for (const pin of SEED) {
+    const k = pinStateKey(pin);
+    const label = labels[k];
+    if (!label) continue;
+    if (normalizeLabelTitle(label, pin)) {
+      n += 1;
+      if (fbReady && fbRoot) {
+        writes.push(fbRoot.child("pins").child(k).set(labelPayload(label)));
+      }
+    }
+  }
+  if (n) persistLocal();
+  if (writes.length) {
+    Promise.all(writes).catch((err) => console.warn("sanitize write failed", err));
+  }
+  return n;
 }
 
 function rebuildCleanedFromChips(label) {
@@ -395,7 +425,7 @@ function mergeRemoteLabels(remote, onlyIfMissing) {
     if (!r || !r.tokens) return;
     const local = labels[k];
     if (onlyIfMissing && local && (local.accepted || local.updated_at)) return;
-    if (!local || (r.updated_at || "") >= (local.updated_at || "") || (r.accepted && !local.accepted)) {
+    if (shouldImportRemote(local, r)) {
       importRemoteLabel(k, r);
     }
   });
@@ -698,11 +728,12 @@ function initFirebase() {
   Promise.all([priorRef.once("value"), fullRef.once("value")]).then(([priorSnap, fullSnap]) => {
     mergeRemoteLabels(priorSnap.val() || {}, true);
     mergeRemoteLabels(fullSnap.val() || {}, false);
+    const sanitized = sanitizeAllLabels();
     const reseeds = reseedUnaccepted();
     persistLocal();
     const imported = acceptedCount();
-    if (imported) toast(`Loaded ${imported} accepted · reseeded ${reseeds}`);
-    else if (reseeds) toast(`Updated ${reseeds} open titles`);
+    if (imported) toast(`Loaded ${imported} accepted · reseeded ${reseeds}${sanitized ? ` · fixed ${sanitized} titles` : ""}`);
+    else if (reseeds || sanitized) toast(`Updated ${reseeds + sanitized} open titles`);
     setSaveUI("ok", "Firebase connected");
     render();
   }).catch(() => setSaveUI("local", "Firebase read failed"));
