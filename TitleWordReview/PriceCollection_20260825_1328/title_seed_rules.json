@@ -162,6 +162,28 @@
         "abu",
         "rajah"
       ]
+    },
+    {
+      "drop": "darkwing",
+      "if_any": [
+        "drake",
+        "mallard",
+        "quackerjack",
+        "launchpad",
+        "honker",
+        "tuskerninni"
+      ]
+    },
+    {
+      "drop": "duck",
+      "if_any": [
+        "drake",
+        "mallard",
+        "quackerjack",
+        "launchpad",
+        "honker",
+        "tuskerninni"
+      ]
     }
   ],
   "expansion_phrases": [

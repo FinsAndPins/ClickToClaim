@@ -211,7 +211,7 @@ const PRIOR_BATCH_ID = "batch_15_v2_chosen_listing";
 const COLLECTION = "PriceCollection_20260825_1328";
 const PRICING_TEST_RUN = "test_PriceCollection_20260825_1328__build_18953_visual_baseline";
 const PRICING_APPROACH = "visual_baseline";
-const RULES_VERSION = "v7_no_chaser_le_num";
+const RULES_VERSION = "v7_sanitize_le";
 const LS_KEY = `title_word_review:${COLLECTION}:${BATCH_ID}`;
 const LS_NAME = "title_word_review:reviewer";
 
@@ -224,7 +224,7 @@ let fbRoot = null;
 let saveTimer = null;
 let suppressCleanedInput = false;
 
-const { normalizeKey, tokenize, seedSuggestion, titleFromOrder, descriptionPreview } = TitleSeed;
+const { normalizeKey, tokenize, seedSuggestion, titleFromOrder, descriptionPreview, sanitizeCleanedTitle, titleNeedsSanitize } = TitleSeed;
 
 function toast(msg) {
   const el = document.getElementById("toast");
@@ -291,7 +291,13 @@ function reseedUnaccepted() {
     const k = pinStateKey(pin);
     const prev = labels[k];
     if (prev && prev.accepted) continue;
-    if (prev && prev.rules_version === RULES_VERSION && prev.tokens && prev.ebay_title === pin.ebay_title) {
+    if (
+      prev &&
+      prev.rules_version === RULES_VERSION &&
+      prev.tokens &&
+      prev.ebay_title === pin.ebay_title &&
+      !titleNeedsSanitize(prev.cleaned_title)
+    ) {
       continue;
     }
     labels[k] = makeSeedLabel(pin);
@@ -316,8 +322,12 @@ function descOnlyPreview(label) {
   return descriptionPreview(label, RULES);
 }
 
+function applyCleanedTitle(label, cleaned) {
+  label.cleaned_title = sanitizeCleanedTitle(cleaned, RULES);
+}
+
 function rebuildCleanedFromChips(label) {
-  label.cleaned_title = titleFromOrder(label.tokens, label.include_order, RULES);
+  applyCleanedTitle(label, titleFromOrder(label.tokens, label.include_order, RULES));
 }
 
 function applyChosenListing(pin, fbPin) {
@@ -523,7 +533,7 @@ function acceptCurrent() {
   const label = ensureLabel(pin);
   const name = (document.getElementById("reviewer").value || "").trim();
   if (!name) { toast("Enter your name first"); return; }
-  label.cleaned_title = document.getElementById("cleaned").value.trim();
+  applyCleanedTitle(label, document.getElementById("cleaned").value.trim());
   label.reviewed_by = name;
   label.accepted = true;
   label.accepted_at = new Date().toISOString();
@@ -545,9 +555,14 @@ function goNextOpen() {
 function onCleanedInput() {
   if (suppressCleanedInput) return;
   const label = ensureLabel(currentPin());
-  label.cleaned_title = document.getElementById("cleaned").value;
+  applyCleanedTitle(label, document.getElementById("cleaned").value);
   label.accepted = false;
   const cleanedKeys = new Set(label.cleaned_title.split(/\s+/).map(normalizeKey).filter(Boolean));
+  if (document.getElementById("cleaned").value !== label.cleaned_title) {
+    suppressCleanedInput = true;
+    document.getElementById("cleaned").value = label.cleaned_title;
+    suppressCleanedInput = false;
+  }
   label.include_order = [];
   for (const t of label.tokens) {
     if (t.state === "never" && t.desc_only) continue;

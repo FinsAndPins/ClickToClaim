@@ -208,6 +208,47 @@
     return text.replace(/\s+/g, " ").trim();
   }
 
+  const EDITION_NUMBERS = new Set(["100", "200", "250", "300", "400", "500", "600"]);
+
+  function sanitizeCleanedTitle(ct, rules) {
+    const words = String(ct || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    const out = [];
+    let seenLe = false;
+    for (const w of words) {
+      const k = normalizeKey(w);
+      if (k === "chaser") continue;
+      if (EDITION_NUMBERS.has(k)) continue;
+      if (isLeKey(k)) {
+        if (!seenLe) {
+          out.push((rules && rules.le_in_title) || "LE");
+          seenLe = true;
+        }
+        continue;
+      }
+      if (k === "adorbs" || k === "adorb") {
+        out.push((rules && rules.adorbs_canonical) || "Adorbs");
+        continue;
+      }
+      let text = w.replace(/[!?,.;:()\"“”‘’]/g, "");
+      if (/^adorbs!?$/i.test(text)) text = (rules && rules.adorbs_canonical) || "Adorbs";
+      if (/^adorb$/i.test(text)) text = (rules && rules.adorbs_canonical) || "Adorbs";
+      out.push(text);
+    }
+    return out.join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  function titleNeedsSanitize(cleaned) {
+    const ct = String(cleaned || "");
+    if (!ct) return false;
+    if (/\bchaser\b/i.test(ct)) return true;
+    if (/\bLE\s*\d+|\bLE\d+/i.test(ct)) return true;
+    if (/\b(100|200|250|300|400|500|600)\b/.test(ct)) return true;
+    return false;
+  }
+
   function titleFromOrder(tokens, orderIds, rules) {
     const byId = Object.fromEntries(tokens.map((t) => [t.id, t]));
     const seenKeys = new Set();
@@ -220,7 +261,7 @@
       const piece = displayText(t, rules || {});
       if (piece) parts.push(piece);
     }
-    return parts.join(" ").replace(/\s+/g, " ").trim();
+    return sanitizeCleanedTitle(parts.join(" ").replace(/\s+/g, " ").trim(), rules);
   }
 
   function descriptionOnlyWords(tokens) {
@@ -247,6 +288,8 @@
     displayText,
     descriptionOnlyWords,
     descriptionPreview,
+    sanitizeCleanedTitle,
+    titleNeedsSanitize,
     isLeKey,
   };
 })(typeof window !== "undefined" ? window : globalThis);
