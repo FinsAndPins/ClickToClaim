@@ -35,24 +35,23 @@ Build the bulk-upload CSV from accepted labels:
 python3 build_whatnot_csv.py
 ```
 
-Output: `training_exports/whatnot_upload_PriceCollection_20260825_1328.csv` (84 accepted pins).
+Output: `training_exports/whatnot_upload_PriceCollection_20260825_1328.csv` (98 accepted pins).
 
-- **Title:** accepted cleaned title from Title Word Review
-- **Description:** photo disclaimer, acronym expansions, movie/show, Limited Edition when title has LE, IMG board-pin
+- **Title:** accepted cleaned title + `PLEASE RELY ON THE PHOTO`
+- **Description:** photo disclaimer, full synonym group keywords (from `Disney Synonyms Keywords.txt`), movie/show, Limited Edition when title has LE, IMG board-pin
 - **Price:** `display_price` from pricing Firebase, **rounded up to nearest $5** (51→55, 56→60, 50→50)
-- **14 open pins** without Accept are excluded until reviewed
 
 ### Whatnot CSV description policy
 
 When we generate the Whatnot upload CSV, each listing **description** must include:
 
 1. “Please rely on the photo, rather than the description.”
-2. **Full spelled-out name** for every acronym in the title (from `acronym_expansions` in `title_seed_rules.json` — e.g. WDI → Walt Disney Imagineering, DSSH → Disney Studio Store Hollywood)
+2. **Synonym keywords** from `Disney Synonyms Keywords.txt` — if the title hits any term in a group, include **every** acronym, synonym, and full name in that group (e.g. WDI or MOG → `WDI, MOG, Walt Disney Imagineering, Mickey's of Glendale`)
 3. The **relevant movie or TV show** (for search), even though it stays out of the short title
 4. **Limited Edition** spelled out when the title contains **LE**
-5. IMG board–pin reference when we add that step
+5. IMG board–pin reference
 
-Titles stay short; descriptions carry the searchable long forms. Use `build_whatnot_csv.py` in this folder (not wired into production pricing/CTR watchers).
+Titles stay short (plus the photo-reliance suffix); descriptions carry the searchable long forms and synonyms. Use `build_whatnot_csv.py` in this folder (not wired into production pricing/CTR watchers).
 
 ## Files
 
@@ -62,7 +61,9 @@ Titles stay short; descriptions carry the searchable long forms. Use `build_what
 | `seed.json` | All 98 pins (generated) |
 | `title_seed_rules.json` | Learnings / denylists |
 | `title_seed.js` | Tokenize + seed suggestion |
-| `training_exports/` | Accepted-label snapshots |
+| `Disney Synonyms Keywords.txt` | Maker synonym groups for Whatnot descriptions |
+| `build_whatnot_csv.py` | Build Whatnot bulk-upload CSV |
+| `training_exports/` | Accepted-label snapshots + upload CSV |
 | `build_seed_from_firebase.py` | Regenerate seed (read-only Firebase) |
 | `crops/` | Self-contained crop JPEGs for Pages |
 

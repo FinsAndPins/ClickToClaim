@@ -211,21 +211,22 @@
     "wdcs": "Walt Disney Collectors Society"
   },
   "whatnot_csv": {
-    "title": "Short cleaned title from Title Word Review (Character \u00b7 Maker acronym \u00b7 Set \u00b7 LE). No punctuation; each word once.",
+    "title": "Short cleaned title from Title Word Review (Character · Maker acronym · Set · LE), then append PLEASE RELY ON THE PHOTO. No punctuation in the cleaned portion; each word once.",
     "description_must_include": [
       "Please rely on the photo, rather than the description.",
-      "Full spelled-out name for every acronym used in the title (see acronym_expansions).",
-      "Relevant movie or TV show for searchability (from movie phrases / character mapping \u2014 even when omitted from title).",
+      "When a title hits a Disney Synonyms Keywords group (e.g. WDI or MOG), include every acronym, synonym, and full name from that group.",
+      "Relevant movie or TV show for searchability (from movie phrases / character mapping — even when omitted from title).",
       "When the title contains LE, spell out Limited Edition in the description.",
       "IMG board-pin reference when we add that step."
     ],
     "description_not_in_title": [
-      "Spelled-out acronym expansions",
+      "Synonym-group keywords (acronyms + full names + aliases from Disney Synonyms Keywords.txt)",
       "Movie / TV show names",
       "Limited Edition (spell out in description when title has LE)",
       "LE edition size / run number (e.g. 400, 300)",
       "Chaser"
     ],
+    "synonyms_file": "Disney Synonyms Keywords.txt",
     "status": "Builder: build_whatnot_csv.py → training_exports/whatnot_upload_PriceCollection_20260825_1328.csv"
   }
 }

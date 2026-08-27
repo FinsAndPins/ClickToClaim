@@ -2,7 +2,8 @@
 """Build Whatnot bulk-upload CSV from Title Word Review accepted labels.
 
 Reads accepted labels + pricing from Firebase, applies title/description rules
-from title_seed_rules.json, rounds prices up to the nearest $5.
+from title_seed_rules.json + Disney Synonyms Keywords.txt, rounds prices up
+to the nearest $5.
 
 Example:
   python3 build_whatnot_csv.py
@@ -29,6 +30,8 @@ CROP_PAGES_BASE = (
     "https://finsandpins.github.io/ClickToClaim/TitleWordReview/"
     f"{COLLECTION}/crops/"
 )
+TITLE_PHOTO_SUFFIX = "PLEASE RELY ON THE PHOTO"
+SYNONYMS_FILENAME = "Disney Synonyms Keywords.txt"
 
 HEADERS = [
     "Category",
@@ -120,14 +123,89 @@ def find_franchise(ebay_title: str, desc_only_words, movie_phrases: list[str]) -
     return ""
 
 
-def acronyms_in_title(title: str, expansions: dict) -> list[str]:
-    seen = set()
+def parse_synonym_groups(path: Path) -> list[dict]:
+    """Parse 'Primary Name: alias1, alias2' lines into synonym groups.
+
+    Each group includes the primary name plus every alias. Matching any term
+    in the title expands the description to the full group (acronyms + full
+    names + synonyms), e.g. WDI or MOG → WDI, MOG, Walt Disney Imagineering,
+    Mickey's of Glendale.
+    """
+    groups: list[dict] = []
+    if not path.is_file():
+        return groups
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        primary, rest = line.split(":", 1)
+        primary = primary.strip()
+        aliases = [a.strip() for a in rest.split(",") if a.strip()]
+        terms: list[str] = []
+        seen_low: set[str] = set()
+
+        def add(term: str) -> None:
+            t = term.strip()
+            if not t:
+                return
+            low = t.lower()
+            if low in seen_low:
+                return
+            seen_low.add(low)
+            terms.append(t)
+
+        # Acronyms / short tokens first, then longer / full names.
+        short = [a for a in aliases if " " not in a]
+        long_aliases = [a for a in aliases if " " in a]
+        for a in short:
+            add(a)
+        add(primary)
+        for a in long_aliases:
+            add(a)
+
+        if terms:
+            groups.append({"primary": primary, "terms": terms, "match_lows": set(seen_low)})
+    return groups
+
+
+def title_matches_term(title_low: str, term_low: str) -> bool:
+    if " " in term_low or "'" in term_low:
+        return term_low in title_low
+    return bool(re.search(rf"\b{re.escape(term_low)}\b", title_low))
+
+
+def synonym_keywords_for_title(title: str, groups: list[dict]) -> list[str]:
+    title_low = (title or "").lower()
+    out: list[str] = []
+    seen_low: set[str] = set()
+    for group in groups:
+        if not any(title_matches_term(title_low, t) for t in group["match_lows"]):
+            continue
+        for term in group["terms"]:
+            low = term.lower()
+            if low in seen_low:
+                continue
+            seen_low.add(low)
+            out.append(term)
+    return out
+
+
+def leftover_acronym_expansions(title: str, expansions: dict, already_low: set[str]) -> list[str]:
+    """Spell out title acronyms not already covered by a synonym group."""
     lines = []
+    seen = set()
     for word in (title or "").split():
         key = normalize_key(word)
-        if key in expansions and key not in seen:
-            seen.add(key)
-            lines.append(expansions[key])
+        if key not in expansions or key in seen:
+            continue
+        if key in already_low:
+            continue
+        expansion = expansions[key]
+        if expansion.lower() in already_low:
+            continue
+        seen.add(key)
+        lines.append(word.upper() if word.isupper() or len(word) <= 4 else word)
+        lines.append(expansion)
     return lines
 
 
@@ -141,14 +219,44 @@ def img_ref(board_num, pin_n) -> str:
     return f"IMG {board}-{int(pin):02d}"
 
 
-def build_description(title: str, ebay_title: str, desc_only_words, rules: dict, board_num, pin_n) -> str:
+def with_photo_title_suffix(title: str) -> str:
+    t = (title or "").strip()
+    if not t:
+        return t
+    if re.search(rf"\b{re.escape(TITLE_PHOTO_SUFFIX)}\b", t, re.I):
+        return t
+    return f"{t} {TITLE_PHOTO_SUFFIX}"
+
+
+def build_description(
+    title: str,
+    ebay_title: str,
+    desc_only_words,
+    rules: dict,
+    synonym_groups: list[dict],
+    board_num,
+    pin_n,
+) -> str:
     parts = ["Please rely on the photo, rather than the description."]
-    parts.extend(acronyms_in_title(title, rules.get("acronym_expansions") or {}))
+    syn_terms = synonym_keywords_for_title(title, synonym_groups)
+    if syn_terms:
+        parts.append(", ".join(syn_terms) + ".")
+    already_low = {t.lower() for t in syn_terms}
+    for term in syn_terms:
+        already_low.add(normalize_key(term))
+    leftover = leftover_acronym_expansions(title, rules.get("acronym_expansions") or {}, already_low)
+    if leftover:
+        parts.append(", ".join(leftover) + ".")
     franchise = find_franchise(ebay_title, desc_only_words, rules.get("movie_phrases") or [])
     if franchise:
-        parts.append(franchise)
+        franchise_low = franchise.lower().strip()
+        syn_lows = {t.lower() for t in syn_terms}
+        # Skip franchise text that duplicates a synonym-group keyword string.
+        if franchise_low not in syn_lows and franchise_low not in already_low:
+            parts.append(franchise + ".")
+            already_low.add(franchise_low)
     if re.search(r"\bLE\b", title or "", re.I):
-        parts.append("Limited Edition")
+        parts.append("Limited Edition.")
     parts.append(img_ref(board_num, pin_n))
     return " ".join(p for p in parts if p)
 
@@ -160,7 +268,13 @@ def sort_key(row: dict) -> tuple:
         return (999, 999, row.get("crop_filename") or "")
 
 
-def build_rows(rules: dict, seed_by_crop: dict, labels: dict, pricing: dict) -> list[dict]:
+def build_rows(
+    rules: dict,
+    seed_by_crop: dict,
+    labels: dict,
+    pricing: dict,
+    synonym_groups: list[dict],
+) -> list[dict]:
     rows = []
     for _k, label in labels.items():
         if not label or not label.get("accepted"):
@@ -175,9 +289,10 @@ def build_rows(rules: dict, seed_by_crop: dict, labels: dict, pricing: dict) -> 
         raw_price = price_row.get("display_price", seed.get("display_price"))
         if raw_price is None:
             continue
-        title = (label.get("cleaned_title") or "").strip()
-        if not title:
+        base_title = (label.get("cleaned_title") or "").strip()
+        if not base_title:
             continue
+        title = with_photo_title_suffix(base_title)
         board_num = seed.get("board_num")
         pin_n = seed.get("pin_n")
         img_url = CROP_PAGES_BASE + crop
@@ -191,10 +306,11 @@ def build_rows(rules: dict, seed_by_crop: dict, labels: dict, pricing: dict) -> 
                 "Sub Category": "Disney Pins",
                 "Title": title,
                 "Description": build_description(
-                    title,
+                    base_title,
                     label.get("ebay_title") or seed.get("ebay_title") or "",
                     label.get("description_only_words"),
                     rules,
+                    synonym_groups,
                     board_num,
                     pin_n,
                 ),
@@ -232,6 +348,7 @@ def main() -> None:
     args = parser.parse_args()
     root = Path(__file__).resolve().parent
     rules = json.loads((root / "title_seed_rules.json").read_text(encoding="utf-8"))
+    synonym_groups = parse_synonym_groups(root / SYNONYMS_FILENAME)
     seed_doc = json.loads((root / "seed.json").read_text(encoding="utf-8"))
     seed_by_crop = {p["crop_filename"]: p for p in seed_doc.get("pins") or []}
 
@@ -240,7 +357,7 @@ def main() -> None:
         fetch_json(f"{DB}/pin_pricing_tests/{PRICING_RUN}/{PRICING_APPROACH}/pins.json") or {}
     )
 
-    rows = build_rows(rules, seed_by_crop, labels, pricing)
+    rows = build_rows(rules, seed_by_crop, labels, pricing, synonym_groups)
     out_path = Path(args.out)
     if not out_path.is_absolute():
         out_path = root / out_path
@@ -253,6 +370,8 @@ def main() -> None:
         "batch_id": BATCH_ID,
         "pin_count": len(rows),
         "price_rounding": "round_up_to_nearest_5",
+        "title_suffix": TITLE_PHOTO_SUFFIX,
+        "synonym_groups": len(synonym_groups),
         "csv_path": str(out_path.name),
         "sample": rows[:3],
     }
