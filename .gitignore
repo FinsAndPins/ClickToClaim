@@ -2,6 +2,8 @@
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
+!.cursor/docs/
+!.cursor/docs/**
 
 # Local Python environments and scratch folders; keep out of GitHub.
 .venv*/

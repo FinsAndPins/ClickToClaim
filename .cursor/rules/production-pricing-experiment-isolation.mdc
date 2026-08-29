@@ -61,6 +61,8 @@ Before editing any protected path, restate allowed paths and stop if "SHIP TO PR
 
 - `~/Library/Application Support/FinsAndPins/`
 
+Path/publish failure modes (wrong drop zone after install; pipeline OK but not on Pages): see `.cursor/rules/pricing-watcher-lessons.mdc` and `.cursor/docs/pricing-watcher-overnight-20260828.md`.
+
 ## Deploy rules
 
 - **Do not** run `install_boards_inbox_launchagent.sh` unless shipping intentional production pricing changes.

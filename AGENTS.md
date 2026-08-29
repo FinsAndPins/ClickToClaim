@@ -12,4 +12,6 @@ Opening a PR is not done — merge it before the final summary unless blocked (a
 
 Still do **not** auto-ship protected production pricing / PrepareClickToClaim / inbox-watcher paths without explicit **SHIP TO PRODUCTION**. See `.cursor/rules/production-pricing-experiment-isolation.mdc`.
 
+Pricing watcher overnight incident (2026-08-28), deferred hardening, and path/publish checklist: `.cursor/docs/pricing-watcher-overnight-20260828.md` and `.cursor/rules/pricing-watcher-lessons.mdc`.
+
 More detail: `.cursor/rules/auto-ship-commit-push-merge.mdc`
