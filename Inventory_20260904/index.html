@@ -5,7 +5,7 @@
     <title>Fins and Pins — 20260904 Inventory</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="inventory-20260904-v1">
+    <meta name="ctr-countdown" content="inventory-20260904-v3">
     <meta name="robots" content="noindex, nofollow">
     <style>
         :root {
@@ -359,7 +359,7 @@
 
 <a id="collectionAppPromo" href="https://apple.co/4f8gaE8" target="_blank" rel="noopener noreferrer" title="Collection Detection App on the App Store" aria-label="Collection Detection App on the App Store"><img src="./collection-detection-app-square.png" width="96" height="96" alt="Collection Detection App"></a>
 
-<div id="loginOverlay" style="display: flex;">
+<div id="loginOverlay" style="display: none;">
     <div class="login-box modal-box">
         <h3 class="login-welcome">
             <span class="login-welcome-pre">Welcome to the</span>
@@ -576,7 +576,8 @@ const IS_D23_INTEREST = false;
 const IS_D23_INVENTORY = true;
 /** Live CTR folder: board photos/JSON + Fix-box hides are read from here (not copied). */
 const CTR_BOARDS_FOLDER = "20260904";
-const CTR_BOARDS_BASE = "../20260904/boards";
+/** Absolute against this page URL (works with/without trailing slash). */
+const CTR_BOARDS_BASE = new URL("../20260904/boards/", window.location.href).href.replace(/\/$/, "");
 const CTR_HIDDEN_PINS_SLUG = "20260904";
 function boardAssetBase(name) {
     return CTR_BOARDS_BASE;
@@ -650,17 +651,27 @@ const ADMIN_KEY = "0626200207081986";
 const urlParams = new URLSearchParams(window.location.search);
 const providedKey = urlParams.get('admin');
 const LITE_PAGE_SIZE = 10;
-const isLiteMode = urlParams.get("lite") === "1";
+/** Inventory: default to 10-board pages so photos show quickly (full CTR loads all at once). */
+const isLiteMode = IS_D23_INVENTORY
+    ? urlParams.get("lite") !== "0"
+    : urlParams.get("lite") === "1";
 const liteStartRaw = Number.parseInt(urlParams.get("start") || "0", 10);
 const liteStart = Number.isFinite(liteStartRaw) ? Math.max(0, liteStartRaw) : 0;
 
-if (providedKey === ADMIN_KEY) sessionStorage.setItem('fp_admin_active', 'true');
-const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
+// Trust ?admin= in the URL even if sessionStorage is blocked (Safari private / ITP).
+if (providedKey === ADMIN_KEY) {
+    try { sessionStorage.setItem('fp_admin_active', 'true'); } catch (_) {}
+}
+const isAdmin = providedKey === ADMIN_KEY || (function () {
+    try { return sessionStorage.getItem('fp_admin_active') === 'true'; } catch (_) { return false; }
+})();
 
-/** Staff inventory: admin link should show boards immediately (no CTR login gate). */
+/** Staff inventory: never show CTR login / staff-gate on top of boards when admin. */
 if (IS_D23_INVENTORY && isAdmin) {
     const login = document.getElementById("loginOverlay");
     if (login) login.style.display = "none";
+    const staff = document.getElementById("staffOnlyOverlay");
+    if (staff) staff.style.display = "none";
 }
 
 if (!isAdmin) {
@@ -672,8 +683,9 @@ if (!isAdmin) {
 
 function goToFullBoardView() {
     const u = new URL("index.html", window.location.href);
-    u.searchParams.delete("lite");
     u.searchParams.delete("start");
+    if (IS_D23_INVENTORY) u.searchParams.set("lite", "0");
+    else u.searchParams.delete("lite");
     if (isAdmin) u.searchParams.set("admin", ADMIN_KEY);
     else u.searchParams.delete("admin");
     window.location.href = u.pathname + u.search + u.hash;
@@ -1197,7 +1209,7 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
         document.getElementById("showTitle").textContent = "20260904 inventory — tap a pin or + to add one; − to remove one. Shared staff count.";
         const intro = document.getElementById("introNote");
         if (intro) {
-            intro.textContent = "Starting at zero. Each pin shows one combined count for Lexi and Steve. Boards come from the live 20260904 CTR (adjusted boxes). Counting here does not change Click To Request.";
+            intro.textContent = "Each pin starts at 1 (you have at least one of each). Tap + for extras. Boards come from live 20260904 CTR. Counting here does not change Click To Request.";
         }
         const help = document.querySelector(".login-help");
         if (help) {
@@ -1284,10 +1296,12 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "2";
+const BOARDS_MANIFEST_VERSION = "3";
 
 async function loadInventoryBoardNames() {
-    const ctrRes = await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const url = `${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`;
+    const ctrRes = await fetch(url, { cache: "no-store" });
+    if (!ctrRes.ok) throw new Error(`manifest HTTP ${ctrRes.status} from ${url}`);
     const ctr = await ctrRes.json();
     if (!Array.isArray(ctr)) return [];
     return ctr;
@@ -1319,6 +1333,12 @@ async function computeAllBoardPinTotals(boardNames) {
     return visibleTotalFromRawCounts(rawCounts);
 }
 
+if (isAdmin) {
+    const boardsListEarly = document.getElementById("boardsList");
+    if (boardsListEarly) {
+        boardsListEarly.innerHTML = '<p id="boardsLoadingMsg" style="text-align:center;color:#FBAD8D;padding:20px;">Loading boards…</p>';
+    }
+}
 if (isAdmin) loadInventoryBoardNames()
     .then(list => {
         manifestBoardNames = list.slice();
@@ -1377,6 +1397,12 @@ if (isAdmin) loadInventoryBoardNames()
             setInterval(tick, 1000);
         }
         const boardsList = document.getElementById("boardsList");
+        if (!boardsList) throw new Error("missing #boardsList");
+        boardsList.innerHTML = "";
+        if (!activeList.length) {
+            boardsList.innerHTML = '<p style="text-align:center;color:#fff;padding:20px;">No boards in manifest.</p>';
+            return;
+        }
         activeList.forEach((name) => {
             const index = rank[name] ?? 0;
             const container = document.createElement("div");
@@ -1387,7 +1413,7 @@ if (isAdmin) loadInventoryBoardNames()
                     <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
                 </div>
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
-                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="${boardAssetBase(name)}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}"></div>`;
+                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="${boardAssetBase(name)}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}" alt="${name}"></div>`;
             boardsList.appendChild(container);
             boardsState[name] = { totalPins: 0, rawPinCount: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
             setupBoard(name);
@@ -1398,7 +1424,7 @@ if (isAdmin) loadInventoryBoardNames()
         console.error("loadInventoryBoardNames failed:", err);
         const boardsList = document.getElementById("boardsList");
         if (boardsList) {
-            boardsList.innerHTML = '<p style="color:#fff;padding:16px;text-align:center;">Could not load boards from ../20260904/boards — check console.</p>';
+            boardsList.innerHTML = `<p style="color:#fff;padding:16px;text-align:center;">Could not load boards from ${CTR_BOARDS_BASE} — ${String(err && err.message || err)}</p>`;
         }
     });
 
