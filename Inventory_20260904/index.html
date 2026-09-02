@@ -5,7 +5,7 @@
     <title>Fins and Pins — 20260904 Inventory</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="inventory-20260904-v3">
+    <meta name="ctr-countdown" content="inventory-20260904-v4">
     <meta name="robots" content="noindex, nofollow">
     <style>
         :root {
@@ -577,7 +577,18 @@ const IS_D23_INVENTORY = true;
 /** Live CTR folder: board photos/JSON + Fix-box hides are read from here (not copied). */
 const CTR_BOARDS_FOLDER = "20260904";
 /** Absolute against this page URL (works with/without trailing slash). */
-const CTR_BOARDS_BASE = new URL("../20260904/boards/", window.location.href).href.replace(/\/$/, "");
+/** Sibling CTR boards — path-safe even when URL has no trailing slash
+ *  (…/Inventory_20260904 vs …/Inventory_20260904/). */
+const CTR_BOARDS_BASE = (function () {
+    let path = window.location.pathname.replace(/\/index\.html$/i, "").replace(/\/reports\.html$/i, "");
+    path = path.replace(/\/$/, "");
+    const parts = path.split("/").filter(Boolean);
+    if (parts.length) {
+        parts[parts.length - 1] = "20260904";
+        return "/" + parts.join("/") + "/boards";
+    }
+    return "/ClickToClaim/20260904/boards";
+})();
 const CTR_HIDDEN_PINS_SLUG = "20260904";
 function boardAssetBase(name) {
     return CTR_BOARDS_BASE;
@@ -1296,7 +1307,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "3";
+const BOARDS_MANIFEST_VERSION = "4";
 
 async function loadInventoryBoardNames() {
     const url = `${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`;
