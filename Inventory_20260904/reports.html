@@ -157,20 +157,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 const SHOW_DATE_SLUG_FALLBACK = "Inventory_20260904";
-/** Sibling CTR boards — path-safe even when URL has no trailing slash
- *  (…/Inventory_20260904 vs …/Inventory_20260904/). */
+/** Local copy of 20260904 boards (self-contained; no sibling URL). */
 const CTR_BOARDS_BASE = (function () {
     let path = window.location.pathname.replace(/\/index\.html$/i, "").replace(/\/reports\.html$/i, "");
     path = path.replace(/\/$/, "");
-    const parts = path.split("/").filter(Boolean);
-    if (parts.length) {
-        parts[parts.length - 1] = "20260904";
-        return "/" + parts.join("/") + "/boards";
-    }
-    return "/ClickToClaim/20260904/boards";
+    if (!path) return "./boards";
+    return path + "/boards";
 })();
 const CTR_HIDDEN_PINS_SLUG = "20260904";
-const BOARDS_MANIFEST_VERSION = "4";
+const BOARDS_MANIFEST_VERSION = "5";
 /** Same run as Live PriceCollection_20260901_2012 CTM/CTP. */
 const PRICING_RUN_ID = "test_PriceCollection_20260901_2012__build_20260904_fullres_visual_baseline";
 
