@@ -5,7 +5,7 @@
     <title>Fins and Pins — 20260904 Inventory</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="inventory-20260904-v7">
+    <meta name="ctr-countdown" content="inventory-20260904-v8">
     <meta name="robots" content="noindex, nofollow">
     <style>
         :root {
@@ -498,7 +498,7 @@
         <span id="dotBeforeSync" class="gc-dot" aria-hidden="true">·</span>
         <span id="syncStatus" class="gc-sync">📡 Connecting to Firebase...</span>
         <span id="dotAfterSync" class="gc-dot" aria-hidden="true">·</span>
-        <span id="fuelStatBlock" class="gc-item">In stock: <span id="fuelText">0 units</span></span>
+        <span id="fuelStatBlock" class="gc-item">In stock: <span id="fuelText">0 units</span><span id="fuelValueText"></span></span>
     </div>
     <span id="totalPins" hidden>0</span>
     <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
@@ -1309,18 +1309,101 @@ function updateFuelGauge(requested) {
     const pct = requested > 0 ? 100 : 0;
     const bar    = document.getElementById('fuelBar');
     const textEl = document.getElementById('fuelText');
+    const valueEl = document.getElementById('fuelValueText');
     const spotsEl = document.getElementById('spotsLeft');
     if (!bar) return;
     bar.style.width      = pct + '%';
     bar.style.background = '#28a745';
     if (textEl) textEl.textContent = `${requested} units`;
+    if (valueEl) {
+        if (!inventoryPricingReady) {
+            valueEl.textContent = "";
+        } else {
+            valueEl.textContent = ` · ${moneyUsd(inventoryStockTotalValue())} total`;
+        }
+    }
     if (spotsEl) spotsEl.textContent = "Shared staff inventory — no 250-spot cap.";
     const overNote = document.getElementById("fuelOverNote");
     if (overNote) overNote.style.display = "none";
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "7";
+const BOARDS_MANIFEST_VERSION = "8";
+/** Same run as Inventory reports / Live PriceCollection_20260901_2012. */
+const PRICING_RUN_ID = "test_PriceCollection_20260901_2012__build_20260904_fullres_visual_baseline";
+const stemToPrice = {};
+const pinKeyToStem = {};
+let inventoryPricingReady = false;
+
+function stemFromPricingPin(pin, domKey) {
+    const cf = String(pin.crop_filename || "");
+    if (cf && !cf.includes("__")) return cf.replace(/\.(jpe?g|png)$/i, "");
+    const pk = String(pin.pin_key || domKey || "");
+    if (pk.includes(".jpg__")) return pk.split(".jpg__")[0];
+    if (String(domKey || "").includes("_jpg__")) return String(domKey).split("_jpg__")[0];
+    if (cf) return cf.replace(/\.(jpe?g|png)$/i, "").split("__")[0];
+    return null;
+}
+
+function rawPriceFromMatchPin(pin) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === "object") {
+        const sp = Number(sc.price != null ? sc.price : sc.total_price);
+        if (isFinite(sp) && sp > 0) return sp;
+    }
+    return null;
+}
+
+/** Harness list price: <$10 → $10, else round UP to nearest $5. */
+function listPriceForPk(pk) {
+    const stem = pinKeyToStem[pk];
+    if (!stem) return null;
+    const raw = stemToPrice[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return null;
+    return raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
+}
+
+function moneyUsd(n) {
+    if (n == null || !Number.isFinite(n)) return "$0";
+    return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function inventoryStockTotalValue() {
+    let total = 0;
+    Object.entries(latestInventoryData || {}).forEach(([pk, row]) => {
+        const qty = inventoryCountFromRow(row);
+        if (qty <= 0) return;
+        const unit = listPriceForPk(pk);
+        if (unit == null) return;
+        total += unit * qty;
+    });
+    return Math.round(total * 100) / 100;
+}
+
+async function loadPricingRun(runId) {
+    const snap = await db.ref(`pin_pricing_tests/${runId}/visual_baseline/pins`).once("value");
+    const all = snap.val() || {};
+    let n = 0;
+    for (const [domKey, pin] of Object.entries(all)) {
+        if (!pin) continue;
+        const status = pin.match_status || "";
+        if (status === "priced") {
+            const dp = Number(pin.display_price);
+            if (!(isFinite(dp) && dp > 0)) continue;
+            const stem = stemFromPricingPin(pin, domKey);
+            if (stem) { stemToPrice[stem] = dp; n++; }
+            continue;
+        }
+        if (status !== "match") continue;
+        const raw = rawPriceFromMatchPin(pin);
+        if (raw == null) continue;
+        const stem = stemFromPricingPin(pin, domKey);
+        if (stem) { stemToPrice[stem] = raw; n++; }
+    }
+    return n;
+}
 
 async function loadInventoryBoardNames() {
     const url = `${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`;
@@ -1331,7 +1414,8 @@ async function loadInventoryBoardNames() {
     return ctr;
 }
 
-async function computeAllBoardPinTotals(boardNames) {
+/** Index crop_stem for every board pin key (needed for $ total across all boards, including lite paging). */
+async function indexPinStemsAndCounts(boardNames) {
     const rawCounts = {};
     const chunk = 12;
     for (let i = 0; i < boardNames.length; i += chunk) {
@@ -1347,6 +1431,9 @@ async function computeAllBoardPinTotals(boardNames) {
                     const data = await r.json();
                     const pins = data.predictions || data.output?.predictions || [];
                     rawCounts[name] = Array.isArray(pins) ? pins.length : 0;
+                    (pins || []).forEach((p, idx) => {
+                        if (p && p.crop_stem) pinKeyToStem[`${name}-${idx}`] = p.crop_stem;
+                    });
                 } catch (e) {
                     rawCounts[name] = 0;
                 }
@@ -1355,6 +1442,10 @@ async function computeAllBoardPinTotals(boardNames) {
     }
     globalBoardRawPinCounts = rawCounts;
     return visibleTotalFromRawCounts(rawCounts);
+}
+
+async function computeAllBoardPinTotals(boardNames) {
+    return indexPinStemsAndCounts(boardNames);
 }
 
 if (isAdmin) {
@@ -1370,16 +1461,22 @@ if (isAdmin) {
 if (isAdmin) loadInventoryBoardNames()
     .then(list => {
         manifestBoardNames = list.slice();
-        if (isLiteMode) {
-            globalAllBoardPinCountReady = false;
-            computeAllBoardPinTotals(manifestBoardNames).then((n) => {
-                globalAllBoardPinCount = n;
-                globalAllBoardPinCountReady = true;
-                calculateGlobals();
-            });
-        } else {
-            globalAllBoardPinCountReady = false;
-        }
+        globalAllBoardPinCountReady = false;
+        // Always index stems for $ total (and pin totals in lite mode).
+        indexPinStemsAndCounts(manifestBoardNames).then((n) => {
+            globalAllBoardPinCount = n;
+            globalAllBoardPinCountReady = true;
+            calculateGlobals();
+        }).catch((e) => console.warn("indexPinStemsAndCounts failed:", e));
+        loadPricingRun(PRICING_RUN_ID).then((n) => {
+            inventoryPricingReady = true;
+            console.info(`[$Value] Firebase pricing pins: ${n}`);
+            calculateGlobals();
+        }).catch((e) => {
+            console.warn("[$Value] Firebase pricing load failed:", e);
+            inventoryPricingReady = true; // show $0 rather than blank forever
+            calculateGlobals();
+        });
         const totalBoards = list.length;
         const rank = {};
         list.forEach((name, idx) => { rank[name] = idx; });
@@ -1497,7 +1594,10 @@ async function setupBoard(name) {
                 div = document.createElement("div");
                 div.className = "pin";
                 div.id = pinId;
-                if (pin.crop_stem) div.dataset.cropStem = pin.crop_stem;
+                if (pin.crop_stem) {
+                    div.dataset.cropStem = pin.crop_stem;
+                    pinKeyToStem[`${name}-${idx}`] = pin.crop_stem;
+                }
                 div.onclick = (e) => {
                     e.preventDefault();
                     if (isAdmin && boxCleanupMode) {
