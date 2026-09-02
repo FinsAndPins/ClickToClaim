@@ -451,8 +451,7 @@
 <div id="toastHost" aria-live="polite"></div>
 
 <h1>Fins and Pins Click To Request!</h1>
-<h2 id="showTitle">Show Date</h2>
-<p id="introNote">We hope you enjoy clicking the pins you want, rather than typing the board number and description 🧜‍♀️</p>
+<h2 id="showTitle">Pre-trade requests for A2Z Event Check-in on September 4, 2026</h2>
 <div id="socialBar" aria-label="Social links">
     <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
     <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
@@ -1060,7 +1059,7 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
     const raw = showDateSlug;
     const y = raw.substring(0, 4), mo = raw.substring(4, 6), d = raw.substring(6, 8);
     const date = new Date(`${y}-${mo}-${d}T12:00:00`);
-    document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+    document.getElementById("showTitle").textContent = "Pre-trade requests for A2Z Event Check-in on September 4, 2026";
     recomputeShowWindows();
 })();
 setInterval(updateCountdowns, 1000);
