@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="bbe-ui" content="scroll-pinch-v1">
   <title>Board Box Editor</title>
   <style>
     :root {
@@ -20,12 +21,23 @@
       --btn: #2a3148;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: "Avenir Next", "Segoe UI", sans-serif; overflow: hidden; }
-    #app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+    html, body {
+      margin: 0; min-height: 100%;
+      background: var(--bg); color: var(--text);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+    #app {
+      display: block;
+      min-height: 100dvh;
+      padding-bottom: calc(28px + env(safe-area-inset-bottom));
+    }
     header {
-      flex: 0 0 auto;
       background: var(--panel);
-      padding: 8px 10px calc(8px + env(safe-area-inset-top));
+      padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       display: flex; flex-direction: column; gap: 8px;
     }
@@ -56,24 +68,22 @@
     }
     a.btn-link:active { transform: scale(0.98); }
     #stageWrap {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-x: hidden;
-      overflow-y: scroll;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
-      touch-action: pan-y;
       background: #0a0c12;
       position: relative;
       padding: 10px;
-      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-x pan-y;
+      max-height: none;
     }
     #stage {
       position: relative;
       margin: 0 auto;
       width: fit-content;
-      max-width: 100%;
-      touch-action: pan-y;
+      max-width: none;
+      transform-origin: 0 0;
+      touch-action: pan-x pan-y;
       user-select: none;
     }
     #boardImg {
@@ -89,7 +99,11 @@
     #overlay {
       position: absolute; left: 0; top: 0; width: 100%; height: 100%;
       pointer-events: none;
-      touch-action: pan-y;
+      touch-action: none;
+    }
+    #zoomLabel {
+      font-size: 12px; font-weight: 800; color: var(--accent);
+      min-width: 3.5em; text-align: center;
     }
     .box {
       position: absolute; pointer-events: auto;
@@ -143,6 +157,21 @@
       font-size: 11px; color: var(--muted); line-height: 1.35;
       padding: 0 2px 4px;
     }
+    details.help {
+      font-size: 11px; color: var(--muted); line-height: 1.35;
+      padding: 0 2px 2px;
+    }
+    details.help summary {
+      cursor: pointer; font-weight: 700; color: var(--text);
+      list-style: none;
+    }
+    details.help summary::-webkit-details-marker { display: none; }
+    details.help[open] summary { margin-bottom: 4px; }
+    @media (max-width: 640px) {
+      select, button, a.btn-link { font-size: 12px; padding: 8px 10px; min-height: 38px; }
+      .title { font-size: 14px; }
+      .meta { font-size: 11px; }
+    }
     #authMsg {
       text-align: center; margin-top: 100px; font-weight: bold; color: var(--muted);
       padding: 0 20px; line-height: 1.5;
@@ -171,9 +200,16 @@
       <button type="button" id="btnSave" class="primary">Save</button>
       <button type="button" id="btnDownload">Download JSON</button>
       <button type="button" id="btnReset">Reload file</button>
+      <button type="button" id="btnZoomOut" title="Zoom out">−</button>
+      <span id="zoomLabel">100%</span>
+      <button type="button" id="btnZoomIn" title="Zoom in">＋</button>
+      <button type="button" id="btnZoomReset" title="Reset zoom">1×</button>
     </div>
     <div id="status">Loading…</div>
-    <div class="hint">Bright green boxes = pins. Tap a box, drag to move, drag yellow-selected corner squares to resize. <strong>Save</strong> writes to Firebase (syncs iPhone/iPad/Mac) and renumbers pin IDs in reading order. Download keeps a local backup.</div>
+    <details class="help">
+      <summary>Tips · pinch to zoom · scroll the page</summary>
+      <div class="hint">Bright green boxes = pins. Tap a box, drag to move, drag yellow-selected corner squares to resize. Pinch (or ＋/−) to zoom the board. The toolbar scrolls away so the board can use the screen. <strong>Save</strong> writes to Firebase and renumbers pin IDs in reading order.</div>
+    </details>
   </header>
   <div id="stageWrap">
     <div id="stage">
@@ -254,6 +290,11 @@
     btnDownload: document.getElementById("btnDownload"),
     btnReset: document.getElementById("btnReset"),
     btnReports: document.getElementById("btnReports"),
+    btnZoomIn: document.getElementById("btnZoomIn"),
+    btnZoomOut: document.getElementById("btnZoomOut"),
+    btnZoomReset: document.getElementById("btnZoomReset"),
+    zoomLabel: document.getElementById("zoomLabel"),
+    stageWrap: document.getElementById("stageWrap"),
   };
   if (el.btnReports) el.btnReports.href = REPORTS_HREF;
 
@@ -266,8 +307,12 @@
   let dirty = false;
   let undoStack = [];
   let displayScale = 1;
+  let stageZoom = 1;
+  const ZOOM_MIN = 1;
+  const ZOOM_MAX = 4;
   let drag = null;
   let suppressFirebaseEcho = false;
+  let pinch = null;
 
   function setStatus(msg, kind) {
     el.status.textContent = msg || "";
@@ -355,10 +400,44 @@
     el.btnUndo.disabled = undoStack.length === 0;
   }
 
+  function applyStageZoom() {
+    el.stage.style.transform = stageZoom === 1 ? "" : `scale(${stageZoom})`;
+    // Keep layout space for scrollbars when zoomed (transform alone does not expand scroll size).
+    const baseW = el.img.clientWidth || 0;
+    const baseH = el.img.clientHeight || 0;
+    el.stage.style.width = baseW ? `${baseW}px` : "";
+    el.stage.style.height = baseH ? `${baseH}px` : "";
+    el.stage.style.marginBottom = stageZoom > 1 && baseH ? `${Math.max(0, baseH * (stageZoom - 1))}px` : "";
+    el.stage.style.marginRight = stageZoom > 1 && baseW ? `${Math.max(0, baseW * (stageZoom - 1))}px` : "";
+    if (el.zoomLabel) el.zoomLabel.textContent = `${Math.round(stageZoom * 100)}%`;
+  }
+
+  function setStageZoom(next, { anchorClientX, anchorClientY } = {}) {
+    const wrap = el.stageWrap;
+    const prev = stageZoom;
+    stageZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, next));
+    if (!wrap) {
+      applyStageZoom();
+      return;
+    }
+    const before = el.stage.getBoundingClientRect();
+    const ax = anchorClientX != null ? anchorClientX : (before.left + before.width / 2);
+    const ay = anchorClientY != null ? anchorClientY : (before.top + before.height / 2);
+    const relX = (ax - before.left + wrap.scrollLeft) / Math.max(prev, 0.001);
+    const relY = (ay - before.top + wrap.scrollTop) / Math.max(prev, 0.001);
+    applyStageZoom();
+    wrap.scrollLeft = relX * stageZoom - (ax - wrap.getBoundingClientRect().left);
+    wrap.scrollTop = relY * stageZoom - (ay - wrap.getBoundingClientRect().top);
+  }
+
   function pointerPos(e) {
     const t = e.touches && e.touches[0] ? e.touches[0] : e;
     const rect = el.overlay.getBoundingClientRect();
-    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    const layoutW = el.overlay.clientWidth || el.img.clientWidth || 1;
+    const layoutH = el.overlay.clientHeight || el.img.clientHeight || 1;
+    const sx = rect.width ? layoutW / rect.width : 1;
+    const sy = rect.height ? layoutH / rect.height : 1;
+    return { x: (t.clientX - rect.left) * sx, y: (t.clientY - rect.top) * sy };
   }
 
   function clampPred(p) {
@@ -446,6 +525,43 @@
   el.overlay.addEventListener("pointerup", onPointerUp);
   el.overlay.addEventListener("pointercancel", onPointerUp);
 
+  function pinchDistance(t0, t1) {
+    const dx = t0.clientX - t1.clientX;
+    const dy = t0.clientY - t1.clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  el.stageWrap.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      drag = null;
+      pinch = {
+        startDist: pinchDistance(e.touches[0], e.touches[1]),
+        startZoom: stageZoom,
+        midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        midY: (e.touches[0].clientY + e.touches[1].clientY) / 2
+      };
+    }
+  }, { passive: true });
+
+  el.stageWrap.addEventListener("touchmove", (e) => {
+    if (!pinch || e.touches.length !== 2) return;
+    e.preventDefault();
+    const dist = pinchDistance(e.touches[0], e.touches[1]);
+    if (!(pinch.startDist > 0)) return;
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    setStageZoom(pinch.startZoom * (dist / pinch.startDist), { anchorClientX: midX, anchorClientY: midY });
+  }, { passive: false });
+
+  el.stageWrap.addEventListener("touchend", (e) => {
+    if (!e.touches || e.touches.length < 2) pinch = null;
+  });
+  el.stageWrap.addEventListener("touchcancel", () => { pinch = null; });
+
+  if (el.btnZoomIn) el.btnZoomIn.addEventListener("click", () => setStageZoom(stageZoom + 0.25));
+  if (el.btnZoomOut) el.btnZoomOut.addEventListener("click", () => setStageZoom(stageZoom - 0.25));
+  if (el.btnZoomReset) el.btnZoomReset.addEventListener("click", () => setStageZoom(1));
+
   async function loadFileJson(stem) {
     const r = await fetch(`./boards/${stem}.json?v=${Date.now()}`, { cache: "no-store" });
     if (!r.ok) throw new Error(`Missing ${stem}.json`);
@@ -496,6 +612,8 @@
     undoStack = [];
     selected = -1;
     dirty = false;
+    stageZoom = 1;
+    applyStageZoom();
 
     filePayload = await loadFileJson(stem);
     let payload = filePayload;
@@ -533,6 +651,7 @@
         imageMeta = { width: el.img.naturalWidth, height: el.img.naturalHeight };
       }
       render();
+      applyStageZoom();
     };
     el.img.src = `./boards/${stem}.JPG?v=2`;
     if (el.img.complete) {
@@ -636,7 +755,7 @@
     if (i >= 0) loadBoard(i);
   });
 
-  window.addEventListener("resize", () => render());
+  window.addEventListener("resize", () => { render(); applyStageZoom(); });
   window.addEventListener("keydown", (e) => {
     if ((e.key === "z" || e.key === "Z") && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
