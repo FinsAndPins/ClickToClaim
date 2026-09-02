@@ -657,6 +657,12 @@ const liteStart = Number.isFinite(liteStartRaw) ? Math.max(0, liteStartRaw) : 0;
 if (providedKey === ADMIN_KEY) sessionStorage.setItem('fp_admin_active', 'true');
 const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
 
+/** Staff inventory: admin link should show boards immediately (no CTR login gate). */
+if (IS_D23_INVENTORY && isAdmin) {
+    const login = document.getElementById("loginOverlay");
+    if (login) login.style.display = "none";
+}
+
 if (!isAdmin) {
     const staff = document.getElementById("staffOnlyOverlay");
     if (staff) staff.style.display = "flex";
@@ -1278,7 +1284,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "1";
+const BOARDS_MANIFEST_VERSION = "2";
 
 async function loadInventoryBoardNames() {
     const ctrRes = await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
@@ -1386,7 +1392,14 @@ if (isAdmin) loadInventoryBoardNames()
             boardsState[name] = { totalPins: 0, rawPinCount: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
             setupBoard(name);
         });
-        if (displayName) listenForFirebase();
+        if (isAdmin) listenForFirebase();
+    })
+    .catch((err) => {
+        console.error("loadInventoryBoardNames failed:", err);
+        const boardsList = document.getElementById("boardsList");
+        if (boardsList) {
+            boardsList.innerHTML = '<p style="color:#fff;padding:16px;text-align:center;">Could not load boards from ../20260904/boards — check console.</p>';
+        }
     });
 
 async function setupBoard(name) {
