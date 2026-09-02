@@ -5,7 +5,7 @@
     <title>Fins and Pins — 20260904 Inventory</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="inventory-20260904-v6">
+    <meta name="ctr-countdown" content="inventory-20260904-v7">
     <meta name="robots" content="noindex, nofollow">
     <style>
         :root {
@@ -1320,7 +1320,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "6";
+const BOARDS_MANIFEST_VERSION = "7";
 
 async function loadInventoryBoardNames() {
     const url = `${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`;
