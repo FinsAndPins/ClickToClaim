@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>Fins and Pins — 20260904 Inventory Reports</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .btn { padding: 10px 15px; background: #0066aa; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; font-family: inherit; font-size: 14px; display: inline-block; }
+        .btn.secondary { background: #444; }
+        section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        th { background: #f9f9f9; position: sticky; top: 0; }
+        tr:hover { background: #f1f7ff; }
+        .pin-thumb {
+            width: 72px; height: 72px; object-fit: contain; background: #111;
+            border-radius: 8px; border: 1px solid #ddd; display: block;
+        }
+        button.pin-thumb-btn {
+            padding: 0; border: none; background: transparent; cursor: pointer;
+            border-radius: 8px; -webkit-tap-highlight-color: transparent;
+        }
+        button.pin-thumb-btn:focus-visible { outline: 3px solid #0066aa; outline-offset: 2px; }
+        .qty-stepper {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            background: #1A1A42;
+            border: 2px solid #fff;
+            border-radius: 22px;
+            padding: 3px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            vertical-align: middle;
+        }
+        .qty-stepper button {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border: none;
+            border-radius: 50%;
+            font-size: 22px;
+            font-weight: bold;
+            line-height: 1;
+            cursor: pointer;
+            font-family: inherit;
+            touch-action: manipulation;
+        }
+        .qty-stepper .qty-minus { background: #fff; color: #1A1A42; }
+        .qty-stepper .qty-plus { background: #1877f2; color: #fff; }
+        .qty-stepper .qty-num {
+            min-width: 28px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: #fff;
+            pointer-events: none;
+        }
+        .count-as {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+            font-size: 14px; margin: 0 0 12px;
+        }
+        .count-as input {
+            font-size: 16px; padding: 8px 10px; border-radius: 8px; border: 1px solid #ccc;
+            min-width: 160px;
+        }
+        .summary-line { font-size: 15px; color: #333; margin: 0 0 14px; }
+        .csv-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+        .muted { color: #777; font-size: 13px; }
+        .show-window-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 8px; }
+        .show-window-form label { font-size: 14px; }
+        .show-window-form select { font-size: 15px; padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; }
+        .tz-colon { margin: 0 2px; }
+        .show-config-status { font-size: 13px; color: #333; min-width: 120px; }
+        .reports-phase-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px solid #ddd; }
+        .reports-phase-wrap > p { font-size: 13px; color: #555; margin: 0 0 10px; line-height: 1.45; }
+        .reports-phase-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .reports-phase-btn { font-size: 12px; font-weight: bold; padding: 8px 12px; border-radius: 8px; border: 1px solid #999; background: #e8e8e8; color: #222; cursor: pointer; font-family: inherit; }
+        .reports-phase-btn.reports-phase-active { background: #0066aa; border-color: #004a80; color: #fff; }
+        .feedback-msg { background: #fff9c4; padding: 10px; border-radius: 4px; margin-bottom: 5px; border-left: 4px solid #fbc02d; }
+    </style>
+</head>
+<body>
+<div id="authContent" style="display:none;">
+    <div class="header">
+        <h1 style="margin:0;">20260904 Inventory Reports</h1>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <label class="count-as" style="margin:0;">
+                Counting as
+                <input type="text" id="staffNameInput" placeholder="Lexi or Steve" autocomplete="username">
+            </label>
+            <a id="backBtn" href="index.html" class="btn">Boards</a>
+        </div>
+    </div>
+
+    <section>
+        <h2>Summary</h2>
+        <p id="invSummary" class="summary-line">Loading…</p>
+        <p id="costNote" class="muted">Unit price = harness list price from PriceCollection_20260901_2012 ($10 min, round up to $5). Total value = qty × unit price. Pins without a price show blank and are excluded from the dollar total. Counts live in Firebase <code>inventory/Inventory_20260904</code> — separate from Click To Request.</p>
+        <div class="csv-row">
+            <button type="button" class="btn" id="csvCatalogBtn">Download CSV — board order</button>
+            <button type="button" class="btn secondary" id="csvCountBtn">Download CSV — highest count first</button>
+        </div>
+        <p class="muted">Tap a pin photo or <strong>+</strong> to add one; <strong>−</strong> to remove one. Same Firebase count as Boards. A pin drops off this list at 0 — add the first copy from Boards. <strong>Counted by</strong> uses the name in “Counting as”.</p>
+    </section>
+
+    <section>
+        <h2>1. In stock — board order</h2>
+        <p class="muted">Pins we have 1 or more of, in board / pin order.</p>
+        <table>
+            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Unit price</th><th>Total value</th><th>Counted by</th><th></th></tr></thead>
+            <tbody id="catalogBody"></tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>2. In stock — highest count first</h2>
+        <p class="muted">Same pins, sorted by quantity (high → low), then board order.</p>
+        <table>
+            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Unit price</th><th>Total value</th><th>Counted by</th><th></th></tr></thead>
+            <tbody id="countBody"></tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>3. Count summary</h2>
+        <table id="summaryTable"><thead><tr><th>Quantity</th><th>Pins</th></tr></thead><tbody id="distBody"></tbody></table>
+    </section>
+
+    <section id="showWindowSection">
+        <h2>Show window (Eastern Time)</h2>
+        <p style="font-size:14px;color:#555;margin:0 0 12px;">Writes only to this inventory folder’s <code>showConfig</code> — not live 20260904 Click To Request. Folder <strong id="showWindowSlugLabel"></strong>.</p>
+        <div class="show-window-form">
+            <label>Start <select id="cfgStartH"></select><span class="tz-colon">:</span><select id="cfgStartM"></select></label>
+            <label>End <select id="cfgEndH"></select><span class="tz-colon">:</span><select id="cfgEndM"></select></label>
+            <button type="button" class="btn" id="saveShowConfigBtn">Save Window</button>
+            <span id="showConfigStatus" class="show-config-status"></span>
+        </div>
+        <div class="reports-phase-wrap" id="reportsPhaseBar">
+            <p>Show state for this inventory URL only (does not change public CTR).</p>
+            <div class="reports-phase-row">
+                <button type="button" class="reports-phase-btn" data-phase="pre">Pre-Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="live">During Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="post">Post Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="auto">Schedule</button>
+                <span id="reportsPhaseStatus" class="reports-phase-status" aria-live="polite"></span>
+            </div>
+        </div>
+    </section>
+
+    <section><h2>Tester Feedback</h2><div id="feedbackContainer">None yet.</div></section>
+</div>
+<div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;">Checking Authorization...</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const SHOW_DATE_SLUG_FALLBACK = "Inventory_20260904";
+const CTR_BOARDS_BASE = "../20260904/boards";
+const CTR_HIDDEN_PINS_SLUG = "20260904";
+const BOARDS_MANIFEST_VERSION = "1";
+/** Same run as Live PriceCollection_20260901_2012 CTM/CTP. */
+const PRICING_RUN_ID = "test_PriceCollection_20260901_2012__build_20260904_fullres_visual_baseline";
+
+function boardAssetBase(_name) {
+    return CTR_BOARDS_BASE;
+}
+function boardTitle(name, index) {
+    return "Board " + (index + 1) + " · " + name;
+}
+async function loadInventoryBoardNames() {
+    const ctrRes = await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const ctr = await ctrRes.json();
+    if (!Array.isArray(ctr)) return [];
+    return ctr;
+}
+
+const stemToPrice = {};
+const pinKeyToStem = {};
+
+function stemFromPricingPin(pin, domKey) {
+    const cf = String(pin.crop_filename || "");
+    if (cf && !cf.includes("__")) return cf.replace(/\.(jpe?g|png)$/i, "");
+    const pk = String(pin.pin_key || domKey || "");
+    if (pk.includes(".jpg__")) return pk.split(".jpg__")[0];
+    if (String(domKey || "").includes("_jpg__")) return String(domKey).split("_jpg__")[0];
+    if (cf) return cf.replace(/\.(jpe?g|png)$/i, "").split("__")[0];
+    return null;
+}
+
+function rawPriceFromMatchPin(pin) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === "object") {
+        const sp = Number(sc.price != null ? sc.price : sc.total_price);
+        if (isFinite(sp) && sp > 0) return sp;
+    }
+    return null;
+}
+
+/** Harness list price: <$10 → $10, else round UP to nearest $5. */
+function listPriceForPk(pk) {
+    const stem = pinKeyToStem[pk];
+    if (!stem) return null;
+    const raw = stemToPrice[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return null;
+    return raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
+}
+
+async function loadPricingRun(runId) {
+    const snap = await db.ref(`pin_pricing_tests/${runId}/visual_baseline/pins`).once("value");
+    const all = snap.val() || {};
+    let n = 0;
+    for (const [domKey, pin] of Object.entries(all)) {
+        if (!pin) continue;
+        const status = pin.match_status || "";
+        if (status === "priced") {
+            const dp = Number(pin.display_price);
+            if (!(isFinite(dp) && dp > 0)) continue;
+            const stem = stemFromPricingPin(pin, domKey);
+            if (stem) { stemToPrice[stem] = dp; n++; }
+            continue;
+        }
+        if (status !== "match") continue;
+        const raw = rawPriceFromMatchPin(pin);
+        if (raw == null) continue;
+        const stem = stemFromPricingPin(pin, domKey);
+        if (stem) { stemToPrice[stem] = raw; n++; }
+    }
+    return n;
+}
+
+function moneyUsd(n) {
+    if (n == null || !Number.isFinite(n)) return "";
+    return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function roundCents(n) {
+    return Math.round(Number(n) * 100) / 100;
+}
+
+const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", authDomain: "fins-and-pins-click-to-claim.firebaseapp.com", databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com", projectId: "fins-and-pins-click-to-claim", storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app", messagingSenderId: "31512845258", appId: "1:31512845258:web:2124fae24cfee229084d33" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ADMIN_KEY = "0626200207081986";
+let displayName = localStorage.getItem("fp_display_name") || localStorage.getItem("fp_username") || "";
+let identityKey = localStorage.getItem("fp_identity") || "staff";
+let inventoryFbName = SHOW_DATE_SLUG_FALLBACK;
+
+function sanitizeUserKey(id) {
+    return String(id).replace(/[.#$\[\]\/]/g, "_");
+}
+
+function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+}
+
+function setStaffDisplayName(raw) {
+    const n = normalizeUserDisplayName(raw) || String(raw || "").trim();
+    displayName = n;
+    if (n) localStorage.setItem("fp_display_name", n);
+}
+
+function currentInventoryStaffKey() {
+    return sanitizeUserKey(displayName || identityKey || "staff");
+}
+
+function parseShowDateSlugFromPathReports() {
+    const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
+    const segments = pathClean.split("/").filter(Boolean);
+    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+    if (!last) return null;
+    if (last === "Inventory_20260904" || last.startsWith("Inventory_") || /[A-Za-z_]/.test(last.replace(/^\d{8}/, ""))) return last;
+    const m = last.match(/(\d{8})/);
+    return m ? m[1] : last;
+}
+
+function fillTimeSelect(sel, max) {
+    sel.innerHTML = "";
+    for (let i = 0; i <= max; i++) {
+        const o = document.createElement("option");
+        o.value = i;
+        o.textContent = String(i).padStart(2, "0");
+        sel.appendChild(o);
+    }
+}
+
+function checkAuth() {
+    if (new URLSearchParams(window.location.search).get("admin") === ADMIN_KEY || sessionStorage.getItem("fp_admin_active") === "true") {
+        sessionStorage.setItem("fp_admin_active", "true");
+        document.getElementById("authMsg").style.display = "none";
+        document.getElementById("authContent").style.display = "block";
+        document.getElementById("backBtn").href = `index.html?admin=${ADMIN_KEY}`;
+        loadData();
+    } else {
+        document.getElementById("authMsg").textContent = "Staff-only. Open this reports page with the admin link.";
+    }
+}
+checkAuth();
+
+function inventoryStaffCount(entry) {
+    if (entry == null) return 0;
+    if (typeof entry === "number") return Math.max(0, Math.floor(entry));
+    return Math.max(0, Math.floor(Number(entry.count) || 0));
+}
+
+function inventoryCountFromRow(row) {
+    if (row == null) return 0;
+    if (typeof row === "number") return Math.max(0, Math.floor(row));
+    if (typeof row === "object") {
+        if (row.staff && typeof row.staff === "object") {
+            const sum = Object.values(row.staff).reduce((s, v) => s + inventoryStaffCount(v), 0);
+            if (sum > 0) return sum;
+        }
+        return Math.max(0, Math.floor(Number(row.count) || 0));
+    }
+    return 0;
+}
+
+function staffBreakdownText(row) {
+    const parts = [];
+    if (row && row.staff && typeof row.staff === "object") {
+        Object.values(row.staff).forEach((v) => {
+            const n = inventoryStaffCount(v);
+            if (n > 0) parts.push({ label: (v && v.label) ? String(v.label) : "staff", n });
+        });
+    }
+    if (!parts.length && inventoryCountFromRow(row) > 0) {
+        parts.push({ label: (row && row.by) ? String(row.by) : "unattributed", n: inventoryCountFromRow(row) });
+    }
+    return parts
+        .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label))
+        .map((p) => `${p.label} ${p.n}`)
+        .join(" · ");
+}
+
+function staffMapFromRow(row) {
+    const staff = {};
+    if (row && row.staff && typeof row.staff === "object") {
+        Object.entries(row.staff).forEach(([k, v]) => {
+            const n = inventoryStaffCount(v);
+            if (n <= 0) return;
+            staff[k] = {
+                count: n,
+                label: (v && typeof v === "object" && v.label) ? String(v.label) : k,
+                time: (v && typeof v === "object" && v.time) ? v.time : 0
+            };
+        });
+    }
+    if (!Object.keys(staff).length) {
+        const n = inventoryCountFromRow(row);
+        if (n > 0) {
+            const label = (row && row.by) ? String(row.by) : "unattributed";
+            const key = sanitizeUserKey(label) || "_prior";
+            staff[key] = { count: n, label, time: (row && row.time) || 0 };
+        }
+    }
+    return staff;
+}
+
+function adjustInventoryCount(pinKey, delta) {
+    if (!pinKey || !delta) return;
+    if (!displayName) {
+        const typed = window.prompt("Staff name for this count (Lexi or Steve)?", "") || "";
+        setStaffDisplayName(typed);
+        const inp = document.getElementById("staffNameInput");
+        if (inp && displayName) inp.value = displayName;
+        if (!displayName) return;
+    }
+    const userKey = currentInventoryStaffKey();
+    const label = displayName || "staff";
+    db.ref(`inventory/${inventoryFbName}/${pinKey}`).transaction((cur) => {
+        const staff = staffMapFromRow(cur);
+        if (delta > 0) {
+            const mine = staff[userKey] || { count: 0, label, time: 0 };
+            mine.count = inventoryStaffCount(mine) + delta;
+            mine.label = label;
+            mine.time = Date.now();
+            staff[userKey] = mine;
+        } else {
+            let need = Math.abs(delta);
+            if (staff[userKey] && inventoryStaffCount(staff[userKey]) > 0) {
+                const take = Math.min(need, inventoryStaffCount(staff[userKey]));
+                staff[userKey].count = inventoryStaffCount(staff[userKey]) - take;
+                staff[userKey].label = label;
+                staff[userKey].time = Date.now();
+                need -= take;
+                if (staff[userKey].count <= 0) delete staff[userKey];
+            }
+            if (need > 0) {
+                Object.keys(staff)
+                    .sort((a, b) => inventoryStaffCount(staff[b]) - inventoryStaffCount(staff[a]))
+                    .forEach((k) => {
+                        if (need <= 0) return;
+                        const take = Math.min(need, inventoryStaffCount(staff[k]));
+                        staff[k].count = inventoryStaffCount(staff[k]) - take;
+                        need -= take;
+                        if (staff[k].count <= 0) delete staff[k];
+                    });
+            }
+        }
+        const next = Object.values(staff).reduce((s, v) => s + inventoryStaffCount(v), 0);
+        if (next <= 0) return null;
+        return {
+            count: next,
+            time: Date.now(),
+            by: label,
+            staff
+        };
+    }).catch((e) => alert(e.message));
+}
+
+function csvEscape(v) {
+    const s = String(v ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+}
+
+function downloadCsv(filename, rows) {
+    const text = rows.map((r) => r.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function loadData() {
+    const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
+    const fbName = showDateSlug;
+    inventoryFbName = fbName;
+    document.getElementById("showWindowSlugLabel").textContent = showDateSlug;
+    const nameInp = document.getElementById("staffNameInput");
+    if (nameInp) {
+        if (displayName) nameInp.value = displayName;
+        const saveName = () => setStaffDisplayName(nameInp.value);
+        nameInp.addEventListener("change", saveName);
+        nameInp.addEventListener("blur", saveName);
+    }
+    fillTimeSelect(document.getElementById("cfgStartH"), 23);
+    fillTimeSelect(document.getElementById("cfgEndH"), 23);
+    fillTimeSelect(document.getElementById("cfgStartM"), 59);
+    fillTimeSelect(document.getElementById("cfgEndM"), 59);
+
+    db.ref(`showConfig/${fbName}`).once("value").then(snap => {
+        const v = snap.val() || {};
+        const sh = v.startHour != null ? Number(v.startHour) : 12;
+        const sm = v.startMin != null ? Number(v.startMin) : 0;
+        const eh = v.endHour != null ? Number(v.endHour) : 18;
+        const em = v.endMin != null ? Number(v.endMin) : 0;
+        document.getElementById("cfgStartH").value = String(Math.min(23, Math.max(0, sh)));
+        document.getElementById("cfgStartM").value = String(Math.min(59, Math.max(0, sm)));
+        document.getElementById("cfgEndH").value = String(Math.min(23, Math.max(0, eh)));
+        document.getElementById("cfgEndM").value = String(Math.min(59, Math.max(0, em)));
+    });
+
+    document.getElementById("saveShowConfigBtn").onclick = () => {
+        const st = document.getElementById("showConfigStatus");
+        st.textContent = "Saving…";
+        const payload = {
+            startHour: +document.getElementById("cfgStartH").value,
+            startMin: +document.getElementById("cfgStartM").value,
+            endHour: +document.getElementById("cfgEndH").value,
+            endMin: +document.getElementById("cfgEndM").value,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+        db.ref(`showConfig/${fbName}`).update(payload)
+            .then(() => { st.textContent = "Saved (inventory showConfig only)."; })
+            .catch(e => { st.textContent = "Error: " + e.message; });
+    };
+
+    const phaseStatusEl = document.getElementById("reportsPhaseStatus");
+    function writeShowPhaseReports(phase) {
+        if (!["auto", "pre", "live", "post"].includes(phase)) return;
+        if (phaseStatusEl) phaseStatusEl.textContent = "Saving phase…";
+        db.ref(`showConfig/${fbName}`).update({
+            phase,
+            phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP,
+            endedFullscreen: phase === "post"
+        }).then(() => {
+            if (phaseStatusEl) phaseStatusEl.textContent = "Phase saved (inventory only).";
+            setTimeout(() => { if (phaseStatusEl && /saved/.test(phaseStatusEl.textContent)) phaseStatusEl.textContent = ""; }, 3000);
+        }).catch(e => { if (phaseStatusEl) phaseStatusEl.textContent = "Error: " + e.message; });
+    }
+    document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(btn => {
+        btn.addEventListener("click", () => writeShowPhaseReports(btn.getAttribute("data-phase")));
+    });
+    db.ref(`showConfig/${fbName}`).on("value", snap => {
+        const v = snap.val() || {};
+        const ph = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+        document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(b => {
+            b.classList.toggle("reports-phase-active", b.getAttribute("data-phase") === ph);
+        });
+    });
+
+    db.ref(`feedback/${fbName}`).on("value", snap => {
+        const fb = snap.val() || {};
+        document.getElementById("feedbackContainer").innerHTML = Object.values(fb).reverse().map(f => `
+            <div class="feedback-msg">
+                <strong>${f.user || ""}</strong> <small>(${f.time ? new Date(f.time).toLocaleString() : ""})</small><br>${f.msg || ""}
+            </div>
+        `).join("") || "No feedback yet.";
+    });
+
+    const manifest = await loadInventoryBoardNames();
+    const boardMeta = {};
+    await Promise.all(manifest.map(async (name, boardIndex) => {
+        try {
+            const data = await (await fetch(`${boardAssetBase(name)}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+            const pins = data.predictions || data.output?.predictions || [];
+            boardMeta[name] = { boardIndex, image: data.image || {}, pins };
+            pins.forEach((p, idx) => {
+                if (p && p.crop_stem) pinKeyToStem[`${name}-${idx}`] = p.crop_stem;
+            });
+        } catch (e) {
+            boardMeta[name] = { boardIndex, image: {}, pins: [] };
+        }
+    }));
+
+    try {
+        const n = await loadPricingRun(PRICING_RUN_ID);
+        console.info(`[$Value] Firebase pricing pins: ${n}`);
+    } catch (e) {
+        console.warn("[$Value] Firebase pricing load failed:", e);
+    }
+
+    const hiddenPinKeys = new Set();
+    let ctrHiddenVal = {};
+    let invHiddenVal = {};
+    let lastInvData = {};
+    let stockRows = [];
+    function ingestHidden(dest, val) {
+        Object.keys(val || {}).forEach((k) => { if (val[k]) dest.add(k); });
+    }
+    function refreshHiddenSet() {
+        hiddenPinKeys.clear();
+        ingestHidden(hiddenPinKeys, ctrHiddenVal);
+        ingestHidden(hiddenPinKeys, invHiddenVal);
+    }
+
+    const boardImgCache = new Map();
+    function loadBoardImage(name) {
+        if (boardImgCache.has(name)) return boardImgCache.get(name);
+        const p = new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = `${boardAssetBase(name)}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+        });
+        boardImgCache.set(name, p);
+        return p;
+    }
+
+    function cropDataUrl(img, pin, orig) {
+        if (!img || !pin) return "";
+        const origW = Number(orig.width) || img.naturalWidth;
+        const origH = Number(orig.height) || img.naturalHeight;
+        const sx = Math.max(0, Number(pin.x) - Number(pin.width) / 2);
+        const sy = Math.max(0, Number(pin.y) - Number(pin.height) / 2);
+        const sw = Math.min(Number(pin.width) || 1, origW - sx);
+        const sh = Math.min(Number(pin.height) || 1, origH - sy);
+        const c = document.createElement("canvas");
+        c.width = 96;
+        c.height = 96;
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#111";
+        ctx.fillRect(0, 0, 96, 96);
+        const scale = Math.min(96 / sw, 96 / sh);
+        const dw = sw * scale;
+        const dh = sh * scale;
+        ctx.drawImage(img, sx, sy, sw, sh, (96 - dw) / 2, (96 - dh) / 2, dw, dh);
+        return c.toDataURL("image/jpeg", 0.82);
+    }
+
+    const thumbCache = new Map();
+
+    async function rebuildStockRows(invData) {
+        lastInvData = invData || {};
+        const rows = [];
+        let catalogOrder = 0;
+        manifest.forEach((name) => {
+            const meta = boardMeta[name] || { boardIndex: 0, pins: [], image: {} };
+            meta.pins.forEach((pin, idx) => {
+                catalogOrder += 1;
+                const pinKey = `${name}-${idx}`;
+                if (hiddenPinKeys.has(pinKey)) return;
+                const qty = inventoryCountFromRow(invData[pinKey]);
+                if (qty < 1) return;
+                const unit = listPriceForPk(pinKey);
+                const lineCost = unit != null ? roundCents(unit * qty) : null;
+                rows.push({
+                    pinKey,
+                    name,
+                    idx,
+                    boardNum: meta.boardIndex + 1,
+                    catalogOrder,
+                    qty,
+                    unitPrice: unit,
+                    lineCost,
+                    countedBy: staffBreakdownText(invData[pinKey]),
+                    pin,
+                    image: meta.image,
+                    loc: `${boardTitle(name, meta.boardIndex)} (Pin ${idx + 1})`
+                });
+            });
+        });
+        await Promise.all(rows.map(async (row) => {
+            if (thumbCache.has(row.pinKey)) {
+                row.thumb = thumbCache.get(row.pinKey);
+                return;
+            }
+            const img = await loadBoardImage(row.name);
+            row.thumb = cropDataUrl(img, row.pin, row.image);
+            if (row.thumb) thumbCache.set(row.pinKey, row.thumb);
+        }));
+        stockRows = rows;
+        renderInventory();
+    }
+
+    function rowHtml(row) {
+        const thumb = row.thumb
+            ? `<button type="button" class="pin-thumb-btn" data-qty-delta="1" data-pin="${row.pinKey}" title="Tap photo to add 1"><img class="pin-thumb" alt="" src="${row.thumb}"></button>`
+            : "";
+        const by = row.countedBy || "";
+        const unitTxt = row.unitPrice != null ? moneyUsd(row.unitPrice) : "";
+        const lineTxt = row.lineCost != null ? moneyUsd(row.lineCost) : "";
+        return `<tr>
+            <td>${thumb}</td>
+            <td>${row.loc}<br><small class="muted">${row.pinKey}</small></td>
+            <td>
+                <div class="qty-stepper" title="${by}">
+                    <button type="button" class="qty-minus" data-qty-delta="-1" data-pin="${row.pinKey}" aria-label="Decrease count">−</button>
+                    <span class="qty-num">${row.qty}</span>
+                    <button type="button" class="qty-plus" data-qty-delta="1" data-pin="${row.pinKey}" aria-label="Increase count">+</button>
+                </div>
+            </td>
+            <td>${unitTxt}</td>
+            <td>${lineTxt}</td>
+            <td>${by}</td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${row.pinKey}" style="color:#0066aa;font-weight:bold;">View on board</a></td>
+        </tr>`;
+    }
+
+    function renderInventory() {
+        const y = window.scrollY;
+        const catalog = stockRows.slice().sort((a, b) => a.catalogOrder - b.catalogOrder);
+        const byCount = stockRows.slice().sort((a, b) => b.qty - a.qty || a.catalogOrder - b.catalogOrder);
+        const units = catalog.reduce((n, r) => n + r.qty, 0);
+        const cost = catalog.reduce((n, r) => n + (r.lineCost || 0), 0);
+        const unpriced = catalog.filter((r) => r.unitPrice == null).length;
+        const costBit = unpriced
+            ? `${moneyUsd(cost)} total value · <strong>${unpriced}</strong> unpriced (excluded from $)`
+            : `${moneyUsd(cost)} total value`;
+        document.getElementById("invSummary").innerHTML =
+            `<strong>${catalog.length}</strong> pin${catalog.length === 1 ? "" : "s"} in stock · <strong>${units}</strong> unit${units === 1 ? "" : "s"} total · <strong>${costBit}</strong>`;
+        document.getElementById("catalogBody").innerHTML = catalog.map(rowHtml).join("") ||
+            '<tr><td colspan="7" class="muted">Nothing in stock yet. Tap pins on the boards page to start at 1.</td></tr>';
+        document.getElementById("countBody").innerHTML = byCount.map(rowHtml).join("") ||
+            '<tr><td colspan="7" class="muted">Nothing in stock yet.</td></tr>';
+        const dist = {};
+        catalog.forEach((r) => { dist[r.qty] = (dist[r.qty] || 0) + 1; });
+        const counts = Object.keys(dist).map(Number).sort((a, b) => b - a);
+        document.getElementById("distBody").innerHTML = counts.length
+            ? counts.map((c) => `<tr><td>${c}</td><td>${dist[c]} pin${dist[c] !== 1 ? "s" : ""}</td></tr>`).join("")
+            : '<tr><td colspan="2" class="muted">No data yet.</td></tr>';
+        requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+
+    function onReportQtyEvent(e) {
+        const hit = e.target.closest("[data-qty-delta]");
+        if (!hit || !this.contains(hit)) return;
+        e.preventDefault();
+        const pinKey = hit.getAttribute("data-pin");
+        const delta = Number(hit.getAttribute("data-qty-delta"));
+        if (!pinKey || !delta) return;
+        adjustInventoryCount(pinKey, delta);
+    }
+    document.getElementById("catalogBody").addEventListener("click", onReportQtyEvent);
+    document.getElementById("countBody").addEventListener("click", onReportQtyEvent);
+
+    function csvRows(list) {
+        return [
+            ["board_order", "board", "board_number", "pin_index", "pin_key", "qty", "unit_price", "total_value", "counted_by", "location"],
+            ...list.map((r) => [r.catalogOrder, r.name, r.boardNum, r.idx + 1, r.pinKey, r.qty, r.unitPrice != null ? r.unitPrice : "", r.lineCost != null ? r.lineCost : "", r.countedBy || "", r.loc])
+        ];
+    }
+    document.getElementById("csvCatalogBtn").onclick = () => {
+        const list = stockRows.slice().sort((a, b) => a.catalogOrder - b.catalogOrder);
+        downloadCsv("Inventory_20260904-board-order.csv", csvRows(list));
+    };
+    document.getElementById("csvCountBtn").onclick = () => {
+        const list = stockRows.slice().sort((a, b) => b.qty - a.qty || a.catalogOrder - b.catalogOrder);
+        downloadCsv("Inventory_20260904-by-count.csv", csvRows(list));
+    };
+
+    function wireInventory() {
+        db.ref(`hiddenPins/${CTR_HIDDEN_PINS_SLUG}`).on("value", (snap) => {
+            ctrHiddenVal = snap.val() || {};
+            refreshHiddenSet();
+            rebuildStockRows(lastInvData);
+        });
+        db.ref(`hiddenPins/${fbName}`).on("value", (snap) => {
+            invHiddenVal = snap.val() || {};
+            refreshHiddenSet();
+            rebuildStockRows(lastInvData);
+        });
+        db.ref(`inventory/${fbName}`).on("value", (snap) => {
+            rebuildStockRows(snap.val() || {});
+        });
+    }
+    wireInventory();
+}
+</script>
+</body>
+</html>
