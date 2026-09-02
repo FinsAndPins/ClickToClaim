@@ -1,0 +1,2734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fins and Pins Click To Request!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
+    <meta name="ctr-countdown" content="closes-to-end-v11-20260906-fix-boxes">
+    <style>
+        :root {
+            --fp-bg: #1A1A42;
+            --fp-chunk: #C659A5;
+            --fp-text: #FFFFFF;
+            --fp-muted: #FBAD8D;
+        }
+        body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 10px 10px 100px; background: var(--fp-bg); color: var(--fp-text); }
+        a { color: var(--fp-text); }
+        #socialBar { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+        #socialBar a { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: var(--fp-chunk); border-radius: 10px; text-decoration: none; }
+        #socialBar a .social-icon { width: 24px; height: 24px; display: block; object-fit: contain; }
+        #socialBar a .social-icon.inv { filter: brightness(0) invert(1); }
+        #introNote { text-align: center; font-size: 14px; color: var(--fp-muted); margin: 0 auto 14px; line-height: 1.4; max-width: 520px; }
+        h1 { text-align: center; margin-bottom: 6px; margin-top: 0; font-size: 22px; line-height: 1.2; }
+        h2 { text-align: center; margin-top: 0; margin-bottom: 12px; font-size: 15px; color: var(--fp-muted); font-weight: normal; }
+        .login-welcome { display: flex; flex-direction: column; gap: 6px; text-align: center; margin: 0 0 14px; font-weight: normal; font-size: 15px; line-height: 1.25; color: var(--fp-text); }
+        .login-welcome-pre, .login-welcome-sub { font-weight: normal; font-size: 0.95em; color: var(--fp-muted); }
+        .login-welcome-main { font-size: 1.45em; font-weight: bold; color: var(--fp-text); line-height: 1.15; }
+        .login-form-stack { width: 100%; max-width: 280px; margin: 0 auto; box-sizing: border-box; }
+        .login-form-stack input#usernameInput { width: 100%; box-sizing: border-box; margin: 8px 0 12px; }
+        .login-form-stack .primary { width: 100%; box-sizing: border-box; }
+        /* Only the slim stats strip sticks while scrolling — admin/fuel/lite chrome scrolls away (esp. iPhone). */
+        #globalCounts { text-align: center; font-size: 13px; margin-bottom: 16px; font-weight: 600; background: var(--fp-chunk); padding: 8px 10px; border-radius: 10px; color: var(--fp-text); }
+        #globalCountsStick { position: sticky; top: 0; z-index: 2000; background: var(--fp-chunk); padding: 2px 0 4px; margin: 0 -2px; }
+        .global-counts-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; line-height: 1.3; }
+        .gc-item { font-size: 13px; }
+        .gc-dot { color: var(--fp-muted); font-weight: normal; user-select: none; }
+        #syncStatus { font-size: 11px; color: var(--fp-muted); font-weight: normal; }
+        #syncStatus.sync-connected { color: #FC97D4; }
+        .global-admin-row { font-size: 11px; color: var(--fp-muted); text-align: center; margin-top: 4px; font-weight: normal; line-height: 1.35; }
+        #countdownArea { font-size: 11px; color: var(--fp-muted); margin-top: 5px; font-weight: normal; min-height: 14px; line-height: 1.35; }
+        #countdownArea .countdown-line-accent { color: #FC97D4; }
+        #countdownArea .countdown-line-accent strong { color: #FC97D4; }
+        #fuelGaugeArea { margin-top: 6px; padding: 0 2px; font-weight: normal; }
+        #fuelBarTrack { background: rgba(0,0,0,0.25); border-radius: 6px; height: 8px; overflow: hidden; }
+        #fuelBar { height: 100%; width: 0%; background: #28a745; border-radius: 6px; transition: width 0.5s; }
+        #spotsLeft { font-size: 10px; color: var(--fp-muted); margin-top: 3px; text-align: center; }
+        .board-container { margin-bottom: 36px; background: var(--fp-chunk); padding: 12px; border-radius: 10px; }
+        .board-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .board-title { font-size: 18px; font-weight: bold; color: var(--fp-text); }
+        .admin-board-total { font-size: 12px; color: var(--fp-text); font-weight: bold; text-align: right; max-width: 230px; line-height: 1.5; }
+        .board-count { font-size: 14px; margin-bottom: 8px; color: var(--fp-muted); }
+        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+        .board-img { width: 100%; display: block; border-radius: 8px; }
+        .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
+        /* Public: hidden pins are not clickable and not visible. */
+        .pin.pin-hidden { visibility: hidden; pointer-events: none; }
+        /* Admin cleanup mode: outline every live box; show hidden ones so they can be restored. */
+        body.box-cleanup-on .pin:not(.pin-hidden) {
+            border: 2px solid rgba(0, 220, 90, 0.95);
+            background: rgba(0, 220, 90, 0.12);
+        }
+        body.box-cleanup-on .pin.pin-hidden {
+            visibility: visible;
+            pointer-events: auto;
+            border: 2px dashed rgba(255, 60, 60, 0.95);
+            background: rgba(255, 60, 60, 0.18);
+            opacity: 0.85;
+        }
+        #boxCleanupBar { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+        body.box-cleanup-on #boxCleanupBar { display: block; }
+        #boxCleanupBar p { font-size: 12px; color: var(--fp-muted); margin: 0 0 8px; line-height: 1.35; font-weight: normal; }
+        #boxCleanupToggle { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; }
+        #boxCleanupToggle.is-active { background: #1877f2; border-color: rgba(255,255,255,0.5); }
+        #boxCleanupCount { font-size: 11px; color: var(--fp-muted); margin-left: 8px; }
+        /* Visitors during+after show: blue = ≥2 requesters, green = 1; B badge = first request pre-show, N = first during show. Before show: plain green. Admin: green = pre-show pin; blue = during/after show start. */
+        .pin.selection-before { border: 4px solid rgba(0, 72, 180, 0.95); background: rgba(80, 140, 255, 0.32); }
+        .pin.selection-now { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
+        .pin.pin-mine { box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.45); z-index: 105; }
+        .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
+        .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.45); }
+        .bn-badge { position: absolute; top: -10px; left: -10px; right: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 13px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 111; pointer-events: none; border: 2px solid white; }
+        .bn-badge.is-b { background: #0d6efd; color: white; }
+        .bn-badge.is-n { background: #28a745; color: white; }
+        /* Leftover FOMO: still visible, not requestable */
+        .pin.pin-sold {
+            background: rgba(0, 0, 0, 0.42) !important;
+            border: 2px solid rgba(255, 80, 80, 0.85) !important;
+            pointer-events: none;
+            cursor: default;
+        }
+        .pin.pin-sold::after {
+            content: "SOLD";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(-28deg);
+            font-size: clamp(11px, 2.8vw, 18px);
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            color: #fff;
+            text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+            pointer-events: none;
+            z-index: 120;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 112; pointer-events: none; border: 2px solid white; }
+        .tally-badge.offset-left { left: -10px; right: auto; }
+        #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: var(--fp-chunk); border-top: 1px solid rgba(255,255,255,0.15); padding: 10px 12px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; z-index: 2000; }
+        #footerControls .footer-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; }
+        #footerControls .footer-links button { background: none; border: none; color: var(--fp-text); text-decoration: underline; cursor: pointer; font-size: 13px; padding: 0; font-family: inherit; }
+        #shareToIgBtn { background: #1877f2; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-weight: bold; font-size: 13px; cursor: pointer; font-family: inherit; }
+        #adminReportBtn { display:none; padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--fp-text); background: transparent; color: var(--fp-text); text-decoration: none; font-weight: bold; }
+        #loginOverlay, #reportIssueOverlay, #fuelOverModal { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: var(--fp-chunk); color: var(--fp-text); padding: 22px; border-radius: 12px; width: 100%; max-width: 340px; text-align: center; border: 1px solid rgba(255,255,255,0.2); }
+        .modal-box input { background: #fff; color: #222; }
+        .modal-box textarea { width: 100%; padding: 12px; margin: 12px 0; border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; box-sizing: border-box; font-size: 16px; background: #fff; color: #222; }
+        .modal-box button.primary { background: #1877f2; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+        .modal-box button.secondary { background: #444; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; margin-top: 10px; }
+        .login-help, .modal-sub { font-size: 13px; color: var(--fp-muted); line-height: 1.45; text-align: left; margin: 0 0 10px; font-weight: normal; }
+        .login-disclaimer { font-size: 12px; color: var(--fp-muted); line-height: 1.35; text-align: left; margin: 0 0 14px; font-weight: normal; }
+        #reportIssueFab { position: fixed; bottom: 72px; right: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+        /* Virtual pin board photo (clicked pins). Read-only — never touches claims. */
+        #virtualBoardExportFab { position: fixed; bottom: 72px; left: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: min(56vw, 280px); line-height: 1.3; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; display: none; }
+        #virtualBoardExportFab:disabled { opacity: 0.45; cursor: not-allowed; }
+        #virtualBoardExportFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
+        #virtualBoardExportOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        #virtualBoardExportOverlay .vb-progress-track { width: 100%; height: 12px; background: rgba(255,255,255,0.15); border-radius: 8px; overflow: hidden; margin: 14px 0 8px; }
+        #virtualBoardExportOverlay .vb-progress-fill { height: 100%; width: 0%; background: #1877f2; border-radius: 8px; transition: width 0.2s ease; }
+        #virtualBoardExportOverlay .vb-eta { font-size: 12px; color: var(--fp-muted); margin: 0 0 12px; }
+        #virtualBoardExportOverlay .vb-preview-wrap { display: none; margin: 10px 0 12px; }
+        #virtualBoardExportOverlay .vb-preview-wrap.show { display: block; }
+        #virtualBoardExportOverlay .vb-preview { max-width: 100%; max-height: 42vh; border-radius: 8px; background: #2a2a4a; }
+        #virtualBoardExportOverlay .vb-save-actions { display: none; gap: 8px; flex-direction: column; }
+        #virtualBoardExportOverlay .vb-save-actions.show { display: flex; }
+        #virtualBoardExportOverlay #virtualBoardExportSaveBtn { margin-top: 0; }
+        #reportIssueFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
+        #toastHost { position: fixed; bottom: 130px; left: 12px; right: 12px; z-index: 4400; pointer-events: none; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+        .app-toast { background: rgba(26, 26, 42, 0.96); color: #fff; padding: 12px 16px; border-radius: 12px; max-width: 420px; font-size: 14px; line-height: 1.4; box-shadow: 0 6px 24px rgba(0,0,0,0.35); text-align: center; opacity: 0; transform: translateY(10px); transition: opacity 0.25s ease, transform 0.25s ease; border: 1px solid rgba(255,255,255,0.12); }
+        .app-toast.show { opacity: 1; transform: translateY(0); }
+        #faqOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3200; display: none; align-items: flex-end; justify-content: center; padding: 0; box-sizing: border-box; }
+        #faqOverlay .faq-sheet { background: var(--fp-chunk); width: 100%; max-width: 520px; max-height: 90vh; border-radius: 16px 16px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,0.35); display: flex; flex-direction: column; box-sizing: border-box; }
+        @media (min-width: 540px) {
+            #faqOverlay { align-items: center; padding: 16px; }
+            #faqOverlay .faq-sheet { border-radius: 16px; max-height: 85vh; }
+        }
+        .faq-inner { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px 8px; text-align: left; font-size: 15px; font-weight: normal; line-height: 1.45; color: var(--fp-text); }
+        .faq-inner h2 { font-size: 18px; margin: 0 0 14px; text-align: center; color: var(--fp-text); }
+        .faq-inner details { margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+        .faq-inner summary { font-weight: bold; cursor: pointer; list-style: none; color: var(--fp-text); }
+        .faq-inner summary::-webkit-details-marker { display: none; }
+        .faq-inner p { margin: 8px 0 0; color: var(--fp-text); }
+        .faq-inner a { color: var(--fp-text); text-decoration: underline; }
+        .faq-close-wrap { padding: 8px 18px 18px; flex-shrink: 0; }
+        .faq-close { width: 100%; padding: 14px; font-size: 16px; font-weight: bold; border: none; border-radius: 10px; background: #1877f2; color: #fff; cursor: pointer; font-family: inherit; }
+        #fuelOverNote { display: none; font-size: 12px; color: var(--fp-text); margin-top: 8px; line-height: 1.4; font-weight: normal; text-align: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; }
+        #fuelHint { font-size: 10px; color: #FC97D4; margin-top: 4px; line-height: 1.3; font-weight: normal; text-align: center; }
+        #fuelHint strong { color: #FC97D4; }
+        #liteModeControls { margin-top: 8px; display: grid; gap: 8px; }
+        #liteFallbackNudge, #litePager { font-size: 12px; color: var(--fp-text); background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; }
+        #liteFallbackNudge a, #litePager a { color: #FC97D4; font-weight: bold; }
+        #litePager {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .lite-pager-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            width: 100%;
+            min-width: 0;
+        }
+        #liteRangeText { font-weight: bold; white-space: nowrap; }
+        #liteAllBoardsBtn {
+            font: inherit;
+            font-weight: bold;
+            color: #FC97D4;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(252, 151, 212, 0.45);
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            text-align: center;
+            max-width: 100%;
+            align-self: center;
+        }
+        #liteAllBoardsBtn:focus-visible { outline: 2px solid var(--fp-muted); outline-offset: 2px; }
+        .admin-phase-bar { display: none; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .admin-phase-bar .admin-phase-label { font-size: 10px; color: var(--fp-muted); font-weight: normal; width: 100%; text-align: center; margin-bottom: 2px; }
+        .admin-phase-btn { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+        .admin-phase-btn.is-active { background: #1877f2; border-color: rgba(255,255,255,0.5); }
+        .admin-phase-btn:focus-visible { outline: 2px solid var(--fp-muted); outline-offset: 2px; }
+        @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
+        .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.35) !important; }
+        /* Full-screen “show ended” (Firebase `showConfig/…/endedFullscreen`; admin Post Show only). */
+        #showEndedOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 6000;
+            background: var(--fp-bg);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            margin: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #showEndedOverlay .show-ended-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 520px;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        #showEndedSocial {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            padding: 0;
+            width: 100%;
+            pointer-events: auto;
+        }
+        #showEndedSocial a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: var(--fp-chunk);
+            border-radius: 10px;
+            text-decoration: none;
+        }
+        #showEndedSocial a .social-icon {
+            width: 24px;
+            height: 24px;
+            display: block;
+            object-fit: contain;
+        }
+        #showEndedSocial a .social-icon.inv {
+            filter: brightness(0) invert(1);
+        }
+        #showEndedOverlay .show-ended-message {
+            max-width: none;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 22px 20px 24px;
+            border-radius: 16px;
+            background: rgba(198, 89, 165, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: var(--fp-text);
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.45;
+            pointer-events: auto;
+        }
+        #showEndedOverlay .show-ended-message .show-ended-brand {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 1.25em;
+            font-weight: bold;
+            color: var(--fp-text);
+        }
+        #showEndedOverlay .show-ended-message .show-ended-open {
+            margin: 0 0 18px;
+        }
+        #showEndedOverlay .show-ended-message p {
+            margin: 0 0 14px;
+            font-weight: normal;
+        }
+        #showEndedOverlay .show-ended-message p:last-child {
+            margin-bottom: 0;
+        }
+        #showEndedOverlay .show-ended-message a {
+            color: var(--fp-muted);
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        #showEndedOverlay .show-ended-message .show-ended-noon-est {
+            white-space: nowrap;
+        }
+        #collectionAppPromo {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 2100;
+            display: block;
+            line-height: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+            -webkit-tap-highlight-color: transparent;
+        }
+        #collectionAppPromo:focus-visible {
+            outline: 3px solid var(--fp-muted);
+            outline-offset: 2px;
+        }
+        #collectionAppPromo img {
+            display: block;
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+        }
+        @media (min-width: 540px) {
+            #collectionAppPromo img {
+                width: 96px;
+                height: 96px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<a id="collectionAppPromo" href="https://apple.co/4f8gaE8" target="_blank" rel="noopener noreferrer" title="Collection Detection App on the App Store" aria-label="Collection Detection App on the App Store"><img src="./collection-detection-app-square.png" width="96" height="96" alt="Collection Detection App"></a>
+
+<div id="loginOverlay" style="display: flex;">
+    <div class="login-box modal-box">
+        <h3 class="login-welcome">
+            <span class="login-welcome-pre">Welcome to the</span>
+            <span class="login-welcome-main">Click To Request</span>
+            <span class="login-welcome-sub">of the House of Fins and Pins</span>
+        </h3>
+        <p class="login-help">Any username will do! Using a unique username helps find and keep track of individual interest in specific pins. Using your whatnot username specifically will be useful for future updates coming to Click To Request.</p>
+        <div class="login-form-stack">
+            <input type="text" id="usernameInput" placeholder="Please enter your whatnot username (or Instagram username)." style="padding: 12px; border: 1px solid #ccc; border-radius: 6px;">
+            <p class="login-disclaimer">Click To Request is like pre-requesting pins. It is an expression of interest, not an intent to purchase.</p>
+            <button type="button" class="primary" onclick="saveUsername()">Start Requesting</button>
+        </div>
+    </div>
+</div>
+
+<div id="fuelOverModal">
+    <div class="modal-box">
+        <p style="margin:0 0 12px; text-align:left; line-height:1.45;">You are now requesting more pins than we might be able to get to in this show. We will do our best to run every pin but cannot guarantee. You can keep clicking!</p>
+        <button type="button" class="primary" onclick="document.getElementById('fuelOverModal').style.display='none'">OK</button>
+    </div>
+</div>
+
+<div id="reportIssueOverlay">
+    <div class="modal-box">
+        <h3>Report Issue</h3>
+        <p class="modal-sub" style="margin-top:0;">Problems using Click To Request (e.g. a pin won’t select, overlapping boxes).</p>
+        <textarea id="reportIssueText" placeholder="Describe the issue…" rows="4"></textarea>
+        <button type="button" class="primary" onclick="submitIssueReport()">Submit Report</button>
+        <button type="button" class="secondary" onclick="document.getElementById('reportIssueOverlay').style.display='none'">Cancel</button>
+    </div>
+</div>
+
+<div id="showEndedOverlay" aria-hidden="true" aria-label="Today's show has ended. Nothing to request here.">
+    <div class="show-ended-stack">
+        <nav id="showEndedSocial" aria-label="Social links">
+            <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
+            <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
+            <a href="https://linktr.ee/finsandpins" target="_blank" rel="noopener noreferrer" title="Linktree" aria-label="Linktree"><img class="social-icon inv" src="./icons/linktree.svg" width="24" height="24" alt=""></a>
+        </nav>
+        <div class="show-ended-message" role="document">
+            <p class="show-ended-open">Thank you for using<br><span class="show-ended-brand">Click To Request!</span></p>
+            <p>Today's show has ended, but we're live<br><strong>Mondays and Thursdays at <span class="show-ended-noon-est">12 noon EST</span></strong><br>on <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer">Whatnot</a>!</p>
+            <p>Be sure to check our Instagram<br><a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer">@Fins.And.Pins</a> for important updates.</p>
+        </div>
+    </div>
+</div>
+
+<div id="faqOverlay" onclick="if(event.target===this) closeFaq()">
+    <div class="faq-sheet" onclick="event.stopPropagation()">
+        <div class="faq-inner">
+            <h2 id="faqTitle">Click To Request — FAQ</h2>
+            <details open>
+                <summary>What is Click To Request?</summary>
+                <p>Click To Request is an easy way for you to express interest in pins you would like to see in an upcoming Fins and Pins show.</p>
+            </details>
+            <details>
+                <summary>How do I use Click To Request?</summary>
+                <p>All you have to do is input your whatnot username and click the pins you’d like to be pulled! The Click To Request system will keep track of everything you’ve selected and send it to Fins and Pins to pull for their next show.</p>
+            </details>
+            <details>
+                <summary>Why does it need my whatnot username?</summary>
+                <p>Any username will do! Using a unique username helps find and keep track of individual interest in specific pins. Using your whatnot username specifically will be useful for future updates coming to Click To Request.</p>
+            </details>
+            <details>
+                <summary>If I select pins, am I expected to purchase them?</summary>
+                <p>No! Click To Request is like pre-requesting pins. It is an expression of interest, not an intent to purchase.</p>
+            </details>
+            <details>
+                <summary>How do I purchase my selected pins?</summary>
+                <p>All pins will be run individually over on whatnot in an auction format at <strong>25% off</strong> list price (list is rounded first, then discounted). Show date, time, and link are listed at the top of the Click To Request page. Don’t have a whatnot account yet? <a class="whatnot-invite-link" href="https://www.whatnot.com/" target="_blank" rel="noopener">Click here to sign up now and get $15 off your first purchase!</a></p>
+            </details>
+            <details>
+                <summary>Do I have to purchase the pins through whatnot?</summary>
+                <p>Yes, all purchases must come through whatnot. Fins and Pins does not currently sell on any other platforms, so whatnot is the only way to purchase pins you’re interested in. Don’t have a whatnot account yet? <a class="whatnot-invite-link" href="https://www.whatnot.com/" target="_blank" rel="noopener">Click here to sign up now and get $15 off your first purchase!</a></p>
+            </details>
+            <details>
+                <summary>I want to trade. Is Click To Request where I should select what I want to trade for?</summary>
+                <p>No. Click To Request is for pre-requesting pins for Fins and Pins’ next whatnot show. Whatever doesn’t sell on whatnot will be for trade at upcoming Florida pin events. Refer to Fins and Pins’ pinned monthly calendar on Instagram to see where and when they’ll be trading!</p>
+            </details>
+            <details>
+                <summary>Do I have to copy and paste my total number of requests over to the Instagram post?</summary>
+                <p>While not necessary, it is recommended. Pasting your shared comment on the Fins and Pins Instagram post will allow Fins and Pins to double-check and keep track of everything that people have requested and make sure they haven’t missed anything important.</p>
+            </details>
+            <details>
+                <summary>What do B and N mean on a pin?</summary>
+                <p>During and after the show (not before it starts): <strong>Blue</strong> means more than one person requested that pin; <strong>green</strong> means only one person did. <strong>B</strong> means the <em>first</em> request on that pin was before the show started; <strong>N</strong> means the first request was during the show.</p>
+            </details>
+            <details>
+                <summary>What is the report issue button for?</summary>
+                <p>The report button is for issues with your ability to use Click To Request—for example, when a pin is not selectable or a selection overlaps another pin. We want to know about those problems so we can fix them.</p>
+            </details>
+            <details>
+                <summary>Why is the fuel bar not changing as I select pins?</summary>
+                <p>This means that your pin has already been selected by another user and is already counted in the total of Pins Requested. You will still see your total number of requests updated as you select, but the Pins Requested bar is only counting individual pin requests, not duplicate requests.</p>
+            </details>
+        </div>
+        <div class="faq-close-wrap">
+            <button type="button" class="faq-close" onclick="closeFaq()">Close</button>
+        </div>
+    </div>
+</div>
+
+<button type="button" id="reportIssueFab" onclick="document.getElementById('reportIssueOverlay').style.display='flex'" title="Report Issue" aria-label="Report Issue">Report Issue</button>
+<button type="button" id="virtualBoardExportFab" disabled title="Create Virtual Pin Board of your clicked pins" aria-label="Create Virtual Pin Board of your clicked pins">Create Virtual Pin Board of 0 Clicked Pins</button>
+<div id="virtualBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="virtualBoardExportTitle">
+    <div class="modal-box" style="max-width:400px;">
+        <h3 id="virtualBoardExportTitle">Building virtual pin board</h3>
+        <p class="modal-sub" id="virtualBoardExportStatus" style="margin-top:0;">Preparing…</p>
+        <div class="vb-progress-track" id="virtualBoardExportTrack" aria-hidden="true"><div class="vb-progress-fill" id="virtualBoardExportBar"></div></div>
+        <p class="vb-eta" id="virtualBoardExportEta">Estimating time…</p>
+        <div class="vb-preview-wrap" id="virtualBoardExportPreviewWrap">
+            <img class="vb-preview" id="virtualBoardExportPreview" alt="Virtual pin board preview">
+        </div>
+        <div class="vb-save-actions" id="virtualBoardExportSaveActions">
+            <button type="button" class="primary" id="virtualBoardExportSaveBtn">Save to Photos</button>
+            <button type="button" class="secondary" id="virtualBoardExportSkipBtn" style="margin-top:0;">Skip this photo</button>
+        </div>
+        <button type="button" class="secondary" id="virtualBoardExportCancelBtn">Cancel</button>
+    </div>
+</div>
+<div id="toastHost" aria-live="polite"></div>
+
+<h1>Fins and Pins Click To Request!</h1>
+<h2 id="showTitle">Show Date</h2>
+<p id="introNote">We hope you enjoy clicking the pins you want, rather than typing the board number and description 🧜‍♀️</p>
+<div id="socialBar" aria-label="Social links">
+    <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
+    <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
+    <a href="https://linktr.ee/finsandpins" target="_blank" rel="noopener noreferrer" title="Linktree" aria-label="Linktree"><img class="social-icon inv" src="./icons/linktree.svg" width="24" height="24" alt=""></a>
+</div>
+
+<div id="globalCounts">
+    <div id="globalCountsStick">
+    <div id="userStatsRow" class="global-counts-row">
+        <span id="userStatBlock" class="gc-item">My Requests: <span id="totalMyClaims">0</span></span>
+        <span id="dotBeforeSync" class="gc-dot" aria-hidden="true">·</span>
+        <span id="syncStatus" class="gc-sync">📡 Connecting to Firebase...</span>
+        <span id="dotAfterSync" class="gc-dot" aria-hidden="true">·</span>
+        <span id="fuelStatBlock" class="gc-item">Total requested: <span id="fuelText">0 / 250</span></span>
+    </div>
+    <span id="totalPins" hidden>0</span>
+    <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
+        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · $<span id="adminTotalValue">0</span> · VB gen <span id="adminVirtualBoardGen" title="People who tapped Create Virtual Pin Board">0</span> · VB save <span id="adminVirtualBoardSave" title="People who saved a virtual pin board photo">0</span>
+    </div>
+    </div>
+    <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
+        <span class="admin-phase-label">Admin only — show state &amp; box cleanup (not shown to visitors)</span>
+        <button type="button" class="admin-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
+        <button type="button" class="admin-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
+        <button type="button" class="admin-phase-btn" data-phase="post" title="Force Post Show banner">Post Show</button>
+        <button type="button" class="admin-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
+        <button type="button" id="boxCleanupToggle" title="Show all boxes; tap to hide non-pins for everyone">Fix boxes</button>
+        <span id="boxCleanupCount"></span>
+    </div>
+    <div id="boxCleanupBar" aria-label="Box cleanup help">
+        <p><strong>Fix boxes (live for everyone):</strong> green outline = clickable pin. Tap a bad box to hide it for all visitors (red dashed). Tap again to restore. Saves to Firebase immediately — not just this browser.</p>
+    </div>
+    <div id="countdownArea"></div>
+    <div id="fuelGaugeArea">
+        <div id="fuelBarTrack"><div id="fuelBar"></div></div>
+        <p id="fuelOverNote" role="status">You are now requesting more pins than we might be able to get to in this show. We will do our best to run every pin but cannot guarantee. You can keep clicking!</p>
+        <div id="spotsLeft"></div>
+        <p id="fuelHint"><strong>Total requested</strong> counts each pin once (first request anywhere). <strong>My Requests</strong> includes every pin you select, including pins others already requested.</p>
+    </div>
+    <div id="liteModeControls">
+        <div id="liteFallbackNudge">
+            If photos do not load in <strong><span id="liteCountdown">30</span>s</strong>,
+            <a id="liteOpenLink" href="?lite=1&start=0">tap here</a>.
+            <span style="opacity:.9">Identical boards, but 10 at a time for faster loading instead of loading all boards at once.</span>
+        </div>
+        <div id="litePager">
+            <div class="lite-pager-nav" aria-label="Board pages">
+                <a id="litePrevLink" href="#">Previous 10</a>
+                <span id="liteRangeText">Boards 1–10</span>
+                <a id="liteNextLink" href="#">Next 10</a>
+            </div>
+            <button type="button" id="liteAllBoardsBtn" onclick="goToFullBoardView()">Go Back to All Boards at Once</button>
+        </div>
+    </div>
+</div>
+
+<div id="boardsList"></div>
+
+<div id="footerControls">
+    <div id="userDisplay" style="font-weight: bold;">@user</div>
+    <div class="footer-links">
+        <button type="button" id="shareToIgBtn">Share To Instagram</button>
+        <button type="button" onclick="openFaq()">FAQ</button>
+        <a id="adminReportBtn" href="reports.html">Reports</a>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/user_filter.js?v=3"></script>
+
+<script>
+// ── SHOW CONFIGURATION ──────────────────────────────────────────────
+const FUEL_MAX = 250;                        // Max pins that can be selected
+/** Default request window (Eastern). Override from Reports → “Show window” (saved in Firebase). Countdown uses the end time (“Request window closes in …”). */
+const DEFAULT_SHOW_CONFIG = { startHour: 12, startMin: 0, endHour: 18, endMin: 0 };
+const EASTERN_TZ = "America/New_York";
+let activeShowConfig = { ...DEFAULT_SHOW_CONFIG };
+let showWindowStartMs = 0;
+let showWindowEndMs = 0;
+/** Firebase `showConfig.phase`: auto = use Eastern window; pre/live/post = manual banner & admin pin coloring. */
+let showPhaseOverride = "auto";
+/** Firebase `showConfig/…/endedFullscreen`: full-screen “show ended” — true only on Post Show; false on Schedule, Pre, or During. */
+let showEndedFullscreenActive = false;
+/** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
+const SHOW_DATE_SLUG_FALLBACK = "20260906";
+/** Paste your whatnot invite / referral URL here (shown in FAQ links). */
+const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
+
+/** Calendar time in `timeZone` → UTC milliseconds (handles DST). */
+function wallTimeToUtc(year, month, day, hour, minute, timeZone) {
+    let t = Date.UTC(year, month - 1, day, hour, minute, 0);
+    for (let i = 0; i < 48; i++) {
+        const parts = new Intl.DateTimeFormat("en-US", {
+            timeZone,
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            hour12: false
+        }).formatToParts(new Date(t));
+        const py = +parts.find(p => p.type === "year").value;
+        const pm = +parts.find(p => p.type === "month").value;
+        const pd = +parts.find(p => p.type === "day").value;
+        const ph = +parts.find(p => p.type === "hour").value;
+        const pmi = +parts.find(p => p.type === "minute").value;
+        if (py === year && pm === month && pd === day && ph === hour && pmi === minute) return t;
+        t += ((day - pd) * 1440 + (hour - ph) * 60 + (minute - pmi)) * 60 * 1000;
+    }
+    return Date.UTC(year, month - 1, day, hour, minute, 0);
+}
+
+function recomputeShowWindows() {
+    const raw = showDateSlug;
+    const y = +raw.substring(0, 4), mo = +raw.substring(4, 6), d = +raw.substring(6, 8);
+    showWindowStartMs = wallTimeToUtc(y, mo, d, activeShowConfig.startHour, activeShowConfig.startMin, EASTERN_TZ);
+    showWindowEndMs = wallTimeToUtc(y, mo, d, activeShowConfig.endHour, activeShowConfig.endMin, EASTERN_TZ);
+    if (showWindowEndMs <= showWindowStartMs) showWindowEndMs = showWindowStartMs + 3600000;
+    updateCountdowns();
+}
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const ADMIN_KEY = "0626200207081986";
+const urlParams = new URLSearchParams(window.location.search);
+const providedKey = urlParams.get('admin');
+const LITE_PAGE_SIZE = 10;
+const isLiteMode = urlParams.get("lite") === "1";
+const liteStartRaw = Number.parseInt(urlParams.get("start") || "0", 10);
+const liteStart = Number.isFinite(liteStartRaw) ? Math.max(0, liteStartRaw) : 0;
+
+if (providedKey === ADMIN_KEY) sessionStorage.setItem('fp_admin_active', 'true');
+const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
+
+function goToFullBoardView() {
+    const u = new URL("index.html", window.location.href);
+    u.searchParams.delete("lite");
+    u.searchParams.delete("start");
+    if (isAdmin) u.searchParams.set("admin", ADMIN_KEY);
+    else u.searchParams.delete("admin");
+    window.location.href = u.pathname + u.search + u.hash;
+}
+
+/** Virtual-board analytics (showConfig only — never claims). */
+function updateAdminVirtualBoardCounts(genN, saveN) {
+    const gEl = document.getElementById("adminVirtualBoardGen");
+    const sEl = document.getElementById("adminVirtualBoardSave");
+    if (gEl) gEl.textContent = String(Math.max(0, Number(genN) || 0));
+    if (sEl) sEl.textContent = String(Math.max(0, Number(saveN) || 0));
+}
+
+/**
+ * Analytics only — separate leaves for Generate tap vs Save photo.
+ *   showConfig/{show}/virtualBoardGenerate/{userKey}
+ *   showConfig/{show}/virtualBoardSave/{userKey}
+ * Also mirrors save → virtualBoardUsed (older leaf) so prior rows stay meaningful.
+ * Never reads or writes claims/. Failures are ignored so export UX is unaffected.
+ */
+function recordVirtualBoardEvent(kind, meta) {
+    try {
+        if (!displayName || typeof db === "undefined" || !db) return;
+        const userKey = sanitizeUserKey(identityKey);
+        if (!userKey) return;
+        const branch = kind === "generate" ? "virtualBoardGenerate" : "virtualBoardSave";
+        const path = `showConfig/${fbName}/${branch}/${userKey}`;
+        const pinCount = Math.max(0, Number(meta && meta.pinCount) || 0);
+        const pages = Math.max(0, Number(meta && meta.pages) || 0);
+        db.ref(path).transaction((cur) => {
+            const prev = (cur && typeof cur === "object") ? cur : {};
+            return {
+                label: displayName,
+                time: Date.now(),
+                count: (Number(prev.count) || 0) + 1,
+                pinCount,
+                pages
+            };
+        }).catch((e) => {
+            console.warn("[Virtual board] analytics write skipped:", e && e.message);
+        });
+        if (kind === "save") {
+            // Keep legacy leaf in sync for any earlier tooling/reading.
+            db.ref(`showConfig/${fbName}/virtualBoardUsed/${userKey}`).set({
+                label: displayName,
+                time: firebase.database.ServerValue.TIMESTAMP,
+                pinCount,
+                pages
+            }).catch(() => {});
+        }
+    } catch (e) {
+        console.warn("[Virtual board] analytics write skipped:", e && e.message);
+    }
+}
+
+if (isAdmin) {
+    const reportBtn = document.getElementById('adminReportBtn');
+    reportBtn.style.display = 'inline-block';
+    reportBtn.href = `reports.html?admin=${ADMIN_KEY}`;
+    document.getElementById('adminGlobalDisplay').style.display = 'block';
+    document.getElementById('adminPhaseBar').style.display = 'flex';
+    document.getElementById('userStatBlock').style.display = 'none';
+    document.getElementById('fuelStatBlock').style.display = '';
+    document.getElementById('dotBeforeSync').style.display = 'none';
+    document.getElementById('dotAfterSync').style.display = '';
+    document.getElementById('adminPhaseBar').querySelectorAll('.admin-phase-btn').forEach(btn => {
+        btn.addEventListener('click', () => writeShowPhase(btn.getAttribute('data-phase')));
+    });
+    const cleanupBtn = document.getElementById('boxCleanupToggle');
+    if (cleanupBtn) {
+        cleanupBtn.addEventListener('click', () => {
+            boxCleanupMode = !boxCleanupMode;
+            document.body.classList.toggle('box-cleanup-on', boxCleanupMode);
+            cleanupBtn.classList.toggle('is-active', boxCleanupMode);
+            applyAllHiddenPins();
+        });
+    }
+} else {
+    document.getElementById('fuelStatBlock').style.display = 'none';
+    document.getElementById('dotAfterSync').style.display = 'none';
+    const cleanupBar = document.getElementById('boxCleanupBar');
+    if (cleanupBar) cleanupBar.style.display = 'none';
+}
+
+function sanitizeUserKey(id) {
+    return String(id).replace(/[.#$\[\]\/]/g, "_");
+}
+
+/** @whatnot / @instagram-style names: one customer per handle regardless of case. Guest_* left as-is. */
+function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+}
+
+/** Distinct “customer” for admin stats: normalized @handle when label exists, else Firebase uid (legacy). */
+function userKeyForPublicStats(uid, meta) {
+    const lab = meta && typeof meta.label === "string" ? meta.label.trim() : "";
+    if (lab) return normalizeUserDisplayName(lab);
+    return uid;
+}
+
+function ensureIdentity() {
+    let id = localStorage.getItem("fp_identity");
+    if (!id) {
+        if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+            id = "id_" + [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, "0")).join("");
+        } else {
+            id = "id_" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        }
+        localStorage.setItem("fp_identity", id);
+    }
+    return id;
+}
+
+let identityKey = ensureIdentity();
+let displayName = localStorage.getItem("fp_display_name") || "";
+if (!displayName && localStorage.getItem("fp_username")) {
+    displayName = localStorage.getItem("fp_username");
+    localStorage.setItem("fp_display_name", displayName);
+}
+if (displayName) {
+    const n = normalizeUserDisplayName(displayName);
+    if (n !== displayName) {
+        displayName = n;
+        localStorage.setItem("fp_display_name", displayName);
+    }
+}
+
+/** Shown in the footer; Firebase uses identityKey so others cannot impersonate your name. */
+let currentUser = displayName;
+
+let boardsState = {};
+let lastMyRequestsCount = 0;
+/** Latest flat claims map from Firebase (`pinKey` → users). Used for global queue math in lite mode. */
+let latestClaimsData = {};
+/** Session set of pins this visitor claimed — used so virtual board always includes earlier clicks. */
+const vbMyPinKeysSession = new Set();
+/** True after first Firebase `claims` snapshot in this session (lite mode uses empty snapshot as real “0 claims”). */
+let claimsSnapshotReceived = false;
+/** Full manifest board names (all boards), even when only a page is rendered in lite mode. */
+let manifestBoardNames = [];
+/** Sum of prediction counts across all boards (computed async in lite mode). */
+let globalAllBoardPinCount = 0;
+let globalAllBoardPinCountReady = false;
+/** Admin-only: pinKey → crop_stem for $ totals (does not touch claims). */
+const adminCropStemByPinKey = {};
+let adminCropStemMapReady = false;
+
+function getEffectiveShowPhase() {
+    if (showPhaseOverride !== "auto") return showPhaseOverride;
+    const now = Date.now();
+    if (!showWindowStartMs) return "pre";
+    if (now < showWindowStartMs) return "pre";
+    if (now < showWindowEndMs) return "live";
+    return "post";
+}
+
+/** B/N badges only while the request window is live (Eastern schedule or manual During Show). Otherwise visitors get a plain green highlight only. */
+function isBnWindowActive() {
+    if (showPhaseOverride === "live") return true;
+    if (showPhaseOverride === "pre" || showPhaseOverride === "post") return false;
+    const now = Date.now();
+    if (!showWindowStartMs || !showWindowEndMs) return false;
+    return now >= showWindowStartMs && now < showWindowEndMs;
+}
+
+/** Before show: plain green only. During + after show: B/N + blue/green for pins you claimed. */
+function shouldShowVisitorBnStyles() {
+    return getEffectiveShowPhase() !== "pre";
+}
+
+/** True if the first request on this pin was before the scheduled Eastern show start. */
+function pinFirstRequestWasPreShow(users) {
+    const firstMs = earliestClaimTimeMs(users);
+    if (!firstMs || !showWindowStartMs) return false;
+    return firstMs < showWindowStartMs;
+}
+
+function showToast(msg, durationMs = 5000) {
+    const host = document.getElementById("toastHost");
+    if (!host || !msg) return;
+    let toasts = host.querySelectorAll(".app-toast");
+    while (toasts.length >= 2) {
+        toasts[0].remove();
+        toasts = host.querySelectorAll(".app-toast");
+    }
+    const el = document.createElement("div");
+    el.className = "app-toast";
+    el.textContent = msg;
+    host.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => {
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 280);
+    }, durationMs);
+}
+
+function getCutoffTimestamp() {
+    const ph = getEffectiveShowPhase();
+    if (ph === "pre") return Number.MAX_SAFE_INTEGER;
+    if (ph === "post") return 0;
+    return showWindowStartMs || 0;
+}
+
+/** Earliest `time` on a pin’s claims; 0 if missing (legacy rows). */
+function earliestClaimTimeMs(users) {
+    let t = Infinity;
+    for (const u of Object.values(users || {})) {
+        if (u && typeof u.time === "number" && u.time > 0) t = Math.min(t, u.time);
+    }
+    return t === Infinity ? 0 : t;
+}
+
+/** Order pins were first requested (1 = earliest globally); uses current `boardsState`. */
+function queueRankForPinFromState(pinKey) {
+    const entries = [];
+    if (isLiteMode && claimsSnapshotReceived) {
+        Object.entries(latestClaimsData).forEach(([pk, users]) => {
+            const t = earliestClaimTimeMs(users);
+            if (t > 0) entries.push({ pk, t });
+        });
+    } else {
+        Object.values(boardsState).forEach(s => {
+            Object.entries(s.allClaims || {}).forEach(([pk, users]) => {
+                const t = earliestClaimTimeMs(users);
+                if (t > 0) entries.push({ pk, t });
+            });
+        });
+    }
+    entries.sort((a, b) => a.t - b.t || a.pk.localeCompare(b.pk));
+    const idx = entries.findIndex(e => e.pk === pinKey);
+    return idx >= 0 ? idx + 1 : 0;
+}
+
+/** Admin: green (selection-now) = first request before scheduled show window; blue (selection-before) = during or after. */
+function adminPinIsPreShow(users) {
+    const firstMs = earliestClaimTimeMs(users);
+    if (!firstMs || !showWindowStartMs) return false;
+    return firstMs < showWindowStartMs;
+}
+
+function refreshAdminPhaseButtons() {
+    if (!isAdmin) return;
+    const cur = showPhaseOverride || "auto";
+    document.querySelectorAll("#adminPhaseBar .admin-phase-btn").forEach(b => {
+        b.classList.toggle("is-active", b.getAttribute("data-phase") === cur);
+    });
+}
+
+function syncShowEndedOverlay() {
+    const el = document.getElementById("showEndedOverlay");
+    if (!el) return;
+    const on = !!showEndedFullscreenActive && !isAdmin;
+    el.style.display = on ? "flex" : "none";
+    el.setAttribute("aria-hidden", on ? "false" : "true");
+    if (on) {
+        document.body.style.overflow = "hidden";
+    } else {
+        const faq = document.getElementById("faqOverlay");
+        if (!faq || faq.style.display !== "flex") document.body.style.overflow = "";
+    }
+}
+
+function writeShowPhase(phase) {
+    if (!["auto", "pre", "live", "post"].includes(phase)) return;
+    const payload = {
+        phase,
+        phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+    payload.endedFullscreen = phase === "post";
+    db.ref(`showConfig/${fbName}`).update(payload).catch(e => alert(e.message));
+}
+
+if (displayName) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userDisplay').textContent = displayName;
+}
+
+document.querySelectorAll(".whatnot-invite-link").forEach(a => { a.href = WHATNOT_REFERRAL_URL; });
+
+const INSTAGRAM_FP = "https://www.instagram.com/fins.and.pins/";
+
+function buildInstagramShareText() {
+    const raw = document.getElementById("totalMyClaims").textContent || "0";
+    const n = raw.trim() || "0";
+    const pinWord = n === "1" ? "pin" : "pins";
+    return `I just requested ${n} ${pinWord} from the Fins And Pins Click To Request.`;
+}
+
+/** iOS / non-HTTPS: must run in the same turn as the tap; Clipboard API often fails on http:// LAN. */
+function copyMessageSync(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;left:-9999px;top:0;font-size:16px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try {
+        ok = document.execCommand("copy");
+    } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+}
+
+document.getElementById("shareToIgBtn").addEventListener("click", () => {
+    const msg = buildInstagramShareText();
+    const goIg = () => { window.location.href = INSTAGRAM_FP; };
+    const afterCopy = () => {
+        alert("Copied! Opening Instagram…");
+        goIg();
+    };
+    if (copyMessageSync(msg)) {
+        afterCopy();
+        return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(msg).then(afterCopy).catch(() => {
+            window.prompt("Copy this text, then tap OK to open Instagram:", msg);
+            goIg();
+        });
+        return;
+    }
+    window.prompt("Copy this text, then tap OK to open Instagram:", msg);
+    goIg();
+});
+
+const reportIssueTa = document.getElementById("reportIssueText");
+reportIssueTa.addEventListener("focus", function onFirstFocus() {
+    if (reportIssueTa.placeholder === "Describe the issue…") {
+        reportIssueTa.placeholder = "";
+        reportIssueTa.removeEventListener("focus", onFirstFocus);
+    }
+});
+
+function openFaq() {
+    document.getElementById("faqOverlay").style.display = "flex";
+    document.body.style.overflow = "hidden";
+}
+function closeFaq() {
+    document.getElementById("faqOverlay").style.display = "none";
+    document.body.style.overflow = "";
+}
+
+function saveUsername() {
+    const raw = document.getElementById("usernameInput").value.trim();
+    if (!raw) {
+        displayName = "Guest_" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    } else {
+        const v = raw.replace(/^@+/, "").trim();
+        displayName = normalizeUserDisplayName("@" + v);
+    }
+    localStorage.setItem("fp_display_name", displayName);
+    localStorage.removeItem("fp_username");
+    currentUser = displayName;
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("userDisplay").textContent = displayName;
+    listenForFirebase();
+}
+
+function parseShowDateSlugFromPath() {
+    const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+    const segments = pathClean.split("/").filter(Boolean);
+    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+    const m = last.match(/(\d{8})/);
+    return m ? m[1] : null;
+}
+const showDateSlug = parseShowDateSlugFromPath() || SHOW_DATE_SLUG_FALLBACK;
+const fbName = showDateSlug;
+
+/** Firebase `hiddenPins/<slug>/<board>-<idx>` — removed for EVERY visitor, not local-only. */
+const hiddenPinKeys = new Set();
+let boxCleanupMode = false;
+
+function pinKeyOf(boardName, idx) {
+    return `${boardName}-${idx}`;
+}
+
+function refreshHiddenCount() {
+    const el = document.getElementById("boxCleanupCount");
+    if (!el) return;
+    el.textContent = hiddenPinKeys.size ? `${hiddenPinKeys.size} hidden` : "";
+}
+
+function applyHiddenToPinEl(pinEl, pinKey) {
+    if (!pinEl) return;
+    pinEl.classList.toggle("pin-hidden", hiddenPinKeys.has(pinKey));
+}
+
+function applyAllHiddenPins() {
+    document.querySelectorAll(".pin[id^='pin-']").forEach(el => {
+        const pinKey = el.id.startsWith("pin-") ? el.id.slice(4) : "";
+        if (pinKey) applyHiddenToPinEl(el, pinKey);
+    });
+    refreshHiddenCount();
+}
+
+function toggleHiddenPin(boardName, idx) {
+    const pinKey = pinKeyOf(boardName, idx);
+    const ref = db.ref(`hiddenPins/${fbName}/${pinKey}`);
+    if (hiddenPinKeys.has(pinKey)) {
+        ref.set(null);
+    } else {
+        ref.set({
+            hidden: true,
+            time: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+}
+
+db.ref(`hiddenPins/${fbName}`).on("value", snap => {
+    hiddenPinKeys.clear();
+    const v = snap.val() || {};
+    Object.keys(v).forEach(k => {
+        if (v[k]) hiddenPinKeys.add(k);
+    });
+    applyAllHiddenPins();
+    scheduleAvailablePinTotalsRefresh();
+});
+
+db.ref(`showConfig/${fbName}`).on("value", snap => {
+    const v = snap.val() || {};
+    if (v.startHour != null || v.endHour != null) {
+        activeShowConfig = {
+            startHour: Number(v.startHour),
+            startMin: Number(v.startMin) || 0,
+            endHour: Number(v.endHour),
+            endMin: Number(v.endMin) || 0
+        };
+    } else {
+        activeShowConfig = { ...DEFAULT_SHOW_CONFIG };
+    }
+    showPhaseOverride = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+    showEndedFullscreenActive = v.endedFullscreen === true || v.endedFullscreen === 1 || String(v.endedFullscreen) === "true";
+    recomputeShowWindows();
+    refreshAdminPhaseButtons();
+    syncShowEndedOverlay();
+    if (isAdmin) {
+        const gen = (v && v.virtualBoardGenerate && typeof v.virtualBoardGenerate === "object") ? v.virtualBoardGenerate : {};
+        const saved = (v && v.virtualBoardSave && typeof v.virtualBoardSave === "object") ? v.virtualBoardSave : {};
+        const legacy = (v && v.virtualBoardUsed && typeof v.virtualBoardUsed === "object") ? v.virtualBoardUsed : {};
+        // Unique people: prefer new save leaf, fall back to legacy used.
+        const saveKeys = new Set([...Object.keys(saved), ...Object.keys(legacy)]);
+        updateAdminVirtualBoardCounts(Object.keys(gen).length, saveKeys.size);
+    }
+});
+
+(function() {
+    const raw = showDateSlug;
+    const y = raw.substring(0, 4), mo = raw.substring(4, 6), d = raw.substring(6, 8);
+    const date = new Date(`${y}-${mo}-${d}T12:00:00`);
+    document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+    recomputeShowWindows();
+})();
+setInterval(updateCountdowns, 1000);
+
+function updateCountdowns() {
+    const el = document.getElementById("countdownArea");
+    if (!el || !showWindowEndMs) return;
+    const fmt = (ms) => {
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        const s = Math.floor((ms % 60000) / 1000);
+        return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+    };
+    const now = Date.now();
+    const closesInLine = () =>
+        `🕛 Request window closes in <strong>${fmt(showWindowEndMs - now)}</strong> <span style="opacity:.85">(Eastern)</span>`;
+    if (showPhaseOverride !== "auto") {
+        if (showPhaseOverride === "live") {
+            el.innerHTML = "🎬 <strong>During Show</strong> · Request window is open. <span style=\"opacity:.85\">(Manual)</span>";
+            return;
+        }
+        if (showPhaseOverride === "post") {
+            el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended. <span style=\"opacity:.85\">(Manual)</span>";
+            return;
+        }
+        // manual Pre-Show: countdown to the scheduled *end* time (Reports → End), same as Schedule
+        if (now < showWindowEndMs) {
+            el.innerHTML = closesInLine();
+            return;
+        }
+        el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended for this show.";
+        return;
+    }
+    if (now < showWindowEndMs) {
+        el.innerHTML = closesInLine();
+    } else {
+        el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended for this show.";
+    }
+}
+
+function updateFuelGauge(requested) {
+    const pct = Math.min(100, Math.round((requested / FUEL_MAX) * 100));
+    const bar    = document.getElementById('fuelBar');
+    const textEl = document.getElementById('fuelText');
+    const spotsEl = document.getElementById('spotsLeft');
+    if (!bar) return;
+    bar.style.width      = pct + '%';
+    bar.style.background = pct >= 90 ? '#dc3545' : pct >= 70 ? '#fd7e14' : '#28a745';
+    textEl.textContent   = `${requested} / ${FUEL_MAX}`;
+    const left = FUEL_MAX - requested;
+    if (left <= 0)
+        spotsEl.innerHTML = `<strong style="color:#dc3545">🔥 ${requested} pins requested!</strong>`;
+    else if (left <= 20)
+        spotsEl.innerHTML = `<strong style="color:#fd7e14">⚠️ Only ${left} spots left!</strong>`;
+    else
+        spotsEl.textContent = `${left} spots remaining`;
+
+    const overNote = document.getElementById("fuelOverNote");
+    if (overNote) overNote.style.display = requested >= FUEL_MAX ? "block" : "none";
+}
+
+// Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
+const BOARDS_MANIFEST_VERSION = "1";
+
+async function computeAllBoardPinTotals(boardNames) {
+    let sum = 0;
+    const chunk = 12;
+    const unavailable = (typeof window._ctcStemIsUnavailable === "function")
+        ? window._ctcStemIsUnavailable
+        : null;
+    for (let i = 0; i < boardNames.length; i += chunk) {
+        const slice = boardNames.slice(i, i + chunk);
+        const results = await Promise.all(
+            slice.map(async (name) => {
+                try {
+                    const r = await fetch(`./boards/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+                    if (!r.ok) return 0;
+                    const data = await r.json();
+                    const pins = data.predictions || data.output?.predictions || [];
+                    if (!Array.isArray(pins)) return 0;
+                    const leftover = String(name).startsWith("LO03_");
+                    let n = 0;
+                    pins.forEach((pin, idx) => {
+                        if (hiddenPinKeys.has(pinKeyOf(name, idx))) return;
+                        if (unavailable) {
+                            const stem = pin && pin.crop_stem ? String(pin.crop_stem) : "";
+                            if (unavailable(stem, leftover)) return;
+                        }
+                        n++;
+                    });
+                    return n;
+                } catch (e) {
+                    return 0;
+                }
+            })
+        );
+        sum += results.reduce((a, b) => a + b, 0);
+    }
+    return sum;
+}
+
+/** Count pins that are still requestable (exclude NaP + sold leftovers + Fix-boxes hides). Pending stays clickable. */
+function countAvailablePinsOnBoard(name) {
+    const pins = document.querySelectorAll(`#wrapper-${name} .pin`);
+    let n = 0;
+    pins.forEach((p) => {
+        if (p.classList.contains("pin-nap") || p.classList.contains("pin-sold") || p.classList.contains("pin-hidden")) return;
+        n++;
+    });
+    return n;
+}
+
+let _availRecountTimer = null;
+function syncAvailablePinTotalsFromDom() {
+    Object.keys(boardsState).forEach((name) => {
+        const wrapper = document.getElementById(`wrapper-${name}`);
+        if (!wrapper) return;
+        boardsState[name].totalPins = countAvailablePinsOnBoard(name);
+    });
+    updateAllBoardDisplays();
+    calculateGlobals();
+}
+
+function scheduleAvailablePinTotalsRefresh() {
+    clearTimeout(_availRecountTimer);
+    _availRecountTimer = setTimeout(() => {
+        syncAvailablePinTotalsFromDom();
+        if (isLiteMode && Array.isArray(manifestBoardNames) && manifestBoardNames.length) {
+            globalAllBoardPinCountReady = false;
+            computeAllBoardPinTotals(manifestBoardNames).then((n) => {
+                globalAllBoardPinCount = n;
+                globalAllBoardPinCountReady = true;
+                calculateGlobals();
+            });
+        }
+    }, 120);
+}
+window._ctcOnPinAvailabilityChanged = scheduleAvailablePinTotalsRefresh;
+
+/** Map every pin key → crop_stem so $ totals work for boards not yet rendered (lite). Read-only. */
+async function loadAdminCropStemMap(boardNames) {
+    const chunk = 12;
+    for (let i = 0; i < boardNames.length; i += chunk) {
+        const slice = boardNames.slice(i, i + chunk);
+        await Promise.all(slice.map(async (name) => {
+            try {
+                const r = await fetch(`./boards/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+                if (!r.ok) return;
+                const data = await r.json();
+                const pins = data.predictions || data.output?.predictions || [];
+                if (!Array.isArray(pins)) return;
+                pins.forEach((p, idx) => {
+                    if (p && p.crop_stem) adminCropStemByPinKey[`${name}-${idx}`] = p.crop_stem;
+                });
+            } catch (e) { /* ignore single-board fetch failures */ }
+        }));
+    }
+    adminCropStemMapReady = true;
+    calculateGlobals();
+}
+
+fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
+    .then(r => r.json())
+    .then(list => {
+        manifestBoardNames = list.slice();
+        if (isLiteMode) {
+            globalAllBoardPinCountReady = false;
+            computeAllBoardPinTotals(manifestBoardNames).then((n) => {
+                globalAllBoardPinCount = n;
+                globalAllBoardPinCountReady = true;
+                calculateGlobals();
+            });
+        } else {
+            globalAllBoardPinCountReady = false;
+        }
+        // Needed for admin $ and each user's running $ on the virtual-board button.
+        loadAdminCropStemMap(manifestBoardNames);
+        const totalBoards = list.length;
+        const rank = {};
+        list.forEach((name, idx) => { rank[name] = idx; });
+        let start = isLiteMode ? Math.min(liteStart, Math.max(0, totalBoards - LITE_PAGE_SIZE)) : 0;
+        let end = isLiteMode ? Math.min(totalBoards, start + LITE_PAGE_SIZE) : totalBoards;
+        const activeList = isLiteMode ? list.slice(start, end) : list;
+        const nudge = document.getElementById("liteFallbackNudge");
+        const pager = document.getElementById("litePager");
+        const range = document.getElementById("liteRangeText");
+        const prev = document.getElementById("litePrevLink");
+        const next = document.getElementById("liteNextLink");
+        const liteOpen = document.getElementById("liteOpenLink");
+        if (liteOpen) liteOpen.href = `?lite=1&start=0${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+        if (isLiteMode) {
+            if (nudge) nudge.style.display = "none";
+            if (pager) pager.style.display = "flex";
+            if (range) range.textContent = `Boards ${start + 1}–${end} of ${totalBoards}`;
+            if (prev) {
+                if (start <= 0) {
+                    prev.style.opacity = "0.5";
+                    prev.removeAttribute("href");
+                } else {
+                    prev.href = `?lite=1&start=${Math.max(0, start - LITE_PAGE_SIZE)}${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+                }
+            }
+            if (next) {
+                if (end >= totalBoards) {
+                    next.style.opacity = "0.5";
+                    next.removeAttribute("href");
+                } else {
+                    next.href = `?lite=1&start=${start + LITE_PAGE_SIZE}${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+                }
+            }
+        } else {
+            if (pager) pager.style.display = "none";
+            let countdown = 30;
+            const tick = () => {
+                const c = document.getElementById("liteCountdown");
+                if (c) c.textContent = String(countdown);
+                if (countdown > 0) countdown -= 1;
+            };
+            tick();
+            setInterval(tick, 1000);
+        }
+        const boardsList = document.getElementById("boardsList");
+        activeList.forEach((name) => {
+            const index = rank[name] ?? 0;
+            const container = document.createElement("div");
+            container.className = "board-container";
+            const leftoverLabel = String(name).startsWith("LO03_") ? " · From Monday's show" : "";
+            container.innerHTML = `
+                <div class="board-header">
+                    <span class="board-title">Board ${index + 1}${leftoverLabel}</span>
+                    <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
+                </div>
+                <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
+                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="./boards/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}"></div>`;
+            boardsList.appendChild(container);
+            boardsState[name] = { totalPins: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
+            setupBoard(name);
+        });
+        if (displayName) listenForFirebase();
+    });
+
+async function setupBoard(name) {
+    const response = await fetch(`./boards/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const data = await response.json();
+    const pins = data.predictions || data.output?.predictions || [];
+    boardsState[name].totalPins = pins.length;
+    const img = document.getElementById(`img-${name}`);
+    const render = () => {
+        const wrapper = document.getElementById(`wrapper-${name}`);
+        let ORIG_W = data.image?.width || img.naturalWidth;
+        let ORIG_H = data.image?.height || img.naturalHeight;
+        const rotated = (ORIG_W > ORIG_H) !== (img.clientWidth > img.clientHeight);
+        const scale = img.clientWidth / (rotated ? ORIG_H : ORIG_W);
+        pins.forEach((pin, idx) => {
+            const div = document.createElement("div");
+            div.className = "pin";
+            div.style.left   = ((rotated ? (ORIG_H - pin.y) : pin.x) - (rotated ? pin.height : pin.width)  / 2) * scale + "px";
+            div.style.top    = ((rotated ? pin.x : pin.y)             - (rotated ? pin.width  : pin.height) / 2) * scale + "px";
+            div.style.width  = ((rotated ? pin.height : pin.width)  * scale) + "px";
+            div.style.height = ((rotated ? pin.width  : pin.height) * scale) + "px";
+            div.id = `pin-${name}-${idx}`;
+            if (pin.crop_stem) div.dataset.cropStem = pin.crop_stem;
+            if (String(name).startsWith("LO03_")) div.dataset.leftover = "1";
+            div.onclick = (e) => {
+                e.preventDefault();
+                if (isAdmin && boxCleanupMode) {
+                    toggleHiddenPin(name, idx);
+                    return;
+                }
+                handlePinClick(name, idx);
+            };
+            wrapper.appendChild(div);
+            applyHiddenToPinEl(div, pinKeyOf(name, idx));
+            if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
+            if (typeof window._ctcApplySoldGate === "function") window._ctcApplySoldGate(div);
+            if (typeof window._ctcApplyPendingGate === "function") window._ctcApplyPendingGate(div);
+        });
+        boardsState[name].totalPins = countAvailablePinsOnBoard(name);
+        updateBoardDisplay(name);
+        calculateGlobals();
+    };
+    if (img.complete) render(); else img.onload = render;
+}
+
+/** Pins that already have ≥1 request (each pin counted once). Used for “roughly # in queue” on first request. */
+function countClaimedPinsFromState() {
+    let n = 0;
+    if (isLiteMode && claimsSnapshotReceived) {
+        Object.values(latestClaimsData).forEach(users => {
+            if (users && Object.keys(users).length > 0) n++;
+        });
+        return n;
+    }
+    Object.values(boardsState).forEach(s => {
+        Object.values(s.allClaims).forEach(users => {
+            if (users && Object.keys(users).length > 0) n++;
+        });
+    });
+    return n;
+}
+
+function handlePinClick(boardName, idx) {
+    const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
+    // NaP / sold pins are not requestable (labels stay visible). Pending remains clickable.
+    if (pinEl && (pinEl.classList.contains("pin-nap") || pinEl.classList.contains("pin-sold"))) return;
+    if (pinEl && pinEl.classList.contains("pin-hidden") && !(isAdmin && boxCleanupMode)) return;
+    const pinKey = `${boardName}-${idx}`;
+    if (hiddenPinKeys.has(pinKey) && !(isAdmin && boxCleanupMode)) return;
+    const userKey = sanitizeUserKey(identityKey);
+    const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
+    if (alreadyClicked) {
+        // Keep virtual-board session set in sync with local unclaim only (never bulk-cleared).
+        vbMyPinKeysSession.delete(pinKey);
+        db.ref(`claims/${fbName}/${pinKey}/${userKey}`).set(null);
+        return;
+    }
+    const existing = boardsState[boardName].allClaims[pinKey];
+    const hadPriorRequests = existing && Object.keys(existing).length > 0;
+    vbMyPinKeysSession.add(pinKey);
+    db.ref(`claims/${fbName}/${pinKey}/${userKey}`).set({
+        time: firebase.database.ServerValue.TIMESTAMP,
+        label: displayName
+    });
+    if (!isAdmin && isBnWindowActive()) {
+        if (hadPriorRequests) {
+            const firstMs = earliestClaimTimeMs(existing);
+            const firstWasDuringShow = showWindowStartMs && firstMs >= showWindowStartMs;
+            if (firstWasDuringShow) {
+                const rank = queueRankForPinFromState(pinKey);
+                showToast(
+                    `This pin has already been selected. This pin is ${rank || "?"} in line. Head over to whatnot to purchase!`
+                );
+            } else {
+                showToast(
+                    "This pin has already been selected. Check out our whatnot show and it will be coming up soon!"
+                );
+            }
+        } else {
+            const queueNum = countClaimedPinsFromState() + 1;
+            showToast(
+                `You are the first person to select this pin! This pin is ${queueNum} in line. Head over to whatnot to purchase!`
+            );
+        }
+    }
+}
+
+function submitIssueReport() {
+    const msg = document.getElementById('reportIssueText').value.trim();
+    if (!msg) return;
+    db.ref(`feedback/${fbName}`).push({ user: displayName, msg: msg, time: firebase.database.ServerValue.TIMESTAMP })
+      .then(() => {
+          alert("Thank you very much for letting us know.");
+          document.getElementById('reportIssueOverlay').style.display = 'none';
+          document.getElementById('reportIssueText').value = "";
+      })
+      .catch(e => alert("Error: " + e.message));
+}
+
+function listenForFirebase() {
+    db.ref(`claims/${fbName}`).on("value", snapshot => {
+        claimsSnapshotReceived = true;
+        const syncEl = document.getElementById("syncStatus");
+        syncEl.textContent = "✅ Connected & Synced";
+        syncEl.classList.add("sync-connected");
+        const data    = snapshot.val() || {};
+        latestClaimsData = data;
+        const userKey = sanitizeUserKey(identityKey);
+        const adminExcluded =
+            isAdmin && typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(showDateSlug) : new Set();
+        Object.keys(boardsState).forEach(b => {
+            boardsState[b].allClaims = {}; boardsState[b].myClaims = 0; boardsState[b].globalBoardClaims = 0;
+            document.querySelectorAll(`[id^="pin-${b}-"]`).forEach(el => {
+                el.classList.remove("selection-green", "selection-yellow", "selection-before", "selection-now", "pin-mine", "flash-pin");
+                el.querySelectorAll(".tally-badge, .bn-badge").forEach(n => n.remove());
+            });
+        });
+        Object.entries(data).forEach(([pinKey, users]) => {
+            const [bName] = pinKey.split("-");
+            if (boardsState[bName]) {
+                boardsState[bName].allClaims[pinKey] = users;
+                const usersOverlay =
+                    isAdmin && adminExcluded.size > 0 && typeof CtrUserFilter !== "undefined"
+                        ? CtrUserFilter.filterUsersOnPin(users, adminExcluded)
+                        : users;
+                if (Object.keys(usersOverlay).length > 0) boardsState[bName].globalBoardClaims++;
+                const pinEl = document.getElementById(`pin-${pinKey}`);
+                const count = Object.keys(usersOverlay).length;
+                if (users[userKey]) {
+                    boardsState[bName].myClaims++;
+                    // Accumulate for virtual board (add-only here; local unclaim removes).
+                    vbMyPinKeysSession.add(pinKey);
+                }
+                if (pinEl && count > 0) {
+                    const contested = count >= 2;
+                    if (isAdmin) {
+                        pinEl.classList.add(adminPinIsPreShow(usersOverlay) ? "selection-now" : "selection-before");
+                        if (users[userKey]) pinEl.classList.add("pin-mine");
+                        if (count >= 2) {
+                            const tally = document.createElement("div");
+                            tally.className = "tally-badge offset-left";
+                            tally.textContent = count;
+                            pinEl.appendChild(tally);
+                        }
+                    } else if (users[userKey]) {
+                        pinEl.classList.add("pin-mine");
+                        if (!shouldShowVisitorBnStyles()) {
+                            pinEl.classList.add("selection-green");
+                        } else {
+                            pinEl.classList.add(contested ? "selection-before" : "selection-now");
+                            const preFirst = pinFirstRequestWasPreShow(users);
+                            const bn = document.createElement("div");
+                            bn.className = "bn-badge " + (preFirst ? "is-b" : "is-n");
+                            bn.textContent = preFirst ? "B" : "N";
+                            pinEl.appendChild(bn);
+                        }
+                    }
+                }
+            }
+        });
+        updateAllBoardDisplays();
+        calculateGlobals();
+
+        if (!isAdmin) {
+            let myNow = 0;
+            let globalRequested = 0;
+            Object.entries(data).forEach(([pinKey, users]) => {
+                if (users && users[userKey]) myNow++;
+                if (users && Object.keys(users).length > 0) globalRequested++;
+            });
+            if (myNow > lastMyRequestsCount && globalRequested >= FUEL_MAX) {
+                const dayKey = new Date().toDateString();
+                const flagKey = "fp_fuel250_" + fbName + "_" + dayKey;
+                if (!localStorage.getItem(flagKey)) {
+                    localStorage.setItem(flagKey, "1");
+                    document.getElementById("fuelOverModal").style.display = "flex";
+                }
+            }
+            lastMyRequestsCount = myNow;
+        }
+
+        const hash = window.location.hash;
+        if (hash.startsWith('#pin-')) {
+            const target = document.querySelector(hash);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('flash-pin');
+                setTimeout(() => target.classList.remove('flash-pin'), 3000);
+            }
+        }
+    });
+}
+
+function updateAllBoardDisplays() {
+    Object.keys(boardsState).forEach(updateBoardDisplay);
+}
+
+function updateBoardDisplay(name) {
+    const s  = boardsState[name];
+    const el = document.getElementById(`count-${name}`);
+    if (el) {
+        if (isAdmin) {
+            el.style.display = "";
+            el.textContent = `Pins: ${s.totalPins} | My Requests: ${s.myClaims}`;
+        } else {
+            el.style.display = "none";
+            el.textContent = "";
+        }
+    }
+    if (isAdmin) {
+        const adminEl = document.getElementById(`admin-count-${name}`);
+        if (adminEl) {
+            let unique = 0, contested = 0, totalClicks = 0;
+            const users = new Set();
+            const ex =
+                typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(showDateSlug) : new Set();
+            Object.entries(s.allClaims).forEach(([, uMap]) => {
+                const uEff = isAdmin && ex.size > 0 ? CtrUserFilter.filterUsersOnPin(uMap, ex) : uMap;
+                const cnt = Object.keys(uEff || {}).length;
+                if (cnt === 0) return;
+                totalClicks += cnt;
+                Object.entries(uEff).forEach(([uid, meta]) => users.add(userKeyForPublicStats(uid, meta)));
+                if (cnt === 1) unique++; else contested++;
+            });
+            if (totalClicks === 0) {
+                adminEl.textContent = 'No requests yet';
+            } else {
+                adminEl.textContent = `${unique} Unique · ${contested} Contested · ${totalClicks} Clicks · ${users.size} Users`;
+            }
+        }
+    }
+}
+
+function calculateGlobals() {
+    let total = 0, my = 0, globalRequested = 0, globalUnique = 0, globalContested = 0;
+    const allUsers = new Set();
+    const useGlobalClaims = isLiteMode && claimsSnapshotReceived;
+
+    const adminEx =
+        isAdmin && typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(showDateSlug) : new Set();
+    if (useGlobalClaims) {
+        const userKey = sanitizeUserKey(identityKey);
+        Object.entries(latestClaimsData).forEach(([pinKey, uMap]) => {
+            const uEff = isAdmin && adminEx.size > 0 ? CtrUserFilter.filterUsersOnPin(uMap, adminEx) : uMap;
+            const cnt = Object.keys(uEff || {}).length;
+            if (cnt <= 0) return;
+            globalRequested++;
+            if (cnt === 1) globalUnique++; else globalContested++;
+            Object.entries(uEff).forEach(([uid, meta]) => {
+                allUsers.add(userKeyForPublicStats(uid, meta));
+                if (uid === userKey) my++;
+            });
+        });
+    } else {
+        Object.values(boardsState).forEach(s => {
+            total += s.totalPins;
+            my    += s.myClaims;
+            Object.values(s.allClaims).forEach(uMap => {
+                const uEff = isAdmin && adminEx.size > 0 ? CtrUserFilter.filterUsersOnPin(uMap, adminEx) : uMap;
+                const cnt = Object.keys(uEff || {}).length;
+                if (cnt === 0) return;
+                if (cnt === 1) globalUnique++; else globalContested++;
+                Object.entries(uEff).forEach(([uid, meta]) => allUsers.add(userKeyForPublicStats(uid, meta)));
+            });
+            globalRequested += s.globalBoardClaims;
+        });
+    }
+    if (isLiteMode) {
+        if (globalAllBoardPinCountReady) {
+            total = globalAllBoardPinCount;
+        } else {
+            total = Object.values(boardsState).reduce((acc, s) => acc + (s.totalPins || 0), 0);
+        }
+    }
+    document.getElementById("totalPins").textContent     = total;
+    document.getElementById("totalMyClaims").textContent = my;
+    if (isAdmin) {
+        document.getElementById("adminTotalPins").textContent      = total;
+        document.getElementById("adminTotalRequested").textContent = globalRequested;
+        document.getElementById("adminUnique").textContent         = globalUnique;
+        document.getElementById("adminContested").textContent      = globalContested;
+        document.getElementById("adminTotalUsers").textContent     = allUsers.size;
+        // Unduplicated show $ for requested pins (same rounding as price badges).
+        let adminValue = 0;
+        const priceForStem = (typeof window._ctcRoundedShowPriceForStem === "function")
+            ? window._ctcRoundedShowPriceForStem
+            : null;
+        if (priceForStem) {
+            const addPk = (pk) => {
+                const stem = adminCropStemByPinKey[pk]
+                    || (document.getElementById(`pin-${pk}`) && document.getElementById(`pin-${pk}`).dataset.cropStem)
+                    || "";
+                if (!stem) return;
+                const leftover = String(pk).startsWith("LO03_");
+                adminValue += priceForStem(stem, leftover) || 0;
+            };
+            if (useGlobalClaims) {
+                Object.entries(latestClaimsData).forEach(([pk, uMap]) => {
+                    const uEff = isAdmin && adminEx.size > 0 ? CtrUserFilter.filterUsersOnPin(uMap, adminEx) : uMap;
+                    if (uEff && Object.keys(uEff).length > 0) addPk(pk);
+                });
+            } else {
+                Object.values(boardsState).forEach(s => {
+                    Object.entries(s.allClaims || {}).forEach(([pk, uMap]) => {
+                        const uEff = isAdmin && adminEx.size > 0 ? CtrUserFilter.filterUsersOnPin(uMap, adminEx) : uMap;
+                        if (uEff && Object.keys(uEff).length > 0) addPk(pk);
+                    });
+                });
+            }
+        }
+        const valEl = document.getElementById("adminTotalValue");
+        if (valEl) valEl.textContent = String(adminValue);
+    }
+    updateFuelGauge(globalRequested);
+    if (typeof refreshVirtualBoardExportFab === "function") refreshVirtualBoardExportFab(my);
+}
+
+// ── Virtual pin board photo (clicked pins only; never writes claims) ─────
+const VIRTUAL_BOARD_EXPORT_ENABLED = true;
+const VB_EXPORT_MAX_PER_PAGE = 40;
+const VB_EXPORT_BOARD_W = 1400;
+const VB_BOARD_BG = "#5c3d78";
+let vbExportCancelRequested = false;
+let vbExportRunning = false;
+const vbBoardImageCache = new Map();
+const vbBoardJsonCache = new Map();
+
+function vbExportFeatureOn() {
+    if (!VIRTUAL_BOARD_EXPORT_ENABLED) return false;
+    try {
+        const q = new URLSearchParams(location.search).get("vbExport");
+        if (q === "0" || q === "false" || q === "off") return false;
+    } catch (e) { /* ignore */ }
+    return true;
+}
+
+/** Crop stem for a claims pinKey like IMG_8652-3 (read-only; never writes). */
+function cropStemForPinKey(pk) {
+    if (!pk) return "";
+    return adminCropStemByPinKey[pk]
+        || (document.getElementById(`pin-${pk}`) && document.getElementById(`pin-${pk}`).dataset.cropStem)
+        || "";
+}
+
+/**
+ * This user's clicked-pin count + show-rounded $ (same rounding as price badges).
+ * Matches My Requests identity only — not other users.
+ */
+function computeMyClickedRunningTotals(myCountHint) {
+    const n = myCountHint != null
+        ? myCountHint
+        : Number(document.getElementById("totalMyClaims")?.textContent || 0);
+    let dollars = 0;
+    const priceForStem = (typeof window._ctcRoundedShowPriceForStem === "function")
+        ? window._ctcRoundedShowPriceForStem
+        : null;
+    if (priceForStem && identityKey) {
+        const userKey = sanitizeUserKey(identityKey);
+        const addMine = (pk, uMap) => {
+            if (!uMap || !uMap[userKey]) return;
+            const stem = cropStemForPinKey(pk);
+            if (!stem) return;
+            dollars += priceForStem(stem, String(pk).startsWith("LO03_")) || 0;
+        };
+        const useGlobalClaims = isLiteMode && claimsSnapshotReceived;
+        if (useGlobalClaims) {
+            Object.entries(latestClaimsData || {}).forEach(([pk, uMap]) => addMine(pk, uMap));
+        } else {
+            Object.values(boardsState || {}).forEach((s) => {
+                Object.entries(s.allClaims || {}).forEach(([pk, uMap]) => addMine(pk, uMap));
+            });
+        }
+    }
+    return { count: n, dollars };
+}
+
+function refreshVirtualBoardExportFab(myCount) {
+    const fab = document.getElementById("virtualBoardExportFab");
+    if (!fab) return;
+    if (!vbExportFeatureOn()) {
+        fab.style.display = "none";
+        fab.disabled = true;
+        return;
+    }
+    fab.style.display = "block";
+    const { count: n, dollars } = computeMyClickedRunningTotals(myCount);
+    const showPrices = typeof window._ctcGetPriceMode === "function"
+        && window._ctcGetPriceMode() !== "none";
+    const label = showPrices
+        ? `Create Virtual Pin Board of ${n} Clicked Pins · $${dollars}`
+        : `Create Virtual Pin Board of ${n} Clicked Pin${n === 1 ? "" : "s"}`;
+    fab.textContent = label;
+    fab.title = label;
+    fab.setAttribute("aria-label", label);
+    fab.disabled = vbExportRunning || !(n > 0);
+}
+
+function parseVbPinKey(pinKey) {
+    const m = String(pinKey).match(/^(.+)-(\d+)$/);
+    if (!m) return null;
+    return { board: m[1], idx: Number(m[2]) };
+}
+
+function vbClaimMapIsMine(uMap, userKey) {
+    if (!uMap || typeof uMap !== "object") return false;
+    if (uMap[userKey]) return true;
+    // Same @handle on another device identity (read-only match for export completeness).
+    const want = normalizeUserDisplayName(displayName || "");
+    if (!want || /^Guest_/i.test(want)) return false;
+    return Object.entries(uMap).some(([, meta]) => {
+        const lab = meta && typeof meta.label === "string" ? normalizeUserDisplayName(meta.label) : "";
+        return lab && lab === want;
+    });
+}
+
+function vbAddKeysFromClaimsMap(keySet, map, userKey) {
+    if (!map || typeof map !== "object") return;
+    Object.entries(map).forEach(([pinKey, uMap]) => {
+        if (vbClaimMapIsMine(uMap, userKey)) keySet.add(pinKey);
+    });
+}
+
+/**
+ * Read-only: every pin this person has requested (full set, not “since last export”).
+ * Unions session clicks + live Firebase snapshot + in-memory claims + pin-mine DOM.
+ * Never writes claims/.
+ */
+async function collectMyClickedPinKeys() {
+    const userKey = sanitizeUserKey(identityKey);
+    const keySet = new Set();
+
+    vbMyPinKeysSession.forEach((k) => keySet.add(k));
+
+    try {
+        if (typeof db !== "undefined" && db && fbName) {
+            const snap = await db.ref(`claims/${fbName}`).once("value");
+            vbAddKeysFromClaimsMap(keySet, snap.val() || {}, userKey);
+        }
+    } catch (e) {
+        console.warn("[Virtual board] read-only claims fetch failed:", e);
+    }
+
+    vbAddKeysFromClaimsMap(keySet, latestClaimsData, userKey);
+    Object.values(boardsState || {}).forEach((s) => vbAddKeysFromClaimsMap(keySet, s.allClaims, userKey));
+
+    document.querySelectorAll(".pin.pin-mine").forEach((el) => {
+        const id = el.id || "";
+        if (!id.startsWith("pin-")) return;
+        const rest = id.slice(4);
+        const m = rest.match(/^(.+)-(\d+)$/);
+        if (m) keySet.add(`${m[1]}-${m[2]}`);
+    });
+
+    const keys = Array.from(keySet);
+    const boardOrder = new Map((manifestBoardNames || []).map((n, i) => [n, i]));
+    keys.sort((a, b) => {
+        const pa = parseVbPinKey(a);
+        const pb = parseVbPinKey(b);
+        if (!pa || !pb) return String(a).localeCompare(String(b));
+        const oa = boardOrder.has(pa.board) ? boardOrder.get(pa.board) : 9999;
+        const ob = boardOrder.has(pb.board) ? boardOrder.get(pb.board) : 9999;
+        if (oa !== ob) return oa - ob;
+        return pa.idx - pb.idx;
+    });
+    return keys;
+}
+
+function vbYieldToUi() {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function loadVbBoardJson(boardName) {
+    if (vbBoardJsonCache.has(boardName)) return vbBoardJsonCache.get(boardName);
+    const r = await fetch(`./boards/${boardName}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(`Missing board JSON ${boardName}`);
+    const data = await r.json();
+    vbBoardJsonCache.set(boardName, data);
+    return data;
+}
+
+function loadVbBoardImage(boardName) {
+    if (vbBoardImageCache.has(boardName)) return vbBoardImageCache.get(boardName);
+    const p = new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Missing board image ${boardName}`));
+        img.src = `./boards/${boardName}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+    });
+    vbBoardImageCache.set(boardName, p);
+    return p;
+}
+
+function cropVbPinCanvas(boardImg, pin, origW, origH) {
+    const sx = Math.max(0, Number(pin.x) - Number(pin.width) / 2);
+    const sy = Math.max(0, Number(pin.y) - Number(pin.height) / 2);
+    const sw = Math.min(Number(pin.width), (origW || boardImg.naturalWidth) - sx);
+    const sh = Math.min(Number(pin.height), (origH || boardImg.naturalHeight) - sy);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(sw));
+    c.height = Math.max(1, Math.round(sh));
+    const ctx = c.getContext("2d");
+    ctx.drawImage(boardImg, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+}
+
+/** Deterministic-ish PRNG so re-exports look similar for the same set size. */
+function vbMulberry32(seed) {
+    let t = seed >>> 0;
+    return function () {
+        t += 0x6D2B79F5;
+        let r = Math.imul(t ^ (t >>> 15), 1 | t);
+        r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function fillVbBoardBackground(ctx, w, h) {
+    ctx.fillStyle = VB_BOARD_BG;
+    ctx.fillRect(0, 0, w, h);
+    // Soft vignette + star-ish noise to suggest foam board texture (no pin boxes).
+    const g = ctx.createRadialGradient(w * 0.5, h * 0.45, Math.min(w, h) * 0.15, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+    g.addColorStop(0, "rgba(255,255,255,0.06)");
+    g.addColorStop(1, "rgba(0,0,0,0.22)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    const rand = vbMulberry32(20260806 ^ (w * 17 + h));
+    ctx.fillStyle = "rgba(255,255,255,0.045)";
+    for (let i = 0; i < 900; i++) {
+        const x = rand() * w;
+        const y = rand() * h;
+        const s = 1 + rand() * 2.2;
+        ctx.fillRect(x, y, s, s);
+    }
+}
+
+/**
+ * Dense personal-board pack: pins close together with a small foam gap,
+ * no overlap (AABB of rotated crop). Canvas sized to the cluster.
+ */
+function buildVirtualPageCanvas(cropCanvases, pageSeed) {
+    const n = cropCanvases.length;
+    const rand = vbMulberry32((pageSeed || 1) * 9973 + n * 131);
+    const gap = 10; // foam showing between pins — close, not touching
+    const maxDim = n <= 6 ? 240 : (n <= 16 ? 200 : 168);
+
+    const items = cropCanvases.map((crop, i) => {
+        const scale = Math.min(maxDim / crop.width, maxDim / crop.height) * (0.92 + rand() * 0.16);
+        const dw = Math.max(1, crop.width * scale);
+        const dh = Math.max(1, crop.height * scale);
+        // Mild tilt like a hand-pinned board; AABB accounts for rotation so they never overlap.
+        const rot = (rand() - 0.5) * 0.28; // ~±8°
+        const c = Math.abs(Math.cos(rot));
+        const s = Math.abs(Math.sin(rot));
+        const aw = dw * c + dh * s;
+        const ah = dw * s + dh * c;
+        return { i, crop, dw, dh, rot, aw, ah };
+    });
+    // Larger first packs more like a real board.
+    items.sort((a, b) => (b.aw * b.ah) - (a.aw * a.ah));
+
+    function overlaps(cx, cy, aw, ah, placed) {
+        const l = cx - aw / 2 - gap / 2;
+        const r = cx + aw / 2 + gap / 2;
+        const t = cy - ah / 2 - gap / 2;
+        const b = cy + ah / 2 + gap / 2;
+        for (const p of placed) {
+            const pl = p.cx - p.aw / 2 - gap / 2;
+            const pr = p.cx + p.aw / 2 + gap / 2;
+            const pt = p.cy - p.ah / 2 - gap / 2;
+            const pb = p.cy + p.ah / 2 + gap / 2;
+            if (l < pr && r > pl && t < pb && b > pt) return true;
+        }
+        return false;
+    }
+
+    const placed = [];
+    const startPad = 24;
+    items.forEach((it, idx) => {
+        let best = null;
+        if (idx === 0) {
+            best = { cx: startPad + it.aw / 2, cy: startPad + it.ah / 2 };
+        } else {
+            const candidates = [];
+            placed.forEach((p) => {
+                // Nestle against existing edges (right / below / left / above + slight diagonal).
+                const ox = (rand() - 0.5) * 14;
+                const oy = (rand() - 0.5) * 14;
+                candidates.push(
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap + ox, cy: p.cy + oy },
+                    { cx: p.cx + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap + oy },
+                    { cx: p.cx - (p.aw + it.aw) / 2 - gap + ox, cy: p.cy + oy },
+                    { cx: p.cx + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap + oy },
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap * 0.6 + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap * 0.6 + oy },
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap * 0.6 + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap * 0.6 + oy }
+                );
+            });
+            // Prefer candidates that keep the cluster compact (near current bbox center).
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            placed.forEach((p) => {
+                minX = Math.min(minX, p.cx - p.aw / 2);
+                minY = Math.min(minY, p.cy - p.ah / 2);
+                maxX = Math.max(maxX, p.cx + p.aw / 2);
+                maxY = Math.max(maxY, p.cy + p.ah / 2);
+            });
+            const midX = (minX + maxX) / 2;
+            const midY = (minY + maxY) / 2;
+            candidates.sort((a, b) => {
+                const da = (a.cx - midX) ** 2 + (a.cy - midY) ** 2;
+                const db = (b.cx - midX) ** 2 + (b.cy - midY) ** 2;
+                return da - db;
+            });
+            for (const c of candidates) {
+                if (c.cx - it.aw / 2 < 8 || c.cy - it.ah / 2 < 8) continue;
+                if (!overlaps(c.cx, c.cy, it.aw, it.ah, placed)) {
+                    best = c;
+                    break;
+                }
+            }
+            // Fallback: scan a loose grid expanding outward.
+            if (!best) {
+                const step = Math.max(12, Math.min(it.aw, it.ah) * 0.2);
+                outer: for (let rad = 0; rad < 40; rad++) {
+                    for (let gy = startPad + it.ah / 2; gy < maxY + it.ah + 80 + rad * step; gy += step) {
+                        for (let gx = startPad + it.aw / 2; gx < maxX + it.aw + 80 + rad * step; gx += step) {
+                            if (!overlaps(gx, gy, it.aw, it.ah, placed)) {
+                                best = { cx: gx, cy: gy };
+                                break outer;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!best) {
+                best = {
+                    cx: maxX + gap + it.aw / 2 + 4,
+                    cy: startPad + it.ah / 2
+                };
+            }
+        }
+        placed.push({ ...it, cx: best.cx, cy: best.cy });
+    });
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    placed.forEach((p) => {
+        minX = Math.min(minX, p.cx - p.aw / 2);
+        minY = Math.min(minY, p.cy - p.ah / 2);
+        maxX = Math.max(maxX, p.cx + p.aw / 2);
+        maxY = Math.max(maxY, p.cy + p.ah / 2);
+    });
+    const margin = 28;
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+    let w = Math.ceil(contentW + margin * 2);
+    let h = Math.ceil(contentH + margin * 2);
+    const maxW = VB_EXPORT_BOARD_W;
+    const boardScale = w > maxW ? maxW / w : 1;
+    w = Math.max(280, Math.round(w * boardScale));
+    h = Math.max(240, Math.round(h * boardScale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    fillVbBoardBackground(ctx, w, h);
+
+    const ox = margin * boardScale - minX * boardScale;
+    const oy = margin * boardScale - minY * boardScale;
+    // Draw in original click order for stable visual, still non-overlapping.
+    const byOrig = placed.slice().sort((a, b) => a.i - b.i);
+    byOrig.forEach((p) => {
+        ctx.save();
+        ctx.translate(p.cx * boardScale + ox, p.cy * boardScale + oy);
+        ctx.rotate(p.rot);
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 7;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 2;
+        ctx.drawImage(p.crop, -(p.dw * boardScale) / 2, -(p.dh * boardScale) / 2, p.dw * boardScale, p.dh * boardScale);
+        ctx.restore();
+    });
+    return canvas;
+}
+
+function vbCanvasToJpegBlob(canvas, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("JPEG encode failed"))), "image/jpeg", quality);
+    });
+}
+
+async function saveVbJpegBlob(blob, filename) {
+    const file = new File([blob], filename, { type: "image/jpeg" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: filename });
+            return "shared";
+        } catch (e) {
+            if (e && e.name === "AbortError") return "aborted";
+        }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return "download";
+}
+
+function vbLikelyNeedsPhotosShare() {
+    const ua = navigator.userAgent || "";
+    return /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function setVbExportProgress(done, total, status, startedAt) {
+    const bar = document.getElementById("virtualBoardExportBar");
+    const st = document.getElementById("virtualBoardExportStatus");
+    const eta = document.getElementById("virtualBoardExportEta");
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    if (bar) bar.style.width = pct + "%";
+    if (st && status) st.textContent = status;
+    if (eta) {
+        if (!startedAt || done <= 0) {
+            eta.textContent = "Estimating time…";
+        } else {
+            const elapsed = (Date.now() - startedAt) / 1000;
+            const rate = done / elapsed;
+            const remain = Math.max(0, Math.ceil((total - done) / Math.max(rate, 0.05)));
+            eta.textContent = remain <= 1 ? "Almost done…" : `About ${remain}s remaining`;
+        }
+    }
+}
+
+function setVbExportBuildMode() {
+    const track = document.getElementById("virtualBoardExportTrack");
+    const eta = document.getElementById("virtualBoardExportEta");
+    const previewWrap = document.getElementById("virtualBoardExportPreviewWrap");
+    const actions = document.getElementById("virtualBoardExportSaveActions");
+    const title = document.getElementById("virtualBoardExportTitle");
+    if (title) title.textContent = "Building virtual pin board";
+    if (track) track.style.display = "";
+    if (eta) eta.style.display = "";
+    if (previewWrap) previewWrap.classList.remove("show");
+    if (actions) actions.classList.remove("show");
+}
+
+function setVbExportSaveMode(pageIndex, pageCount, previewUrl) {
+    const track = document.getElementById("virtualBoardExportTrack");
+    const eta = document.getElementById("virtualBoardExportEta");
+    const previewWrap = document.getElementById("virtualBoardExportPreviewWrap");
+    const preview = document.getElementById("virtualBoardExportPreview");
+    const actions = document.getElementById("virtualBoardExportSaveActions");
+    const saveBtn = document.getElementById("virtualBoardExportSaveBtn");
+    const title = document.getElementById("virtualBoardExportTitle");
+    const st = document.getElementById("virtualBoardExportStatus");
+    const slug = SHOW_DATE_SLUG_FALLBACK || "board";
+    if (title) title.textContent = `Save photo ${pageIndex} of ${pageCount}`;
+    if (track) track.style.display = "none";
+    if (eta) {
+        eta.style.display = "";
+        eta.textContent = vbLikelyNeedsPhotosShare()
+            ? 'Tap Save to Photos, then choose “Save Image” for your Camera Roll.'
+            : "Tap Save to Photos to download this board photo.";
+    }
+    if (st) {
+        st.textContent = vbLikelyNeedsPhotosShare()
+            ? "Safari can’t write straight to Camera Roll — use the share sheet."
+            : `Ready: ${slug}-VirtualBoard-${pageIndex}of${pageCount}.jpg`;
+    }
+    if (preview && previewUrl) preview.src = previewUrl;
+    if (previewWrap) previewWrap.classList.add("show");
+    if (actions) actions.classList.add("show");
+    if (saveBtn) {
+        saveBtn.textContent = vbLikelyNeedsPhotosShare() ? "Save to Photos…" : "Download photo";
+        saveBtn.disabled = false;
+    }
+}
+
+function openVbExportOverlay() {
+    const el = document.getElementById("virtualBoardExportOverlay");
+    if (el) el.style.display = "flex";
+    setVbExportBuildMode();
+}
+
+function closeVbExportOverlay() {
+    const el = document.getElementById("virtualBoardExportOverlay");
+    if (el) el.style.display = "none";
+    const preview = document.getElementById("virtualBoardExportPreview");
+    if (preview && preview.src && preview.src.startsWith("blob:")) {
+        URL.revokeObjectURL(preview.src);
+        preview.removeAttribute("src");
+    }
+    setVbExportBuildMode();
+}
+
+function waitForVbPageSave(blob, filename, pageIndex, pageCount) {
+    return new Promise((resolve) => {
+        const previewUrl = URL.createObjectURL(blob);
+        setVbExportSaveMode(pageIndex, pageCount, previewUrl);
+        const saveBtn = document.getElementById("virtualBoardExportSaveBtn");
+        const skipBtn = document.getElementById("virtualBoardExportSkipBtn");
+        let settled = false;
+
+        const cleanup = () => {
+            if (saveBtn) saveBtn.onclick = null;
+            if (skipBtn) skipBtn.onclick = null;
+            clearInterval(poll);
+            URL.revokeObjectURL(previewUrl);
+            const preview = document.getElementById("virtualBoardExportPreview");
+            if (preview) preview.removeAttribute("src");
+        };
+
+        const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(result);
+        };
+
+        const poll = setInterval(() => {
+            if (vbExportCancelRequested) finish("aborted");
+        }, 200);
+
+        if (saveBtn) {
+            saveBtn.onclick = async () => {
+                if (vbExportCancelRequested) return finish("aborted");
+                saveBtn.disabled = true;
+                saveBtn.textContent = "Opening share sheet…";
+                const how = await saveVbJpegBlob(blob, filename);
+                if (how === "aborted") {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = vbLikelyNeedsPhotosShare() ? "Save to Photos…" : "Download photo";
+                    const st = document.getElementById("virtualBoardExportStatus");
+                    if (st) st.textContent = "Save cancelled — tap again when ready, or Skip.";
+                    return;
+                }
+                finish(how);
+            };
+        }
+        if (skipBtn) skipBtn.onclick = () => finish("skipped");
+    });
+}
+
+async function runVirtualBoardExport() {
+    if (!vbExportFeatureOn() || vbExportRunning) return;
+    vbExportRunning = true;
+    vbExportCancelRequested = false;
+    refreshVirtualBoardExportFab();
+    openVbExportOverlay();
+    setVbExportProgress(0, 1, "Gathering all your clicked pins…", Date.now());
+    let keys = [];
+    try {
+        keys = await collectMyClickedPinKeys();
+    } catch (e) {
+        console.warn("[Virtual board] collect failed:", e);
+        keys = [];
+    }
+    if (!keys.length) {
+        vbExportRunning = false;
+        closeVbExportOverlay();
+        refreshVirtualBoardExportFab();
+        showToast("Select at least one pin first.");
+        return;
+    }
+    // Analytics: Generate tap (separate from Save). Claims untouched.
+    recordVirtualBoardEvent("generate", { pinCount: keys.length, pages: 0 });
+    refreshVirtualBoardExportFab(keys.length);
+    const startedAt = Date.now();
+    const pagesNeeded = Math.max(1, Math.ceil(keys.length / VB_EXPORT_MAX_PER_PAGE));
+    const totalUnits = keys.length + pagesNeeded;
+    let doneUnits = 0;
+    try {
+        const crops = [];
+        setVbExportProgress(0, totalUnits, `Building board with ${keys.length} pin${keys.length === 1 ? "" : "s"}…`, startedAt);
+        for (let i = 0; i < keys.length; i++) {
+            if (vbExportCancelRequested) throw new Error("cancelled");
+            const parsed = parseVbPinKey(keys[i]);
+            if (!parsed) {
+                doneUnits++;
+                setVbExportProgress(doneUnits, totalUnits, `Skipping unknown pin ${keys[i]}…`, startedAt);
+                await vbYieldToUi();
+                continue;
+            }
+            // Include every claimed pin we can crop (do not drop earlier clicks).
+            setVbExportProgress(
+                doneUnits,
+                totalUnits,
+                `Cropping pin ${i + 1} of ${keys.length}…`,
+                startedAt
+            );
+            const data = await loadVbBoardJson(parsed.board);
+            const pins = data.predictions || data.output?.predictions || [];
+            const pin = pins[parsed.idx];
+            if (!pin) {
+                doneUnits++;
+                await vbYieldToUi();
+                continue;
+            }
+            const boardImg = await loadVbBoardImage(parsed.board);
+            const origW = Number(data.image?.width) || boardImg.naturalWidth;
+            const origH = Number(data.image?.height) || boardImg.naturalHeight;
+            crops.push(cropVbPinCanvas(boardImg, pin, origW, origH));
+            doneUnits++;
+            setVbExportProgress(doneUnits, totalUnits, `Cropped ${i + 1} of ${keys.length}…`, startedAt);
+            await vbYieldToUi();
+        }
+        if (!crops.length) throw new Error("No pin images could be cropped.");
+        const pageCount = Math.ceil(crops.length / VB_EXPORT_MAX_PER_PAGE);
+        const slug = SHOW_DATE_SLUG_FALLBACK || "board";
+        let savedCount = 0;
+        for (let p = 0; p < pageCount; p++) {
+            if (vbExportCancelRequested) throw new Error("cancelled");
+            const slice = crops.slice(p * VB_EXPORT_MAX_PER_PAGE, (p + 1) * VB_EXPORT_MAX_PER_PAGE);
+            setVbExportBuildMode();
+            setVbExportProgress(
+                doneUnits,
+                totalUnits,
+                `Building photo ${p + 1} of ${pageCount}…`,
+                startedAt
+            );
+            await vbYieldToUi();
+            const canvas = buildVirtualPageCanvas(slice, p + 1);
+            const blob = await vbCanvasToJpegBlob(canvas, 0.92);
+            const filename = `${slug}-VirtualBoard-${p + 1}of${pageCount}.jpg`;
+            const how = await waitForVbPageSave(blob, filename, p + 1, pageCount);
+            if (how === "aborted") throw new Error("cancelled");
+            if (how === "shared" || how === "download") savedCount++;
+            doneUnits++;
+            setVbExportProgress(doneUnits, totalUnits, `Finished photo ${p + 1} of ${pageCount}`, startedAt);
+            await vbYieldToUi();
+        }
+        setVbExportBuildMode();
+        setVbExportProgress(
+            totalUnits,
+            totalUnits,
+            savedCount
+                ? `Done — saved ${savedCount} of ${pageCount} photo${pageCount > 1 ? "s" : ""}.`
+                : "Done — no photos were saved.",
+            startedAt
+        );
+        const eta = document.getElementById("virtualBoardExportEta");
+        if (eta) eta.textContent = "Your clicked pins, as if on a personal board.";
+        if (savedCount) {
+            // Analytics: Save photo (separate from Generate). Claims untouched.
+            recordVirtualBoardEvent("save", { pinCount: crops.length, pages: savedCount });
+            showToast(`Saved ${savedCount} virtual board photo${savedCount > 1 ? "s" : ""}.`);
+        }
+        setTimeout(() => closeVbExportOverlay(), 1400);
+    } catch (e) {
+        if (String(e && e.message) === "cancelled") {
+            showToast("Virtual board export cancelled.");
+        } else {
+            console.warn("[Virtual board export]", e);
+            showToast("Could not build virtual board. Please try again.");
+        }
+        closeVbExportOverlay();
+    } finally {
+        vbExportRunning = false;
+        refreshVirtualBoardExportFab();
+    }
+}
+
+(function initVirtualBoardExport() {
+    const fab = document.getElementById("virtualBoardExportFab");
+    const cancelBtn = document.getElementById("virtualBoardExportCancelBtn");
+    if (!fab) return;
+    refreshVirtualBoardExportFab(0);
+    fab.addEventListener("click", () => {
+        if (fab.disabled || vbExportRunning) return;
+        runVirtualBoardExport();
+    });
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
+            vbExportCancelRequested = true;
+            if (!vbExportRunning) closeVbExportOverlay();
+        });
+    }
+})();
+
+</script>
+<style id="_ctcPriceOverlayCss">
+.pin-pb {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.78);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 101;
+    line-height: 1.4;
+}
+.pin-pb s { opacity: 0.75; font-weight: 600; }
+.pin-pb .pb-d { color: #ffd700; margin-left: 3px; }
+/* not_a_pin only — unpriced / no_match pins stay claimable without a badge */
+.pin.pin-nap {
+    visibility: hidden;
+    pointer-events: none;
+}
+</style>
+<script id="_ctcPriceOverlay">
+// Price overlay — template show. 25% off: round list first, then Math.round(list * 0.75).
+// Pending auth stems live in showConfig/{show}/pendingStems (Whatnot excludes; no CTR label).
+// Visibility mode: showConfig/{show}/priceMode (shared across devices). localStorage is cache only.
+(function() {
+const _PO_TR = 'test_CTR_20260906_pricing_unset';
+const _PO_TR_LEFTOVER = 'test_CTR_20260906_pricing_unset';
+const _PO_AP = 'visual_baseline';
+const _PO_MODE_KEY = '_ctcPriceMode_20260906';
+const _PO_PINS_PATH = `pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins`;
+const _PO_PINS_PATH_LEFTOVER = `pin_pricing_tests/${_PO_TR_LEFTOVER}/${_PO_AP}/pins`;
+const _SOLD_STEMS_PATH = 'showConfig/20260906/soldStems';
+const _PO_SHOW_ID = (typeof fbName !== 'undefined' && fbName) ? fbName
+  : (typeof showDateSlug !== 'undefined' && showDateSlug) ? showDateSlug
+  : '20260906';
+const _PENDING_STEMS_PATH = `showConfig/${_PO_SHOW_ID}/pendingStems`;
+const _PO_MODE_PATH = `showConfig/${_PO_SHOW_ID}/priceMode`;
+const _PO_DISCOUNT = 0.75;
+
+// Safe default: hide until Firebase showConfig confirms otherwise (localStorage is write-only cache).
+let _priceMode = 'none';
+const _pricesSnap = {};
+const _stemToPricePrimary = {};
+const _stemToPriceLeftover = {};
+const _napPrimary = new Set();
+const _napLeftover = new Set();
+const _soldStems = new Set();
+const _pendingStems = new Set();
+
+function _roundForShow(raw) {
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    if (raw < 10) return 10;
+    return Math.ceil(raw / 5) * 5;
+}
+
+function _saleForShow(raw) {
+    const list = _roundForShow(raw);
+    if (!list) return 0;
+    return Math.round(list * _PO_DISCOUNT);
+}
+
+function _normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, '_') : '';
+}
+
+function _isLeftoverPin(pinEl) {
+    if (!pinEl) return false;
+    if (pinEl.dataset && pinEl.dataset.leftover === '1') return true;
+    const id = pinEl.id || '';
+    return id.indexOf('pin-LO03_') === 0;
+}
+
+function _rememberSnap(stem, price) {
+    if (!stem || !isFinite(price) || price <= 0) return;
+    _pricesSnap[stem] = price;
+    const norm = _normStem(stem);
+    if (norm) _pricesSnap[norm] = price;
+}
+
+function _indexStem(map, stem, price) {
+    if (!stem || !isFinite(price) || price <= 0) return;
+    map[stem] = price;
+    const norm = _normStem(stem);
+    if (norm) map[norm] = price;
+}
+
+function _clearMap(map, napSet) {
+    for (const k of Object.keys(map)) delete map[k];
+    napSet.clear();
+}
+
+function _snapForStem(stem) {
+    if (!stem) return null;
+    let p = _pricesSnap[stem];
+    if (p == null) p = _pricesSnap[_normStem(stem)];
+    return (p != null && isFinite(p) && p > 0) ? p : null;
+}
+
+function _rawForPin(pinEl) {
+    const stem = pinEl && pinEl.dataset.cropStem;
+    if (!stem) return null;
+    const map = _isLeftoverPin(pinEl) ? _stemToPriceLeftover : _stemToPricePrimary;
+    let price = map[stem];
+    if (price == null) price = map[_normStem(stem)];
+    return (price != null && isFinite(price) && price > 0) ? price : null;
+}
+
+function _isNapPin(pinEl) {
+    const stem = pinEl && pinEl.dataset.cropStem;
+    if (!stem) return false;
+    const set = _isLeftoverPin(pinEl) ? _napLeftover : _napPrimary;
+    return set.has(stem) || set.has(_normStem(stem));
+}
+
+function _isSoldStem(stem) {
+    if (!stem) return false;
+    return _soldStems.has(stem) || _soldStems.has(_normStem(stem));
+}
+
+function _isPendingStem(stem) {
+    if (!stem) return false;
+    return _pendingStems.has(stem) || _pendingStems.has(_normStem(stem));
+}
+
+function _badgeVisible(pinEl) {
+    if (_priceMode === 'none') return false;
+    if (pinEl.classList.contains('pin-sold')) return false;
+    if (_priceMode === 'all') return true;
+    return ['selection-green', 'selection-before', 'selection-now', 'pin-mine']
+        .some(c => pinEl.classList.contains(c));
+}
+
+function _updateBadgeViz(pinEl) {
+    const badge = pinEl.querySelector('.pin-pb');
+    if (badge) badge.style.display = _badgeVisible(pinEl) ? '' : 'none';
+}
+
+function _refreshAllBadges() {
+    document.querySelectorAll('.pin').forEach(_updateBadgeViz);
+}
+
+function _applySoldGate(pinEl) {
+    if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
+    if (!_isLeftoverPin(pinEl)) {
+        pinEl.classList.remove('pin-sold');
+        return;
+    }
+    const sold = _isSoldStem(pinEl.dataset.cropStem);
+    pinEl.classList.toggle('pin-sold', sold);
+    if (sold) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+    }
+}
+
+function _applyPendingGate(pinEl) {
+    // No CTR visual — pending is mark-tool + Whatnot exclusion only.
+    if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
+    pinEl.classList.remove('pin-pending');
+}
+
+function _applyPin(pinEl) {
+    if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
+    _applySoldGate(pinEl);
+    _applyPendingGate(pinEl);
+    if (pinEl.classList.contains('pin-sold')) return;
+    const nap = _isNapPin(pinEl);
+    pinEl.classList.toggle('pin-nap', nap);
+    if (nap) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
+    if (_priceMode === 'none') {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
+    const raw = _rawForPin(pinEl);
+    if (raw == null) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
+    const rounded = _roundForShow(raw);
+    if (rounded === 0) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
+    const discounted = _saleForShow(raw);
+    let badge = pinEl.querySelector('.pin-pb');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'pin-pb';
+        pinEl.appendChild(badge);
+    }
+    badge.textContent = '';
+    const s = document.createElement('s');
+    s.textContent = '$' + rounded;
+    const d = document.createElement('span');
+    d.className = 'pb-d';
+    d.textContent = '$' + discounted;
+    badge.appendChild(s);
+    badge.appendChild(d);
+    _updateBadgeViz(pinEl);
+}
+
+function _applyAllPins() {
+    document.querySelectorAll('.pin').forEach(_applyPin);
+    if (typeof window._ctcOnPinAvailabilityChanged === 'function') {
+        window._ctcOnPinAvailabilityChanged();
+    }
+}
+
+function _applyMode(mode) {
+    if (!['all', 'clicked', 'none'].includes(mode)) mode = 'none';
+    const prev = _priceMode;
+    _priceMode = mode;
+    try { localStorage.setItem(_PO_MODE_KEY, mode); } catch (_) {}
+    if (mode === 'none') {
+        document.querySelectorAll('.pin-pb').forEach(b => b.remove());
+    } else if (prev === 'none') {
+        _applyAllPins();
+    } else {
+        _refreshAllBadges();
+    }
+    if (typeof refreshVirtualBoardExportFab === 'function') refreshVirtualBoardExportFab();
+}
+
+window._ctcGetPriceMode = () => _priceMode;
+window._ctcApplyPinPriceGate = _applyPin;
+window._ctcApplySoldGate = _applySoldGate;
+window._ctcApplyPendingGate = _applyPendingGate;
+window._ctcStemIsUnavailable = function(stem, leftover) {
+    if (!stem) return false;
+    // Pending is labeled but still requestable (excluded only from Whatnot CSV).
+    if (leftover && _isSoldStem(stem)) return true;
+    const set = leftover ? _napLeftover : _napPrimary;
+    return set.has(stem) || set.has(_normStem(stem));
+};
+window._ctcRoundedShowPriceForStem = function(stem, leftover) {
+    const map = leftover ? _stemToPriceLeftover : _stemToPricePrimary;
+    let raw = map[stem];
+    if (raw == null) raw = map[_normStem(stem)];
+    // Virtual board / running total uses 25% off sale price.
+    return _saleForShow(raw);
+};
+
+// Shared show setting (phones + laptops). localStorage/BroadcastChannel are same-browser only.
+try {
+    if (typeof firebase !== 'undefined' && firebase.database) {
+        firebase.database().ref(_PO_MODE_PATH).on('value', snap => {
+            const m = snap.val();
+            if (['all', 'clicked', 'none'].includes(m)) _applyMode(m);
+        }, err => console.warn('[PriceOverlay] priceMode listener failed:', err));
+    }
+} catch (e) {
+    console.warn('[PriceOverlay] priceMode listener setup failed:', e);
+}
+
+window.addEventListener('storage', (e) => {
+    if (e.key === _PO_MODE_KEY) _applyMode(e.newValue || 'none');
+});
+
+try {
+    const bc = new BroadcastChannel('ctc_price_mode_20260906');
+    bc.onmessage = (ev) => {
+        if (ev && ev.data && ev.data.mode) _applyMode(ev.data.mode);
+    };
+} catch (_) {}
+
+const _pinAddObs = new MutationObserver(muts => {
+    muts.forEach(m => m.addedNodes.forEach(n => {
+        if (n.nodeType === 1 && n.classList && n.classList.contains('pin')) _applyPin(n);
+    }));
+});
+_pinAddObs.observe(document.body, { childList: true, subtree: true });
+
+const _pinClsObs = new MutationObserver(muts => {
+    muts.forEach(m => {
+        if (m.type === 'attributes' && m.target.classList && m.target.classList.contains('pin')) {
+            _updateBadgeViz(m.target);
+        }
+    });
+});
+_pinClsObs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+function _stemFromFbPin(domKey, pin) {
+    const cf = pin.crop_filename || '';
+    const cropStem = cf.replace(/\.(jpe?g|png)$/i, '');
+    if (cropStem) return cropStem;
+    const pk = pin.pin_key || domKey;
+    if (pk.includes('.jpg__')) return pk.split('.jpg__')[0];
+    if (domKey.includes('_jpg__')) return domKey.split('_jpg__')[0].replace(/_jpg$/, '');
+    return null;
+}
+
+function _priceFromMatchPin(pin, stem) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === 'object') {
+        const sp = Number(sc.price != null ? sc.price : sc.total_price);
+        if (isFinite(sp) && sp > 0) return sp;
+    }
+    return _snapForStem(stem);
+}
+
+function _ingestFirebasePins(all, map, napSet, label) {
+    _clearMap(map, napSet);
+    let nMatch = 0, nPriced = 0, nNap = 0;
+    for (const [domKey, pin] of Object.entries(all || {})) {
+        if (!pin) continue;
+        const stem = _stemFromFbPin(domKey, pin);
+        if (!stem) continue;
+        const status = pin.match_status || '';
+        if (status === 'not_a_pin') {
+            napSet.add(stem);
+            napSet.add(_normStem(stem));
+            nNap++;
+            continue;
+        }
+        // match = eBay lookalike accepted; priced = CTP/search/manual locked $.
+        // Skip bare no_match (and anything else). NaP tracked above; clickability unchanged for now.
+        if (status === 'priced') {
+            const dp = Number(pin.display_price);
+            if (!(isFinite(dp) && dp > 0)) continue;
+            _indexStem(map, stem, dp);
+            nPriced++;
+            continue;
+        }
+        if (status !== 'match') continue;
+        nMatch++;
+        const raw = _priceFromMatchPin(pin, stem);
+        if (raw != null) { _indexStem(map, stem, raw); nPriced++; }
+    }
+    console.info(`[PriceOverlay] ${label}: match=${nMatch} priced=${nPriced} nap=${nNap}`);
+    _applyAllPins();
+    _applyMode(_priceMode);
+}
+
+function _ingestSoldStems(val) {
+    _soldStems.clear();
+    const obj = val || {};
+    for (const [k, v] of Object.entries(obj)) {
+        if (v === true || (v && typeof v === 'object' && v.sold !== false)) {
+            _soldStems.add(k);
+            _soldStems.add(_normStem(k));
+        }
+    }
+    console.info(`[PriceOverlay] leftover sold stems: ${_soldStems.size}`);
+    _applyAllPins();
+    _applyMode(_priceMode);
+}
+
+function _ingestPendingStems(val) {
+    _pendingStems.clear();
+    const obj = val || {};
+    for (const [k, v] of Object.entries(obj)) {
+        if (v === true || (v && typeof v === 'object' && v.pending !== false)) {
+            _pendingStems.add(k);
+            _pendingStems.add(_normStem(k));
+            if (v && v.crop_stem) {
+                _pendingStems.add(v.crop_stem);
+                _pendingStems.add(_normStem(v.crop_stem));
+            }
+        }
+    }
+    console.info(`[PriceOverlay] pending auth stems: ${_pendingStems.size}`);
+    _applyAllPins();
+    _applyMode(_priceMode);
+}
+
+(async function _bootPriceOverlay() {
+    try {
+        const res = await fetch('./prices.json', { cache: 'no-store' });
+        const snap = await res.json();
+        for (const [stem, raw] of Object.entries(snap || {})) _rememberSnap(stem, Number(raw));
+        console.info(`[PriceOverlay] prices.json fallback map: ${Object.keys(snap || {}).length}`);
+    } catch (e) {
+        console.warn('[PriceOverlay] prices.json load failed:', e);
+    }
+
+    try {
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            const db = firebase.database();
+            db.ref(_PO_PINS_PATH).on('value', snap => {
+                _ingestFirebasePins(snap.val() || {}, _stemToPricePrimary, _napPrimary, 'primary');
+            }, err => console.warn('[PriceOverlay] primary listener failed:', err));
+            db.ref(_PO_PINS_PATH_LEFTOVER).on('value', snap => {
+                _ingestFirebasePins(snap.val() || {}, _stemToPriceLeftover, _napLeftover, 'leftover');
+            }, err => console.warn('[PriceOverlay] leftover listener failed:', err));
+            db.ref(_SOLD_STEMS_PATH).on('value', snap => {
+                _ingestSoldStems(snap.val() || {});
+            }, err => console.warn('[PriceOverlay] soldStems listener failed:', err));
+            db.ref(_PENDING_STEMS_PATH).on('value', snap => {
+                _ingestPendingStems(snap.val() || {});
+            }, err => console.warn('[PriceOverlay] pendingStems listener failed:', err));
+            return;
+        }
+    } catch (e) {
+        console.warn('[PriceOverlay] Firebase listener setup failed:', e);
+    }
+
+    try {
+        const base = 'https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/';
+        const [a, b, s, p] = await Promise.all([
+            fetch(base + _PO_PINS_PATH + '.json').then(r => r.json()),
+            fetch(base + _PO_PINS_PATH_LEFTOVER + '.json').then(r => r.json()),
+            fetch(base + _SOLD_STEMS_PATH + '.json').then(r => r.json()),
+            fetch(base + _PENDING_STEMS_PATH + '.json').then(r => r.json()),
+        ]);
+        _ingestFirebasePins(a || {}, _stemToPricePrimary, _napPrimary, 'primary');
+        _ingestFirebasePins(b || {}, _stemToPriceLeftover, _napLeftover, 'leftover');
+        _ingestSoldStems(s || {});
+        _ingestPendingStems(p || {});
+    } catch (e) {
+        console.warn('[PriceOverlay] Firebase REST fallback failed:', e);
+        _applyAllPins();
+        _applyMode(_priceMode);
+    }
+})();
+})();
+</script>
+</body>
+</html>

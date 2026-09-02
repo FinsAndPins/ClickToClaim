@@ -1,0 +1,107 @@
+{
+  "predictions": [
+    {
+      "x": 181.09375,
+      "y": 114.0625,
+      "width": 167.5,
+      "height": 183.28125,
+      "confidence": 0.9470881819725037,
+      "class": "pin",
+      "crop_stem": "img9479_pin01"
+    },
+    {
+      "x": 358.125,
+      "y": 118.75,
+      "width": 168.90625,
+      "height": 181.09375,
+      "confidence": 0.9522199034690857,
+      "class": "pin",
+      "crop_stem": "img9479_pin02"
+    },
+    {
+      "x": 535.0,
+      "y": 126.25,
+      "width": 170.78125,
+      "height": 178.90625,
+      "confidence": 0.948441743850708,
+      "class": "pin",
+      "crop_stem": "img9479_pin03"
+    },
+    {
+      "x": 706.875,
+      "y": 132.65625,
+      "width": 171.5625,
+      "height": 186.5625,
+      "confidence": 0.9488224983215332,
+      "class": "pin",
+      "crop_stem": "img9479_pin04"
+    },
+    {
+      "x": 885.0,
+      "y": 135.15625,
+      "width": 177.65625,
+      "height": 184.375,
+      "confidence": 0.929951012134552,
+      "class": "pin",
+      "crop_stem": "img9479_pin05"
+    },
+    {
+      "x": 1051.25,
+      "y": 148.4375,
+      "width": 195.46875,
+      "height": 182.5,
+      "confidence": 0.9315870404243469,
+      "class": "pin",
+      "crop_stem": "img9479_pin06"
+    },
+    {
+      "x": 139.296875,
+      "y": 285.3125,
+      "width": 137.03125,
+      "height": 149.609375,
+      "confidence": 0.9404625296592712,
+      "class": "pin",
+      "crop_stem": "img9479_pin07"
+    },
+    {
+      "x": 278.125,
+      "y": 287.8125,
+      "width": 156.796875,
+      "height": 138.90625,
+      "confidence": 0.9384632706642151,
+      "class": "pin",
+      "crop_stem": "img9479_pin08"
+    },
+    {
+      "x": 430.625,
+      "y": 295.9375,
+      "width": 140.3125,
+      "height": 144.21875,
+      "confidence": 0.9451974034309387,
+      "class": "pin",
+      "crop_stem": "img9479_pin09"
+    },
+    {
+      "x": 596.875,
+      "y": 317.8125,
+      "width": 162.5,
+      "height": 191.40625,
+      "confidence": 0.9455001950263977,
+      "class": "pin",
+      "crop_stem": "img9479_pin10"
+    },
+    {
+      "x": 788.75,
+      "y": 328.4375,
+      "width": 210.9375,
+      "height": 163.75,
+      "confidence": 0.9378969073295593,
+      "class": "pin",
+      "crop_stem": "img9479_pin11"
+    }
+  ],
+  "image": {
+    "width": 1280,
+    "height": 960
+  }
+}
