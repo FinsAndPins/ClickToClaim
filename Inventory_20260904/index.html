@@ -5,7 +5,7 @@
     <title>Fins and Pins — 20260904 Inventory</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="inventory-20260904-v5">
+    <meta name="ctr-countdown" content="inventory-20260904-v6">
     <meta name="robots" content="noindex, nofollow">
     <style>
         :root {
@@ -632,8 +632,26 @@ function recomputeShowWindows() {
         updateCountdowns();
         return;
     }
-    const raw = showDateSlug;
+    // Inventory_20260904 (and similar) is not YYYYMMDD — parse trailing date or skip.
+    // Without this, wallTimeToUtc(NaN,…) throws and aborts JS before boards load.
+    let raw = String(showDateSlug || "");
+    if (IS_D23_INVENTORY || !/^\d{8}/.test(raw)) {
+        const m = raw.match(/(\d{8})$/);
+        if (!m) {
+            showWindowStartMs = Date.now();
+            showWindowEndMs = showWindowStartMs + 3600000;
+            updateCountdowns();
+            return;
+        }
+        raw = m[1];
+    }
     const y = +raw.substring(0, 4), mo = +raw.substring(4, 6), d = +raw.substring(6, 8);
+    if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d) || y < 2000) {
+        showWindowStartMs = Date.now();
+        showWindowEndMs = showWindowStartMs + 3600000;
+        updateCountdowns();
+        return;
+    }
     showWindowStartMs = wallTimeToUtc(y, mo, d, activeShowConfig.startHour, activeShowConfig.startMin, EASTERN_TZ);
     showWindowEndMs = wallTimeToUtc(y, mo, d, activeShowConfig.endHour, activeShowConfig.endMin, EASTERN_TZ);
     if (showWindowEndMs <= showWindowStartMs) showWindowEndMs = showWindowStartMs + 3600000;
@@ -1302,7 +1320,7 @@ function updateFuelGauge(requested) {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "5";
+const BOARDS_MANIFEST_VERSION = "6";
 
 async function loadInventoryBoardNames() {
     const url = `${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`;
