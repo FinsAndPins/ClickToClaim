@@ -1,0 +1,179 @@
+{
+  "predictions": [
+    {
+      "x": 449.375,
+      "y": 110.0,
+      "width": 150.3125,
+      "height": 155.9375,
+      "confidence": 0.9320833086967468,
+      "class": "pin",
+      "crop_stem": "img9438_pin01"
+    },
+    {
+      "x": 870.625,
+      "y": 110.46875,
+      "width": 149.375,
+      "height": 155.625,
+      "confidence": 0.9319595694541931,
+      "class": "pin",
+      "crop_stem": "img9438_pin02"
+    },
+    {
+      "x": 592.5,
+      "y": 111.875,
+      "width": 149.84375,
+      "height": 156.171875,
+      "confidence": 0.9425067901611328,
+      "class": "pin",
+      "crop_stem": "img9438_pin03"
+    },
+    {
+      "x": 280.625,
+      "y": 113.4375,
+      "width": 165.46875,
+      "height": 172.65625,
+      "confidence": 0.9475754499435425,
+      "class": "pin",
+      "crop_stem": "img9438_pin04"
+    },
+    {
+      "x": 745.0,
+      "y": 120.0,
+      "width": 154.53125,
+      "height": 168.125,
+      "confidence": 0.9333093762397766,
+      "class": "pin",
+      "crop_stem": "img9438_pin05"
+    },
+    {
+      "x": 127.34375,
+      "y": 122.8125,
+      "width": 156.09375,
+      "height": 169.375,
+      "confidence": 0.9406808614730835,
+      "class": "pin",
+      "crop_stem": "img9438_pin06"
+    },
+    {
+      "x": 1041.25,
+      "y": 135.78125,
+      "width": 195.0,
+      "height": 187.65625,
+      "confidence": 0.9366336464881897,
+      "class": "pin",
+      "crop_stem": "img9438_pin07"
+    },
+    {
+      "x": 1068.75,
+      "y": 330.9375,
+      "width": 196.5625,
+      "height": 190.9375,
+      "confidence": 0.9436599016189575,
+      "class": "pin",
+      "crop_stem": "img9438_pin08"
+    },
+    {
+      "x": 806.875,
+      "y": 342.5,
+      "width": 278.90625,
+      "height": 278.75,
+      "confidence": 0.9549844264984131,
+      "class": "pin",
+      "crop_stem": "img9438_pin09"
+    },
+    {
+      "x": 555.0,
+      "y": 359.6875,
+      "width": 238.90625,
+      "height": 327.8125,
+      "confidence": 0.939581573009491,
+      "class": "pin",
+      "crop_stem": "img9438_pin10"
+    },
+    {
+      "x": 346.5625,
+      "y": 364.375,
+      "width": 235.78125,
+      "height": 349.375,
+      "confidence": 0.9569571614265442,
+      "class": "pin",
+      "crop_stem": "img9438_pin11"
+    },
+    {
+      "x": 141.640625,
+      "y": 385.625,
+      "width": 214.6875,
+      "height": 336.25,
+      "confidence": 0.9641867876052856,
+      "class": "pin",
+      "crop_stem": "img9438_pin12"
+    },
+    {
+      "x": 807.5,
+      "y": 517.5,
+      "width": 132.65625,
+      "height": 81.09375,
+      "confidence": 0.8875949382781982,
+      "class": "pin",
+      "crop_stem": "img9438_pin13"
+    },
+    {
+      "x": 824.375,
+      "y": 591.25,
+      "width": 75.4296875,
+      "height": 67.0703125,
+      "confidence": 0.7113306522369385,
+      "class": "pin",
+      "crop_stem": "img9438_pin14"
+    },
+    {
+      "x": 823.75,
+      "y": 661.25,
+      "width": 77.7734375,
+      "height": 66.2109375,
+      "confidence": 0.773729681968689,
+      "class": "pin",
+      "crop_stem": "img9438_pin15"
+    },
+    {
+      "x": 1017.5,
+      "y": 677.5,
+      "width": 311.09375,
+      "height": 460.9375,
+      "confidence": 0.9516838788986206,
+      "class": "pin",
+      "crop_stem": "img9438_pin16"
+    },
+    {
+      "x": 681.25,
+      "y": 723.75,
+      "width": 250.78125,
+      "height": 399.6875,
+      "confidence": 0.9550683498382568,
+      "class": "pin",
+      "crop_stem": "img9438_pin17"
+    },
+    {
+      "x": 173.90625,
+      "y": 730.625,
+      "width": 282.96875,
+      "height": 359.6875,
+      "confidence": 0.9434518814086914,
+      "class": "pin",
+      "crop_stem": "img9438_pin18"
+    },
+    {
+      "x": 436.5625,
+      "y": 738.125,
+      "width": 268.28125,
+      "height": 380.625,
+      "confidence": 0.9552357196807861,
+      "class": "pin",
+      "crop_stem": "img9438_pin19"
+    }
+  ],
+  "image": {
+    "width": 1280,
+    "height": 960
+  }
+}

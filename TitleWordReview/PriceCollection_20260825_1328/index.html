@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Title Word Review · 20260825</title>
+<style>
+:root {
+  --bg: #eef1f4; --card: #fff; --ink: #15202b; --muted: #6b7280; --line: #e5e7eb;
+  --green: #16a34a; --green-bg: #dcfce7; --red: #dc2626; --red-bg: #fee2e2;
+  --chip: #f3f4f6; --accent: #0f766e; --accent-ink: #fff;
+  --shadow: 0 2px 14px rgba(15, 23, 42, .08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  background: radial-gradient(1200px 500px at 10% -10%, #d9f3ef 0%, transparent 55%),
+    radial-gradient(900px 400px at 100% 0%, #e8eefc 0%, transparent 50%), var(--bg);
+  color: var(--ink); min-height: 100vh; padding-bottom: calc(130px + env(safe-area-inset-bottom));
+}
+header {
+  position: sticky; top: 0; z-index: 40; background: rgba(21, 32, 43, .94); color: #fff;
+  backdrop-filter: blur(8px); padding: 10px 14px; display: flex; flex-wrap: wrap;
+  gap: 10px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+header h1 { font-size: 14px; font-weight: 700; }
+.stats { display: flex; gap: 10px; flex: 1; flex-wrap: wrap; }
+.stat { min-width: 52px; text-align: center; }
+.stat b { display: block; font-size: 16px; line-height: 1.1; }
+.stat span { font-size: 9px; text-transform: uppercase; opacity: .65; letter-spacing: .04em; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+select, button, input[type="text"], textarea { font: inherit; }
+select, .name-input, .pin-select {
+  background: #1f2a37; color: #fff; border: 1px solid #334155;
+  border-radius: 8px; padding: 6px 10px; font-size: 13px; max-width: 100%;
+}
+.pin-select { min-width: 180px; }
+button {
+  border: 0; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 650;
+  cursor: pointer; background: var(--accent); color: var(--accent-ink);
+}
+button.secondary { background: #334155; color: #fff; }
+button:disabled { opacity: .45; cursor: default; }
+main { max-width: 920px; margin: 16px auto; padding: 0 12px; }
+.card { background: var(--card); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid #e8ecf1; }
+.hero {
+  display: flex; gap: 14px; padding: 14px;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9); border-bottom: 1px solid var(--line);
+  align-items: flex-start;
+}
+.img-col { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
+.img-col label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.img-col img {
+  width: 168px; height: 168px; object-fit: contain; background: #fff;
+  border-radius: 10px; border: 2px solid #0f766e33;
+}
+.title-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.title-col .lbl { margin-bottom: 2px; }
+.title-col textarea {
+  width: 100%; border: 2px solid var(--accent); border-radius: 12px; padding: 12px 14px;
+  font-size: 17px; font-weight: 650; line-height: 1.35; background: #fff;
+  min-height: 72px; max-height: 160px; overflow-y: auto; resize: none;
+  -webkit-overflow-scrolling: touch;
+}
+.title-col textarea:focus { outline: 3px solid #99f6e4; }
+.title-col-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.meta { font-size: 12px; color: var(--muted); text-align: center; max-width: 168px; line-height: 1.35; }
+.meta a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.ebay-ref {
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.ebay-thumb-sm {
+  width: 56px; height: 56px; object-fit: contain; background: #fff;
+  border-radius: 8px; border: 1px solid #cbd5e1; flex-shrink: 0;
+}
+.ebay-ref-body { flex: 1; min-width: 0; }
+.ebay-title { font-size: 14px; font-weight: 650; line-height: 1.35; word-break: break-word; }
+@media (max-width: 767px) {
+  header h1 { font-size: 13px; width: 100%; }
+  .controls { width: 100%; }
+  .pin-select { flex: 1; min-width: 0; }
+  .hero { flex-direction: column; align-items: stretch; }
+  .img-col { align-self: center; }
+  .img-col img { width: 168px; height: 168px; }
+  .meta { max-width: none; }
+  .title-col textarea { font-size: 16px; max-height: 140px; }
+  .footer-bar { gap: 6px; }
+  .footer-bar button { padding: 10px 8px; font-size: 12px; }
+}
+.badge { display: inline-block; margin-top: 4px; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.badge.ctm { background: #dcfce7; color: #166534; }
+.badge.ctp { background: #e0e7ff; color: #3730a3; }
+.badge.done { background: #dbeafe; color: #1e40af; }
+.section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.section:last-child { border-bottom: 0; }
+.lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-bottom: 6px; font-weight: 700; }
+.desc-note { margin-top: 8px; font-size: 12px; color: #64748b; font-style: italic; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 7px 11px;
+  font-size: 13px; font-weight: 650; background: var(--chip); color: #374151; border: 1px solid #e5e7eb;
+  cursor: pointer; user-select: none; touch-action: manipulation;
+}
+.chip.on { background: var(--green-bg); color: #14532d; border-color: #86efac; }
+.chip.never { background: var(--red-bg); color: #7f1d1d; border-color: #fca5a5; text-decoration: line-through; }
+.chip .ord { display: none; width: 18px; height: 18px; border-radius: 50%; background: var(--green); color: #fff; font-size: 10px; align-items: center; justify-content: center; }
+.chip.on .ord { display: inline-flex; }
+.chip-tools button { padding: 0; width: 22px; height: 22px; border-radius: 6px; background: #14532d; color: #fff; font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.footer-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: rgba(255,255,255,.96);
+  border-top: 1px solid var(--line); padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+}
+.status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+.dot.ok { background: var(--green); }
+.dot.warn { background: #f59e0b; }
+.toast {
+  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: #111827; color: #fff;
+  padding: 8px 14px; border-radius: 999px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 60;
+}
+.toast.show { opacity: 1; }
+#loading { text-align: center; padding: 40px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="page-title">Title Word Review</h1>
+  <div class="stats">
+    <div class="stat"><b id="stat-idx">—</b><span>Pin</span></div>
+    <div class="stat"><b id="stat-done">0</b><span>Accepted</span></div>
+    <div class="stat"><b id="stat-sync">…</b><span>Sync</span></div>
+  </div>
+  <div class="controls">
+    <input class="name-input" id="reviewer" list="reviewers" placeholder="Your name" maxlength="40">
+    <datalist id="reviewers"><option value="Steve"><option value="Lexi"><option value="PinDad"></datalist>
+    <select class="pin-select" id="pin-jump" title="Jump to pin"></select>
+    <button type="button" class="secondary" id="btn-export">Export</button>
+  </div>
+</header>
+
+<main>
+  <div id="loading">Loading pins…</div>
+  <div id="app" hidden>
+    <div class="card" id="card">
+      <div class="hero">
+        <div class="img-col">
+          <label>Pin</label>
+          <img id="our-img" alt="Our crop">
+          <div class="meta" id="our-meta"></div>
+        </div>
+        <div class="title-col">
+          <div class="lbl">Whatnot title (editable)</div>
+          <textarea id="cleaned" rows="2" autocomplete="off" spellcheck="false" enterkeyhint="done"></textarea>
+          <div class="title-col-meta">
+            <div id="listing-badge" class="badge"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="ebay-ref">
+          <img id="ebay-img" class="ebay-thumb-sm" alt="eBay listing">
+          <div class="ebay-ref-body">
+            <div class="lbl">Chosen eBay listing</div>
+            <div class="ebay-title" id="ebay-title"></div>
+            <div class="meta" id="ebay-meta" style="text-align:left;margin-top:6px;max-width:none"></div>
+            <div class="desc-note" id="desc-note"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="lbl">Words from chosen eBay title</div>
+        <div class="chips" id="chips"></div>
+        <div class="legend">
+          <span><i style="color:#16a34a;font-style:normal;font-weight:700">Green</i> = title</span>
+          <span><i style="font-style:normal">Gray</i> = optional</span>
+          <span><i style="color:#dc2626;font-style:normal;font-weight:700">Red</i> = title-off (often movie → description)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="footer-bar" id="footer" hidden>
+  <button type="button" class="secondary" id="btn-prev">← Prev</button>
+  <button type="button" class="secondary" id="btn-next-open" title="Jump to the next pin you have not accepted yet">Next todo</button>
+  <button type="button" class="secondary" id="btn-reset">Reset seed</button>
+  <button type="button" id="btn-accept">Accept ✓</button>
+  <button type="button" class="secondary" id="btn-next">Next →</button>
+  <div class="status-pill"><span class="dot" id="save-dot"></span><span id="save-msg">Ready</span></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="title_seed.js?v=v7_sanitize_le2"></script>
+<script>
+const FB_CONFIG = {
+  apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+  authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+  databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+  projectId: "fins-and-pins-click-to-claim",
+  storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+  messagingSenderId: "31512845258",
+  appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+
+const BATCH_ID = "batch_full_98_v1";
+const PRIOR_BATCH_ID = "batch_15_v2_chosen_listing";
+const COLLECTION = "PriceCollection_20260825_1328";
+const PRICING_TEST_RUN = "test_PriceCollection_20260825_1328__build_18953_visual_baseline";
+const PRICING_APPROACH = "visual_baseline";
+const RULES_VERSION = "v7_sanitize_le2";
+const LS_KEY = `title_word_review:${COLLECTION}:${BATCH_ID}`;
+const LS_NAME = "title_word_review:reviewer";
+
+let SEED = [];
+let RULES = {};
+let idx = 0;
+let labels = {};
+let fbReady = false;
+let fbRoot = null;
+let saveTimer = null;
+let suppressCleanedInput = false;
+
+const { normalizeKey, tokenize, seedSuggestion, titleFromOrder, descriptionPreview, sanitizeCleanedTitle, titleNeedsSanitize } = TitleSeed;
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove("show"), 1800);
+}
+
+function safePk(pinKey) {
+  return String(pinKey || "").replace(/[.#$/\[\]]/g, "_");
+}
+
+function currentPin() { return SEED[idx]; }
+function pinStateKey(pin) { return safePk(pin.pin_key); }
+
+function acceptedCount() {
+  return Object.values(labels).filter((l) => l.accepted).length;
+}
+
+function makeSeedLabel(pin) {
+  const tokens = tokenize(pin.ebay_title);
+  const order = seedSuggestion(tokens, RULES);
+  const cleaned = titleFromOrder(tokens, order, RULES);
+  return {
+    pin_key: pin.pin_key,
+    crop_filename: pin.crop_filename,
+    ebay_title: pin.ebay_title,
+    tokens,
+    include_order: order,
+    cleaned_title: cleaned,
+    accepted: false,
+    reviewed_by: "",
+    updated_at: new Date().toISOString(),
+    accepted_at: null,
+    rules_version: RULES_VERSION,
+  };
+}
+
+function ensureLabel(pin) {
+  const k = pinStateKey(pin);
+  const prev = labels[k];
+  if (prev && prev.accepted && prev.ebay_title === pin.ebay_title && prev.tokens) {
+    normalizeLabelTitle(prev, pin);
+    return prev;
+  }
+  if (
+    prev &&
+    !prev.accepted &&
+    prev.rules_version === RULES_VERSION &&
+    prev.ebay_title === pin.ebay_title &&
+    prev.tokens &&
+    !titleNeedsSanitize(prev.cleaned_title)
+  ) {
+    normalizeLabelTitle(prev, pin);
+    return prev;
+  }
+  labels[k] = makeSeedLabel(pin);
+  return labels[k];
+}
+
+/** Regenerate suggestions for pins not yet accepted (e.g. after rule updates). */
+function reseedUnaccepted() {
+  let n = 0;
+  const writes = [];
+  for (const pin of SEED) {
+    const k = pinStateKey(pin);
+    const prev = labels[k];
+    if (prev && prev.accepted) continue;
+    if (
+      prev &&
+      prev.rules_version === RULES_VERSION &&
+      prev.tokens &&
+      prev.ebay_title === pin.ebay_title &&
+      !titleNeedsSanitize(prev.cleaned_title)
+    ) {
+      continue;
+    }
+    labels[k] = makeSeedLabel(pin);
+    n += 1;
+    if (fbReady && fbRoot) {
+      writes.push(fbRoot.child("pins").child(k).set(labelPayload(labels[k])));
+    }
+  }
+  persistLocal();
+  if (writes.length) {
+    Promise.all(writes).catch((err) => console.warn("reseed write failed", err));
+  }
+  return n;
+}
+
+function includedTokens(label) {
+  const byId = Object.fromEntries(label.tokens.map((t) => [t.id, t]));
+  return label.include_order.map((id) => byId[id]).filter(Boolean);
+}
+
+function descOnlyPreview(label) {
+  return descriptionPreview(label, RULES);
+}
+
+function applyCleanedTitle(label, cleaned) {
+  label.cleaned_title = sanitizeCleanedTitle(cleaned, RULES);
+}
+
+/** Strip LE numbers / Chaser from any loaded or displayed title. Returns true if changed. */
+function normalizeLabelTitle(label, pin) {
+  if (!label) return false;
+  const before = label.cleaned_title || "";
+  applyCleanedTitle(label, before);
+  if (label.cleaned_title === before) return false;
+  if (label.accepted) label.accepted = false;
+  label.rules_version = RULES_VERSION;
+  label.updated_at = new Date().toISOString();
+  if (pin && label.ebay_title === pin.ebay_title && label.tokens) {
+    const cleanedKeys = new Set(label.cleaned_title.split(/\s+/).map(normalizeKey).filter(Boolean));
+    label.include_order = [];
+    for (const t of label.tokens) {
+      if (t.state === "never" && t.desc_only) continue;
+      if (cleanedKeys.has(t.key)) {
+        t.state = "on";
+        label.include_order.push(t.id);
+      } else if (t.state === "on") {
+        t.state = "off";
+      }
+    }
+  }
+  return true;
+}
+
+function shouldImportRemote(local, remote) {
+  if (!local) return true;
+  if (remote.accepted && !local.accepted) return true;
+  if (titleNeedsSanitize(local.cleaned_title) && !titleNeedsSanitize(remote.cleaned_title || "")) return true;
+  return (remote.updated_at || "") >= (local.updated_at || "");
+}
+
+function sanitizeAllLabels() {
+  let n = 0;
+  const writes = [];
+  for (const pin of SEED) {
+    const k = pinStateKey(pin);
+    const label = labels[k];
+    if (!label) continue;
+    if (normalizeLabelTitle(label, pin)) {
+      n += 1;
+      if (fbReady && fbRoot) {
+        writes.push(fbRoot.child("pins").child(k).set(labelPayload(label)));
+      }
+    }
+  }
+  if (n) persistLocal();
+  if (writes.length) {
+    Promise.all(writes).catch((err) => console.warn("sanitize write failed", err));
+  }
+  return n;
+}
+
+function rebuildCleanedFromChips(label) {
+  applyCleanedTitle(label, titleFromOrder(label.tokens, label.include_order, RULES));
+}
+
+function applyChosenListing(pin, fbPin) {
+  if (!fbPin || typeof fbPin !== "object") return false;
+  const sc = fbPin.selected_candidate;
+  if (!sc || typeof sc !== "object") return false;
+  if (!(sc.title || sc.itemUrl || sc.itemId)) return false;
+  const prev = pin.ebay_title;
+  pin.ebay_title = sc.title || "";
+  pin.ebay_price = sc.total_price != null ? sc.total_price : sc.price;
+  pin.ebay_thumb_url = sc.thumbUrl || "";
+  pin.ebay_item_url = sc.itemUrl || sc.itemId || "";
+  pin.selected_candidate_idx = fbPin.selected_candidate_idx;
+  pin.ctm_match_status = fbPin.ctm_match_status || pin.ctm_match_status;
+  pin.display_price = fbPin.display_price != null ? fbPin.display_price : pin.display_price;
+  pin.listing_source = pin.ctm_match_status === "match" ? "ctm_match" : "click_to_price";
+  return prev !== pin.ebay_title;
+}
+
+function importRemoteLabel(k, r) {
+  labels[k] = {
+    pin_key: r.pin_key,
+    crop_filename: r.crop_filename,
+    ebay_title: r.ebay_title,
+    tokens: r.tokens,
+    include_order: r.include_order || [],
+    cleaned_title: r.cleaned_title || "",
+    accepted: !!r.accepted,
+    reviewed_by: r.reviewed_by || "",
+    updated_at: r.updated_at || null,
+    accepted_at: r.accepted_at || null,
+    rules_version: r.rules_version || (r.accepted ? RULES_VERSION : ""),
+  };
+}
+
+function mergeRemoteLabels(remote, onlyIfMissing) {
+  Object.keys(remote).forEach((k) => {
+    const r = remote[k];
+    if (!r || !r.tokens) return;
+    const local = labels[k];
+    if (onlyIfMissing && local && (local.accepted || local.updated_at)) return;
+    if (shouldImportRemote(local, r)) {
+      importRemoteLabel(k, r);
+    }
+  });
+}
+
+function rebuildPinJump() {
+  const sel = document.getElementById("pin-jump");
+  sel.innerHTML = "";
+  SEED.forEach((pin, i) => {
+    const label = labels[pinStateKey(pin)] || {};
+    const mark = label.accepted ? "✓ " : "○ ";
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = `${mark}B${pin.board_num} · ${pin.crop_filename}`;
+    sel.appendChild(opt);
+  });
+  sel.value = String(idx);
+}
+
+function resizeCleanedField() {
+  const el = document.getElementById("cleaned");
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = Math.min(160, Math.max(72, el.scrollHeight)) + "px";
+}
+
+function render() {
+  if (!SEED.length) return;
+  const pin = currentPin();
+  const label = ensureLabel(pin);
+
+  document.getElementById("stat-idx").textContent = `${idx + 1}/${SEED.length}`;
+  document.getElementById("stat-done").textContent = String(acceptedCount());
+  document.getElementById("page-title").textContent = `Title Word Review · ${SEED.length} pins`;
+
+  document.getElementById("our-img").src = pin.crop_url;
+  document.getElementById("our-meta").textContent = `${pin.crop_filename} · board ${pin.board_num} · $${pin.display_price ?? "—"}`;
+  document.getElementById("ebay-img").src = pin.ebay_thumb_url || "";
+  const price = pin.ebay_price != null ? `$${pin.ebay_price}` : "—";
+  document.getElementById("ebay-meta").innerHTML = pin.ebay_item_url
+    ? `${price} · <a href="${pin.ebay_item_url}" target="_blank" rel="noopener">Open eBay</a>` : price;
+
+  const badge = document.getElementById("listing-badge");
+  if (label.accepted) {
+    badge.className = "badge done";
+    badge.textContent = "Accepted";
+  } else if (pin.listing_source === "ctm_match") {
+    badge.className = "badge ctm";
+    badge.textContent = "ClickToMatch";
+  } else {
+    badge.className = "badge ctp";
+    badge.textContent = "ClickToPrice pick";
+  }
+
+  document.getElementById("ebay-title").textContent = pin.ebay_title || "(no title)";
+  const descWords = descOnlyPreview(label);
+  document.getElementById("desc-note").textContent = descWords
+    ? `Whatnot description will include: ${descWords}` : "";
+
+  const cleanedEl = document.getElementById("cleaned");
+  const editingTitle = document.activeElement === cleanedEl;
+  normalizeLabelTitle(label, pin);
+  if (!editingTitle) {
+    suppressCleanedInput = true;
+    cleanedEl.value = label.cleaned_title || "";
+    suppressCleanedInput = false;
+    resizeCleanedField();
+  }
+
+  const chips = document.getElementById("chips");
+  chips.innerHTML = "";
+  const orderIndex = Object.fromEntries(label.include_order.map((id, i) => [id, i + 1]));
+  label.tokens.forEach((tok) => {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "chip" + (tok.state === "on" ? " on" : tok.state === "never" ? " never" : "");
+    const ord = document.createElement("span");
+    ord.className = "ord";
+    ord.textContent = orderIndex[tok.id] || "";
+    const txt = document.createElement("span");
+    txt.textContent = tok.text;
+    el.appendChild(ord);
+    el.appendChild(txt);
+    if (tok.state === "on") {
+      const tools = document.createElement("span");
+      tools.className = "chip-tools";
+      const up = document.createElement("button");
+      up.type = "button"; up.textContent = "↑";
+      up.addEventListener("click", (e) => { e.stopPropagation(); moveIncluded(tok.id, -1); });
+      const down = document.createElement("button");
+      down.type = "button"; down.textContent = "↓";
+      down.addEventListener("click", (e) => { e.stopPropagation(); moveIncluded(tok.id, 1); });
+      tools.appendChild(up); tools.appendChild(down);
+      el.appendChild(tools);
+    }
+    el.addEventListener("click", () => cycleToken(tok.id));
+    chips.appendChild(el);
+  });
+
+  document.getElementById("btn-prev").disabled = idx <= 0;
+  document.getElementById("btn-next").disabled = idx >= SEED.length - 1;
+  document.getElementById("btn-accept").textContent = label.accepted ? "Accepted ✓" : "Accept ✓";
+  rebuildPinJump();
+}
+
+function cycleToken(id) {
+  const label = ensureLabel(currentPin());
+  const tok = label.tokens.find((t) => t.id === id);
+  if (!tok) return;
+  if (tok.state === "off") {
+    // One key once in the title — replace any earlier chip with the same word
+    for (const t of label.tokens) {
+      if (t.key === tok.key && t.id !== tok.id && t.state === "on") {
+        t.state = "never";
+      }
+    }
+    label.include_order = label.include_order.filter((oid) => {
+      const other = label.tokens.find((t) => t.id === oid);
+      return !other || other.key !== tok.key;
+    });
+    tok.state = "on";
+    tok.desc_only = false;
+    label.include_order.push(id);
+  } else if (tok.state === "on") {
+    tok.state = "never";
+    label.include_order = label.include_order.filter((x) => x !== id);
+  } else {
+    tok.state = "off";
+    label.include_order = label.include_order.filter((x) => x !== id);
+  }
+  rebuildCleanedFromChips(label);
+  label.accepted = false;
+  scheduleSave(label);
+  render();
+}
+
+function moveIncluded(id, delta) {
+  const label = ensureLabel(currentPin());
+  const arr = label.include_order.slice();
+  const i = arr.indexOf(id);
+  if (i < 0) return;
+  const j = i + delta;
+  if (j < 0 || j >= arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  label.include_order = arr;
+  rebuildCleanedFromChips(label);
+  label.accepted = false;
+  scheduleSave(label);
+  render();
+}
+
+function resetSeed() {
+  delete labels[pinStateKey(currentPin())];
+  ensureLabel(currentPin());
+  scheduleSave(labels[pinStateKey(currentPin())]);
+  render();
+  toast("Reset to seed suggestion");
+}
+
+function acceptCurrent() {
+  const pin = currentPin();
+  const label = ensureLabel(pin);
+  const name = (document.getElementById("reviewer").value || "").trim();
+  if (!name) { toast("Enter your name first"); return; }
+  applyCleanedTitle(label, document.getElementById("cleaned").value.trim());
+  label.reviewed_by = name;
+  label.accepted = true;
+  label.accepted_at = new Date().toISOString();
+  label.updated_at = label.accepted_at;
+  scheduleSave(label, true);
+  render();
+  toast("Accepted");
+  goNextOpen();
+}
+
+function goNextOpen() {
+  for (let i = idx + 1; i < SEED.length; i++) {
+    const l = labels[pinStateKey(SEED[i])];
+    if (!l || !l.accepted) { idx = i; render(); return; }
+  }
+  if (idx < SEED.length - 1) { idx += 1; render(); }
+}
+
+function onCleanedInput() {
+  if (suppressCleanedInput) return;
+  const label = ensureLabel(currentPin());
+  applyCleanedTitle(label, document.getElementById("cleaned").value);
+  label.accepted = false;
+  const cleanedKeys = new Set(label.cleaned_title.split(/\s+/).map(normalizeKey).filter(Boolean));
+  if (document.getElementById("cleaned").value !== label.cleaned_title) {
+    suppressCleanedInput = true;
+    document.getElementById("cleaned").value = label.cleaned_title;
+    suppressCleanedInput = false;
+  }
+  label.include_order = [];
+  for (const t of label.tokens) {
+    if (t.state === "never" && t.desc_only) continue;
+    if (cleanedKeys.has(t.key)) {
+      t.state = "on";
+      label.include_order.push(t.id);
+    } else if (t.state === "on") {
+      t.state = "off";
+    }
+  }
+  scheduleSave(label);
+  resizeCleanedField();
+  rebuildPinJump();
+}
+
+function persistLocal() {
+  localStorage.setItem(LS_KEY, JSON.stringify(labels));
+}
+
+function setSaveUI(kind, msg) {
+  document.getElementById("save-dot").className = "dot" + (kind === "ok" ? " ok" : kind === "pending" ? " warn" : "");
+  document.getElementById("save-msg").textContent = msg;
+  document.getElementById("stat-sync").textContent = kind === "ok" ? "OK" : kind === "pending" ? "…" : "Local";
+}
+
+function labelPayload(label) {
+  return {
+    pin_key: label.pin_key,
+    crop_filename: label.crop_filename,
+    ebay_title: label.ebay_title,
+    cleaned_title: label.cleaned_title,
+    include_order: label.include_order,
+    tokens: label.tokens.map((t) => ({ id: t.id, text: t.text, key: t.key, state: t.state, desc_only: !!t.desc_only })),
+    included_words_ordered: includedTokens(label).map((t) => t.text),
+    description_only_words: label.tokens.filter((t) => t.desc_only && t.state === "never").map((t) => t.text),
+    accepted: !!label.accepted,
+    reviewed_by: label.reviewed_by || "",
+    updated_at: label.updated_at,
+    accepted_at: label.accepted_at || null,
+    batch_id: BATCH_ID,
+    collection: COLLECTION,
+    rules_version: label.rules_version || RULES_VERSION,
+  };
+}
+
+function scheduleSave(label, immediate) {
+  label.updated_at = new Date().toISOString();
+  persistLocal();
+  setSaveUI("pending", "Saving…");
+  clearTimeout(saveTimer);
+  const run = () => pushFirebase(label);
+  if (immediate) run();
+  else saveTimer = setTimeout(run, 350);
+}
+
+function pushFirebase(label) {
+  if (!fbReady || !fbRoot) { setSaveUI("local", "Saved locally"); return; }
+  fbRoot.child("pins").child(safePk(label.pin_key)).set(labelPayload(label))
+    .then(() => setSaveUI("ok", "Saved to Firebase"))
+    .catch(() => { setSaveUI("local", "Firebase error"); toast("Firebase save failed"); });
+}
+
+function exportTraining() {
+  const rows = SEED.map((pin) => {
+    const label = ensureLabel(pin);
+    return {
+      ...labelPayload(label),
+      listing_source: pin.listing_source,
+      display_price: pin.display_price,
+      ebay_price: pin.ebay_price,
+      board_num: pin.board_num,
+      pin_n: pin.pin_n,
+      crop_url: pin.crop_url,
+      ebay_thumb_url: pin.ebay_thumb_url,
+      ebay_item_url: pin.ebay_item_url,
+    };
+  });
+  const blob = new Blob([JSON.stringify({
+    collection: COLLECTION, batch_id: BATCH_ID,
+    exported_at: new Date().toISOString(), pin_count: rows.length, pins: rows,
+  }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `title_word_review_${COLLECTION}_${BATCH_ID}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function initFirebase() {
+  firebase.initializeApp(FB_CONFIG);
+  fbRoot = firebase.database().ref(`title_word_review/${COLLECTION}/${BATCH_ID}`);
+  fbReady = true;
+
+  const pricingRef = firebase.database().ref(`pin_pricing_tests/${PRICING_TEST_RUN}/${PRICING_APPROACH}/pins`);
+  pricingRef.once("value").then((snap) => {
+    const all = snap.val() || {};
+    for (const pin of SEED) {
+      applyChosenListing(pin, all[safePk(pin.pin_key)] || all[pin.pin_key]);
+    }
+    render();
+  });
+
+  const priorRef = firebase.database().ref(`title_word_review/${COLLECTION}/${PRIOR_BATCH_ID}/pins`);
+  const fullRef = fbRoot.child("pins");
+
+  Promise.all([priorRef.once("value"), fullRef.once("value")]).then(([priorSnap, fullSnap]) => {
+    mergeRemoteLabels(priorSnap.val() || {}, true);
+    mergeRemoteLabels(fullSnap.val() || {}, false);
+    const sanitized = sanitizeAllLabels();
+    const reseeds = reseedUnaccepted();
+    persistLocal();
+    const imported = acceptedCount();
+    if (imported) toast(`Loaded ${imported} accepted · reseeded ${reseeds}${sanitized ? ` · fixed ${sanitized} titles` : ""}`);
+    else if (reseeds || sanitized) toast(`Updated ${reseeds + sanitized} open titles`);
+    setSaveUI("ok", "Firebase connected");
+    render();
+  }).catch(() => setSaveUI("local", "Firebase read failed"));
+}
+
+function boot() {
+  loadLocal();
+  Promise.all([
+    fetch(`seed.json?v=${RULES_VERSION}`).then((r) => { if (!r.ok) throw new Error("seed.json"); return r.json(); }),
+    fetch(`title_seed_rules.json?v=${RULES_VERSION}`).then((r) => { if (!r.ok) throw new Error("rules"); return r.json(); }),
+  ]).then(([seedDoc, rules]) => {
+    SEED = seedDoc.pins || seedDoc;
+    RULES = rules;
+    document.getElementById("loading").hidden = true;
+    document.getElementById("app").hidden = false;
+    document.getElementById("footer").hidden = false;
+    initFirebase();
+    render();
+  }).catch((err) => {
+    document.getElementById("loading").textContent = "Failed to load seed.json — " + err.message;
+  });
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) labels = JSON.parse(raw) || {};
+  } catch (_) { labels = {}; }
+  const name = localStorage.getItem(LS_NAME) || "";
+  if (name) document.getElementById("reviewer").value = name;
+}
+
+document.getElementById("btn-prev").addEventListener("click", () => { if (idx > 0) { idx -= 1; render(); } });
+document.getElementById("btn-next").addEventListener("click", () => { if (idx < SEED.length - 1) { idx += 1; render(); } });
+document.getElementById("btn-next-open").addEventListener("click", goNextOpen);
+document.getElementById("btn-reset").addEventListener("click", resetSeed);
+document.getElementById("btn-accept").addEventListener("click", acceptCurrent);
+document.getElementById("btn-export").addEventListener("click", exportTraining);
+document.getElementById("cleaned").addEventListener("input", onCleanedInput);
+document.getElementById("pin-jump").addEventListener("change", (e) => {
+  idx = parseInt(e.target.value, 10) || 0;
+  render();
+});
+document.getElementById("reviewer").addEventListener("change", (e) => {
+  localStorage.setItem(LS_NAME, e.target.value.trim());
+});
+
+boot();
+</script>
+</body>
+</html>

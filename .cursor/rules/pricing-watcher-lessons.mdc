@@ -1,0 +1,29 @@
+---
+description: Pricing watcher path/publish lessons — check these failure modes before shipping watcher changes
+alwaysApply: true
+---
+
+# Pricing watcher — learned failure modes
+
+Full incident + deferred hardening plan: `.cursor/docs/pricing-watcher-overnight-20260828.md`  
+Still require **SHIP TO PRODUCTION** before editing protected pricing paths (see `production-pricing-experiment-isolation.mdc`).
+
+## Incidents to remember
+
+1. **Jun 2026** — Experiment wired into production pipeline → App Support watcher crashed every run.
+2. **2026-08-28 night** — LaunchAgent reinstall retargeted inbox away from Lexi’s iCloud `BoardsToPrice` → photos never ran.
+3. **Same night** — Pipeline built in `PricingWork` but publish skipped copy → `git add` pathspec fail → not on Pages; Lexi got no good link.
+
+## When touching watcher / install / price_boards / LaunchAgent
+
+Proactively verify (fix if broken; do not “cleanup” broadly):
+
+- **Path contract:** Lexi drop = iCloud `BoardsToPrice` (`BOARDS_TO_PRICE_DROP_ZONE`). Work = `PricingWork`. Publish = `PreparingInventoryGit`. Install must **fail closed**, never silently retarget the drop zone.
+- **Publish copy:** Copy run into publish clone whenever work path ≠ `PUBLISH_REPO/<collection>` — not only when `PREP ≠ PUBLISH_REPO`.
+- **Success definition:** Done = collection on Pages **and** iMessage/link matches that URL. Do not clear BoardsToPrice or text success before push succeeds.
+- **Deploy:** After intentional script changes, re-run `install_boards_inbox_launchagent.sh` so App Support mirrors source.
+- **Scope:** No drive-by refactors. No experiment imports into production. Prefer one photo-drop E2E check over log-only “OK.”
+
+## Deferred (do not implement unless Steve asks)
+
+Freeze path contracts in install; Pages+link as first-class success gate; optional Mac mini later. See the doc — Steve deferred these 2026-08-29.

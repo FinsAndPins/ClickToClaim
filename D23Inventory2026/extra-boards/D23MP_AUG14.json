@@ -1,0 +1,134 @@
+{
+  "predictions": [
+    {
+      "x": 136.0,
+      "y": 302.5,
+      "width": 188.0,
+      "height": 205.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "atlantis_milo_kida"
+    },
+    {
+      "x": 332.0,
+      "y": 307.5,
+      "width": 200.0,
+      "height": 185.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "pixar_40_years"
+    },
+    {
+      "x": 526.5,
+      "y": 314.0,
+      "width": 177.0,
+      "height": 172.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "muppets_50th"
+    },
+    {
+      "x": 723.0,
+      "y": 300.0,
+      "width": 210.0,
+      "height": 230.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "darkwing_35th"
+    },
+    {
+      "x": 901.0,
+      "y": 300.0,
+      "width": 138.0,
+      "height": 250.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "batb_35th"
+    },
+    {
+      "x": 114.0,
+      "y": 567.0,
+      "width": 136.0,
+      "height": 118.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "figment"
+    },
+    {
+      "x": 267.0,
+      "y": 564.0,
+      "width": 140.0,
+      "height": 116.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "r3x"
+    },
+    {
+      "x": 420.0,
+      "y": 564.0,
+      "width": 126.0,
+      "height": 132.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "shaman_of_songs"
+    },
+    {
+      "x": 562.0,
+      "y": 566.0,
+      "width": 154.0,
+      "height": 128.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "hercules_phil"
+    },
+    {
+      "x": 714.0,
+      "y": 564.0,
+      "width": 132.0,
+      "height": 118.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "ariel_flounder"
+    },
+    {
+      "x": 867.0,
+      "y": 569.0,
+      "width": 156.0,
+      "height": 122.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "briar_rose_phillip"
+    },
+    {
+      "x": 123.0,
+      "y": 903.0,
+      "width": 150.0,
+      "height": 170.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "hercules_logo"
+    },
+    {
+      "x": 405.0,
+      "y": 944.0,
+      "width": 390.0,
+      "height": 368.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "mickey_animator_set"
+    },
+    {
+      "x": 778.0,
+      "y": 934.0,
+      "width": 320.0,
+      "height": 372.0,
+      "confidence": 1.0,
+      "class": "pin",
+      "crop_stem": "ink_and_paint_set"
+    }
+  ],
+  "image": {
+    "width": 983,
+    "height": 1280
+  }
+}

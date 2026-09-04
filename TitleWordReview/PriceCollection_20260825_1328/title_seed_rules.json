@@ -1,0 +1,232 @@
+{
+  "never_words": [
+    "disney",
+    "pin",
+    "pins",
+    "enamel",
+    "brooch",
+    "jewelry",
+    "jewellery",
+    "new",
+    "authentic",
+    "rare",
+    "htf",
+    "nib",
+    "free",
+    "shipping",
+    "ship",
+    "lot",
+    "oem",
+    "fast",
+    "super",
+    "store",
+    "twdc",
+    "2020",
+    "2019",
+    "2024",
+    "2026",
+    "n3",
+    "exclusive",
+    "limited",
+    "edition",
+    "mystery",
+    "pixar",
+    "walt",
+    "imagineering",
+    "pack",
+    "glendale",
+    "studio",
+    "gummi",
+    "read",
+    "flawed",
+    "flaw",
+    "description",
+    "please",
+    "villain",
+    "bears",
+    "pooh",
+    "winnie",
+    "chaser"
+  ],
+  "stop_words": [
+    "the",
+    "of",
+    "and",
+    "a",
+    "an",
+    "in",
+    "on",
+    "for",
+    "with",
+    "from",
+    "set",
+    "series",
+    "-"
+  ],
+  "makers": [
+    "wdi",
+    "mog",
+    "dec",
+    "dssh",
+    "dsf",
+    "d23",
+    "dlp",
+    "wdw",
+    "wdcs"
+  ],
+  "set_hints": [
+    "adorbs",
+    "adorbs!",
+    "adorb",
+    "cuties",
+    "cutie",
+    "stamp",
+    "stamps",
+    "jumbo",
+    "chaser",
+    "silhouette",
+    "sketch",
+    "off",
+    "page"
+  ],
+  "movie_phrases": [
+    "pirates of the caribbean",
+    "adventures of the gummi bears",
+    "the adventure of the gummi bears",
+    "adventures of gummi bears",
+    "the hunchback of notre dame",
+    "hunchback of notre dame",
+    "treasure planet",
+    "alice in wonderland",
+    "lady and the tramp",
+    "sleeping beauty",
+    "the little mermaid",
+    "lion king",
+    "the lion king",
+    "beauty and the beast",
+    "emperor's new groove",
+    "emperors new groove",
+    "star wars",
+    "the rescuers down under",
+    "rescuers down under",
+    "the rescuers",
+    "disney afternoon",
+    "the black cauldron",
+    "101 dalmatians",
+    "the incredibles",
+    "inside out",
+    "monsters inc",
+    "toy story",
+    "finding nemo",
+    "the jungle book",
+    "snow white",
+    "cinderella",
+    "mulan",
+    "aladdin",
+    "hercules",
+    "tarzan",
+    "atlantis",
+    "encanto",
+    "frozen",
+    "moana",
+    "zootopia",
+    "big hero 6",
+    "wreck it ralph",
+    "the emperors new groove",
+    "winnie the pooh",
+    "winnie-the-pooh"
+  ],
+  "notes": "Title: Character \u00b7 Maker acronym \u00b7 Set \u00b7 LE (no edition number); no Chaser; no punctuation; each word once; movies in description only. Whatnot CSV description: acronym expansions + movie/TV + Limited Edition when title has LE.",
+  "le_in_title": "LE",
+  "strip_le_numbers": true,
+  "conditional_drops": [
+    {
+      "drop": "luca",
+      "if_any": [
+        "ciccio",
+        "guido"
+      ]
+    },
+    {
+      "drop": "aladdin",
+      "if_any": [
+        "genie",
+        "iago",
+        "jasmine"
+      ]
+    },
+    {
+      "drop": "aladdin",
+      "if_any": [
+        "jafar",
+        "abu",
+        "rajah"
+      ]
+    },
+    {
+      "drop": "darkwing",
+      "if_any": [
+        "drake",
+        "mallard",
+        "quackerjack",
+        "launchpad",
+        "honker",
+        "tuskerninni"
+      ]
+    },
+    {
+      "drop": "duck",
+      "if_any": [
+        "drake",
+        "mallard",
+        "quackerjack",
+        "launchpad",
+        "honker",
+        "tuskerninni"
+      ]
+    }
+  ],
+  "expansion_phrases": [
+    "walt disney imagineering",
+    "walt disney",
+    "disney studio store hollywood",
+    "disney studio store",
+    "studio store hollywood",
+    "mickey's of glendale",
+    "mickey of glendale",
+    "mickeys of glendale",
+    "disneyland paris"
+  ],
+  "strip_punctuation": true,
+  "adorbs_canonical": "Adorbs",
+  "acronym_expansions": {
+    "wdi": "Walt Disney Imagineering",
+    "mog": "Mickey's of Glendale",
+    "dssh": "Disney Studio Store Hollywood",
+    "dsf": "Disney Studio Store",
+    "dec": "Disney Employee Center",
+    "d23": "D23",
+    "dlp": "Disneyland Paris",
+    "wdw": "Walt Disney World",
+    "wdcs": "Walt Disney Collectors Society"
+  },
+  "whatnot_csv": {
+    "title": "Short cleaned title from Title Word Review (Character · Maker acronym · Set · LE), then append PLEASE RELY ON THE PHOTO. No punctuation in the cleaned portion; each word once.",
+    "description_must_include": [
+      "Please rely on the photo, rather than the description.",
+      "When a title hits a Disney Synonyms Keywords group (e.g. WDI or MOG), include every acronym, synonym, and full name from that group.",
+      "Relevant movie or TV show for searchability (from movie phrases / character mapping — even when omitted from title).",
+      "When the title contains LE, spell out Limited Edition in the description.",
+      "IMG board-pin reference when we add that step."
+    ],
+    "description_not_in_title": [
+      "Synonym-group keywords (acronyms + full names + aliases from Disney Synonyms Keywords.txt)",
+      "Movie / TV show names",
+      "Limited Edition (spell out in description when title has LE)",
+      "LE edition size / run number (e.g. 400, 300)",
+      "Chaser"
+    ],
+    "synonyms_file": "Disney Synonyms Keywords.txt",
+    "status": "Builder: build_whatnot_csv.py → training_exports/whatnot_upload_PriceCollection_20260825_1328.csv"
+  }
+}

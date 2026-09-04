@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Offerables15 · Mark gone pins</title>
+<style>
+  :root {
+    --bg: #111418;
+    --panel: #1a1f28;
+    --line: #2c3442;
+    --text: #f2f5fa;
+    --muted: #93a0b3;
+    --accent: #4a9eff;
+    --sold: #ff2d55;
+    --sold-bg: rgba(255, 45, 85, 0.38);
+    --ok: #3ddc97;
+    --btn: #252c3a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+  #app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+  header {
+    flex: 0 0 auto; background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 8px 10px calc(8px + env(safe-area-inset-top));
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  h1 { margin: 0; font-size: 16px; font-weight: 800; }
+  .sub { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .meta { font-size: 12px; color: var(--muted); }
+  .meta strong { color: #ffb3c1; }
+  #status { font-size: 12px; color: var(--muted); min-height: 16px; }
+  #status.ok { color: var(--ok); }
+  #status.err { color: var(--sold); }
+  select, button, a.btn {
+    font: inherit; font-size: 13px; font-weight: 700;
+    border-radius: 10px; border: 1px solid rgba(255,255,255,0.14);
+    background: var(--btn); color: var(--text);
+    padding: 10px 12px; min-height: 42px; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+  }
+  select { flex: 1 1 180px; min-width: 160px; }
+  button:active, a.btn:active { transform: scale(0.98); }
+  button.primary { background: #6b1028; border-color: var(--sold); }
+  button.accent { background: #1a4a7a; border-color: var(--accent); }
+  button.ok { background: #174a35; border-color: #2d8a62; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  label.toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--muted); font-weight: 600;
+  }
+  #totals {
+    padding: 8px 10px; border-radius: 10px; background: #152238; border: 1px solid #2a4a73;
+    font-size: 12px; line-height: 1.45;
+  }
+  #totals table { width: 100%; border-collapse: collapse; }
+  #totals th, #totals td { padding: 2px 0; }
+  #totals th { color: #9ec8ff; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  #totals td.num, #totals th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  #totals tr.total td { border-top: 1px solid rgba(255,255,255,0.12); font-weight: 800; }
+  .hint { font-size: 11px; color: var(--muted); line-height: 1.35; }
+  #stageWrap {
+    flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: scroll;
+    -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
+    touch-action: pan-y; background: #090b10; padding: 10px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  #stage { position: relative; margin: 0 auto; width: fit-content; max-width: 100%; }
+  #boardImg {
+    display: block; max-width: min(100vw - 20px, 960px); width: auto; height: auto;
+    border-radius: 6px; box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+    pointer-events: none; -webkit-user-drag: none;
+  }
+  #overlay { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  .pin {
+    position: absolute; border: 2px solid rgba(255,255,255,0.35);
+    border-radius: 4px; cursor: pointer; touch-action: manipulation;
+    background: rgba(255,255,255,0.03);
+  }
+  .pin.pin-nap { visibility: hidden; pointer-events: none; }
+  .pin.pin-gone {
+    background: var(--sold-bg) !important;
+    border: 2px solid rgba(255, 80, 80, 0.9) !important;
+  }
+  .pin.pin-gone::after {
+    content: "GONE";
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%) rotate(-24deg);
+    font-size: clamp(10px, 2.6vw, 16px); font-weight: 900; letter-spacing: 0.05em;
+    color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+    pointer-events: none; z-index: 5; line-height: 1; white-space: nowrap;
+  }
+  .pin .pin-tag {
+    position: absolute; left: 0; top: 0; transform: translateY(-100%);
+    background: rgba(0,0,0,0.82); color: #fff; font-size: 9px; font-weight: 800;
+    padding: 2px 5px; border-radius: 3px 3px 0 0; white-space: nowrap;
+    pointer-events: none;
+  }
+  .pin.pin-gone .pin-tag { background: var(--sold); }
+  #toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%); background: #1a5e1a; color: #fff;
+    padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 10000;
+    max-width: 92vw; text-align: center;
+  }
+  #toast.show { opacity: 1; }
+  #toast.bad { background: #8b0000; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="row">
+      <div>
+        <h1>Offerables15 · Mark gone</h1>
+        <div class="sub">Boards 48–75 · tap = gone (sold / pulled / traded)</div>
+      </div>
+      <a class="btn" href="../sold-overlay/">Read-only overlay</a>
+      <a class="btn" href="./manual-remove-list.html">Remove list</a>
+    </div>
+    <div id="totals">
+      <table>
+        <thead>
+          <tr><th></th><th class="num">Pins</th><th class="num">$15</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Gone</td><td class="num" id="tot-gone-n">0</td><td class="num" id="tot-gone-d">$0</td></tr>
+          <tr><td>Still in inventory</td><td class="num" id="tot-avail-n">0</td><td class="num" id="tot-avail-d">$0</td></tr>
+          <tr class="total"><td>Total</td><td class="num" id="tot-all-n">0</td><td class="num" id="tot-all-d">$0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="row">
+      <button type="button" id="btnPrev">◀ Prev</button>
+      <select id="boardSelect" aria-label="Board"></select>
+      <button type="button" id="btnNext">Next ▶</button>
+    </div>
+    <div class="row">
+      <button type="button" class="primary" id="btnNextGone">Next board with gone</button>
+      <label class="toggle"><input type="checkbox" id="onlyGone"> Only boards with gone</label>
+    </div>
+    <div class="row">
+      <button type="button" class="ok" id="btnSeedLedger">Seed Thursday ledger (58)</button>
+      <button type="button" class="accent" id="btnImportLedgerCsv">Import show ledger CSV</button>
+      <input type="file" id="ledgerFile" accept=".csv,text/csv" hidden>
+      <button type="button" class="accent" id="btnExportCsv">Export Whatnot CSV</button>
+    </div>
+    <div class="meta" id="boardMeta">—</div>
+    <div id="status">Loading…</div>
+    <div class="hint">
+      Tap any pin that is <b>not on the board anymore</b> (sold, grab bag, park trader, etc.). Tap again to undo.
+      Saves to <code>showConfig/offerables15_inventory/goneStems</code> — separate from the read-only sold overlay and character review.
+    </div>
+  </header>
+  <div id="stageWrap">
+    <div id="stage">
+      <img id="boardImg" alt="Board">
+      <div id="overlay"></div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+(function () {
+  const BOARDS_BASE = "../sold-overlay/boards/";
+  const SOLD_JSON = "../sold-overlay/sold.json";
+  const MANIFEST_VER = "1";
+  const GONE_PATH = "showConfig/offerables15_inventory/goneStems";
+  const CHAR_PATH = "pin_title_review/shows/offerables15/vlm_state";
+  const PRICE = 15;
+  const CROP_BASE = "https://raw.githubusercontent.com/FinsAndPins/ClickToClaim/main/Offerables15/crops/";
+  const FB_CFG = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+  };
+
+  const el = {
+    select: document.getElementById("boardSelect"),
+    img: document.getElementById("boardImg"),
+    overlay: document.getElementById("overlay"),
+    status: document.getElementById("status"),
+    boardMeta: document.getElementById("boardMeta"),
+    onlyGone: document.getElementById("onlyGone"),
+    btnPrev: document.getElementById("btnPrev"),
+    btnNext: document.getElementById("btnNext"),
+    btnNextGone: document.getElementById("btnNextGone"),
+    btnSeedLedger: document.getElementById("btnSeedLedger"),
+    btnImportLedgerCsv: document.getElementById("btnImportLedgerCsv"),
+    ledgerFile: document.getElementById("ledgerFile"),
+    btnExportCsv: document.getElementById("btnExportCsv"),
+  };
+
+  firebase.initializeApp(FB_CFG);
+  const db = firebase.database();
+
+  const goneStems = new Set();
+  const napStems = new Set();
+  const pinMeta = Object.create(null); // stem -> { board, pin, label, cropFile }
+  const pinElsByStem = Object.create(null);
+  const boardRecords = [];
+  const boardToImgStem = Object.create(null);
+  let view = [];
+  let idx = 0;
+  let scale = 1;
+  let characterMap = Object.create(null);
+  let reviewer = localStorage.getItem("fpins_offerables15_reviewer") || "";
+  const BOARD_PIN_RE = /Board\s+(\d+)\s+Pin\s+(\d+)/gi;
+
+  function setStatus(msg, kind) {
+    el.status.textContent = msg || "";
+    el.status.className = kind || "";
+  }
+
+  function toast(msg, ok) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "show" + (ok === false ? " bad" : "");
+    clearTimeout(t._t);
+    t._t = setTimeout(() => { t.className = ok === false ? "bad" : ""; }, 1400);
+  }
+
+  function ensureReviewer() {
+    if (reviewer) return reviewer;
+    try {
+      reviewer = (window.prompt("Your name (saved for gone marks):") || "").trim().slice(0, 30);
+    } catch (_) { reviewer = ""; }
+    if (!reviewer) reviewer = "operator";
+    localStorage.setItem("fpins_offerables15_reviewer", reviewer);
+    return reviewer;
+  }
+
+  function normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, "_") : "";
+  }
+
+  function cropFile(stem) {
+    const s = String(stem || "");
+    if (/\.jpe?g$/i.test(s)) return s;
+    return s + ".jpg";
+  }
+
+  function pinNumFromStem(stem) {
+    const m = String(stem || "").match(/_pin0*(\d+)$/i);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  function pinSuffix(pin) {
+    return pin < 10 ? `pin0${pin}` : `pin${pin}`;
+  }
+
+  function cropStemForBoardPin(board, pin) {
+    const img = boardToImgStem[board];
+    if (!img) return null;
+    return `${String(img).replace(/^IMG_/i, "img").toLowerCase()}_${pinSuffix(pin)}`;
+  }
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = "";
+    let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (q) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else q = false;
+        } else cur += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function rowLooksCancelled(cells) {
+    const joined = cells.join(" ").toLowerCase();
+    return joined.includes("cancel") && !joined.includes("uncancel");
+  }
+
+  function parseLedgerCsvText(text, minBoard, sourceTag) {
+    const lines = String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
+    if (!lines.length) return [];
+    const headers = parseCsvLine(lines[0]);
+    const out = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cells = parseCsvLine(lines[i]);
+      if (rowLooksCancelled(cells)) continue;
+      const joined = cells.join(" ");
+      let m;
+      BOARD_PIN_RE.lastIndex = 0;
+      const seen = new Set();
+      while ((m = BOARD_PIN_RE.exec(joined)) !== null) {
+        const board = parseInt(m[1], 10);
+        const pin = parseInt(m[2], 10);
+        if (board < minBoard) continue;
+        const key = `${board}:${pin}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const crop = cropStemForBoardPin(board, pin);
+        if (!crop) continue;
+        out.push({ board, pin, crop, label: `Board ${board} Pin ${pin}`, source: sourceTag });
+      }
+    }
+    return out;
+  }
+
+  async function importLedgerRows(rows, sourceTag) {
+    if (!rows.length) {
+      toast("No Board N Pin M rows found (boards 48+)", false);
+      return;
+    }
+    const user = ensureReviewer();
+    const updates = {};
+    let skipped = 0;
+    rows.forEach((r) => {
+      if (isGone(r.crop)) { skipped++; return; }
+      const key = normStem(r.crop);
+      updates[`${GONE_PATH}/${key}`] = {
+        gone: true,
+        crop_stem: r.crop,
+        at: new Date().toISOString(),
+        by: user,
+        source: sourceTag || "ledger_import",
+        board: r.board,
+        pin: r.pin,
+        label: r.label,
+      };
+    });
+    const addN = Object.keys(updates).length;
+    if (!addN) {
+      toast(`Ledger already applied (${skipped} already gone)`);
+      return;
+    }
+    if (!window.confirm(`Add ${addN} gone marks from ledger? (${skipped} already marked)`)) return;
+    await db.ref().update(updates);
+    toast(`Imported ${addN} ledger marks`);
+  }
+
+  function fromFbKey(key) {
+    const k = String(key || "");
+    if (/\.jpe?g$/i.test(k) || /\.png$/i.test(k)) return k;
+    return k.replace(/_jpg$/i, ".jpg").replace(/_jpeg$/i, ".jpeg").replace(/_png$/i, ".png");
+  }
+
+  function decodeKeyedObject(obj) {
+    const out = {};
+    for (const [k, v] of Object.entries(obj || {})) out[fromFbKey(k)] = v;
+    return out;
+  }
+
+  function money(n) { return "$" + Number(n || 0).toLocaleString(); }
+
+  function isGone(stem) {
+    return goneStems.has(stem) || goneStems.has(normStem(stem));
+  }
+
+  function isNap(stem) {
+    return napStems.has(stem) || napStems.has(normStem(stem));
+  }
+
+  function applyPinVisual(pinEl) {
+    const stem = pinEl.dataset.cropStem;
+    if (!stem || isNap(stem)) {
+      pinEl.classList.add("pin-nap");
+      return;
+    }
+    pinEl.classList.remove("pin-nap");
+    const gone = isGone(stem);
+    pinEl.classList.toggle("pin-gone", gone);
+    const meta = pinMeta[stem] || {};
+    let tag = pinEl.querySelector(".pin-tag");
+    if (!tag) {
+      tag = document.createElement("div");
+      tag.className = "pin-tag";
+      pinEl.appendChild(tag);
+    }
+    tag.textContent = meta.label ? meta.label : ("Pin " + (meta.pin || "?"));
+  }
+
+  function refreshTotals() {
+    let goneN = 0, availN = 0;
+    Object.keys(pinMeta).forEach((stem) => {
+      if (isNap(stem)) return;
+      if (isGone(stem)) goneN++;
+      else availN++;
+    });
+    document.getElementById("tot-gone-n").textContent = String(goneN);
+    document.getElementById("tot-gone-d").textContent = money(goneN * PRICE);
+    document.getElementById("tot-avail-n").textContent = String(availN);
+    document.getElementById("tot-avail-d").textContent = money(availN * PRICE);
+    document.getElementById("tot-all-n").textContent = String(goneN + availN);
+    document.getElementById("tot-all-d").textContent = money((goneN + availN) * PRICE);
+  }
+
+  function refreshAllPins() {
+    Object.values(pinElsByStem).forEach(applyPinVisual);
+    refreshTotals();
+    if (view[idx]) updateBoardMeta(view[idx]);
+  }
+
+  async function toggleGone(pinEl) {
+    const stem = pinEl.dataset.cropStem;
+    if (!stem || isNap(stem)) return;
+    const user = ensureReviewer();
+    const key = normStem(stem);
+    const path = `${GONE_PATH}/${key}`;
+    try {
+      if (isGone(stem)) {
+        await db.ref(path).set(null);
+        goneStems.delete(stem);
+        goneStems.delete(key);
+        toast("Cleared gone mark");
+      } else {
+        await db.ref(path).set({
+          gone: true,
+          crop_stem: stem,
+          at: new Date().toISOString(),
+          by: user,
+          source: "manual"
+        });
+        goneStems.add(stem);
+        goneStems.add(key);
+        toast("Marked gone");
+      }
+      applyPinVisual(pinEl);
+      refreshTotals();
+      if (view[idx]) updateBoardMeta(view[idx]);
+    } catch (e) {
+      console.warn(e);
+      toast("Save failed", false);
+    }
+  }
+
+  function ingestGone(val) {
+    goneStems.clear();
+    for (const [k, v] of Object.entries(val || {})) {
+      if (v === true || (v && typeof v === "object" && v.gone !== false)) {
+        goneStems.add(k);
+        goneStems.add(normStem(k));
+        if (v && v.crop_stem) {
+          goneStems.add(v.crop_stem);
+          goneStems.add(normStem(v.crop_stem));
+        }
+      }
+    }
+    refreshAllPins();
+  }
+
+  function ingestCharacters(fbData) {
+    characterMap = Object.create(null);
+    napStems.clear();
+    const exp = fbData && fbData.export;
+    if (exp) {
+      Object.assign(characterMap, decodeKeyedObject(exp.character_map || {}));
+      (exp.nap_stems || []).forEach((k) => {
+        const stem = fromFbKey(k);
+        napStems.add(stem);
+        napStems.add(normStem(stem));
+      });
+    }
+    refreshAllPins();
+  }
+
+  function visibleBoards() {
+    if (el.onlyGone.checked) {
+      return boardRecords.filter((b) => b.stems.some((s) => isGone(s) && !isNap(s)));
+    }
+    return boardRecords.slice();
+  }
+
+  function rebuildSelect(keepStem) {
+    view = visibleBoards();
+    el.select.innerHTML = view.map((b, i) => {
+      const goneCount = b.stems.filter((s) => isGone(s) && !isNap(s)).length;
+      const mark = goneCount ? ` · ${goneCount} gone` : "";
+      return `<option value="${b.stem}">${i + 1}. ${b.label}${mark}</option>`;
+    }).join("");
+    if (!view.length) {
+      setStatus("No boards to show.", "err");
+      return;
+    }
+    let i = view.findIndex((b) => b.stem === keepStem);
+    if (i < 0) i = Math.max(0, Math.min(idx, view.length - 1));
+    idx = i;
+    el.select.value = view[idx].stem;
+  }
+
+  function updateBoardMeta(b) {
+    const gone = b.stems.filter((s) => isGone(s) && !isNap(s)).length;
+    const avail = b.stems.filter((s) => !isGone(s) && !isNap(s)).length;
+    el.boardMeta.innerHTML =
+      `<strong>${b.label}</strong> · <strong>${gone}</strong> gone · <strong>${avail}</strong> in inventory`;
+  }
+
+  function renderBoard() {
+    if (!view.length) return;
+    const b = view[idx];
+    const nw = el.img.naturalWidth || (b.image && b.image.width) || 1;
+    const dw = el.img.clientWidth || nw;
+    scale = dw / nw;
+    el.overlay.innerHTML = "";
+    el.overlay.style.width = el.img.clientWidth + "px";
+    el.overlay.style.height = el.img.clientHeight + "px";
+
+    b.pins.forEach((pin) => {
+      const div = document.createElement("div");
+      div.className = "pin";
+      const left = (pin.x - pin.width / 2) * scale;
+      const top = (pin.y - pin.height / 2) * scale;
+      div.style.left = left + "px";
+      div.style.top = top + "px";
+      div.style.width = (pin.width * scale) + "px";
+      div.style.height = (pin.height * scale) + "px";
+      if (pin.crop_stem) {
+        div.dataset.cropStem = pin.crop_stem;
+        pinElsByStem[pin.crop_stem] = div;
+      }
+      div.addEventListener("click", (e) => {
+        e.preventDefault();
+        toggleGone(div);
+      });
+      el.overlay.appendChild(div);
+      applyPinVisual(div);
+    });
+    updateBoardMeta(b);
+    const gone = b.stems.filter((s) => isGone(s) && !isNap(s)).length;
+    setStatus(`${b.label} · ${gone} gone / ${b.stems.length} boxes`, gone ? "ok" : "");
+    refreshTotals();
+  }
+
+  function loadBoard(i) {
+    if (!view.length) return;
+    idx = Math.max(0, Math.min(view.length - 1, i));
+    const b = view[idx];
+    el.select.value = b.stem;
+    setStatus(`Loading ${b.label}…`);
+    el.img.onload = () => renderBoard();
+    el.img.src = `${BOARDS_BASE}${b.stem}.JPG?v=${MANIFEST_VER}`;
+    if (el.img.complete) renderBoard();
+  }
+
+  async function seedLedger() {
+    const soldData = await (await fetch(`${SOLD_JSON}?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
+    const user = ensureReviewer();
+    let added = 0;
+    let skipped = 0;
+    const updates = {};
+    for (const board of (soldData.boards || [])) {
+      for (const p of (board.sold || [])) {
+        const stem = p.crop_stem;
+        if (!stem || isGone(stem)) { skipped++; continue; }
+        const key = normStem(stem);
+        updates[`${GONE_PATH}/${key}`] = {
+          gone: true,
+          crop_stem: stem,
+          at: new Date().toISOString(),
+          by: user,
+          source: "ledger",
+          buyer: p.buyer || null,
+          board: board.board,
+          pin: p.pin
+        };
+        added++;
+      }
+    }
+    if (!added) {
+      toast("Ledger already seeded (no new marks)");
+      return;
+    }
+    if (!window.confirm(`Add ${added} ledger sold marks? (${skipped} already marked)`)) return;
+    await db.ref().update(updates);
+    toast(`Seeded ${added} ledger marks`);
+  }
+
+  function csvEscape(s) {
+    const t = String(s == null ? "" : s);
+    if (/[",\n\r]/.test(t)) return `"${t.replace(/"/g, '""')}"`;
+    return t;
+  }
+
+  function titleForStem(stem) {
+    const meta = pinMeta[stem] || {};
+    const character = characterMap[stem] || characterMap[cropFile(stem)] || "";
+    const ref = meta.label || (`Board ${meta.board || "?"} Pin ${meta.pin || "?"}`);
+    if (character) return `${character} ${ref}`;
+    return ref;
+  }
+
+  function exportWhatnotCsv() {
+    const rows = [];
+    const headers = [
+      "Category", "Sub Category", "Title", "Description", "Quantity", "Type", "Price",
+      "Shipping Profile", "Condition", "Image URL 1", "SKU"
+    ];
+    rows.push(headers);
+
+    let missingChar = 0;
+    const stems = Object.keys(pinMeta).sort((a, b) => {
+      const ma = pinMeta[a], mb = pinMeta[b];
+      if ((ma.board || 0) !== (mb.board || 0)) return (ma.board || 0) - (mb.board || 0);
+      return (ma.pin || 0) - (mb.pin || 0);
+    });
+
+    for (const stem of stems) {
+      if (isNap(stem) || isGone(stem)) continue;
+      const meta = pinMeta[stem];
+      const character = characterMap[stem] || characterMap[cropFile(stem)] || "";
+      if (!character) missingChar++;
+      const ref = meta.label || (`Board ${meta.board} Pin ${meta.pin}`);
+      const title = character ? `${character} ${ref}` : ref;
+      const desc = `Please rely on the photo, rather than the description. ${title} Disney Pin`;
+      const imageUrl = CROP_BASE + encodeURIComponent(cropFile(stem));
+      rows.push([
+        "Collectibles",
+        "Disney Pins",
+        title,
+        desc,
+        "1",
+        "Auction",
+        String(PRICE),
+        "0-1 Oz",
+        "Used",
+        imageUrl,
+        ref.replace(/\s+/g, "_")
+      ]);
+    }
+
+    const csv = rows.map((r) => r.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `whatnot_upload_offerables15_inventory_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    const avail = rows.length - 1;
+    if (missingChar) {
+      toast(`CSV: ${avail} pins (${missingChar} missing character — fix in review)`, false);
+    } else {
+      toast(`Exported ${avail} pins to Whatnot CSV`);
+    }
+  }
+
+  async function boot() {
+    const [manifest, soldData] = await Promise.all([
+      fetch(`${BOARDS_BASE}manifest.json?v=${MANIFEST_VER}`, { cache: "no-store" }).then((r) => r.json()),
+      fetch(`${SOLD_JSON}?v=${MANIFEST_VER}`, { cache: "no-store" }).then((r) => r.json())
+    ]);
+
+    const boardInfoByStem = Object.create(null);
+    for (const b of (soldData.boards || [])) boardInfoByStem[b.stem] = b;
+
+    for (let manifestIdx = 0; manifestIdx < manifest.length; manifestIdx++) {
+      const stem = manifest[manifestIdx];
+      const info = boardInfoByStem[stem] || {};
+      const boardNum = info.board || ((soldData.board_base || 48) + manifestIdx);
+      const data = await fetch(`${BOARDS_BASE}${stem}.json?v=${MANIFEST_VER}`, { cache: "no-store" }).then((r) => r.json());
+      const pins = data.predictions || [];
+      const stems = [];
+      pins.forEach((pin) => {
+        if (!pin.crop_stem) return;
+        const pinNum = pinNumFromStem(pin.crop_stem);
+        const label = `Board ${boardNum} Pin ${pinNum}`;
+        pinMeta[pin.crop_stem] = {
+          board: boardNum,
+          pin: pinNum,
+          label,
+          cropFile: cropFile(pin.crop_stem)
+        };
+        stems.push(pin.crop_stem);
+      });
+      boardToImgStem[boardNum] = stem;
+      boardRecords.push({
+        stem,
+        label: info.label || `Board ${boardNum}`,
+        board: boardNum,
+        image: info.image || data.image,
+        pins,
+        stems
+      });
+    }
+
+    rebuildSelect(null);
+    loadBoard(0);
+    setStatus("Connected — tap pins to mark gone", "ok");
+
+    db.ref(GONE_PATH).on("value", (snap) => ingestGone(snap.val() || {}));
+    db.ref(CHAR_PATH).on("value", (snap) => ingestCharacters(snap.val() || {}));
+  }
+
+  el.btnPrev.addEventListener("click", () => loadBoard(idx - 1));
+  el.btnNext.addEventListener("click", () => loadBoard(idx + 1));
+  el.btnNextGone.addEventListener("click", () => {
+    if (!view.length) return;
+    for (let step = 1; step <= view.length; step++) {
+      const j = (idx + step) % view.length;
+      const gone = view[j].stems.some((s) => isGone(s) && !isNap(s));
+      if (gone) { loadBoard(j); return; }
+    }
+    toast("No boards with gone marks in this view");
+  });
+  el.select.addEventListener("change", () => {
+    const i = view.findIndex((b) => b.stem === el.select.value);
+    if (i >= 0) loadBoard(i);
+  });
+  el.onlyGone.addEventListener("change", () => {
+    const keep = view[idx] && view[idx].stem;
+    rebuildSelect(keep);
+    loadBoard(idx);
+  });
+  el.btnSeedLedger.addEventListener("click", () => {
+    seedLedger().catch((e) => {
+      console.error(e);
+      toast("Ledger seed failed", false);
+    });
+  });
+  el.btnImportLedgerCsv.addEventListener("click", () => el.ledgerFile.click());
+  el.ledgerFile.addEventListener("change", () => {
+    const file = el.ledgerFile.files && el.ledgerFile.files[0];
+    el.ledgerFile.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const tag = `ledger_${file.name.replace(/\.[^.]+$/, "").slice(0, 40)}`;
+      const rows = parseLedgerCsvText(reader.result, 48, tag);
+      importLedgerRows(rows, tag).catch((e) => {
+        console.error(e);
+        toast("Ledger import failed", false);
+      });
+    };
+    reader.onerror = () => toast("Could not read CSV", false);
+    reader.readAsText(file);
+  });
+  el.btnExportCsv.addEventListener("click", exportWhatnotCsv);
+  window.addEventListener("resize", () => { if (view[idx]) renderBoard(); });
+
+  boot().catch((e) => {
+    console.error(e);
+    setStatus("Load failed: " + e.message, "err");
+  });
+})();
+</script>
+</body>
+</html>

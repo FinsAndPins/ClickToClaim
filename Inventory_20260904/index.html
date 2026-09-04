@@ -1,0 +1,2847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fins and Pins — 20260904 Inventory</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
+    <meta name="ctr-countdown" content="inventory-20260904-v8">
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        :root {
+            --fp-bg: #1A1A42;
+            --fp-chunk: #C659A5;
+            --fp-text: #FFFFFF;
+            --fp-muted: #FBAD8D;
+        }
+        body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 10px 10px 100px; background: var(--fp-bg); color: var(--fp-text); }
+        a { color: var(--fp-text); }
+        #socialBar { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+        #socialBar a { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: var(--fp-chunk); border-radius: 10px; text-decoration: none; }
+        #socialBar a .social-icon { width: 24px; height: 24px; display: block; object-fit: contain; }
+        #socialBar a .social-icon.inv { filter: brightness(0) invert(1); }
+        #introNote { text-align: center; font-size: 14px; color: var(--fp-muted); margin: 0 auto 14px; line-height: 1.4; max-width: 520px; }
+        h1 { text-align: center; margin-bottom: 6px; margin-top: 0; font-size: 22px; line-height: 1.2; }
+        h2 { text-align: center; margin-top: 0; margin-bottom: 12px; font-size: 15px; color: var(--fp-muted); font-weight: normal; }
+        .login-welcome { display: flex; flex-direction: column; gap: 6px; text-align: center; margin: 0 0 14px; font-weight: normal; font-size: 15px; line-height: 1.25; color: var(--fp-text); }
+        .login-welcome-pre, .login-welcome-sub { font-weight: normal; font-size: 0.95em; color: var(--fp-muted); }
+        .login-welcome-main { font-size: 1.45em; font-weight: bold; color: var(--fp-text); line-height: 1.15; }
+        .login-form-stack { width: 100%; max-width: 280px; margin: 0 auto; box-sizing: border-box; }
+        .login-form-stack input#usernameInput { width: 100%; box-sizing: border-box; margin: 8px 0 12px; }
+        .login-form-stack .primary { width: 100%; box-sizing: border-box; }
+        /* Only the slim stats strip sticks while scrolling — admin/fuel/lite chrome scrolls away (esp. iPhone). */
+        #globalCounts { text-align: center; font-size: 13px; margin-bottom: 16px; font-weight: 600; background: var(--fp-chunk); padding: 8px 10px; border-radius: 10px; color: var(--fp-text); }
+        #globalCountsStick { position: sticky; top: 0; z-index: 2000; background: var(--fp-chunk); padding: 2px 0 4px; margin: 0 -2px; }
+        .global-counts-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; line-height: 1.3; }
+        .gc-item { font-size: 13px; }
+        .gc-dot { color: var(--fp-muted); font-weight: normal; user-select: none; }
+        #syncStatus { font-size: 11px; color: var(--fp-muted); font-weight: normal; }
+        #syncStatus.sync-connected { color: #FC97D4; }
+        .global-admin-row { font-size: 11px; color: var(--fp-muted); text-align: center; margin-top: 4px; font-weight: normal; line-height: 1.35; }
+        #countdownArea { font-size: 11px; color: var(--fp-muted); margin-top: 5px; font-weight: normal; min-height: 14px; line-height: 1.35; }
+        #countdownArea .countdown-line-accent { color: #FC97D4; }
+        #countdownArea .countdown-line-accent strong { color: #FC97D4; }
+        #fuelGaugeArea { margin-top: 6px; padding: 0 2px; font-weight: normal; }
+        #fuelBarTrack { background: rgba(0,0,0,0.25); border-radius: 6px; height: 8px; overflow: hidden; }
+        #fuelBar { height: 100%; width: 0%; background: #28a745; border-radius: 6px; transition: width 0.5s; }
+        #spotsLeft { font-size: 10px; color: var(--fp-muted); margin-top: 3px; text-align: center; }
+        .board-container { margin-bottom: 36px; background: var(--fp-chunk); padding: 12px; border-radius: 10px; }
+        .board-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .board-title { font-size: 18px; font-weight: bold; color: var(--fp-text); }
+        .admin-board-total { font-size: 12px; color: var(--fp-text); font-weight: bold; text-align: right; max-width: 230px; line-height: 1.5; }
+        .board-count { font-size: 14px; margin-bottom: 8px; color: var(--fp-muted); }
+        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: 0 auto 36px; min-height: 300px; background: rgba(0,0,0,0.2); border-radius: 8px; overflow: visible; }
+        .board-img { width: 100%; display: block; border-radius: 8px; }
+        .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; overflow: visible; }
+        .pin.has-qty { z-index: 130; }
+        .qty-stepper {
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translate(-50%, 70%);
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            z-index: 140;
+            pointer-events: auto;
+            background: rgba(26, 26, 66, 0.94);
+            border: 2px solid #fff;
+            border-radius: 22px;
+            padding: 3px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+        }
+        .qty-stepper button {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            min-height: 34px;
+            border: none;
+            border-radius: 50%;
+            font-size: 22px;
+            font-weight: bold;
+            line-height: 1;
+            cursor: pointer;
+            font-family: inherit;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .qty-stepper .qty-minus { background: #fff; color: #1A1A42; }
+        .qty-stepper .qty-plus { background: #1877f2; color: #fff; }
+        .qty-stepper .qty-num {
+            min-width: 26px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 15px;
+            color: #fff;
+            pointer-events: none;
+            line-height: 1;
+        }
+        #staffOnlyOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 5000; display: none; align-items: center; justify-content: center; padding: 24px; }
+        /* Public: hidden pins are not clickable and not visible. */
+        .pin.pin-hidden { visibility: hidden; pointer-events: none; }
+        /* Admin cleanup mode: outline every live box; show hidden ones so they can be restored. */
+        body.box-cleanup-on .pin:not(.pin-hidden) {
+            border: 2px solid rgba(0, 220, 90, 0.95);
+            background: rgba(0, 220, 90, 0.12);
+        }
+        body.box-cleanup-on .pin.pin-hidden {
+            visibility: visible;
+            pointer-events: auto;
+            border: 2px dashed rgba(255, 60, 60, 0.95);
+            background: rgba(255, 60, 60, 0.18);
+            opacity: 0.85;
+        }
+        #boxCleanupBar { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+        body.box-cleanup-on #boxCleanupBar { display: block; }
+        #boxCleanupBar p { font-size: 12px; color: var(--fp-muted); margin: 0 0 8px; line-height: 1.35; font-weight: normal; }
+        #boxCleanupToggle { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; }
+        #boxCleanupToggle.is-active { background: #1877f2; border-color: rgba(255,255,255,0.5); }
+        #boxCleanupCount { font-size: 11px; color: var(--fp-muted); margin-left: 8px; }
+        /* Visitors during+after show: blue = ≥2 requesters, green = 1; B badge = first request pre-show, N = first during show. Before show: plain green. Admin: green = pre-show pin; blue = during/after show start. */
+        .pin.selection-before { border: 4px solid rgba(0, 72, 180, 0.95); background: rgba(80, 140, 255, 0.32); }
+        .pin.selection-now { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
+        .pin.pin-mine { box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.45); z-index: 105; }
+        .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
+        .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.45); }
+        .bn-badge { position: absolute; top: -10px; right: -10px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 13px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 111; pointer-events: none; border: 2px solid white; }
+        .bn-badge.is-b { background: #0d6efd; color: white; }
+        .bn-badge.is-n { background: #28a745; color: white; }
+        .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 112; pointer-events: none; border: 2px solid white; }
+        .tally-badge.offset-left { left: -10px; right: auto; }
+        #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: var(--fp-chunk); border-top: 1px solid rgba(255,255,255,0.15); padding: 10px 12px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; z-index: 2000; }
+        #footerControls .footer-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; }
+        #footerControls .footer-links button { background: none; border: none; color: var(--fp-text); text-decoration: underline; cursor: pointer; font-size: 13px; padding: 0; font-family: inherit; }
+        #shareToIgBtn { background: #1877f2; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-weight: bold; font-size: 13px; cursor: pointer; font-family: inherit; }
+        #adminReportBtn { display:none; padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--fp-text); background: transparent; color: var(--fp-text); text-decoration: none; font-weight: bold; }
+        #loginOverlay, #reportIssueOverlay, #fuelOverModal { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: var(--fp-chunk); color: var(--fp-text); padding: 22px; border-radius: 12px; width: 100%; max-width: 340px; text-align: center; border: 1px solid rgba(255,255,255,0.2); }
+        .modal-box input { background: #fff; color: #222; }
+        .modal-box textarea { width: 100%; padding: 12px; margin: 12px 0; border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; box-sizing: border-box; font-size: 16px; background: #fff; color: #222; }
+        .modal-box button.primary { background: #1877f2; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+        .modal-box button.secondary { background: #444; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; margin-top: 10px; }
+        .login-help, .modal-sub { font-size: 13px; color: var(--fp-muted); line-height: 1.45; text-align: left; margin: 0 0 10px; font-weight: normal; }
+        .login-disclaimer { font-size: 12px; color: var(--fp-muted); line-height: 1.35; text-align: left; margin: 0 0 14px; font-weight: normal; }
+        #reportIssueFab { position: fixed; bottom: 72px; right: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: 46vw; line-height: 1.25; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+        #reportIssueFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
+        /* ISO virtual board export FAB (left). Toggle via ISO_VIRTUAL_BOARD_EXPORT_ENABLED. */
+        #isoBoardExportFab { position: fixed; bottom: 72px; left: 14px; background: #1877f2; color: #fff; border: none; border-radius: 50px; padding: 10px 14px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 2500; max-width: min(56vw, 280px); line-height: 1.3; text-align: center; font-family: inherit; -webkit-tap-highlight-color: transparent; display: none; }
+        #isoBoardExportFab:disabled { opacity: 0.45; cursor: not-allowed; }
+        #isoBoardExportFab:focus-visible { outline: 3px solid var(--fp-muted); outline-offset: 2px; }
+        #isoBoardExportOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        #isoBoardExportOverlay .iso-progress-track { width: 100%; height: 12px; background: rgba(255,255,255,0.15); border-radius: 8px; overflow: hidden; margin: 14px 0 8px; }
+        #isoBoardExportOverlay .iso-progress-fill { height: 100%; width: 0%; background: #1877f2; border-radius: 8px; transition: width 0.2s ease; }
+        #isoBoardExportOverlay .iso-eta { font-size: 12px; color: var(--fp-muted); margin: 0 0 12px; }
+        #isoBoardExportOverlay .iso-preview-wrap { display: none; margin: 10px 0 12px; }
+        #isoBoardExportOverlay .iso-preview-wrap.show { display: block; }
+        #isoBoardExportOverlay .iso-preview {
+            width: 100%; max-height: 42vh; object-fit: contain; border-radius: 8px;
+            background: #111; border: 1px solid rgba(255,255,255,0.15);
+        }
+        #isoBoardExportOverlay .iso-save-actions { display: none; gap: 8px; flex-direction: column; }
+        #isoBoardExportOverlay .iso-save-actions.show { display: flex; }
+        #isoBoardExportOverlay #isoBoardExportSaveBtn { margin-top: 0; }
+        #toastHost { position: fixed; bottom: 130px; left: 12px; right: 12px; z-index: 4400; pointer-events: none; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+        .app-toast { background: rgba(26, 26, 42, 0.96); color: #fff; padding: 12px 16px; border-radius: 12px; max-width: 420px; font-size: 14px; line-height: 1.4; box-shadow: 0 6px 24px rgba(0,0,0,0.35); text-align: center; opacity: 0; transform: translateY(10px); transition: opacity 0.25s ease, transform 0.25s ease; border: 1px solid rgba(255,255,255,0.12); }
+        .app-toast.show { opacity: 1; transform: translateY(0); }
+        #faqOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3200; display: none; align-items: flex-end; justify-content: center; padding: 0; box-sizing: border-box; }
+        #faqOverlay .faq-sheet { background: var(--fp-chunk); width: 100%; max-width: 520px; max-height: 90vh; border-radius: 16px 16px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,0.35); display: flex; flex-direction: column; box-sizing: border-box; }
+        @media (min-width: 540px) {
+            #faqOverlay { align-items: center; padding: 16px; }
+            #faqOverlay .faq-sheet { border-radius: 16px; max-height: 85vh; }
+        }
+        .faq-inner { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px 8px; text-align: left; font-size: 15px; font-weight: normal; line-height: 1.45; color: var(--fp-text); }
+        .faq-inner h2 { font-size: 18px; margin: 0 0 14px; text-align: center; color: var(--fp-text); }
+        .faq-inner details { margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+        .faq-inner summary { font-weight: bold; cursor: pointer; list-style: none; color: var(--fp-text); }
+        .faq-inner summary::-webkit-details-marker { display: none; }
+        .faq-inner p { margin: 8px 0 0; color: var(--fp-text); }
+        .faq-inner a { color: var(--fp-text); text-decoration: underline; }
+        .faq-close-wrap { padding: 8px 18px 18px; flex-shrink: 0; }
+        .faq-close { width: 100%; padding: 14px; font-size: 16px; font-weight: bold; border: none; border-radius: 10px; background: #1877f2; color: #fff; cursor: pointer; font-family: inherit; }
+        #fuelOverNote { display: none; font-size: 12px; color: var(--fp-text); margin-top: 8px; line-height: 1.4; font-weight: normal; text-align: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; }
+        #fuelHint { font-size: 10px; color: #FC97D4; margin-top: 4px; line-height: 1.3; font-weight: normal; text-align: center; }
+        #fuelHint strong { color: #FC97D4; }
+        #liteModeControls { margin-top: 8px; display: grid; gap: 8px; }
+        #liteFallbackNudge, #litePager { font-size: 12px; color: var(--fp-text); background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; }
+        #liteFallbackNudge a, #litePager a { color: #FC97D4; font-weight: bold; }
+        #litePager {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .lite-pager-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            width: 100%;
+            min-width: 0;
+        }
+        #liteRangeText { font-weight: bold; white-space: nowrap; }
+        #liteAllBoardsBtn {
+            font: inherit;
+            font-weight: bold;
+            color: #FC97D4;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(252, 151, 212, 0.45);
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            text-align: center;
+            max-width: 100%;
+            align-self: center;
+        }
+        #liteAllBoardsBtn:focus-visible { outline: 2px solid var(--fp-muted); outline-offset: 2px; }
+        .admin-phase-bar { display: none; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .admin-phase-bar .admin-phase-label { font-size: 10px; color: var(--fp-muted); font-weight: normal; width: 100%; text-align: center; margin-bottom: 2px; }
+        .admin-phase-btn { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+        .admin-phase-btn.is-active { background: #1877f2; border-color: rgba(255,255,255,0.5); }
+        .admin-phase-btn:focus-visible { outline: 2px solid var(--fp-muted); outline-offset: 2px; }
+        @keyframes pulse-blue { 0% { border: 6px solid #007aff; } 70% { border: 6px solid #007aff; box-shadow: 0 0 0 20px rgba(0, 122, 255, 0); } 100% { border: 6px solid #007aff; } }
+        .flash-pin { z-index: 3000 !important; animation: pulse-blue 1s infinite !important; background: rgba(0, 122, 255, 0.35) !important; }
+        /* Full-screen “show ended” (Firebase `showConfig/…/endedFullscreen`; admin Post Show only). */
+        #showEndedOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 6000;
+            background: var(--fp-bg);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            margin: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #showEndedOverlay .show-ended-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 520px;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        #showEndedSocial {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            padding: 0;
+            width: 100%;
+            pointer-events: auto;
+        }
+        #showEndedSocial a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: var(--fp-chunk);
+            border-radius: 10px;
+            text-decoration: none;
+        }
+        #showEndedSocial a .social-icon {
+            width: 24px;
+            height: 24px;
+            display: block;
+            object-fit: contain;
+        }
+        #showEndedSocial a .social-icon.inv {
+            filter: brightness(0) invert(1);
+        }
+        #showEndedOverlay .show-ended-message {
+            max-width: none;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 22px 20px 24px;
+            border-radius: 16px;
+            background: rgba(198, 89, 165, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: var(--fp-text);
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.45;
+            pointer-events: auto;
+        }
+        #showEndedOverlay .show-ended-message .show-ended-brand {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 1.25em;
+            font-weight: bold;
+            color: var(--fp-text);
+        }
+        #showEndedOverlay .show-ended-message .show-ended-open {
+            margin: 0 0 18px;
+        }
+        #showEndedOverlay .show-ended-message p {
+            margin: 0 0 14px;
+            font-weight: normal;
+        }
+        #showEndedOverlay .show-ended-message p:last-child {
+            margin-bottom: 0;
+        }
+        #showEndedOverlay .show-ended-message a {
+            color: var(--fp-muted);
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        #showEndedOverlay .show-ended-message .show-ended-noon-est {
+            white-space: nowrap;
+        }
+        #collectionAppPromo {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 2100;
+            display: block;
+            line-height: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+            -webkit-tap-highlight-color: transparent;
+        }
+        #collectionAppPromo:focus-visible {
+            outline: 3px solid var(--fp-muted);
+            outline-offset: 2px;
+        }
+        #collectionAppPromo img {
+            display: block;
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+        }
+        @media (min-width: 540px) {
+            #collectionAppPromo img {
+                width: 96px;
+                height: 96px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="staffOnlyOverlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0;">Staff-only 20260904 inventory</h3>
+        <p class="modal-sub">This page is not on the public show list. Open it with the admin link so counts stay a single shared inventory.</p>
+    </div>
+</div>
+
+<a id="collectionAppPromo" href="https://apple.co/4f8gaE8" target="_blank" rel="noopener noreferrer" title="Collection Detection App on the App Store" aria-label="Collection Detection App on the App Store"><img src="./collection-detection-app-square.png" width="96" height="96" alt="Collection Detection App"></a>
+
+<div id="loginOverlay" style="display: none;">
+    <div class="login-box modal-box">
+        <h3 class="login-welcome">
+            <span class="login-welcome-pre">Welcome to the</span>
+            <span class="login-welcome-main">Click To Request</span>
+            <span class="login-welcome-sub">of the House of Fins and Pins</span>
+        </h3>
+        <p class="login-help">Any username will do! Using a unique username helps find and keep track of individual interest in specific pins. Using your whatnot username specifically will be useful for future updates coming to Click To Request.</p>
+        <div class="login-form-stack">
+            <input type="text" id="usernameInput" placeholder="Please enter your whatnot username (or Instagram username)." style="padding: 12px; border: 1px solid #ccc; border-radius: 6px;">
+            <p class="login-disclaimer">Click To Request is like pre-requesting pins. It is an expression of interest, not an intent to purchase.</p>
+            <button type="button" class="primary" onclick="saveUsername()">Start Requesting</button>
+        </div>
+    </div>
+</div>
+
+<div id="fuelOverModal">
+    <div class="modal-box">
+        <p style="margin:0 0 12px; text-align:left; line-height:1.45;">You are now requesting more pins than we might be able to get to in this show. We will do our best to run every pin but cannot guarantee. You can keep clicking!</p>
+        <button type="button" class="primary" onclick="document.getElementById('fuelOverModal').style.display='none'">OK</button>
+    </div>
+</div>
+
+<div id="reportIssueOverlay">
+    <div class="modal-box">
+        <h3>Report Issue</h3>
+        <p class="modal-sub" style="margin-top:0;">Problems using Click To Request (e.g. a pin won’t select, overlapping boxes).</p>
+        <textarea id="reportIssueText" placeholder="Describe the issue…" rows="4"></textarea>
+        <button type="button" class="primary" onclick="submitIssueReport()">Submit Report</button>
+        <button type="button" class="secondary" onclick="document.getElementById('reportIssueOverlay').style.display='none'">Cancel</button>
+    </div>
+</div>
+
+<div id="showEndedOverlay" aria-hidden="true" aria-label="Today's show has ended. Nothing to request here.">
+    <div class="show-ended-stack">
+        <nav id="showEndedSocial" aria-label="Social links">
+            <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
+            <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
+            <a href="https://linktr.ee/finsandpins" target="_blank" rel="noopener noreferrer" title="Linktree" aria-label="Linktree"><img class="social-icon inv" src="./icons/linktree.svg" width="24" height="24" alt=""></a>
+        </nav>
+        <div class="show-ended-message" role="document">
+            <p class="show-ended-open">Thank you for using<br><span class="show-ended-brand">Click To Request!</span></p>
+            <p>Today's show has ended, but we're live<br><strong>Mondays and Thursdays at <span class="show-ended-noon-est">12 noon EST</span></strong><br>on <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer">Whatnot</a>!</p>
+            <p>Be sure to check our Instagram<br><a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer">@Fins.And.Pins</a> for important updates.</p>
+        </div>
+    </div>
+</div>
+
+<div id="faqOverlay" onclick="if(event.target===this) closeFaq()">
+    <div class="faq-sheet" onclick="event.stopPropagation()">
+        <div class="faq-inner">
+            <h2 id="faqTitle">Click To Request — FAQ</h2>
+            <details open>
+                <summary>What is Click To Request?</summary>
+                <p>Click To Request is an easy way for you to express interest in pins you would like to see in an upcoming Fins and Pins show.</p>
+            </details>
+            <details>
+                <summary>How do I use Click To Request?</summary>
+                <p>All you have to do is input your whatnot username and click the pins you’d like to be pulled! The Click To Request system will keep track of everything you’ve selected and send it to Fins and Pins to pull for their next show.</p>
+            </details>
+            <details>
+                <summary>Why does it need my whatnot username?</summary>
+                <p>Any username will do! Using a unique username helps find and keep track of individual interest in specific pins. Using your whatnot username specifically will be useful for future updates coming to Click To Request.</p>
+            </details>
+            <details>
+                <summary>If I select pins, am I expected to purchase them?</summary>
+                <p>No! Click To Request is like pre-requesting pins. It is an expression of interest, not an intent to purchase.</p>
+            </details>
+            <details>
+                <summary>How do I purchase my selected pins?</summary>
+                <p>All pins will be run individually over on whatnot in an auction format, starting at their current market value. Show date, time, and link are listed at the top of the Click To Request page. Don’t have a whatnot account yet? <a class="whatnot-invite-link" href="https://www.whatnot.com/" target="_blank" rel="noopener">Click here to sign up now and get $15 off your first purchase!</a></p>
+            </details>
+            <details>
+                <summary>Do I have to purchase the pins through whatnot?</summary>
+                <p>Yes, all purchases must come through whatnot. Fins and Pins does not currently sell on any other platforms, so whatnot is the only way to purchase pins you’re interested in. Don’t have a whatnot account yet? <a class="whatnot-invite-link" href="https://www.whatnot.com/" target="_blank" rel="noopener">Click here to sign up now and get $15 off your first purchase!</a></p>
+            </details>
+            <details>
+                <summary>I want to trade. Is Click To Request where I should select what I want to trade for?</summary>
+                <p>No. Click To Request is for pre-requesting pins for Fins and Pins’ next whatnot show. Whatever doesn’t sell on whatnot will be for trade at upcoming Florida pin events. Refer to Fins and Pins’ pinned monthly calendar on Instagram to see where and when they’ll be trading!</p>
+            </details>
+            <details>
+                <summary>Do I have to copy and paste my total number of requests over to the Instagram post?</summary>
+                <p>While not necessary, it is recommended. Pasting your shared comment on the Fins and Pins Instagram post will allow Fins and Pins to double-check and keep track of everything that people have requested and make sure they haven’t missed anything important.</p>
+            </details>
+            <details>
+                <summary>What do B and N mean on a pin?</summary>
+                <p>During and after the show (not before it starts): <strong>Blue</strong> means more than one person requested that pin; <strong>green</strong> means only one person did. <strong>B</strong> means the <em>first</em> request on that pin was before the show started; <strong>N</strong> means the first request was during the show.</p>
+            </details>
+            <details>
+                <summary>What is the report issue button for?</summary>
+                <p>The report button is for issues with your ability to use Click To Request—for example, when a pin is not selectable or a selection overlaps another pin. We want to know about those problems so we can fix them.</p>
+            </details>
+            <details>
+                <summary>Why is the fuel bar not changing as I select pins?</summary>
+                <p>This means that your pin has already been selected by another user and is already counted in the total of Pins Requested. You will still see your total number of requests updated as you select, but the Pins Requested bar is only counting individual pin requests, not duplicate requests.</p>
+            </details>
+        </div>
+        <div class="faq-close-wrap">
+            <button type="button" class="faq-close" onclick="closeFaq()">Close</button>
+        </div>
+    </div>
+</div>
+
+<button type="button" id="isoBoardExportFab" disabled title="Create Virtual Pin Board of your clicked pins" aria-label="Create Virtual Pin Board of your clicked pins">Create Virtual Pin Board of 0 Clicked Pins</button>
+<button type="button" id="reportIssueFab" onclick="document.getElementById('reportIssueOverlay').style.display='flex'" title="Report Issue" aria-label="Report Issue">Report Issue</button>
+<div id="isoBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="isoBoardExportTitle">
+    <div class="modal-box" style="max-width:360px;">
+        <h3 id="isoBoardExportTitle">Building ISO board photo</h3>
+        <p class="modal-sub" id="isoBoardExportStatus" style="margin-top:0;">Preparing…</p>
+        <div class="iso-progress-track" id="isoBoardExportTrack" aria-hidden="true"><div class="iso-progress-fill" id="isoBoardExportBar"></div></div>
+        <p class="iso-eta" id="isoBoardExportEta">Estimating time…</p>
+        <div class="iso-preview-wrap" id="isoBoardExportPreviewWrap">
+            <img class="iso-preview" id="isoBoardExportPreview" alt="ISO board photo preview">
+        </div>
+        <div class="iso-save-actions" id="isoBoardExportSaveActions">
+            <button type="button" class="primary" id="isoBoardExportSaveBtn">Save to Photos</button>
+            <button type="button" class="secondary" id="isoBoardExportSkipBtn" style="margin-top:0;">Skip this photo</button>
+        </div>
+        <button type="button" class="secondary" id="isoBoardExportCancelBtn">Cancel</button>
+    </div>
+</div>
+<div id="toastHost" aria-live="polite"></div>
+
+<h1>Fins and Pins — 20260904 Inventory</h1>
+<h2 id="showTitle">Show Date</h2>
+<p id="introNote">We hope you enjoy clicking the pins you want, rather than typing the board number and description 🧜‍♀️</p>
+<div id="socialBar" aria-label="Social links">
+    <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
+    <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
+    <a href="https://linktr.ee/finsandpins" target="_blank" rel="noopener noreferrer" title="Linktree" aria-label="Linktree"><img class="social-icon inv" src="./icons/linktree.svg" width="24" height="24" alt=""></a>
+</div>
+
+<div id="globalCounts">
+    <div id="globalCountsStick">
+    <div id="userStatsRow" class="global-counts-row">
+        <span id="userStatBlock" class="gc-item">My Requests: <span id="totalMyClaims">0</span></span>
+        <span id="dotBeforeSync" class="gc-dot" aria-hidden="true">·</span>
+        <span id="syncStatus" class="gc-sync">📡 Connecting to Firebase...</span>
+        <span id="dotAfterSync" class="gc-dot" aria-hidden="true">·</span>
+        <span id="fuelStatBlock" class="gc-item">In stock: <span id="fuelText">0 units</span><span id="fuelValueText"></span></span>
+    </div>
+    <span id="totalPins" hidden>0</span>
+    <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
+        Pins <span id="adminTotalPins">0</span> · SKUs <span id="adminTotalRequested">0</span> · Qty 1 <span id="adminUnique">0</span> · Qty 2+ <span id="adminContested">0</span> · Units <span id="adminTotalUsers">0</span> · VB gen <span id="adminVirtualBoardGen" title="People who tapped Save Photo of ISO virtual pin board">0</span> · VB save <span id="adminVirtualBoardSave" title="People who saved an ISO virtual board photo">0</span>
+    </div>
+    </div>
+    <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
+        <span class="admin-phase-label">Admin only — show state &amp; box cleanup (not shown to visitors)</span>
+        <button type="button" class="admin-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
+        <button type="button" class="admin-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
+        <button type="button" class="admin-phase-btn" data-phase="post" title="Force Post Show banner">Post Show</button>
+        <button type="button" class="admin-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
+        <button type="button" id="boxCleanupToggle" title="Show all boxes; tap to hide non-pins for everyone">Fix boxes</button>
+        <span id="boxCleanupCount"></span>
+    </div>
+    <div id="boxCleanupBar" aria-label="Box cleanup help">
+        <p><strong>Fix boxes:</strong> green outline = clickable pin. Tap a bad box to hide it on this inventory page only (red dashed). Live CTR Fix-box hides still flow in automatically. Inventory hides do not change the public 20260904 Click To Request.</p>
+    </div>
+    <div id="countdownArea"></div>
+    <div id="fuelGaugeArea">
+        <div id="fuelBarTrack"><div id="fuelBar"></div></div>
+        <p id="fuelOverNote" role="status">You are now requesting more pins than we might be able to get to in this show. We will do our best to run every pin but cannot guarantee. You can keep clicking!</p>
+        <div id="spotsLeft"></div>
+        <p id="fuelHint"><strong>Total requested</strong> counts each pin once (first request anywhere). <strong>My Requests</strong> includes every pin you select, including pins others already requested.</p>
+    </div>
+    <div id="liteModeControls">
+        <div id="liteFallbackNudge">
+            If photos do not load in <strong><span id="liteCountdown">30</span>s</strong>,
+            <a id="liteOpenLink" href="?lite=1&start=0">tap here</a>.
+            <span style="opacity:.9">Identical boards, but 10 at a time for faster loading instead of loading all boards at once.</span>
+        </div>
+        <div id="litePager">
+            <div class="lite-pager-nav" aria-label="Board pages">
+                <a id="litePrevLink" href="#">Previous 10</a>
+                <span id="liteRangeText">Boards 1–10</span>
+                <a id="liteNextLink" href="#">Next 10</a>
+            </div>
+            <button type="button" id="liteAllBoardsBtn" onclick="goToFullBoardView()">Go Back to All Boards at Once</button>
+        </div>
+    </div>
+</div>
+
+<div id="boardsList"></div>
+
+<div id="footerControls">
+    <div id="userDisplay" style="font-weight: bold;">@user</div>
+    <div class="footer-links">
+        <button type="button" id="shareToIgBtn">Share To Instagram</button>
+        <button type="button" onclick="openFaq()">FAQ</button>
+        <a id="adminReportBtn" href="reports.html">Reports</a>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ── SHOW CONFIGURATION ──────────────────────────────────────────────
+const FUEL_MAX = 250;                        // Max pins that can be selected
+/** Default request window (Eastern). Override from Reports → “Show window” (saved in Firebase). Countdown uses the end time (“Request window closes in …”). */
+const DEFAULT_SHOW_CONFIG = { startHour: 12, startMin: 0, endHour: 18, endMin: 0 };
+const EASTERN_TZ = "America/New_York";
+let activeShowConfig = { ...DEFAULT_SHOW_CONFIG };
+let showWindowStartMs = 0;
+let showWindowEndMs = 0;
+/** Firebase `showConfig.phase`: auto = use Eastern window; pre/live/post = manual banner & admin pin coloring. */
+let showPhaseOverride = "auto";
+/** Firebase `showConfig/…/endedFullscreen`: full-screen “show ended” — true only on Post Show; false on Schedule, Pre, or During. */
+let showEndedFullscreenActive = false;
+/** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
+const SHOW_DATE_SLUG_FALLBACK = "Inventory_20260904";
+/** Non-show interest catalog (D23 flyers) — not a Whatnot show night. */
+const IS_D23_INTEREST = false;
+/** Staff inventory counter — separate Firebase from live CTR. */
+const IS_D23_INVENTORY = true;
+/** Live CTR folder: board photos/JSON + Fix-box hides are read from here (not copied). */
+const CTR_BOARDS_FOLDER = "20260904";
+/** Absolute against this page URL (works with/without trailing slash). */
+/** Local copy of 20260904 boards (self-contained; no sibling URL). */
+const CTR_BOARDS_BASE = (function () {
+    let path = window.location.pathname.replace(/\/index\.html$/i, "").replace(/\/reports\.html$/i, "");
+    path = path.replace(/\/$/, "");
+    if (!path) return "./boards";
+    return path + "/boards";
+})();
+const CTR_HIDDEN_PINS_SLUG = "20260904";
+function boardAssetBase(name) {
+    return CTR_BOARDS_BASE;
+}
+function boardTitle(name, index) {
+    return "Board " + (index + 1) + " · " + name;
+}
+/** Paste your whatnot invite / referral URL here (shown in FAQ links). */
+const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
+/**
+ * ISO virtual board photo export (Save Photo of ISO virtual pin board).
+ * Set false (or add ?isoExport=0) to hide/disable without removing code.
+ * Safe for clicks: export never runs inside handlePinClick.
+ */
+const ISO_VIRTUAL_BOARD_EXPORT_ENABLED = true;
+
+/** Calendar time in `timeZone` → UTC milliseconds (handles DST). */
+function wallTimeToUtc(year, month, day, hour, minute, timeZone) {
+    let t = Date.UTC(year, month - 1, day, hour, minute, 0);
+    for (let i = 0; i < 48; i++) {
+        const parts = new Intl.DateTimeFormat("en-US", {
+            timeZone,
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            hour12: false
+        }).formatToParts(new Date(t));
+        const py = +parts.find(p => p.type === "year").value;
+        const pm = +parts.find(p => p.type === "month").value;
+        const pd = +parts.find(p => p.type === "day").value;
+        const ph = +parts.find(p => p.type === "hour").value;
+        const pmi = +parts.find(p => p.type === "minute").value;
+        if (py === year && pm === month && pd === day && ph === hour && pmi === minute) return t;
+        t += ((day - pd) * 1440 + (hour - ph) * 60 + (minute - pmi)) * 60 * 1000;
+    }
+    return Date.UTC(year, month - 1, day, hour, minute, 0);
+}
+
+function recomputeShowWindows() {
+    if (showDateSlug === "2026D23" || IS_D23_INTEREST) {
+        // Interest window closes Fri Aug 14, 2026 at 12:00 noon Eastern.
+        showWindowStartMs = wallTimeToUtc(2026, 8, 1, 0, 0, EASTERN_TZ);
+        showWindowEndMs = wallTimeToUtc(2026, 8, 14, 12, 0, EASTERN_TZ);
+        updateCountdowns();
+        return;
+    }
+    // Inventory_20260904 (and similar) is not YYYYMMDD — parse trailing date or skip.
+    // Without this, wallTimeToUtc(NaN,…) throws and aborts JS before boards load.
+    let raw = String(showDateSlug || "");
+    if (IS_D23_INVENTORY || !/^\d{8}/.test(raw)) {
+        const m = raw.match(/(\d{8})$/);
+        if (!m) {
+            showWindowStartMs = Date.now();
+            showWindowEndMs = showWindowStartMs + 3600000;
+            updateCountdowns();
+            return;
+        }
+        raw = m[1];
+    }
+    const y = +raw.substring(0, 4), mo = +raw.substring(4, 6), d = +raw.substring(6, 8);
+    if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d) || y < 2000) {
+        showWindowStartMs = Date.now();
+        showWindowEndMs = showWindowStartMs + 3600000;
+        updateCountdowns();
+        return;
+    }
+    showWindowStartMs = wallTimeToUtc(y, mo, d, activeShowConfig.startHour, activeShowConfig.startMin, EASTERN_TZ);
+    showWindowEndMs = wallTimeToUtc(y, mo, d, activeShowConfig.endHour, activeShowConfig.endMin, EASTERN_TZ);
+    if (showWindowEndMs <= showWindowStartMs) showWindowEndMs = showWindowStartMs + 3600000;
+    updateCountdowns();
+}
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const ADMIN_KEY = "0626200207081986";
+const urlParams = new URLSearchParams(window.location.search);
+const providedKey = urlParams.get('admin');
+const LITE_PAGE_SIZE = 10;
+/** Inventory: default to 10-board pages so photos show quickly (full CTR loads all at once). */
+const isLiteMode = IS_D23_INVENTORY
+    ? urlParams.get("lite") !== "0"
+    : urlParams.get("lite") === "1";
+const liteStartRaw = Number.parseInt(urlParams.get("start") || "0", 10);
+const liteStart = Number.isFinite(liteStartRaw) ? Math.max(0, liteStartRaw) : 0;
+
+// Trust ?admin= in the URL even if sessionStorage is blocked (Safari private / ITP).
+if (providedKey === ADMIN_KEY) {
+    try { sessionStorage.setItem('fp_admin_active', 'true'); } catch (_) {}
+}
+const isAdmin = providedKey === ADMIN_KEY || (function () {
+    try { return sessionStorage.getItem('fp_admin_active') === 'true'; } catch (_) { return false; }
+})();
+
+/** Staff inventory: never show CTR login / staff-gate on top of boards when admin. */
+if (IS_D23_INVENTORY && isAdmin) {
+    const login = document.getElementById("loginOverlay");
+    if (login) login.style.display = "none";
+    const staff = document.getElementById("staffOnlyOverlay");
+    if (staff) staff.style.display = "none";
+}
+
+if (!isAdmin) {
+    const staff = document.getElementById("staffOnlyOverlay");
+    if (staff) staff.style.display = "flex";
+    const login = document.getElementById("loginOverlay");
+    if (login) login.style.display = "none";
+}
+
+function goToFullBoardView() {
+    const u = new URL("index.html", window.location.href);
+    u.searchParams.delete("start");
+    if (IS_D23_INVENTORY) u.searchParams.set("lite", "0");
+    else u.searchParams.delete("lite");
+    if (isAdmin) u.searchParams.set("admin", ADMIN_KEY);
+    else u.searchParams.delete("admin");
+    window.location.href = u.pathname + u.search + u.hash;
+}
+
+if (isAdmin) {
+    const reportBtn = document.getElementById('adminReportBtn');
+    reportBtn.style.display = 'inline-block';
+    reportBtn.href = `reports.html?admin=${ADMIN_KEY}`;
+    document.getElementById('adminGlobalDisplay').style.display = 'block';
+    document.getElementById('adminPhaseBar').style.display = 'flex';
+    document.getElementById('userStatBlock').style.display = 'none';
+    document.getElementById('fuelStatBlock').style.display = '';
+    document.getElementById('dotBeforeSync').style.display = 'none';
+    document.getElementById('dotAfterSync').style.display = '';
+    document.getElementById('adminPhaseBar').querySelectorAll('.admin-phase-btn').forEach(btn => {
+        btn.addEventListener('click', () => writeShowPhase(btn.getAttribute('data-phase')));
+    });
+    const cleanupBtn = document.getElementById('boxCleanupToggle');
+    if (cleanupBtn) {
+        cleanupBtn.addEventListener('click', () => {
+            boxCleanupMode = !boxCleanupMode;
+            document.body.classList.toggle('box-cleanup-on', boxCleanupMode);
+            cleanupBtn.classList.toggle('is-active', boxCleanupMode);
+            applyAllHiddenPins();
+        });
+    }
+} else {
+    // Public: My Requests + sync only. Show-ops chrome stays admin.
+    document.getElementById('fuelStatBlock').style.display = 'none';
+    document.getElementById('dotAfterSync').style.display = 'none';
+    document.getElementById('adminGlobalDisplay').style.display = 'none';
+    document.getElementById('adminPhaseBar').style.display = 'none';
+    const cleanupBar = document.getElementById('boxCleanupBar');
+    if (cleanupBar) cleanupBar.style.display = 'none';
+    // This page is the D23 interest catalog (not a Whatnot show night).
+    const countdown = document.getElementById('countdownArea');
+    const fuelGauge = document.getElementById('fuelGaugeArea');
+    if (countdown) countdown.style.display = 'none';
+    if (fuelGauge) fuelGauge.style.display = 'none';
+}
+
+function sanitizeUserKey(id) {
+    return String(id).replace(/[.#$\[\]\/]/g, "_");
+}
+
+/** Virtual-board analytics (showConfig only — never claims). */
+function updateAdminVirtualBoardCounts(genN, saveN) {
+    const gEl = document.getElementById("adminVirtualBoardGen");
+    const sEl = document.getElementById("adminVirtualBoardSave");
+    if (gEl) gEl.textContent = String(Math.max(0, Number(genN) || 0));
+    if (sEl) sEl.textContent = String(Math.max(0, Number(saveN) || 0));
+}
+
+/**
+ * Analytics only — Generate tap vs Save photo.
+ *   showConfig/{show}/virtualBoardGenerate/{userKey}
+ *   showConfig/{show}/virtualBoardSave/{userKey}
+ * Mirrors save → virtualBoardUsed (legacy). Never reads/writes claims/.
+ */
+function recordVirtualBoardEvent(kind, meta) {
+    try {
+        if (!displayName || typeof db === "undefined" || !db) return;
+        const userKey = sanitizeUserKey(identityKey);
+        if (!userKey) return;
+        const branch = kind === "generate" ? "virtualBoardGenerate" : "virtualBoardSave";
+        const path = `showConfig/${fbName}/${branch}/${userKey}`;
+        const pinCount = Math.max(0, Number(meta && meta.pinCount) || 0);
+        const pages = Math.max(0, Number(meta && meta.pages) || 0);
+        db.ref(path).transaction((cur) => {
+            const prev = (cur && typeof cur === "object") ? cur : {};
+            return {
+                label: displayName,
+                time: Date.now(),
+                count: (Number(prev.count) || 0) + 1,
+                pinCount,
+                pages
+            };
+        }).catch((e) => {
+            console.warn("[Virtual board] analytics write skipped:", e && e.message);
+        });
+        if (kind === "save") {
+            db.ref(`showConfig/${fbName}/virtualBoardUsed/${userKey}`).set({
+                label: displayName,
+                time: firebase.database.ServerValue.TIMESTAMP,
+                pinCount,
+                pages
+            }).catch(() => {});
+        }
+    } catch (e) {
+        console.warn("[Virtual board] analytics write skipped:", e && e.message);
+    }
+}
+
+/** @whatnot / @instagram-style names: one customer per handle regardless of case. Guest_* left as-is. */
+function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+}
+
+/** Distinct “customer” for admin stats: normalized @handle when label exists, else Firebase uid (legacy). */
+function userKeyForPublicStats(uid, meta) {
+    const lab = meta && typeof meta.label === "string" ? meta.label.trim() : "";
+    if (lab) return normalizeUserDisplayName(lab);
+    return uid;
+}
+
+function ensureIdentity() {
+    let id = localStorage.getItem("fp_identity");
+    if (!id) {
+        if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+            id = "id_" + [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, "0")).join("");
+        } else {
+            id = "id_" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        }
+        localStorage.setItem("fp_identity", id);
+    }
+    return id;
+}
+
+let identityKey = ensureIdentity();
+let displayName = localStorage.getItem("fp_display_name") || "";
+if (!displayName && localStorage.getItem("fp_username")) {
+    displayName = localStorage.getItem("fp_username");
+    localStorage.setItem("fp_display_name", displayName);
+}
+if (displayName) {
+    const n = normalizeUserDisplayName(displayName);
+    if (n !== displayName) {
+        displayName = n;
+        localStorage.setItem("fp_display_name", displayName);
+    }
+}
+
+/** Shown in the footer; Firebase uses identityKey so others cannot impersonate your name. */
+let currentUser = displayName;
+
+let boardsState = {};
+let lastMyRequestsCount = 0;
+/** Latest flat claims map from Firebase (`pinKey` → users). Used for global queue math in lite mode. */
+let latestClaimsData = {};
+let latestInventoryData = {};
+/** Session set of pins this visitor claimed — virtual board export always includes earlier clicks. */
+const isoMyPinKeysSession = new Set();
+/** True after first Firebase inventory snapshot in this session. */
+let claimsSnapshotReceived = false;
+/** Full manifest board names (all boards), even when only a page is rendered in lite mode. */
+let manifestBoardNames = [];
+/** Sum of prediction counts across all boards (computed async in lite mode). */
+let globalAllBoardPinCount = 0;
+let globalAllBoardPinCountReady = false;
+/** Raw prediction counts per board name (before hiddenPins / Fix boxes). */
+let globalBoardRawPinCounts = {};
+
+function getEffectiveShowPhase() {
+    if (showPhaseOverride !== "auto") return showPhaseOverride;
+    const now = Date.now();
+    if (!showWindowStartMs) return "pre";
+    if (now < showWindowStartMs) return "pre";
+    if (now < showWindowEndMs) return "live";
+    return "post";
+}
+
+/** B/N badges only while the request window is live (Eastern schedule or manual During Show). Otherwise visitors get a plain green highlight only. */
+function isBnWindowActive() {
+    if (showPhaseOverride === "live") return true;
+    if (showPhaseOverride === "pre" || showPhaseOverride === "post") return false;
+    const now = Date.now();
+    if (!showWindowStartMs || !showWindowEndMs) return false;
+    return now >= showWindowStartMs && now < showWindowEndMs;
+}
+
+/** Before show: plain green only. During + after show: B/N + blue/green for pins you claimed. */
+function shouldShowVisitorBnStyles() {
+    return getEffectiveShowPhase() !== "pre";
+}
+
+/** True if the first request on this pin was before the scheduled Eastern show start. */
+function pinFirstRequestWasPreShow(users) {
+    const firstMs = earliestClaimTimeMs(users);
+    if (!firstMs || !showWindowStartMs) return false;
+    return firstMs < showWindowStartMs;
+}
+
+function showToast(msg, durationMs = 5000) {
+    const host = document.getElementById("toastHost");
+    if (!host || !msg) return;
+    let toasts = host.querySelectorAll(".app-toast");
+    while (toasts.length >= 2) {
+        toasts[0].remove();
+        toasts = host.querySelectorAll(".app-toast");
+    }
+    const el = document.createElement("div");
+    el.className = "app-toast";
+    el.textContent = msg;
+    host.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => {
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 280);
+    }, durationMs);
+}
+
+function getCutoffTimestamp() {
+    const ph = getEffectiveShowPhase();
+    if (ph === "pre") return Number.MAX_SAFE_INTEGER;
+    if (ph === "post") return 0;
+    return showWindowStartMs || 0;
+}
+
+/** Earliest `time` on a pin’s claims; 0 if missing (legacy rows). */
+function earliestClaimTimeMs(users) {
+    let t = Infinity;
+    for (const u of Object.values(users || {})) {
+        if (u && typeof u.time === "number" && u.time > 0) t = Math.min(t, u.time);
+    }
+    return t === Infinity ? 0 : t;
+}
+
+/** Order pins were first requested (1 = earliest globally); uses current `boardsState`. */
+function queueRankForPinFromState(pinKey) {
+    const entries = [];
+    if (isLiteMode && claimsSnapshotReceived) {
+        Object.entries(latestClaimsData).forEach(([pk, users]) => {
+            const t = earliestClaimTimeMs(users);
+            if (t > 0) entries.push({ pk, t });
+        });
+    } else {
+        Object.values(boardsState).forEach(s => {
+            Object.entries(s.allClaims || {}).forEach(([pk, users]) => {
+                const t = earliestClaimTimeMs(users);
+                if (t > 0) entries.push({ pk, t });
+            });
+        });
+    }
+    entries.sort((a, b) => a.t - b.t || a.pk.localeCompare(b.pk));
+    const idx = entries.findIndex(e => e.pk === pinKey);
+    return idx >= 0 ? idx + 1 : 0;
+}
+
+/** Admin: green (selection-now) = first request before scheduled show window; blue (selection-before) = during or after. */
+function adminPinIsPreShow(users) {
+    const firstMs = earliestClaimTimeMs(users);
+    if (!firstMs || !showWindowStartMs) return false;
+    return firstMs < showWindowStartMs;
+}
+
+function refreshAdminPhaseButtons() {
+    if (!isAdmin) return;
+    const cur = showPhaseOverride || "auto";
+    document.querySelectorAll("#adminPhaseBar .admin-phase-btn").forEach(b => {
+        b.classList.toggle("is-active", b.getAttribute("data-phase") === cur);
+    });
+}
+
+function syncShowEndedOverlay() {
+    const el = document.getElementById("showEndedOverlay");
+    if (!el) return;
+    const on = !!showEndedFullscreenActive && !isAdmin;
+    el.style.display = on ? "flex" : "none";
+    el.setAttribute("aria-hidden", on ? "false" : "true");
+    if (on) {
+        document.body.style.overflow = "hidden";
+    } else {
+        const faq = document.getElementById("faqOverlay");
+        if (!faq || faq.style.display !== "flex") document.body.style.overflow = "";
+    }
+}
+
+function writeShowPhase(phase) {
+    if (!["auto", "pre", "live", "post"].includes(phase)) return;
+    const payload = {
+        phase,
+        phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+    payload.endedFullscreen = phase === "post";
+    db.ref(`showConfig/${fbName}`).update(payload).catch(e => alert(e.message));
+}
+
+if (displayName) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userDisplay').textContent = displayName;
+}
+
+document.querySelectorAll(".whatnot-invite-link").forEach(a => { a.href = WHATNOT_REFERRAL_URL; });
+
+const INSTAGRAM_FP = "https://www.instagram.com/fins.and.pins/";
+
+function buildInstagramShareText() {
+    const raw = document.getElementById("totalMyClaims").textContent || "0";
+    const n = raw.trim() || "0";
+    const pinWord = n === "1" ? "pin" : "pins";
+    return `I just requested ${n} ${pinWord} from the Fins And Pins Click To Request.`;
+}
+
+/** iOS / non-HTTPS: must run in the same turn as the tap; Clipboard API often fails on http:// LAN. */
+function copyMessageSync(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;left:-9999px;top:0;font-size:16px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try {
+        ok = document.execCommand("copy");
+    } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+}
+
+document.getElementById("shareToIgBtn").addEventListener("click", () => {
+    const msg = buildInstagramShareText();
+    const goIg = () => { window.location.href = INSTAGRAM_FP; };
+    const afterCopy = () => {
+        alert("Copied! Opening Instagram…");
+        goIg();
+    };
+    if (copyMessageSync(msg)) {
+        afterCopy();
+        return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(msg).then(afterCopy).catch(() => {
+            window.prompt("Copy this text, then tap OK to open Instagram:", msg);
+            goIg();
+        });
+        return;
+    }
+    window.prompt("Copy this text, then tap OK to open Instagram:", msg);
+    goIg();
+});
+
+const reportIssueTa = document.getElementById("reportIssueText");
+reportIssueTa.addEventListener("focus", function onFirstFocus() {
+    if (reportIssueTa.placeholder === "Describe the issue…") {
+        reportIssueTa.placeholder = "";
+        reportIssueTa.removeEventListener("focus", onFirstFocus);
+    }
+});
+
+function openFaq() {
+    document.getElementById("faqOverlay").style.display = "flex";
+    document.body.style.overflow = "hidden";
+}
+function closeFaq() {
+    document.getElementById("faqOverlay").style.display = "none";
+    document.body.style.overflow = "";
+}
+
+function saveUsername() {
+    const raw = document.getElementById("usernameInput").value.trim();
+    if (!raw) {
+        displayName = "Guest_" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    } else {
+        const v = raw.replace(/^@+/, "").trim();
+        displayName = normalizeUserDisplayName("@" + v);
+    }
+    localStorage.setItem("fp_display_name", displayName);
+    localStorage.removeItem("fp_username");
+    currentUser = displayName;
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("userDisplay").textContent = displayName;
+    listenForFirebase();
+}
+
+function parseShowDateSlugFromPath() {
+    const pathClean = window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+    const segments = pathClean.split("/").filter(Boolean);
+    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+    if (!last) return null;
+    // Named folders like 2026D23 / Inventory_20260904 are Firebase keys as-is (not YYYYMMDD).
+    if (last === "2026D23" || last === "Inventory_20260904" || last === "D23Inventory2026" || /[A-Za-z_]/.test(last.replace(/^\d{8}/, ""))) {
+        // Keep legacy YYYYMMDDTest* behavior: digits-only when folder is date+suffix.
+        const m8 = last.match(/^(\d{8})/);
+        if (m8 && last !== "2026D23" && last !== "Inventory_20260904" && !last.startsWith("Inventory_")) return m8[1];
+        return last;
+    }
+    const m = last.match(/(\d{8})/);
+    return m ? m[1] : last;
+}
+const showDateSlug = parseShowDateSlugFromPath() || SHOW_DATE_SLUG_FALLBACK;
+const fbName = showDateSlug;
+
+/** CTR Fix-box hides flow in from 20260904; extra hides on this page stay on the inventory slug only. */
+const hiddenPinKeys = new Set();
+const ctrHiddenPinKeys = new Set();
+const inventoryHiddenPinKeys = new Set();
+let boxCleanupMode = false;
+
+function rebuildHiddenPinKeys() {
+    hiddenPinKeys.clear();
+    ctrHiddenPinKeys.forEach((k) => hiddenPinKeys.add(k));
+    inventoryHiddenPinKeys.forEach((k) => hiddenPinKeys.add(k));
+}
+
+function applyHiddenPinSnapshot(destSet, snapVal) {
+    destSet.clear();
+    const v = snapVal || {};
+    Object.keys(v).forEach((k) => {
+        if (v[k]) destSet.add(k);
+    });
+    rebuildHiddenPinKeys();
+    applyAllHiddenPins();
+    refreshVisiblePinTotals();
+}
+
+function pinKeyOf(boardName, idx) {
+    return `${boardName}-${idx}`;
+}
+
+/** Clickable pins only: JSON boxes minus admin Fix-boxes hides. */
+function countVisiblePins(boardName, pinCount) {
+    const n = Number(pinCount) || 0;
+    let visible = 0;
+    for (let i = 0; i < n; i++) {
+        if (!hiddenPinKeys.has(pinKeyOf(boardName, i))) visible++;
+    }
+    return visible;
+}
+
+function visibleTotalFromRawCounts(rawCounts) {
+    let sum = 0;
+    Object.entries(rawCounts || {}).forEach(([name, n]) => {
+        sum += countVisiblePins(name, n);
+    });
+    return sum;
+}
+
+/** Keep admin/public totals in sync when Fix boxes hide/unhide detections. */
+function refreshVisiblePinTotals() {
+    Object.keys(boardsState).forEach((name) => {
+        const raw = boardsState[name].rawPinCount;
+        if (raw == null) return;
+        boardsState[name].totalPins = countVisiblePins(name, raw);
+    });
+    if (Object.keys(globalBoardRawPinCounts).length) {
+        globalAllBoardPinCount = visibleTotalFromRawCounts(globalBoardRawPinCounts);
+        globalAllBoardPinCountReady = true;
+    }
+    updateAllBoardDisplays();
+    calculateGlobals();
+}
+
+function refreshHiddenCount() {
+    const el = document.getElementById("boxCleanupCount");
+    if (!el) return;
+    el.textContent = hiddenPinKeys.size ? `${hiddenPinKeys.size} hidden` : "";
+}
+
+function applyHiddenToPinEl(pinEl, pinKey) {
+    if (!pinEl) return;
+    const hidden = hiddenPinKeys.has(pinKey);
+    pinEl.classList.toggle("pin-hidden", hidden);
+}
+
+function applyAllHiddenPins() {
+    document.querySelectorAll(".pin[id^='pin-']").forEach(el => {
+        const id = el.id; // pin-PAGE_002-3
+        const pinKey = id.startsWith("pin-") ? id.slice(4) : "";
+        if (pinKey) applyHiddenToPinEl(el, pinKey);
+    });
+    refreshHiddenCount();
+}
+
+function toggleHiddenPin(boardName, idx) {
+    const pinKey = pinKeyOf(boardName, idx);
+    const ref = db.ref(`hiddenPins/${fbName}/${pinKey}`);
+    if (inventoryHiddenPinKeys.has(pinKey) || (hiddenPinKeys.has(pinKey) && !ctrHiddenPinKeys.has(pinKey))) {
+        ref.set(null);
+    } else {
+        if (ctrHiddenPinKeys.has(pinKey)) return;
+        ref.set({
+            hidden: true,
+            time: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+}
+
+db.ref(`hiddenPins/${CTR_HIDDEN_PINS_SLUG}`).on("value", snap => {
+    applyHiddenPinSnapshot(ctrHiddenPinKeys, snap.val());
+});
+db.ref(`hiddenPins/${fbName}`).on("value", snap => {
+    applyHiddenPinSnapshot(inventoryHiddenPinKeys, snap.val());
+});
+
+db.ref(`showConfig/${fbName}`).on("value", snap => {
+    const v = snap.val() || {};
+    if (v.startHour != null || v.endHour != null) {
+        activeShowConfig = {
+            startHour: Number(v.startHour),
+            startMin: Number(v.startMin) || 0,
+            endHour: Number(v.endHour),
+            endMin: Number(v.endMin) || 0
+        };
+    } else {
+        activeShowConfig = { ...DEFAULT_SHOW_CONFIG };
+    }
+    showPhaseOverride = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+    showEndedFullscreenActive = v.endedFullscreen === true || v.endedFullscreen === 1 || String(v.endedFullscreen) === "true";
+    recomputeShowWindows();
+    refreshAdminPhaseButtons();
+    syncShowEndedOverlay();
+    if (isAdmin) {
+        const gen = (v && v.virtualBoardGenerate && typeof v.virtualBoardGenerate === "object") ? v.virtualBoardGenerate : {};
+        const saved = (v && v.virtualBoardSave && typeof v.virtualBoardSave === "object") ? v.virtualBoardSave : {};
+        const legacy = (v && v.virtualBoardUsed && typeof v.virtualBoardUsed === "object") ? v.virtualBoardUsed : {};
+        const saveKeys = new Set([...Object.keys(saved), ...Object.keys(legacy)]);
+        updateAdminVirtualBoardCounts(Object.keys(gen).length, saveKeys.size);
+    }
+});
+
+(function() {
+    if (IS_D23_INVENTORY) {
+        document.getElementById("showTitle").textContent = "20260904 inventory — tap a pin or + to add one; − to remove one. Shared staff count.";
+        const intro = document.getElementById("introNote");
+        if (intro) {
+            intro.textContent = "Each pin starts at 1 (you have at least one of each). Tap + for extras. Board photos are a local copy of 20260904. Counting here does not change Click To Request.";
+        }
+        const help = document.querySelector(".login-help");
+        if (help) {
+            help.textContent = "Enter Lexi, Steve, or another staff name. The pin shows one combined count; reports show who counted how many.";
+        }
+        const disc = document.querySelector(".login-disclaimer");
+        if (disc) {
+            disc.textContent = "Staff inventory only. This does not change the public 20260904 Click To Request.";
+        }
+        const startBtn = document.querySelector(".login-form-stack button.primary");
+        if (startBtn) startBtn.textContent = "Start counting";
+    } else if (showDateSlug === "2026D23" || IS_D23_INTEREST) {
+        document.getElementById("showTitle").textContent = "This is Disney’s catalog of pins available at D23.";
+        const intro = document.getElementById("introNote");
+        if (intro) {
+            intro.textContent = "Tap the ones you hope we’ll be able to get for you?";
+        }
+        const help = document.querySelector(".login-help");
+        if (help) {
+            help.textContent = "Tap pins you’re interested in from the D23 catalogs so we know what to buy. Any username works — Whatnot or Instagram helps us match you later.";
+        }
+        const disc = document.querySelector(".login-disclaimer");
+        if (disc) {
+            disc.textContent = "This is interest only — not a purchase commitment, and not a Whatnot show night.";
+        }
+    } else {
+        const raw = showDateSlug;
+        const y = raw.substring(0, 4), mo = raw.substring(4, 6), d = raw.substring(6, 8);
+        const date = new Date(`${y}-${mo}-${d}T12:00:00`);
+        document.getElementById("showTitle").textContent = date.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + " Show";
+    }
+    recomputeShowWindows();
+})();
+setInterval(updateCountdowns, 1000);
+
+function updateCountdowns() {
+    const el = document.getElementById("countdownArea");
+    if (!el || !showWindowEndMs) return;
+    const fmt = (ms) => {
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        const s = Math.floor((ms % 60000) / 1000);
+        return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+    };
+    const now = Date.now();
+    const closesInLine = () =>
+        `🕛 Request window closes in <strong>${fmt(showWindowEndMs - now)}</strong> <span style="opacity:.85">(Eastern)</span>`;
+    if (showPhaseOverride !== "auto") {
+        if (showPhaseOverride === "live") {
+            el.innerHTML = "🎬 <strong>During Show</strong> · Request window is open. <span style=\"opacity:.85\">(Manual)</span>";
+            return;
+        }
+        if (showPhaseOverride === "post") {
+            el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended. <span style=\"opacity:.85\">(Manual)</span>";
+            return;
+        }
+        // manual Pre-Show: countdown to the scheduled *end* time (Reports → End), same as Schedule
+        if (now < showWindowEndMs) {
+            el.innerHTML = closesInLine();
+            return;
+        }
+        el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended for this show.";
+        return;
+    }
+    if (now < showWindowEndMs) {
+        el.innerHTML = closesInLine();
+    } else {
+        el.innerHTML = "⏹ <strong>Post Show</strong> · Request window has ended for this show.";
+    }
+}
+
+function updateFuelGauge(requested) {
+    const pct = requested > 0 ? 100 : 0;
+    const bar    = document.getElementById('fuelBar');
+    const textEl = document.getElementById('fuelText');
+    const valueEl = document.getElementById('fuelValueText');
+    const spotsEl = document.getElementById('spotsLeft');
+    if (!bar) return;
+    bar.style.width      = pct + '%';
+    bar.style.background = '#28a745';
+    if (textEl) textEl.textContent = `${requested} units`;
+    if (valueEl) {
+        if (!inventoryPricingReady) {
+            valueEl.textContent = "";
+        } else {
+            valueEl.textContent = ` · ${moneyUsd(inventoryStockTotalValue())} total`;
+        }
+    }
+    if (spotsEl) spotsEl.textContent = "Shared staff inventory — no 250-spot cap.";
+    const overNote = document.getElementById("fuelOverNote");
+    if (overNote) overNote.style.display = "none";
+}
+
+// Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
+const BOARDS_MANIFEST_VERSION = "8";
+/** Same run as Inventory reports / Live PriceCollection_20260901_2012. */
+const PRICING_RUN_ID = "test_PriceCollection_20260901_2012__build_20260904_fullres_visual_baseline";
+const stemToPrice = {};
+const pinKeyToStem = {};
+let inventoryPricingReady = false;
+
+function stemFromPricingPin(pin, domKey) {
+    const cf = String(pin.crop_filename || "");
+    if (cf && !cf.includes("__")) return cf.replace(/\.(jpe?g|png)$/i, "");
+    const pk = String(pin.pin_key || domKey || "");
+    if (pk.includes(".jpg__")) return pk.split(".jpg__")[0];
+    if (String(domKey || "").includes("_jpg__")) return String(domKey).split("_jpg__")[0];
+    if (cf) return cf.replace(/\.(jpe?g|png)$/i, "").split("__")[0];
+    return null;
+}
+
+function rawPriceFromMatchPin(pin) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === "object") {
+        const sp = Number(sc.price != null ? sc.price : sc.total_price);
+        if (isFinite(sp) && sp > 0) return sp;
+    }
+    return null;
+}
+
+/** Harness list price: <$10 → $10, else round UP to nearest $5. */
+function listPriceForPk(pk) {
+    const stem = pinKeyToStem[pk];
+    if (!stem) return null;
+    const raw = stemToPrice[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return null;
+    return raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
+}
+
+function moneyUsd(n) {
+    if (n == null || !Number.isFinite(n)) return "$0";
+    return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function inventoryStockTotalValue() {
+    let total = 0;
+    Object.entries(latestInventoryData || {}).forEach(([pk, row]) => {
+        const qty = inventoryCountFromRow(row);
+        if (qty <= 0) return;
+        const unit = listPriceForPk(pk);
+        if (unit == null) return;
+        total += unit * qty;
+    });
+    return Math.round(total * 100) / 100;
+}
+
+async function loadPricingRun(runId) {
+    const snap = await db.ref(`pin_pricing_tests/${runId}/visual_baseline/pins`).once("value");
+    const all = snap.val() || {};
+    let n = 0;
+    for (const [domKey, pin] of Object.entries(all)) {
+        if (!pin) continue;
+        const status = pin.match_status || "";
+        if (status === "priced") {
+            const dp = Number(pin.display_price);
+            if (!(isFinite(dp) && dp > 0)) continue;
+            const stem = stemFromPricingPin(pin, domKey);
+            if (stem) { stemToPrice[stem] = dp; n++; }
+            continue;
+        }
+        if (status !== "match") continue;
+        const raw = rawPriceFromMatchPin(pin);
+        if (raw == null) continue;
+        const stem = stemFromPricingPin(pin, domKey);
+        if (stem) { stemToPrice[stem] = raw; n++; }
+    }
+    return n;
+}
+
+async function loadInventoryBoardNames() {
+    const url = `${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`;
+    const ctrRes = await fetch(url, { cache: "no-store" });
+    if (!ctrRes.ok) throw new Error(`manifest HTTP ${ctrRes.status} from ${url}`);
+    const ctr = await ctrRes.json();
+    if (!Array.isArray(ctr)) return [];
+    return ctr;
+}
+
+/** Index crop_stem for every board pin key (needed for $ total across all boards, including lite paging). */
+async function indexPinStemsAndCounts(boardNames) {
+    const rawCounts = {};
+    const chunk = 12;
+    for (let i = 0; i < boardNames.length; i += chunk) {
+        const slice = boardNames.slice(i, i + chunk);
+        await Promise.all(
+            slice.map(async (name) => {
+                try {
+                    const r = await fetch(`${boardAssetBase(name)}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+                    if (!r.ok) {
+                        rawCounts[name] = 0;
+                        return;
+                    }
+                    const data = await r.json();
+                    const pins = data.predictions || data.output?.predictions || [];
+                    rawCounts[name] = Array.isArray(pins) ? pins.length : 0;
+                    (pins || []).forEach((p, idx) => {
+                        if (p && p.crop_stem) pinKeyToStem[`${name}-${idx}`] = p.crop_stem;
+                    });
+                } catch (e) {
+                    rawCounts[name] = 0;
+                }
+            })
+        );
+    }
+    globalBoardRawPinCounts = rawCounts;
+    return visibleTotalFromRawCounts(rawCounts);
+}
+
+async function computeAllBoardPinTotals(boardNames) {
+    return indexPinStemsAndCounts(boardNames);
+}
+
+if (isAdmin) {
+    const boardsListEarly = document.getElementById("boardsList");
+    if (boardsListEarly) {
+        boardsListEarly.innerHTML = '<p id="boardsLoadingMsg" style="text-align:center;color:#FBAD8D;padding:24px;font-size:16px;">Loading boards from <code>./boards</code>…</p>';
+    }
+    // Attach inventory listener immediately so status isn't stuck on "Connecting…"
+    if (typeof listenForFirebase === "function") {
+        try { listenForFirebase(); } catch (e) { console.warn(e); }
+    }
+}
+if (isAdmin) loadInventoryBoardNames()
+    .then(list => {
+        manifestBoardNames = list.slice();
+        globalAllBoardPinCountReady = false;
+        // Always index stems for $ total (and pin totals in lite mode).
+        indexPinStemsAndCounts(manifestBoardNames).then((n) => {
+            globalAllBoardPinCount = n;
+            globalAllBoardPinCountReady = true;
+            calculateGlobals();
+        }).catch((e) => console.warn("indexPinStemsAndCounts failed:", e));
+        loadPricingRun(PRICING_RUN_ID).then((n) => {
+            inventoryPricingReady = true;
+            console.info(`[$Value] Firebase pricing pins: ${n}`);
+            calculateGlobals();
+        }).catch((e) => {
+            console.warn("[$Value] Firebase pricing load failed:", e);
+            inventoryPricingReady = true; // show $0 rather than blank forever
+            calculateGlobals();
+        });
+        const totalBoards = list.length;
+        const rank = {};
+        list.forEach((name, idx) => { rank[name] = idx; });
+        let start = isLiteMode ? Math.min(liteStart, Math.max(0, totalBoards - LITE_PAGE_SIZE)) : 0;
+        let end = isLiteMode ? Math.min(totalBoards, start + LITE_PAGE_SIZE) : totalBoards;
+        const activeList = isLiteMode ? list.slice(start, end) : list;
+        const nudge = document.getElementById("liteFallbackNudge");
+        const pager = document.getElementById("litePager");
+        const range = document.getElementById("liteRangeText");
+        const prev = document.getElementById("litePrevLink");
+        const next = document.getElementById("liteNextLink");
+        const liteOpen = document.getElementById("liteOpenLink");
+        if (liteOpen) liteOpen.href = `?lite=1&start=0${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+        if (isLiteMode) {
+            if (nudge) nudge.style.display = "none";
+            if (pager) pager.style.display = "flex";
+            if (range) range.textContent = `Boards ${start + 1}–${end} of ${totalBoards}`;
+            if (prev) {
+                if (start <= 0) {
+                    prev.style.opacity = "0.5";
+                    prev.removeAttribute("href");
+                } else {
+                    prev.href = `?lite=1&start=${Math.max(0, start - LITE_PAGE_SIZE)}${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+                }
+            }
+            if (next) {
+                if (end >= totalBoards) {
+                    next.style.opacity = "0.5";
+                    next.removeAttribute("href");
+                } else {
+                    next.href = `?lite=1&start=${start + LITE_PAGE_SIZE}${isAdmin ? `&admin=${ADMIN_KEY}` : ""}`;
+                }
+            }
+        } else {
+            if (pager) pager.style.display = "none";
+            let countdown = 30;
+            const tick = () => {
+                const c = document.getElementById("liteCountdown");
+                if (c) c.textContent = String(countdown);
+                if (countdown > 0) countdown -= 1;
+            };
+            tick();
+            setInterval(tick, 1000);
+        }
+        const boardsList = document.getElementById("boardsList");
+        if (!boardsList) throw new Error("missing #boardsList");
+        boardsList.innerHTML = "";
+        if (!activeList.length) {
+            boardsList.innerHTML = '<p style="text-align:center;color:#fff;padding:20px;">No boards in manifest.</p>';
+            return;
+        }
+        activeList.forEach((name) => {
+            const index = rank[name] ?? 0;
+            const container = document.createElement("div");
+            container.className = "board-container";
+            container.innerHTML = `
+                <div class="board-header">
+                    <span class="board-title">${boardTitle(name, index)}</span>
+                    <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">—</span>
+                </div>
+                <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
+                <div class="board-wrapper" id="wrapper-${name}"><img class="board-img" id="img-${name}" src="${boardAssetBase(name)}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}" alt="${name}"></div>`;
+            boardsList.appendChild(container);
+            boardsState[name] = { totalPins: 0, rawPinCount: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
+            setupBoard(name);
+        });
+        if (isAdmin) listenForFirebase();
+    })
+    .catch((err) => {
+        console.error("loadInventoryBoardNames failed:", err);
+        const boardsList = document.getElementById("boardsList");
+        if (boardsList) {
+            boardsList.innerHTML = `<p style="color:#fff;padding:16px;text-align:center;">Could not load boards from ${CTR_BOARDS_BASE} — ${String(err && err.message || err)}</p>`;
+        }
+    });
+
+async function setupBoard(name) {
+    const response = await fetch(`${boardAssetBase(name)}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const data = await response.json();
+    const pins = data.predictions || data.output?.predictions || [];
+    boardsState[name].rawPinCount = pins.length;
+    boardsState[name].totalPins = countVisiblePins(name, pins.length);
+    globalBoardRawPinCounts[name] = pins.length;
+    const img = document.getElementById(`img-${name}`);
+    const wrapper = document.getElementById(`wrapper-${name}`);
+    let placedOnce = false;
+    let resizeTimer = null;
+
+    const render = () => {
+        if (!img || !wrapper) return;
+        // Wait until the image has a real laid-out size (avoids iPhone/iPad drift
+        // when render runs from cache before layout finishes).
+        const ORIG_W = Number(data.image?.width) || img.naturalWidth;
+        const ORIG_H = Number(data.image?.height) || img.naturalHeight;
+        const dispW = img.clientWidth;
+        const dispH = img.clientHeight;
+        if (!ORIG_W || !ORIG_H || !dispW || !dispH) {
+            requestAnimationFrame(render);
+            return;
+        }
+
+        // Flyer pages are already upright. The old "rotated" heuristic compared
+        // JSON aspect to client aspect and could mis-fire across devices, shifting
+        // every box. Map detection coords onto the displayed <img> box instead.
+        const ox = img.offsetLeft;
+        const oy = img.offsetTop;
+        const sx = dispW / ORIG_W;
+        const sy = dispH / ORIG_H;
+
+        pins.forEach((pin, idx) => {
+            const pinId = `pin-${name}-${idx}`;
+            let div = document.getElementById(pinId);
+            const creating = !div;
+            if (creating) {
+                div = document.createElement("div");
+                div.className = "pin";
+                div.id = pinId;
+                if (pin.crop_stem) {
+                    div.dataset.cropStem = pin.crop_stem;
+                    pinKeyToStem[`${name}-${idx}`] = pin.crop_stem;
+                }
+                div.onclick = (e) => {
+                    e.preventDefault();
+                    if (isAdmin && boxCleanupMode) {
+                        toggleHiddenPin(name, idx);
+                        return;
+                    }
+                    handlePinClick(name, idx);
+                };
+                wrapper.appendChild(div);
+                if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
+            }
+            div.style.left = (ox + (Number(pin.x) - Number(pin.width) / 2) * sx) + "px";
+            div.style.top = (oy + (Number(pin.y) - Number(pin.height) / 2) * sy) + "px";
+            div.style.width = (Number(pin.width) * sx) + "px";
+            div.style.height = (Number(pin.height) * sy) + "px";
+            applyHiddenToPinEl(div, pinKeyOf(name, idx));
+        });
+
+        if (!placedOnce) {
+            placedOnce = true;
+            updateBoardDisplay(name);
+            calculateGlobals();
+        }
+    };
+
+    const scheduleRender = () => {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(render, 50);
+    };
+
+    if (img.complete && img.naturalWidth) render();
+    else img.onload = render;
+
+    // Re-place after rotation / Safari chrome / split-view width changes.
+    // Update geometry in place so claim highlight classes stay attached.
+    if (typeof ResizeObserver === "function") {
+        const ro = new ResizeObserver(scheduleRender);
+        ro.observe(img);
+    } else {
+        window.addEventListener("resize", scheduleRender);
+    }
+}
+
+/** Pins that already have ≥1 request (each pin counted once). Used for “roughly # in queue” on first request. */
+function countClaimedPinsFromState() {
+    let n = 0;
+    if (isLiteMode && claimsSnapshotReceived) {
+        Object.values(latestClaimsData).forEach(users => {
+            if (users && Object.keys(users).length > 0) n++;
+        });
+        return n;
+    }
+    Object.values(boardsState).forEach(s => {
+        Object.values(s.allClaims).forEach(users => {
+            if (users && Object.keys(users).length > 0) n++;
+        });
+    });
+    return n;
+}
+
+function inventoryStaffCount(entry) {
+    if (entry == null) return 0;
+    if (typeof entry === "number") return Math.max(0, Math.floor(entry));
+    return Math.max(0, Math.floor(Number(entry.count) || 0));
+}
+
+function inventoryCountFromRow(row) {
+    if (row == null) return 0;
+    if (typeof row === "number") return Math.max(0, Math.floor(row));
+    if (typeof row === "object") {
+        if (row.staff && typeof row.staff === "object") {
+            const sum = Object.values(row.staff).reduce((s, v) => s + inventoryStaffCount(v), 0);
+            if (sum > 0) return sum;
+        }
+        return Math.max(0, Math.floor(Number(row.count) || 0));
+    }
+    return 0;
+}
+
+function staffMapFromRow(row) {
+    const staff = {};
+    if (row && row.staff && typeof row.staff === "object") {
+        Object.entries(row.staff).forEach(([k, v]) => {
+            const n = inventoryStaffCount(v);
+            if (n <= 0) return;
+            staff[k] = {
+                count: n,
+                label: (v && typeof v === "object" && v.label) ? String(v.label) : k,
+                time: (v && typeof v === "object" && v.time) ? v.time : 0
+            };
+        });
+    }
+    if (!Object.keys(staff).length) {
+        const n = inventoryCountFromRow(row);
+        if (n > 0) {
+            const label = (row && row.by) ? String(row.by) : "unattributed";
+            const key = sanitizeUserKey(label) || "_prior";
+            staff[key] = { count: n, label, time: (row && row.time) || 0 };
+        }
+    }
+    return staff;
+}
+
+function staffBreakdownText(staff) {
+    return Object.values(staff || {})
+        .filter((v) => inventoryStaffCount(v) > 0)
+        .sort((a, b) => inventoryStaffCount(b) - inventoryStaffCount(a) || String(a.label || "").localeCompare(String(b.label || "")))
+        .map((v) => `${v.label || "staff"} ${inventoryStaffCount(v)}`)
+        .join(" · ");
+}
+
+function boardNameFromPinKey(pinKey) {
+    const m = String(pinKey).match(/^(PAGE_\d+)-\d+$/i) || String(pinKey).match(/^(.+)-\d+$/);
+    return m ? m[1] : "";
+}
+
+function currentInventoryStaffKey() {
+    return sanitizeUserKey(displayName || identityKey || "staff");
+}
+
+function adjustInventoryCount(pinKey, delta) {
+    if (!isAdmin || !pinKey || !delta) return;
+    const userKey = currentInventoryStaffKey();
+    const label = displayName || "staff";
+    db.ref(`inventory/${fbName}/${pinKey}`).transaction((cur) => {
+        const staff = staffMapFromRow(cur);
+        if (delta > 0) {
+            const mine = staff[userKey] || { count: 0, label, time: 0 };
+            mine.count = inventoryStaffCount(mine) + delta;
+            mine.label = label;
+            mine.time = Date.now();
+            staff[userKey] = mine;
+        } else {
+            let need = Math.abs(delta);
+            if (staff[userKey] && inventoryStaffCount(staff[userKey]) > 0) {
+                const take = Math.min(need, inventoryStaffCount(staff[userKey]));
+                staff[userKey].count = inventoryStaffCount(staff[userKey]) - take;
+                staff[userKey].label = label;
+                staff[userKey].time = Date.now();
+                need -= take;
+                if (staff[userKey].count <= 0) delete staff[userKey];
+            }
+            if (need > 0) {
+                Object.keys(staff)
+                    .sort((a, b) => inventoryStaffCount(staff[b]) - inventoryStaffCount(staff[a]))
+                    .forEach((k) => {
+                        if (need <= 0) return;
+                        const take = Math.min(need, inventoryStaffCount(staff[k]));
+                        staff[k].count = inventoryStaffCount(staff[k]) - take;
+                        need -= take;
+                        if (staff[k].count <= 0) delete staff[k];
+                    });
+            }
+        }
+        const next = Object.values(staff).reduce((s, v) => s + inventoryStaffCount(v), 0);
+        if (next <= 0) return null;
+        return {
+            count: next,
+            time: Date.now(),
+            by: label,
+            staff
+        };
+    }).catch((e) => alert(e.message));
+}
+
+function applyQtyUi(pinEl, qty, breakdown) {
+    if (!pinEl) return;
+    const n = Math.max(0, Number(qty) || 0);
+    pinEl.classList.toggle("has-qty", n >= 1);
+    pinEl.classList.toggle("selection-green", n >= 1);
+    pinEl.classList.toggle("pin-mine", n >= 1);
+    pinEl.classList.remove("selection-yellow", "selection-before", "selection-now");
+    pinEl.querySelectorAll(".tally-badge, .bn-badge").forEach((node) => node.remove());
+    let bar = pinEl.querySelector(".qty-stepper");
+    if (n < 1) {
+        if (bar) bar.remove();
+        pinEl.removeAttribute("title");
+        return;
+    }
+    if (!bar) {
+        bar = document.createElement("div");
+        bar.className = "qty-stepper";
+        bar.innerHTML = '<button type="button" class="qty-minus" aria-label="Decrease count">−</button><span class="qty-num"></span><button type="button" class="qty-plus" aria-label="Increase count">+</button>';
+        bar.querySelector(".qty-minus").addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const pinKey = pinEl.id.startsWith("pin-") ? pinEl.id.slice(4) : "";
+            adjustInventoryCount(pinKey, -1);
+        });
+        bar.querySelector(".qty-plus").addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const pinKey = pinEl.id.startsWith("pin-") ? pinEl.id.slice(4) : "";
+            adjustInventoryCount(pinKey, 1);
+        });
+        pinEl.appendChild(bar);
+    }
+    const num = bar.querySelector(".qty-num");
+    if (num) num.textContent = String(n);
+    const tip = breakdown ? `${n} in stock (${breakdown})` : `${n} in stock`;
+    pinEl.title = tip;
+    bar.title = tip;
+}
+
+function handlePinClick(boardName, idx) {
+    const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
+    if (pinEl && pinEl.classList.contains("pin-nap")) return;
+    if (pinEl && pinEl.classList.contains("pin-hidden") && !(isAdmin && boxCleanupMode)) return;
+    const pinKey = `${boardName}-${idx}`;
+    if (hiddenPinKeys.has(pinKey) && !(isAdmin && boxCleanupMode)) return;
+    isoMyPinKeysSession.add(pinKey);
+    adjustInventoryCount(pinKey, 1);
+}
+
+function submitIssueReport() {
+    const msg = document.getElementById('reportIssueText').value.trim();
+    if (!msg) return;
+    db.ref(`feedback/${fbName}`).push({ user: displayName, msg: msg, time: firebase.database.ServerValue.TIMESTAMP })
+      .then(() => {
+          alert("Thank you for letting us know.");
+          document.getElementById('reportIssueOverlay').style.display = 'none';
+          document.getElementById('reportIssueText').value = "";
+      })
+      .catch(e => alert("Error: " + e.message));
+}
+
+let inventoryListenAttached = false;
+function listenForFirebase() {
+    if (inventoryListenAttached) return;
+    inventoryListenAttached = true;
+    db.ref(`inventory/${fbName}`).on("value", snapshot => {
+        claimsSnapshotReceived = true;
+        const syncEl = document.getElementById("syncStatus");
+        syncEl.textContent = "✅ Connected & Synced";
+        syncEl.classList.add("sync-connected");
+        const data = snapshot.val() || {};
+        latestInventoryData = data;
+        latestClaimsData = {};
+        Object.keys(boardsState).forEach(b => {
+            boardsState[b].allClaims = {};
+            boardsState[b].myClaims = 0;
+            boardsState[b].globalBoardClaims = 0;
+            document.querySelectorAll(`[id^="pin-${b}-"]`).forEach(el => {
+                el.classList.remove("selection-green", "selection-yellow", "selection-before", "selection-now", "pin-mine", "flash-pin", "has-qty");
+                el.querySelectorAll(".tally-badge, .bn-badge, .qty-stepper").forEach(n => n.remove());
+            });
+        });
+        Object.entries(data).forEach(([pinKey, row]) => {
+            const qty = inventoryCountFromRow(row);
+            if (qty <= 0) return;
+            const bName = boardNameFromPinKey(pinKey);
+            if (!boardsState[bName]) return;
+            const by = staffBreakdownText(staffMapFromRow(row)) || ((row && row.by) ? String(row.by) : "staff");
+            boardsState[bName].allClaims[pinKey] = { inventory: { time: row && row.time, label: by, count: qty } };
+            boardsState[bName].globalBoardClaims++;
+            boardsState[bName].myClaims += qty;
+            isoMyPinKeysSession.add(pinKey);
+            latestClaimsData[pinKey] = boardsState[bName].allClaims[pinKey];
+            applyQtyUi(document.getElementById(`pin-${pinKey}`), qty, by);
+        });
+        updateAllBoardDisplays();
+        calculateGlobals();
+        lastMyRequestsCount = Object.values(boardsState).reduce((acc, s) => acc + (s.myClaims || 0), 0);
+
+        const hash = window.location.hash;
+        if (hash.startsWith('#pin-')) {
+            const target = document.querySelector(hash);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('flash-pin');
+                setTimeout(() => target.classList.remove('flash-pin'), 3000);
+            }
+        }
+    });
+}
+
+function updateAllBoardDisplays() {
+    Object.keys(boardsState).forEach(updateBoardDisplay);
+}
+
+function updateBoardDisplay(name) {
+    const s  = boardsState[name];
+    const el = document.getElementById(`count-${name}`);
+    if (el) {
+        if (isAdmin) {
+            el.style.display = "";
+            el.textContent = `Pins: ${s.totalPins} | In stock: ${s.myClaims} on ${s.globalBoardClaims} pins`;
+        } else {
+            el.style.display = "none";
+            el.textContent = "";
+        }
+    }
+    if (isAdmin) {
+        const adminEl = document.getElementById(`admin-count-${name}`);
+        if (adminEl) {
+            if (!s.globalBoardClaims) {
+                adminEl.textContent = "None in stock yet";
+            } else {
+                adminEl.textContent = `${s.globalBoardClaims} in stock · ${s.myClaims} units`;
+            }
+        }
+    }
+}
+
+function calculateGlobals() {
+    let total = 0, units = 0, skus = 0, qtyOne = 0, qtyMany = 0;
+    Object.values(boardsState).forEach(s => { total += s.totalPins || 0; });
+    if (isLiteMode) {
+        if (globalAllBoardPinCountReady) total = globalAllBoardPinCount;
+    }
+    Object.entries(latestInventoryData || {}).forEach(([, row]) => {
+        const qty = inventoryCountFromRow(row);
+        if (qty <= 0) return;
+        skus++;
+        units += qty;
+        if (qty === 1) qtyOne++; else qtyMany++;
+    });
+    document.getElementById("totalPins").textContent = total;
+    document.getElementById("totalMyClaims").textContent = units;
+    if (isAdmin) {
+        document.getElementById("adminTotalPins").textContent = total;
+        document.getElementById("adminTotalRequested").textContent = skus;
+        document.getElementById("adminUnique").textContent = qtyOne;
+        document.getElementById("adminContested").textContent = qtyMany;
+        document.getElementById("adminTotalUsers").textContent = units;
+    }
+    updateFuelGauge(units);
+    if (typeof refreshIsoBoardExportFab === "function") refreshIsoBoardExportFab(skus);
+}
+
+// ── ISO virtual board photo export (feature-flagged; removable) ─────────
+// D23 wishlist board: upright crops, count-only FAB (no $). Generate/save analytics kept.
+const ISO_EXPORT_MAX_PER_PAGE = 40;
+const ISO_EXPORT_BOARD_W = 1400;
+const ISO_EXPORT_BG = "#5c3d78";
+/** Bottom band for corner brand marks — pins stay above this strip. */
+const ISO_EXPORT_LOGO_STRIP = 288;
+const ISO_EXPORT_LOGO_FINS = "./fins-and-pins-logo-white.png";
+const ISO_EXPORT_LOGO_PIG = "./collection-detection-app-icon.png";
+let isoBrandLogos = { fins: null, pig: null };
+let isoBrandLogosPromise = null;
+
+function loadIsoBrandImage(src) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+    });
+}
+
+async function ensureIsoBrandLogos() {
+    if (!isoBrandLogosPromise) {
+        isoBrandLogosPromise = Promise.all([
+            loadIsoBrandImage(ISO_EXPORT_LOGO_FINS),
+            loadIsoBrandImage(ISO_EXPORT_LOGO_PIG)
+        ]).then(([fins, pig]) => {
+            isoBrandLogos = { fins, pig };
+            return isoBrandLogos;
+        });
+    }
+    return isoBrandLogosPromise;
+}
+
+/** Fins & Pins (left) + Collection Detection (right) — drawn only in the reserved bottom strip. */
+function drawIsoCornerLogos(ctx, w, h) {
+    const pad = 20;
+    // 4× prior ~52px mark; keep inside the pin-free strip and leave a gap between corners.
+    const targetH = 208;
+    const maxH = Math.max(48, ISO_EXPORT_LOGO_STRIP - pad * 2);
+    let logoH = Math.min(targetH, maxH);
+    const maxWEach = Math.max(48, (w - pad * 3) / 2);
+    const { fins, pig } = isoBrandLogos;
+    if (fins && fins.naturalWidth) {
+        let scale = logoH / fins.naturalHeight;
+        let dw = Math.max(1, fins.naturalWidth * scale);
+        if (dw > maxWEach) {
+            scale = maxWEach / fins.naturalWidth;
+            dw = maxWEach;
+            logoH = Math.min(logoH, fins.naturalHeight * scale);
+        }
+        const dh = fins.naturalHeight * scale;
+        ctx.drawImage(fins, pad, h - pad - dh, dw, dh);
+    }
+    if (pig && pig.naturalWidth) {
+        const side = Math.min(logoH, maxWEach);
+        ctx.drawImage(pig, w - pad - side, h - pad - side, side, side);
+    }
+}
+let isoExportCancelRequested = false;
+let isoExportRunning = false;
+const isoBoardImageCache = new Map();
+const isoBoardJsonCache = new Map();
+
+function isoExportFeatureOn() {
+    if (!ISO_VIRTUAL_BOARD_EXPORT_ENABLED) return false;
+    try {
+        const q = new URLSearchParams(location.search).get("isoExport");
+        if (q === "0" || q === "false" || q === "off") return false;
+    } catch (e) { /* ignore */ }
+    return true;
+}
+
+/** Crop stem for a claims pinKey (read-only). */
+function isoCropStemForPinKey(pk) {
+    if (!pk) return "";
+    const el = document.getElementById(`pin-${pk}`);
+    return (el && el.dataset.cropStem) || "";
+}
+
+/** D23 wishlist board: count only (no $ — these aren’t priced inventory for this show). */
+function computeMyIsoClickedCount(myCountHint) {
+    return myCountHint != null
+        ? myCountHint
+        : Number(document.getElementById("totalMyClaims")?.textContent || 0);
+}
+
+function refreshIsoBoardExportFab(myCount) {
+    const fab = document.getElementById("isoBoardExportFab");
+    if (!fab) return;
+    if (!isoExportFeatureOn()) {
+        fab.style.display = "none";
+        fab.disabled = true;
+        return;
+    }
+    fab.style.display = "block";
+    const n = computeMyIsoClickedCount(myCount);
+    const label = `Create Virtual Pin Board of ${n} Clicked Pins`;
+    fab.textContent = label;
+    fab.title = label;
+    fab.setAttribute("aria-label", label);
+    fab.disabled = isoExportRunning || !(n > 0);
+}
+
+function parseIsoPinKey(pinKey) {
+    const m = String(pinKey).match(/^(PAGE_\d+)-(\d+)$/i) || String(pinKey).match(/^(.+)-(\d+)$/);
+    if (!m) return null;
+    return { board: m[1], idx: Number(m[2]) };
+}
+
+function isoClaimMapIsMine(uMap, userKey) {
+    if (!uMap || typeof uMap !== "object") return false;
+    if (uMap[userKey]) return true;
+    const want = normalizeUserDisplayName(displayName || "");
+    if (!want || /^Guest_/i.test(want)) return false;
+    return Object.entries(uMap).some(([, meta]) => {
+        const lab = meta && typeof meta.label === "string" ? normalizeUserDisplayName(meta.label) : "";
+        return lab && lab === want;
+    });
+}
+
+function isoAddKeysFromClaimsMap(keySet, map, userKey) {
+    if (!map || typeof map !== "object") return;
+    Object.entries(map).forEach(([pinKey, uMap]) => {
+        if (isoClaimMapIsMine(uMap, userKey)) keySet.add(pinKey);
+    });
+}
+
+/**
+ * Pins currently in stock (qty ≥ 1). Never writes claims/ or live CTR Firebase.
+ */
+async function collectMyIsoPinKeys() {
+    const keySet = new Set();
+    Object.entries(latestInventoryData || {}).forEach(([pk, row]) => {
+        if (inventoryCountFromRow(row) >= 1) keySet.add(pk);
+    });
+    document.querySelectorAll(".pin.pin-mine").forEach((el) => {
+        const id = el.id || "";
+        if (!id.startsWith("pin-")) return;
+        const rest = id.slice(4);
+        const m = rest.match(/^(PAGE_\d+)-(\d+)$/i) || rest.match(/^(.+)-(\d+)$/);
+        if (m) keySet.add(`${m[1]}-${m[2]}`);
+    });
+    const keys = Array.from(keySet);
+    const boardOrder = new Map((manifestBoardNames || []).map((n, i) => [n, i]));
+    keys.sort((a, b) => {
+        const pa = parseIsoPinKey(a);
+        const pb = parseIsoPinKey(b);
+        if (!pa || !pb) return String(a).localeCompare(String(b));
+        const oa = boardOrder.has(pa.board) ? boardOrder.get(pa.board) : 9999;
+        const ob = boardOrder.has(pb.board) ? boardOrder.get(pb.board) : 9999;
+        if (oa !== ob) return oa - ob;
+        return pa.idx - pb.idx;
+    });
+    return keys;
+}
+
+function yieldToUi() {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function loadIsoBoardJson(boardName) {
+    if (isoBoardJsonCache.has(boardName)) return isoBoardJsonCache.get(boardName);
+    const r = await fetch(`${boardAssetBase(boardName)}/${boardName}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(`Missing board JSON ${boardName}`);
+    const data = await r.json();
+    isoBoardJsonCache.set(boardName, data);
+    return data;
+}
+
+function loadIsoBoardImage(boardName) {
+    if (isoBoardImageCache.has(boardName)) return isoBoardImageCache.get(boardName);
+    const p = new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Missing board image ${boardName}`));
+        img.src = `${boardAssetBase(boardName)}/${boardName}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+    });
+    isoBoardImageCache.set(boardName, p);
+    return p;
+}
+
+function cropIsoPinCanvas(boardImg, pin, origW, origH) {
+    const sx = Math.max(0, Number(pin.x) - Number(pin.width) / 2);
+    const sy = Math.max(0, Number(pin.y) - Number(pin.height) / 2);
+    const sw = Math.min(Number(pin.width), (origW || boardImg.naturalWidth) - sx);
+    const sh = Math.min(Number(pin.height), (origH || boardImg.naturalHeight) - sy);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(sw));
+    c.height = Math.max(1, Math.round(sh));
+    const ctx = c.getContext("2d");
+    ctx.drawImage(boardImg, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+}
+
+/** Deterministic-ish PRNG so re-exports look similar for the same set size. */
+function isoMulberry32(seed) {
+    let t = seed >>> 0;
+    return function () {
+        t += 0x6D2B79F5;
+        let r = Math.imul(t ^ (t >>> 15), 1 | t);
+        r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function fillIsoBoardBackground(ctx, w, h) {
+    ctx.fillStyle = ISO_EXPORT_BG;
+    ctx.fillRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(w * 0.5, h * 0.45, Math.min(w, h) * 0.15, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+    g.addColorStop(0, "rgba(255,255,255,0.06)");
+    g.addColorStop(1, "rgba(0,0,0,0.22)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    const rand = isoMulberry32(0x2026d23 ^ (w * 17 + h));
+    ctx.fillStyle = "rgba(255,255,255,0.045)";
+    for (let i = 0; i < 900; i++) {
+        const x = rand() * w;
+        const y = rand() * h;
+        const s = 1 + rand() * 2.2;
+        ctx.fillRect(x, y, s, s);
+    }
+}
+
+/**
+ * Dense personal-board pack (D23 wishlist): upright crops, small foam gap, no overlap.
+ * Unlike sell-show boards, pins stay straight — easier to scan what you want from the event.
+ */
+function buildIsoPageCanvas(cropCanvases, pageSeed) {
+    const n = cropCanvases.length;
+    const rand = isoMulberry32((pageSeed || 1) * 9973 + n * 131);
+    const gap = 10;
+    const maxDim = n <= 6 ? 240 : (n <= 16 ? 200 : 168);
+
+    const items = cropCanvases.map((crop, i) => {
+        const scale = Math.min(maxDim / crop.width, maxDim / crop.height) * (0.92 + rand() * 0.16);
+        const dw = Math.max(1, crop.width * scale);
+        const dh = Math.max(1, crop.height * scale);
+        const rot = 0;
+        const aw = dw;
+        const ah = dh;
+        return { i, crop, dw, dh, rot, aw, ah };
+    });
+    items.sort((a, b) => (b.aw * b.ah) - (a.aw * a.ah));
+
+    function overlaps(cx, cy, aw, ah, placed) {
+        const l = cx - aw / 2 - gap / 2;
+        const r = cx + aw / 2 + gap / 2;
+        const t = cy - ah / 2 - gap / 2;
+        const b = cy + ah / 2 + gap / 2;
+        for (const p of placed) {
+            const pl = p.cx - p.aw / 2 - gap / 2;
+            const pr = p.cx + p.aw / 2 + gap / 2;
+            const pt = p.cy - p.ah / 2 - gap / 2;
+            const pb = p.cy + p.ah / 2 + gap / 2;
+            if (l < pr && r > pl && t < pb && b > pt) return true;
+        }
+        return false;
+    }
+
+    const placed = [];
+    const startPad = 24;
+    items.forEach((it, idx) => {
+        let best = null;
+        if (idx === 0) {
+            best = { cx: startPad + it.aw / 2, cy: startPad + it.ah / 2 };
+        } else {
+            const candidates = [];
+            placed.forEach((p) => {
+                const ox = (rand() - 0.5) * 14;
+                const oy = (rand() - 0.5) * 14;
+                candidates.push(
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap + ox, cy: p.cy + oy },
+                    { cx: p.cx + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap + oy },
+                    { cx: p.cx - (p.aw + it.aw) / 2 - gap + ox, cy: p.cy + oy },
+                    { cx: p.cx + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap + oy },
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap * 0.6 + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap * 0.6 + oy },
+                    { cx: p.cx + (p.aw + it.aw) / 2 + gap * 0.6 + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap * 0.6 + oy }
+                );
+            });
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            placed.forEach((p) => {
+                minX = Math.min(minX, p.cx - p.aw / 2);
+                minY = Math.min(minY, p.cy - p.ah / 2);
+                maxX = Math.max(maxX, p.cx + p.aw / 2);
+                maxY = Math.max(maxY, p.cy + p.ah / 2);
+            });
+            const midX = (minX + maxX) / 2;
+            const midY = (minY + maxY) / 2;
+            candidates.sort((a, b) => {
+                const da = (a.cx - midX) ** 2 + (a.cy - midY) ** 2;
+                const db = (b.cx - midX) ** 2 + (b.cy - midY) ** 2;
+                return da - db;
+            });
+            for (const c of candidates) {
+                if (c.cx - it.aw / 2 < 8 || c.cy - it.ah / 2 < 8) continue;
+                if (!overlaps(c.cx, c.cy, it.aw, it.ah, placed)) {
+                    best = c;
+                    break;
+                }
+            }
+            if (!best) {
+                const step = Math.max(12, Math.min(it.aw, it.ah) * 0.2);
+                outer: for (let rad = 0; rad < 40; rad++) {
+                    for (let gy = startPad + it.ah / 2; gy < maxY + it.ah + 80 + rad * step; gy += step) {
+                        for (let gx = startPad + it.aw / 2; gx < maxX + it.aw + 80 + rad * step; gx += step) {
+                            if (!overlaps(gx, gy, it.aw, it.ah, placed)) {
+                                best = { cx: gx, cy: gy };
+                                break outer;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!best) {
+                best = {
+                    cx: maxX + gap + it.aw / 2 + 4,
+                    cy: startPad + it.ah / 2
+                };
+            }
+        }
+        placed.push({ ...it, cx: best.cx, cy: best.cy });
+    });
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    placed.forEach((p) => {
+        minX = Math.min(minX, p.cx - p.aw / 2);
+        minY = Math.min(minY, p.cy - p.ah / 2);
+        maxX = Math.max(maxX, p.cx + p.aw / 2);
+        maxY = Math.max(maxY, p.cy + p.ah / 2);
+    });
+    const margin = 28;
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+    let w = Math.ceil(contentW + margin * 2);
+    let h = Math.ceil(contentH + margin * 2);
+    const maxW = ISO_EXPORT_BOARD_W;
+    const boardScale = w > maxW ? maxW / w : 1;
+    w = Math.max(280, Math.round(w * boardScale));
+    h = Math.max(240, Math.round(h * boardScale)) + ISO_EXPORT_LOGO_STRIP;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    fillIsoBoardBackground(ctx, w, h);
+
+    const ox = margin * boardScale - minX * boardScale;
+    const oy = margin * boardScale - minY * boardScale;
+    const byOrig = placed.slice().sort((a, b) => a.i - b.i);
+    byOrig.forEach((p) => {
+        ctx.save();
+        ctx.translate(p.cx * boardScale + ox, p.cy * boardScale + oy);
+        ctx.rotate(p.rot);
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 7;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 2;
+        ctx.drawImage(p.crop, -(p.dw * boardScale) / 2, -(p.dh * boardScale) / 2, p.dw * boardScale, p.dh * boardScale);
+        ctx.restore();
+    });
+    drawIsoCornerLogos(ctx, w, h);
+    return canvas;
+}
+
+function canvasToJpegBlob(canvas, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("JPEG encode failed"))), "image/jpeg", quality);
+    });
+}
+
+async function saveIsoJpegBlob(blob, filename) {
+    const file = new File([blob], filename, { type: "image/jpeg" });
+    // Prefer Share sheet so iPhone/iPad can Save Image → Camera Roll.
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: filename });
+            return "shared";
+        } catch (e) {
+            if (e && e.name === "AbortError") return "aborted";
+        }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return "download";
+}
+
+function isoLikelyNeedsPhotosShare() {
+    const ua = navigator.userAgent || "";
+    return /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function setIsoExportProgress(done, total, status, startedAt) {
+    const bar = document.getElementById("isoBoardExportBar");
+    const st = document.getElementById("isoBoardExportStatus");
+    const eta = document.getElementById("isoBoardExportEta");
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    if (bar) bar.style.width = pct + "%";
+    if (st && status) st.textContent = status;
+    if (eta) {
+        if (!startedAt || done <= 0) {
+            eta.textContent = "Estimating time…";
+        } else {
+            const elapsed = (Date.now() - startedAt) / 1000;
+            const rate = done / elapsed;
+            const remain = Math.max(0, Math.ceil((total - done) / Math.max(rate, 0.05)));
+            eta.textContent = remain <= 1 ? "Almost done…" : `About ${remain}s remaining`;
+        }
+    }
+}
+
+function setIsoExportBuildMode() {
+    const track = document.getElementById("isoBoardExportTrack");
+    const eta = document.getElementById("isoBoardExportEta");
+    const previewWrap = document.getElementById("isoBoardExportPreviewWrap");
+    const actions = document.getElementById("isoBoardExportSaveActions");
+    const title = document.getElementById("isoBoardExportTitle");
+    if (title) title.textContent = "Building virtual pin board";
+    if (track) track.style.display = "";
+    if (eta) eta.style.display = "";
+    if (previewWrap) previewWrap.classList.remove("show");
+    if (actions) actions.classList.remove("show");
+}
+
+function setIsoExportSaveMode(pageIndex, pageCount, previewUrl) {
+    const track = document.getElementById("isoBoardExportTrack");
+    const eta = document.getElementById("isoBoardExportEta");
+    const previewWrap = document.getElementById("isoBoardExportPreviewWrap");
+    const preview = document.getElementById("isoBoardExportPreview");
+    const actions = document.getElementById("isoBoardExportSaveActions");
+    const saveBtn = document.getElementById("isoBoardExportSaveBtn");
+    const title = document.getElementById("isoBoardExportTitle");
+    const st = document.getElementById("isoBoardExportStatus");
+    if (title) title.textContent = `Save photo ${pageIndex} of ${pageCount}`;
+    if (track) track.style.display = "none";
+    if (eta) {
+        eta.style.display = "";
+        eta.textContent = isoLikelyNeedsPhotosShare()
+            ? 'Tap Save to Photos, then choose “Save Image” for your Camera Roll.'
+            : "Tap Save to Photos to download this board photo.";
+    }
+    if (st) {
+        st.textContent = isoLikelyNeedsPhotosShare()
+            ? "Safari can’t write straight to Camera Roll — use the share sheet."
+            : `Ready: Inventory_20260904-ISO-${pageIndex}of${pageCount}.jpg`;
+    }
+    if (preview && previewUrl) preview.src = previewUrl;
+    if (previewWrap) previewWrap.classList.add("show");
+    if (actions) actions.classList.add("show");
+    if (saveBtn) {
+        saveBtn.textContent = isoLikelyNeedsPhotosShare() ? "Save to Photos…" : "Download photo";
+        saveBtn.disabled = false;
+    }
+}
+
+function openIsoExportOverlay() {
+    const el = document.getElementById("isoBoardExportOverlay");
+    if (el) el.style.display = "flex";
+    setIsoExportBuildMode();
+}
+
+function closeIsoExportOverlay() {
+    const el = document.getElementById("isoBoardExportOverlay");
+    if (el) el.style.display = "none";
+    const preview = document.getElementById("isoBoardExportPreview");
+    if (preview && preview.src && preview.src.startsWith("blob:")) {
+        URL.revokeObjectURL(preview.src);
+        preview.removeAttribute("src");
+    }
+    setIsoExportBuildMode();
+}
+
+/** One photo at a time — iOS drops earlier downloads if we fire several at once. */
+function waitForIsoPageSave(blob, filename, pageIndex, pageCount) {
+    return new Promise((resolve) => {
+        const previewUrl = URL.createObjectURL(blob);
+        setIsoExportSaveMode(pageIndex, pageCount, previewUrl);
+        const saveBtn = document.getElementById("isoBoardExportSaveBtn");
+        const skipBtn = document.getElementById("isoBoardExportSkipBtn");
+        let settled = false;
+
+        const cleanup = () => {
+            if (saveBtn) saveBtn.onclick = null;
+            if (skipBtn) skipBtn.onclick = null;
+            clearInterval(poll);
+            URL.revokeObjectURL(previewUrl);
+            const preview = document.getElementById("isoBoardExportPreview");
+            if (preview) preview.removeAttribute("src");
+        };
+
+        const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(result);
+        };
+
+        const poll = setInterval(() => {
+            if (isoExportCancelRequested) finish("aborted");
+        }, 200);
+
+        if (saveBtn) {
+            saveBtn.onclick = async () => {
+                if (isoExportCancelRequested) return finish("aborted");
+                saveBtn.disabled = true;
+                saveBtn.textContent = "Opening share sheet…";
+                const how = await saveIsoJpegBlob(blob, filename);
+                if (how === "aborted") {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = isoLikelyNeedsPhotosShare() ? "Save to Photos…" : "Download photo";
+                    const st = document.getElementById("isoBoardExportStatus");
+                    if (st) st.textContent = "Save cancelled — tap again when ready, or Skip.";
+                    return;
+                }
+                finish(how);
+            };
+        }
+        if (skipBtn) skipBtn.onclick = () => finish("skipped");
+    });
+}
+
+async function runIsoVirtualBoardExport() {
+    if (!isoExportFeatureOn() || isoExportRunning) return;
+    refreshIsoBoardExportFab();
+    const keys = await collectMyIsoPinKeys();
+    if (!keys.length) {
+        showToast("Select at least one pin first.");
+        return;
+    }
+    isoExportRunning = true;
+    isoExportCancelRequested = false;
+    refreshIsoBoardExportFab(keys.length);
+    openIsoExportOverlay();
+    await ensureIsoBrandLogos();
+    recordVirtualBoardEvent("generate", { pinCount: keys.length, pages: 0 });
+    const startedAt = Date.now();
+    const pagesNeeded = Math.max(1, Math.ceil(keys.length / ISO_EXPORT_MAX_PER_PAGE));
+    const totalUnits = keys.length + pagesNeeded;
+    let doneUnits = 0;
+    try {
+        const crops = [];
+        for (let i = 0; i < keys.length; i++) {
+            if (isoExportCancelRequested) throw new Error("cancelled");
+            const parsed = parseIsoPinKey(keys[i]);
+            if (!parsed) {
+                doneUnits++;
+                setIsoExportProgress(doneUnits, totalUnits, `Skipping unknown pin ${keys[i]}…`, startedAt);
+                await yieldToUi();
+                continue;
+            }
+            setIsoExportProgress(
+                doneUnits,
+                totalUnits,
+                `Cropping pin ${i + 1} of ${keys.length} (board ${parsed.board})…`,
+                startedAt
+            );
+            const data = await loadIsoBoardJson(parsed.board);
+            const pins = data.predictions || data.output?.predictions || [];
+            const pin = pins[parsed.idx];
+            if (!pin) {
+                doneUnits++;
+                await yieldToUi();
+                continue;
+            }
+            const boardImg = await loadIsoBoardImage(parsed.board);
+            const origW = Number(data.image?.width) || boardImg.naturalWidth;
+            const origH = Number(data.image?.height) || boardImg.naturalHeight;
+            crops.push(cropIsoPinCanvas(boardImg, pin, origW, origH));
+            doneUnits++;
+            setIsoExportProgress(doneUnits, totalUnits, `Cropped ${i + 1} of ${keys.length}…`, startedAt);
+            await yieldToUi();
+        }
+        if (!crops.length) throw new Error("No pin images could be cropped.");
+        const pageCount = Math.ceil(crops.length / ISO_EXPORT_MAX_PER_PAGE);
+        let savedCount = 0;
+        for (let p = 0; p < pageCount; p++) {
+            if (isoExportCancelRequested) throw new Error("cancelled");
+            const slice = crops.slice(p * ISO_EXPORT_MAX_PER_PAGE, (p + 1) * ISO_EXPORT_MAX_PER_PAGE);
+            setIsoExportBuildMode();
+            setIsoExportProgress(
+                doneUnits,
+                totalUnits,
+                `Building photo ${p + 1} of ${pageCount}…`,
+                startedAt
+            );
+            await yieldToUi();
+            const canvas = buildIsoPageCanvas(slice, p + 1);
+            const blob = await canvasToJpegBlob(canvas, 0.92);
+            const filename = `Inventory_20260904-ISO-${p + 1}of${pageCount}.jpg`;
+            const how = await waitForIsoPageSave(blob, filename, p + 1, pageCount);
+            if (how === "aborted") throw new Error("cancelled");
+            if (how === "shared" || how === "download") savedCount++;
+            doneUnits++;
+            setIsoExportProgress(doneUnits, totalUnits, `Finished photo ${p + 1} of ${pageCount}`, startedAt);
+            await yieldToUi();
+        }
+        setIsoExportBuildMode();
+        setIsoExportProgress(
+            totalUnits,
+            totalUnits,
+            savedCount
+                ? `Done — saved ${savedCount} of ${pageCount} photo${pageCount > 1 ? "s" : ""}.`
+                : "Done — no photos were saved.",
+            startedAt
+        );
+        const eta = document.getElementById("isoBoardExportEta");
+        if (eta) {
+            eta.textContent = isoLikelyNeedsPhotosShare()
+                ? "In Photos? Check Recents. Then: Trade → Add ISO Pins in the app."
+                : "Upload in the app: Trade → Add ISO Pins";
+        }
+        if (savedCount) {
+            recordVirtualBoardEvent("save", { pinCount: crops.length, pages: savedCount });
+            showToast(`Saved ${savedCount} ISO board photo${savedCount > 1 ? "s" : ""}.`);
+        }
+        setTimeout(() => closeIsoExportOverlay(), 1400);
+    } catch (e) {
+        if (String(e && e.message) === "cancelled") {
+            showToast("ISO photo export cancelled.");
+        } else {
+            console.warn("[ISO export]", e);
+            showToast("Could not build ISO photos. Please try again.");
+        }
+        closeIsoExportOverlay();
+    } finally {
+        isoExportRunning = false;
+        refreshIsoBoardExportFab();
+    }
+}
+
+(function initIsoVirtualBoardExport() {
+    const fab = document.getElementById("isoBoardExportFab");
+    const cancelBtn = document.getElementById("isoBoardExportCancelBtn");
+    if (!fab) return;
+    refreshIsoBoardExportFab(0);
+    fab.addEventListener("click", () => {
+        if (fab.disabled || isoExportRunning) return;
+        runIsoVirtualBoardExport();
+    });
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
+            isoExportCancelRequested = true;
+            if (!isoExportRunning) closeIsoExportOverlay();
+        });
+    }
+})();
+</script>
+<style id="_ctcPriceOverlayCss">
+.pin-pb {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.78);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 101;
+    line-height: 1.4;
+}
+/* not_a_pin only — unpriced / no_match pins stay claimable without a badge */
+.pin.pin-nap {
+    visibility: hidden;
+    pointer-events: none;
+}
+</style>
+<script id="_ctcPriceOverlay">
+// Price overlay — 20260723. Badges ONLY for Firebase match + positive price.
+// Live RTDB listener (no refresh). Rounded list/show price only (no 20% discount).
+// Visibility mode from reports.html (localStorage); default = hidden.
+(function() {
+const _PO_TR = 'test_PriceCollection_20260721_2320__build_4960_visual_baseline';
+const _PO_AP = 'visual_baseline';
+const _PO_MODE_KEY = '_ctcPriceMode_20260723';
+const _PO_PINS_PATH = `pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins`;
+
+let _priceMode = localStorage.getItem(_PO_MODE_KEY) || 'none';
+const _pricesSnap = {};   // stem -> raw (match-only snapshot; fallback when FB match lacks display_price)
+const _stemToPrice = {};  // stem -> raw confirmed show price
+const _napStems = new Set();
+
+function _roundForShow(raw) {
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    if (raw < 10) return 10;
+    return Math.ceil(raw / 5) * 5;
+}
+
+function _normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, '_') : '';
+}
+
+function _rememberSnap(stem, price) {
+    if (!stem || !isFinite(price) || price <= 0) return;
+    _pricesSnap[stem] = price;
+    const norm = _normStem(stem);
+    if (norm) _pricesSnap[norm] = price;
+}
+
+function _indexStem(stem, price) {
+    if (!stem || !isFinite(price) || price <= 0) return;
+    _stemToPrice[stem] = price;
+    const norm = _normStem(stem);
+    if (norm) _stemToPrice[norm] = price;
+}
+
+function _clearLiveMaps() {
+    for (const k of Object.keys(_stemToPrice)) delete _stemToPrice[k];
+    _napStems.clear();
+}
+
+function _snapForStem(stem) {
+    if (!stem) return null;
+    let p = _pricesSnap[stem];
+    if (p == null) p = _pricesSnap[_normStem(stem)];
+    return (p != null && isFinite(p) && p > 0) ? p : null;
+}
+
+function _rawForPin(pinEl) {
+    const stem = pinEl && pinEl.dataset.cropStem;
+    if (!stem) return null;
+    let price = _stemToPrice[stem];
+    if (price == null) price = _stemToPrice[_normStem(stem)];
+    return (price != null && isFinite(price) && price > 0) ? price : null;
+}
+
+function _isNapPin(pinEl) {
+    const stem = pinEl && pinEl.dataset.cropStem;
+    if (!stem) return false;
+    return _napStems.has(stem) || _napStems.has(_normStem(stem));
+}
+
+function _badgeVisible(pinEl) {
+    if (_priceMode === 'none') return false;
+    if (_priceMode === 'all') return true;
+    return ['selection-green', 'selection-before', 'selection-now', 'pin-mine']
+        .some(c => pinEl.classList.contains(c));
+}
+
+function _updateBadgeViz(pinEl) {
+    const badge = pinEl.querySelector('.pin-pb');
+    if (badge) badge.style.display = _badgeVisible(pinEl) ? '' : 'none';
+}
+
+function _refreshAllBadges() {
+    document.querySelectorAll('.pin').forEach(_updateBadgeViz);
+}
+
+function _applyPin(pinEl) {
+    if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
+    const nap = _isNapPin(pinEl);
+    pinEl.classList.toggle('pin-nap', nap);
+    if (nap) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
+    const raw = _rawForPin(pinEl);
+    if (raw == null) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
+    const rounded = _roundForShow(raw);
+    if (rounded === 0) {
+        const old = pinEl.querySelector('.pin-pb');
+        if (old) old.remove();
+        return;
+    }
+    let badge = pinEl.querySelector('.pin-pb');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'pin-pb';
+        pinEl.appendChild(badge);
+    }
+    badge.textContent = '$' + rounded;
+    _updateBadgeViz(pinEl);
+}
+
+function _applyAllPins() {
+    document.querySelectorAll('.pin').forEach(_applyPin);
+}
+
+function _applyMode(mode) {
+    if (!['all', 'clicked', 'none'].includes(mode)) mode = 'none';
+    _priceMode = mode;
+    _refreshAllBadges();
+}
+
+/** Optional price helper for overlays (not used by D23 virtual-board FAB). */
+window._ctcRoundedShowPriceForStem = function(stem) {
+    if (!stem) return 0;
+    let raw = _stemToPrice[stem];
+    if (raw == null) raw = _stemToPrice[_normStem(stem)];
+    if (raw == null) raw = _snapForStem(stem);
+    return _roundForShow(raw);
+};
+
+window.addEventListener('storage', (e) => {
+    if (e.key === _PO_MODE_KEY) _applyMode(e.newValue || 'none');
+});
+
+try {
+    const bc = new BroadcastChannel('ctc_price_mode_20260723');
+    bc.onmessage = (ev) => {
+        if (ev && ev.data && ev.data.mode) _applyMode(ev.data.mode);
+    };
+} catch (_) {}
+
+const _pinAddObs = new MutationObserver(muts => {
+    muts.forEach(m => m.addedNodes.forEach(n => {
+        if (n.nodeType === 1 && n.classList && n.classList.contains('pin')) _applyPin(n);
+    }));
+});
+_pinAddObs.observe(document.body, { childList: true, subtree: true });
+
+const _pinClsObs = new MutationObserver(muts => {
+    muts.forEach(m => {
+        if (m.type === 'attributes' && m.target.classList && m.target.classList.contains('pin')) {
+            _updateBadgeViz(m.target);
+        }
+    });
+});
+_pinClsObs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+function _stemFromFbPin(domKey, pin) {
+    const cf = pin.crop_filename || '';
+    const cropStem = cf.replace(/\.(jpe?g|png)$/i, '');
+    if (cropStem) return cropStem;
+    const pk = pin.pin_key || domKey;
+    if (pk.includes('.jpg__')) return pk.split('.jpg__')[0];
+    if (domKey.includes('_jpg__')) return domKey.split('_jpg__')[0].replace(/_jpg$/, '');
+    return null;
+}
+
+function _priceFromMatchPin(pin, stem) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === 'object') {
+        const sp = Number(sc.price != null ? sc.price : sc.total_price);
+        if (isFinite(sp) && sp > 0) return sp;
+    }
+    return _snapForStem(stem);
+}
+
+function _ingestFirebasePins(all) {
+    _clearLiveMaps();
+    let nMatch = 0, nPriced = 0, nNap = 0;
+    for (const [domKey, pin] of Object.entries(all || {})) {
+        if (!pin) continue;
+        const stem = _stemFromFbPin(domKey, pin);
+        if (!stem) continue;
+        const status = pin.match_status || '';
+        if (status === 'not_a_pin') {
+            _napStems.add(stem);
+            _napStems.add(_normStem(stem));
+            nNap++;
+            continue;
+        }
+        if (status !== 'match') continue;
+        nMatch++;
+        const raw = _priceFromMatchPin(pin, stem);
+        if (raw != null) { _indexStem(stem, raw); nPriced++; }
+    }
+    console.info(`[PriceOverlay] live FB: match=${nMatch} priced=${nPriced} nap=${nNap}`);
+    _applyAllPins();
+    _applyMode(_priceMode);
+}
+
+(async function _bootPriceOverlay() {
+    try {
+        const res = await fetch('./prices.json', { cache: 'no-store' });
+        const snap = await res.json();
+        for (const [stem, raw] of Object.entries(snap || {})) _rememberSnap(stem, Number(raw));
+        console.info(`[PriceOverlay] prices.json fallback map: ${Object.keys(snap || {}).length}`);
+    } catch (e) {
+        console.warn('[PriceOverlay] prices.json load failed:', e);
+    }
+
+    // Prefer live listener so Lexi/Steve Match + price writes appear without refresh.
+    try {
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            firebase.database().ref(_PO_PINS_PATH).on('value', snap => {
+                _ingestFirebasePins(snap.val() || {});
+            }, err => {
+                console.warn('[PriceOverlay] Firebase listener failed:', err);
+            });
+            return;
+        }
+    } catch (e) {
+        console.warn('[PriceOverlay] Firebase listener setup failed:', e);
+    }
+
+    // Fallback: one-shot REST fetch if SDK unavailable.
+    try {
+        const fbUrl = `https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/${_PO_PINS_PATH}.json`;
+        const fbRes = await fetch(fbUrl);
+        _ingestFirebasePins(await fbRes.json());
+    } catch (e) {
+        console.warn('[PriceOverlay] Firebase REST fallback failed:', e);
+        _applyAllPins();
+        _applyMode(_priceMode);
+    }
+})();
+})();
+</script>
+</body>
+</html>

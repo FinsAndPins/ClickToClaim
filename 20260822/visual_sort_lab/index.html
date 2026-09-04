@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Visual sort lab · 20260822</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #111; color: #eee; min-height: 100vh;
+  }
+  #hdr {
+    position: sticky; top: 0; z-index: 100; background: #1a1a1a;
+    border-bottom: 1px solid #333; padding-top: env(safe-area-inset-top, 0);
+  }
+  .hdr-row {
+    min-height: 48px; display: flex; align-items: center;
+    padding: 8px 12px; gap: 8px; flex-wrap: wrap;
+  }
+  .hdr-title { font-size: 15px; font-weight: 600; flex: 1; min-width: 140px; line-height: 1.25; }
+  .hdr-sub { display: block; font-size: 11px; color: #888; font-weight: 500; margin-top: 2px; }
+  .hdr-count { font-size: 12px; color: #888; }
+  a.btn, button.btn {
+    height: 34px; padding: 0 11px; border-radius: 8px; border: 1px solid #333;
+    background: #222; color: #eee; font-size: 13px; text-decoration: none;
+    display: inline-flex; align-items: center; cursor: pointer; font-family: inherit;
+  }
+  a.btn.primary, button.btn.primary { background: #1e4fa0; border-color: #2a6eff; }
+  .filter-bar {
+    display: flex; gap: 5px; padding: 6px 10px 10px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .fb {
+    flex-shrink: 0; padding: 5px 10px; border-radius: 14px; font-size: 12px;
+    border: 1px solid #3a3a3a; background: #222; color: #888; cursor: pointer;
+  }
+  .fb.active { background: #1e4fa0; color: #fff; border-color: #2a5298; }
+  #hint {
+    padding: 8px 12px 0; font-size: 12px; color: #888; line-height: 1.4;
+  }
+  #hint strong { color: #bbb; font-weight: 600; }
+  #grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 3px; padding: 10px 2px 40px;
+  }
+  .card {
+    position: relative; background: #1a1a1a; border-radius: 4px; overflow: hidden;
+    aspect-ratio: 1; border: 2px solid #333; cursor: pointer;
+  }
+  .card.mine { border-color: #2ecc71; box-shadow: inset 0 0 0 2px rgba(46,204,113,0.35); }
+  .card.sold { border-color: #a33; opacity: 0.55; }
+  .card.nap, .card.hidden-pin { display: none; }
+  .card.contested:not(.mine) { border-color: #c9a227; }
+  .card img { width: 100%; height: 100%; object-fit: contain; background: #222; display: block; }
+  .card .tag {
+    position: absolute; left: 3px; bottom: 3px; background: rgba(0,0,0,0.78);
+    color: #ddd; font-size: 10px; font-weight: 600; padding: 2px 4px; border-radius: 3px;
+    max-width: calc(100% - 6px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .card .badge {
+    position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.82);
+    color: #fff; font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 3px;
+  }
+  .card.mine .badge { background: #1e7a45; }
+  .card.sold .badge { background: #822; }
+  .empty { padding: 40px 16px; text-align: center; color: #777; font-size: 14px; grid-column: 1 / -1; }
+  #loginOverlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  #loginOverlay .box {
+    background: #1c1c1c; border: 1px solid #333; border-radius: 12px;
+    padding: 20px; max-width: 360px; width: 100%;
+  }
+  #loginOverlay h2 { font-size: 18px; margin-bottom: 8px; }
+  #loginOverlay p { font-size: 13px; color: #aaa; margin-bottom: 12px; line-height: 1.4; }
+  #loginOverlay input {
+    width: 100%; height: 42px; border-radius: 8px; border: 1px solid #444;
+    background: #111; color: #fff; padding: 0 12px; font-size: 16px; margin-bottom: 12px;
+  }
+  #toast {
+    position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0));
+    transform: translateX(-50%) translateY(120%);
+    background: rgba(20,20,20,0.94); color: #fff; border: 1px solid #444;
+    border-radius: 10px; padding: 10px 14px; font-size: 13px; max-width: min(92vw, 420px);
+    z-index: 4000; transition: transform 0.25s ease; pointer-events: none; text-align: center;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div class="hdr-row">
+    <div class="hdr-title">
+      Visual sort lab
+      <span class="hdr-sub">20260822 · same clicks as boards · test only</span>
+    </div>
+    <span class="hdr-count" id="hdr-count">…</span>
+    <a class="btn" href="../index.html">Boards</a>
+  </div>
+  <div class="filter-bar" id="sort-bar">
+    <button type="button" class="fb active" data-sort="visual">Visual order</button>
+    <button type="button" class="fb" data-sort="board">Board order</button>
+  </div>
+  <div class="filter-bar" id="filter-bar">
+    <button type="button" class="fb active" data-filter="avail">Available</button>
+    <button type="button" class="fb" data-filter="mine">My clicks</button>
+    <button type="button" class="fb" data-filter="all">All</button>
+  </div>
+</div>
+<p id="hint"><strong>Tap a pin to request / un-request</strong> — uses the same Firebase claims as the usual CTR boards page (shared identity on this browser). Obscure URL; not linked from Reports.</p>
+<div id="grid"><div class="empty">Loading…</div></div>
+
+<div id="loginOverlay">
+  <div class="box">
+    <h2>Whatnot username</h2>
+    <p>Same login as Click To Request. Leaves blank = guest name. Clicks sync with the boards page on this device.</p>
+    <input id="usernameInput" type="text" placeholder="@yourname" autocomplete="username" enterkeyhint="done">
+    <button type="button" class="btn primary" style="width:100%;justify-content:center" id="loginBtn">Continue</button>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+(function () {
+  const SHOW = "20260822";
+  const FB_NAME = SHOW;
+  const PRICING_RUN = "test_PriceCollection_20260821_1147__build_20260822_fullres_visual_baseline";
+  const PINS_PATH = `pin_pricing_tests/${PRICING_RUN}/visual_baseline/pins`;
+  const SOLD_PATH = `showConfig/${SHOW}/soldStems`;
+  const PENDING_PATH = `showConfig/${SHOW}/pendingStems`;
+  const HIDDEN_PATH = `hiddenPins/${SHOW}`;
+
+  const FB_CFG = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+  };
+
+  firebase.initializeApp(FB_CFG);
+  const db = firebase.database();
+
+  /** @type {{stem:string,board:string,idx:number,pinKey:string,thumb:string,rank:number}[]} */
+  let pins = [];
+  let sortMode = "visual";
+  let filter = "avail";
+  /** pinKey → users map */
+  let claimsData = {};
+  const soldStems = new Set();
+  const napStems = new Set();
+  const pendingStems = new Set();
+  const hiddenPinKeys = new Set();
+  let toastTimer = null;
+
+  function sanitizeUserKey(id) {
+    return String(id).replace(/[.#$\[\]\/]/g, "_");
+  }
+  function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+  }
+  function ensureIdentity() {
+    let id = localStorage.getItem("fp_identity");
+    if (!id) {
+      if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+        id = "id_" + [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, "0")).join("");
+      } else {
+        id = "id_" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      }
+      localStorage.setItem("fp_identity", id);
+    }
+    return id;
+  }
+  function normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, "_") : "";
+  }
+  function isSold(stem) {
+    return soldStems.has(stem) || soldStems.has(normStem(stem));
+  }
+  function isNap(stem) {
+    return napStems.has(stem) || napStems.has(normStem(stem));
+  }
+  function isPending(stem) {
+    return pendingStems.has(stem) || pendingStems.has(normStem(stem));
+  }
+  function showToast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+  }
+
+  const identityKey = ensureIdentity();
+  let displayName = localStorage.getItem("fp_display_name") || "";
+  if (!displayName && localStorage.getItem("fp_username")) {
+    displayName = localStorage.getItem("fp_username");
+    localStorage.setItem("fp_display_name", displayName);
+  }
+  if (displayName) {
+    const n = normalizeUserDisplayName(displayName);
+    if (n !== displayName) {
+      displayName = n;
+      localStorage.setItem("fp_display_name", displayName);
+    }
+  }
+
+  function boardNum(board) {
+    const m = String(board).match(/(\d+)/);
+    return m ? Number(m[1]) : 0;
+  }
+
+  function cardState(p) {
+    const users = claimsData[p.pinKey] || {};
+    const userKey = sanitizeUserKey(identityKey);
+    const mine = !!users[userKey];
+    const count = Object.keys(users).length;
+    const sold = isSold(p.stem);
+    const nap = isNap(p.stem);
+    const hidden = hiddenPinKeys.has(p.pinKey);
+    return { users, mine, count, sold, nap, hidden, pending: isPending(p.stem) };
+  }
+
+  function render() {
+    const grid = document.getElementById("grid");
+    let rows = pins.slice();
+    if (sortMode === "board") {
+      rows.sort((a, b) =>
+        a.board.localeCompare(b.board) || (a.idx - b.idx) || String(a.stem).localeCompare(String(b.stem))
+      );
+    } else {
+      rows.sort((a, b) => (a.rank - b.rank) || String(a.stem).localeCompare(String(b.stem)));
+    }
+
+    rows = rows.filter((p) => {
+      const st = cardState(p);
+      if (st.nap || st.hidden) return false;
+      if (filter === "avail") return !st.sold;
+      if (filter === "mine") return st.mine;
+      return true;
+    });
+
+    const myN = pins.filter((p) => cardState(p).mine).length;
+    document.getElementById("hdr-count").textContent =
+      rows.length + " shown · " + myN + " mine";
+
+    if (!rows.length) {
+      grid.innerHTML = '<div class="empty">No pins in this filter.</div>';
+      return;
+    }
+
+    grid.innerHTML = rows.map((p) => {
+      const st = cardState(p);
+      const cls = [
+        "card",
+        st.mine ? "mine" : "",
+        st.sold ? "sold" : "",
+        !st.mine && st.count >= 1 ? "contested" : ""
+      ].filter(Boolean).join(" ");
+      let badge = "";
+      if (st.sold) badge = "SOLD";
+      else if (st.mine) badge = st.count > 1 ? ("YOU · " + st.count) : "YOU";
+      else if (st.count >= 1) badge = String(st.count);
+      const tag = "B" + boardNum(p.board) + " · #" + (p.idx + 1);
+      return `<button type="button" class="${cls}" data-pinkey="${p.pinKey}" data-stem="${p.stem}" title="${p.stem} · open boards for photo context">
+        <img loading="lazy" alt="${p.stem}" src="${p.thumb}">
+        ${badge ? `<span class="badge">${badge}</span>` : ""}
+        <span class="tag">${tag}</span>
+      </button>`;
+    }).join("");
+  }
+
+  function toggleClaim(pinKey, stem) {
+    if (!displayName) {
+      document.getElementById("loginOverlay").style.display = "flex";
+      return;
+    }
+    if (isNap(stem) || hiddenPinKeys.has(pinKey)) return;
+    if (isSold(stem)) {
+      showToast("This pin is marked sold.");
+      return;
+    }
+    const userKey = sanitizeUserKey(identityKey);
+    const users = claimsData[pinKey] || {};
+    if (users[userKey]) {
+      db.ref(`claims/${FB_NAME}/${pinKey}/${userKey}`).set(null);
+      return;
+    }
+    const hadPrior = Object.keys(users).length > 0;
+    db.ref(`claims/${FB_NAME}/${pinKey}/${userKey}`).set({
+      time: firebase.database.ServerValue.TIMESTAMP,
+      label: displayName
+    });
+    if (hadPrior) {
+      showToast("Already requested by someone else — you're on the list too.");
+    } else {
+      showToast("Requested — same as clicking it on the boards page.");
+    }
+  }
+
+  document.getElementById("grid").addEventListener("click", (ev) => {
+    const card = ev.target.closest(".card");
+    if (!card) return;
+    toggleClaim(card.dataset.pinkey, card.dataset.stem);
+  });
+
+  document.getElementById("sort-bar").addEventListener("click", (ev) => {
+    const btn = ev.target.closest("[data-sort]");
+    if (!btn) return;
+    sortMode = btn.getAttribute("data-sort");
+    document.querySelectorAll("#sort-bar .fb").forEach((b) => b.classList.toggle("active", b === btn));
+    render();
+  });
+  document.getElementById("filter-bar").addEventListener("click", (ev) => {
+    const btn = ev.target.closest("[data-filter]");
+    if (!btn) return;
+    filter = btn.getAttribute("data-filter");
+    document.querySelectorAll("#filter-bar .fb").forEach((b) => b.classList.toggle("active", b === btn));
+    render();
+  });
+
+  function saveUsername() {
+    const raw = document.getElementById("usernameInput").value.trim();
+    if (!raw) {
+      displayName = "Guest_" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    } else {
+      displayName = normalizeUserDisplayName("@" + raw.replace(/^@+/, "").trim());
+    }
+    localStorage.setItem("fp_display_name", displayName);
+    localStorage.removeItem("fp_username");
+    document.getElementById("loginOverlay").style.display = "none";
+    listenClaims();
+    render();
+  }
+  document.getElementById("loginBtn").addEventListener("click", saveUsername);
+  document.getElementById("usernameInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") saveUsername();
+  });
+
+  function listenClaims() {
+    db.ref(`claims/${FB_NAME}`).on("value", (snap) => {
+      claimsData = snap.val() || {};
+      render();
+    });
+  }
+
+  db.ref(SOLD_PATH).on("value", (snap) => {
+    soldStems.clear();
+    const v = snap.val() || {};
+    Object.keys(v).forEach((k) => { if (v[k]) soldStems.add(k); });
+    render();
+  });
+  db.ref(PENDING_PATH).on("value", (snap) => {
+    pendingStems.clear();
+    const v = snap.val() || {};
+    Object.keys(v).forEach((k) => { if (v[k]) pendingStems.add(k); });
+    render();
+  });
+  db.ref(HIDDEN_PATH).on("value", (snap) => {
+    hiddenPinKeys.clear();
+    const v = snap.val() || {};
+    Object.keys(v).forEach((k) => { if (v[k]) hiddenPinKeys.add(k); });
+    render();
+  });
+  db.ref(PINS_PATH).once("value").then((snap) => {
+    const v = snap.val() || {};
+    Object.keys(v).forEach((domKey) => {
+      const pin = v[domKey] || {};
+      const st = String(pin.match_status || pin.status || "").toLowerCase();
+      if (st !== "not_a_pin" && st !== "nap") return;
+      const cf = pin.crop_filename || "";
+      const stem = cf.replace(/\.(jpe?g|png)$/i, "") || (pin.crop_stem || "");
+      if (stem) napStems.add(stem);
+    });
+    render();
+  }).catch(() => {});
+
+  fetch("./order.json", { cache: "no-store" })
+    .then((r) => r.json())
+    .then((data) => {
+      pins = (data.pins || []).map((p) => ({
+        stem: p.stem,
+        board: p.board,
+        idx: p.idx,
+        pinKey: p.pinKey,
+        thumb: p.thumb,
+        rank: p.rank
+      }));
+      if (!displayName) {
+        document.getElementById("loginOverlay").style.display = "flex";
+      } else {
+        listenClaims();
+      }
+      render();
+    })
+    .catch((e) => {
+      document.getElementById("grid").innerHTML =
+        '<div class="empty">Failed to load order.json: ' + String(e.message || e) + "</div>";
+    });
+})();
+</script>
+</body>
+</html>

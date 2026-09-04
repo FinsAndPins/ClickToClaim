@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leftover sheet · From Monday's show</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #111; color: #eee; }
+  #hdr {
+    position: sticky; top: 0; z-index: 100; background: #1a1a1a;
+    border-bottom: 1px solid #333; padding-top: env(safe-area-inset-top, 0);
+  }
+  .hdr-row { min-height: 48px; display: flex; align-items: center; padding: 8px 12px; gap: 8px; flex-wrap: wrap; }
+  .hdr-title { font-size: 16px; font-weight: 600; flex: 1; min-width: 140px; }
+  .hdr-sub { display: block; font-size: 11px; color: #888; font-weight: 500; margin-top: 2px; }
+  .hdr-count { font-size: 12px; color: #888; }
+  a.btn {
+    height: 34px; padding: 0 11px; border-radius: 8px; border: 1px solid #333;
+    background: #222; color: #eee; font-size: 13px; text-decoration: none;
+    display: inline-flex; align-items: center;
+  }
+  a.btn.primary { background: #1e4fa0; border-color: #2a6eff; }
+  .filter-bar {
+    display: flex; gap: 5px; padding: 6px 10px 10px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .fb {
+    flex-shrink: 0; padding: 5px 10px; border-radius: 14px; font-size: 12px;
+    border: 1px solid #3a3a3a; background: #222; color: #888; cursor: pointer;
+  }
+  .fb.active { background: #1e4fa0; color: #fff; border-color: #2a5298; }
+  #summary {
+    margin: 10px 12px 0; padding: 10px 14px; border-radius: 12px;
+    background: #152238; border: 1px solid #2a4a73; max-width: 480px;
+  }
+  #summary .label { font-size: 11px; color: #9ec8ff; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  #summary table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  #summary th { text-align: right; font-size: 11px; color: #9ec8ff; font-weight: 600; padding: 0 0 4px; }
+  #summary th:first-child { text-align: left; }
+  #summary td { padding: 4px 0; border-top: 1px solid rgba(255,255,255,0.08); font-weight: 700; }
+  #summary td:first-child { text-align: left; font-weight: 600; color: #d7e8ff; }
+  #summary td.num, #summary th.num { text-align: right; font-variant-numeric: tabular-nums; padding-left: 12px; }
+  #summary tr.total td { border-top: 2px solid rgba(158,200,255,0.35); color: #fff; }
+  #hint { padding: 8px 12px 0; font-size: 12px; color: #888; line-height: 1.35; }
+  #grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 3px; padding: 10px 2px 28px;
+  }
+  .card {
+    position: relative; background: #1a1a1a; border-radius: 4px; overflow: hidden;
+    aspect-ratio: 1; border: 2px solid #333;
+  }
+  .card.sold { border-color: #a33; opacity: 0.72; }
+  .card.avail { border-color: #2a7a2a; }
+  .card img { width: 100%; height: 100%; object-fit: contain; background: #222; display: block; }
+  .card .price {
+    position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.8);
+    color: #fff; font-size: 11px; font-weight: 700; padding: 2px 4px; border-radius: 3px;
+  }
+  .card .tag {
+    position: absolute; left: 3px; bottom: 3px; background: rgba(0,0,0,0.75);
+    color: #ddd; font-size: 10px; font-weight: 600; padding: 2px 4px; border-radius: 3px;
+  }
+  .card.sold .tag { color: #ffb4b4; }
+  .empty { padding: 28px 14px; text-align: center; color: #888; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div class="hdr-row">
+    <div class="hdr-title">Leftover sheet
+      <span class="hdr-sub">From Monday's show · sorted high → low $</span>
+    </div>
+    <div class="hdr-count" id="hdr-count"></div>
+    <a class="btn" href="./mark_leftover_sold.html">Mark sold</a>
+    <a class="btn primary" href="./index.html">CTR 20260903</a>
+  </div>
+  <div class="filter-bar">
+    <button class="fb active" data-f="avail" type="button">Not sold</button>
+    <button class="fb" data-f="sold" type="button">Sold</button>
+    <button class="fb" data-f="all" type="button">All</button>
+  </div>
+</div>
+
+<div id="summary">
+  <div class="label">Leftover status</div>
+  <table>
+    <thead><tr><th></th><th class="num">Count</th><th class="num">$</th></tr></thead>
+    <tbody>
+      <tr><td>Sold</td><td class="num" id="sum-sold-n">0</td><td class="num" id="sum-sold-d">$0</td></tr>
+      <tr><td>Still available</td><td class="num" id="sum-avail-n">0</td><td class="num" id="sum-avail-d">$0</td></tr>
+      <tr class="total"><td>Total</td><td class="num" id="sum-all-n">0</td><td class="num" id="sum-all-d">$0</td></tr>
+    </tbody>
+  </table>
+</div>
+<p id="hint">No login required. Crops from Monday’s pricing run; sold state from the leftover mark tool. Default filter: still available.</p>
+<div id="grid"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+(function () {
+  const FB_CFG = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+  };
+  const TEST_RUN_ID = "test_PriceCollection_20260802_1354__build_23549_visual_baseline";
+  const APPROACH_ID = "visual_baseline";
+  const SOLD_PATH = "showConfig/20260803_leftover/soldStems";
+  const MANIFEST_VER = "3";
+  const CROP_BASE = "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20260802_1354/crops/";
+
+  firebase.initializeApp(FB_CFG);
+  const db = firebase.database();
+
+  const soldStems = new Set();
+  const napStems = new Set();
+  const stemToPrice = Object.create(null);
+  /** @type {{stem:string, board:string, boardNum:number, pinN:number, price:number}[]} */
+  let pins = [];
+  let filter = "avail";
+
+  function normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, "_") : "";
+  }
+  function roundForShow(raw) {
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    if (raw < 10) return 10;
+    return Math.ceil(raw / 5) * 5;
+  }
+  function money(n) { return "$" + Number(n || 0).toLocaleString(); }
+  function isSold(stem) { return soldStems.has(stem) || soldStems.has(normStem(stem)); }
+  function isNap(stem) { return napStems.has(stem) || napStems.has(normStem(stem)); }
+  function priceOf(stem) { return roundForShow(stemToPrice[stem] || stemToPrice[normStem(stem)]); }
+
+  function stemFromFbPin(domKey, pin) {
+    const cf = pin.crop_filename || "";
+    const cropStem = cf.replace(/\.(jpe?g|png)$/i, "");
+    if (cropStem) return cropStem;
+    const pk = pin.pin_key || domKey;
+    if (pk.includes(".jpg__")) return pk.split(".jpg__")[0];
+    return null;
+  }
+
+  function refreshSummary() {
+    let soldN = 0, availN = 0, soldD = 0, availD = 0;
+    pins.forEach((p) => {
+      if (isNap(p.stem)) return;
+      const pr = p.price || priceOf(p.stem);
+      if (isSold(p.stem)) { soldN++; soldD += pr; }
+      else { availN++; availD += pr; }
+    });
+    document.getElementById("sum-sold-n").textContent = String(soldN);
+    document.getElementById("sum-sold-d").textContent = money(soldD);
+    document.getElementById("sum-avail-n").textContent = String(availN);
+    document.getElementById("sum-avail-d").textContent = money(availD);
+    document.getElementById("sum-all-n").textContent = String(soldN + availN);
+    document.getElementById("sum-all-d").textContent = money(soldD + availD);
+  }
+
+  function render() {
+    const grid = document.getElementById("grid");
+    const rows = pins
+      .filter((p) => !isNap(p.stem))
+      .map((p) => ({ ...p, price: p.price || priceOf(p.stem), sold: isSold(p.stem) }))
+      .filter((p) => {
+        if (filter === "sold") return p.sold;
+        if (filter === "avail") return !p.sold;
+        return true;
+      })
+      .sort((a, b) => (b.price - a.price) || String(a.stem).localeCompare(String(b.stem)));
+
+    document.getElementById("hdr-count").textContent = rows.length + " pins";
+    refreshSummary();
+
+    if (!rows.length) {
+      grid.innerHTML = '<div class="empty">No pins in this filter.</div>';
+      return;
+    }
+    grid.innerHTML = rows.map((p) => {
+      const crop = (p.stem.endsWith(".jpg") ? p.stem : (p.stem + ".jpg"));
+      const src = CROP_BASE + encodeURIComponent(crop);
+      const cls = p.sold ? "sold" : "avail";
+      const tag = p.sold ? "SOLD" : ("B" + p.boardNum + " · P" + p.pinN);
+      const priceTxt = p.price ? ("$" + p.price) : "";
+      return `<div class="card ${cls}" title="${p.stem}">
+        <img loading="lazy" alt="${p.stem}" src="${src}">
+        ${priceTxt ? `<span class="price">${priceTxt}</span>` : ""}
+        <span class="tag">${tag}</span>
+      </div>`;
+    }).join("");
+  }
+
+  function ingestPrices(all) {
+    for (const k of Object.keys(stemToPrice)) delete stemToPrice[k];
+    napStems.clear();
+    for (const [domKey, pin] of Object.entries(all || {})) {
+      if (!pin) continue;
+      const stem = stemFromFbPin(domKey, pin);
+      if (!stem) continue;
+      if (pin.match_status === "not_a_pin" || pin.not_a_pin === true) {
+        napStems.add(stem); napStems.add(normStem(stem)); continue;
+      }
+      if (pin.match_status !== "match") continue;
+      const dp = Number(pin.display_price);
+      if (!isFinite(dp) || dp <= 0) continue;
+      stemToPrice[stem] = dp;
+      stemToPrice[normStem(stem)] = dp;
+    }
+    pins.forEach((p) => { p.price = priceOf(p.stem); });
+    render();
+  }
+
+  function ingestSold(val) {
+    soldStems.clear();
+    for (const [k, v] of Object.entries(val || {})) {
+      if (v === true || (v && typeof v === "object" && v.sold !== false)) {
+        soldStems.add(k); soldStems.add(normStem(k));
+        if (v && v.crop_stem) {
+          soldStems.add(v.crop_stem); soldStems.add(normStem(v.crop_stem));
+        }
+      }
+    }
+    render();
+  }
+
+  document.querySelectorAll(".fb").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".fb").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      filter = btn.dataset.f || "all";
+      render();
+    });
+  });
+
+  async function boot() {
+    const manifest = await (await fetch(`./boards/manifest.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
+    const leftover = manifest.filter((n) => String(n).startsWith("LO03_"));
+    let boardNum = manifest.findIndex((n) => String(n).startsWith("LO03_")) + 1;
+    const out = [];
+    for (const name of leftover) {
+      const data = await (await fetch(`./boards/${name}.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
+      const preds = data.predictions || data.output?.predictions || [];
+      preds.forEach((pin, idx) => {
+        if (!pin.crop_stem) return;
+        out.push({
+          stem: pin.crop_stem,
+          board: name,
+          boardNum,
+          pinN: idx + 1,
+          price: 0
+        });
+      });
+      boardNum += 1;
+    }
+    pins = out;
+    db.ref(`pin_pricing_tests/${TEST_RUN_ID}/${APPROACH_ID}/pins`).on("value", (snap) => ingestPrices(snap.val() || {}));
+    db.ref(SOLD_PATH).on("value", (snap) => ingestSold(snap.val() || {}));
+    render();
+  }
+
+  boot().catch((e) => {
+    console.error(e);
+    document.getElementById("grid").innerHTML = '<div class="empty">Failed to load leftover sheet.</div>';
+  });
+})();
+</script>
+</body>
+</html>

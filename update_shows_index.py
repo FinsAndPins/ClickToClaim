@@ -91,6 +91,7 @@ def bundle_tracked(root: Path, folder: str) -> bool:
 
 HIDDEN_FROM_PUBLIC_INDEX = {
     "D23Inventory2026",  # staff inventory; not a customer Click To Request
+    "Inventory_20260904",  # staff inventory for 20260904 boards; not public CTR
 }
 
 

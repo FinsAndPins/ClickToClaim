@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Offerables15 · Remove from Whatnot clone</title>
+<style>
+  :root {
+    --bg: #0f1218;
+    --panel: #1a2030;
+    --line: #2e3848;
+    --text: #eef3fb;
+    --muted: #8fa0b8;
+    --accent: #5aa8ff;
+    --ok: #3ddc97;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-bottom: 32px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(15,18,24,.97);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 14px calc(12px + env(safe-area-inset-top));
+  }
+  header h1 { margin: 0 0 4px; font-size: 18px; font-weight: 800; }
+  header p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; max-width: 760px; }
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center;
+  }
+  a.btn, button {
+    font: inherit; font-size: 13px; font-weight: 700;
+    border-radius: 10px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text);
+    padding: 9px 12px; text-decoration: none; cursor: pointer;
+  }
+  button.primary { background: #1a4a7a; border-color: var(--accent); }
+  button.ok { background: #174a35; border-color: #2d8a62; }
+  button.small { font-size: 11px; padding: 6px 8px; border-radius: 8px; width: 100%; margin-top: 6px; }
+  #summary {
+    margin: 12px 14px 0; padding: 12px 14px; border-radius: 12px;
+    background: #1a2438; border: 1px solid #33507a; max-width: 680px;
+    font-size: 14px; line-height: 1.55;
+  }
+  #summary strong { color: #9ec8ff; }
+  #summary .skip { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  #status { padding: 10px 14px 0; font-size: 13px; color: var(--muted); }
+  #status.err { color: #ff6b6b; }
+  main { padding: 12px 14px 24px; max-width: 1100px; }
+  .board-section {
+    margin-bottom: 22px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  }
+  .board-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 10px 14px; border-bottom: 1px solid var(--line);
+    background: rgba(0,0,0,.18); flex-wrap: wrap;
+  }
+  .board-head h2 { margin: 0; font-size: 16px; font-weight: 800; }
+  .board-head .count { font-size: 12px; color: var(--muted); font-weight: 700; }
+  .board-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px; padding: 12px;
+  }
+  .card {
+    background: #121820; border: 2px solid #3a4a62; border-radius: 10px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .card .thumb {
+    aspect-ratio: 1; background: #000; display: flex; align-items: center; justify-content: center;
+  }
+  .card img {
+    width: 100%; height: 100%; object-fit: contain; display: block;
+  }
+  .card .cap {
+    padding: 8px 9px 10px; border-top: 1px solid var(--line);
+    font-size: 13px; font-weight: 800; text-align: center;
+  }
+  .card .sub {
+    display: block; margin-top: 3px; font-size: 10px; font-weight: 600;
+    color: var(--muted); word-break: break-all;
+  }
+  .empty {
+    padding: 40px 14px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.5;
+  }
+  #toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    background: #1a5e1a; color: #fff; padding: 8px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .25s;
+    pointer-events: none; z-index: 100; max-width: 92vw; text-align: center;
+  }
+  #toast.show { opacity: 1; }
+  @media print {
+    header { position: static; }
+    a.btn, button { display: none; }
+    .board-section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Remove from Whatnot clone</h1>
+  <p>
+    Manual gone pins that <strong>might</strong> still be in Aug 10 clone inventory (ledger sales excluded).
+    Many pulled pins were <strong>never Whatnot listings</strong> — if you can’t find one in the clone, tap
+    <strong>Not in clone</strong> to hide it. Sorted by board, then pin.
+  </p>
+  <div class="toolbar">
+    <a class="btn" href="./index.html">← Mark gone</a>
+    <button type="button" class="primary" id="btnRefresh">Refresh</button>
+    <button type="button" id="btnPrint">Print</button>
+  </div>
+</header>
+<div id="summary">Loading…</div>
+<div id="status"></div>
+<main id="main"></main>
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+(function () {
+  const GONE_PATH = "showConfig/offerables15_inventory/goneStems";
+  const NOT_IN_CLONE_PATH = "showConfig/offerables15_inventory/notInCloneStems";
+  const CROP_BASE = "../crops/";
+  const SOLD_JSON = "../sold-overlay/sold.json";
+  const AUG10_LEDGER = "./ledgers/20260810_ledger.csv";
+  const BOARD_PIN_RE = /Board\s+(\d+)\s+Pin\s+(\d+)/gi;
+
+  const FB_CFG = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+  };
+
+  firebase.initializeApp(FB_CFG);
+  const db = firebase.database();
+
+  let boardByImgStem = Object.create(null);
+  let ledgerSold = new Set();
+  let notInClone = new Set();
+  let reviewer = localStorage.getItem("fpins_offerables15_reviewer") || "";
+  let goneVal = {};
+  let ledgerMeta = { thuCount: 0, aug10Added: 0, total: 0 };
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove("show"), 1400);
+  }
+
+  function ensureReviewer() {
+    if (reviewer) return reviewer;
+    try {
+      reviewer = (window.prompt("Your name:") || "").trim().slice(0, 30);
+    } catch (_) { reviewer = ""; }
+    if (!reviewer) reviewer = "operator";
+    localStorage.setItem("fpins_offerables15_reviewer", reviewer);
+    return reviewer;
+  }
+
+  function setStatus(msg, err) {
+    const el = document.getElementById("status");
+    el.textContent = msg || "";
+    el.className = err ? "err" : "";
+  }
+
+  function normStem(stem) {
+    return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, "_") : "";
+  }
+
+  function bpKey(board, pin) { return `${board}:${pin}`; }
+
+  function cropFile(stem) {
+    const s = String(stem || "");
+    return /\.jpe?g$/i.test(s) ? s : s + ".jpg";
+  }
+
+  function boardPinFromCrop(cropStem) {
+    const m = String(cropStem || "").match(/^img(\d+)_pin0*(\d+)$/i);
+    if (!m) return { board: null, pin: null, label: cropStem || "?" };
+    const imgStem = `IMG_${m[1]}`;
+    const board = boardByImgStem[imgStem];
+    const pin = parseInt(m[2], 10);
+    const label = board ? `Board ${board} Pin ${pin}` : `Pin ${pin} (${imgStem})`;
+    return { board, pin, label };
+  }
+
+  function isManualGone(entry) {
+    if (!entry || typeof entry !== "object") return false;
+    const src = String(entry.source || "");
+    if (src === "ledger" || src === "ledger_20260810" || src.startsWith("ledger")) return false;
+    return src === "manual";
+  }
+
+  function isLedgerSold(board, pin) {
+    return board != null && pin != null && ledgerSold.has(bpKey(board, pin));
+  }
+
+  function isNotInClone(crop) {
+    const k = normStem(crop);
+    return notInClone.has(crop) || notInClone.has(k);
+  }
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = "";
+    let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (q) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else q = false;
+        } else cur += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function addBoardPinsFromText(text, minBoard) {
+    let m;
+    BOARD_PIN_RE.lastIndex = 0;
+    while ((m = BOARD_PIN_RE.exec(text)) !== null) {
+      const board = parseInt(m[1], 10);
+      const pin = parseInt(m[2], 10);
+      if (board >= minBoard) ledgerSold.add(bpKey(board, pin));
+    }
+  }
+
+  async function loadLedgerSold() {
+    ledgerSold = new Set();
+    const sold = await fetch(`${SOLD_JSON}?v=2`, { cache: "no-store" }).then((r) => r.json());
+    boardByImgStem = Object.create(null);
+    (sold.boards || []).forEach((b) => {
+      boardByImgStem[b.stem] = b.board;
+      (b.sold || []).forEach((p) => {
+        if (b.board != null && p.pin != null) ledgerSold.add(bpKey(b.board, p.pin));
+      });
+    });
+    const thuCount = ledgerSold.size;
+    try {
+      const csvText = await fetch(`${AUG10_LEDGER}?v=1`, { cache: "no-store" }).then((r) => r.text());
+      const lines = csvText.replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
+      const headers = parseCsvLine(lines[0]);
+      const cancelIdx = headers.findIndex((h) => /cancel/i.test(h));
+      for (let i = 1; i < lines.length; i++) {
+        const cells = parseCsvLine(lines[i]);
+        if (cancelIdx >= 0 && cells[cancelIdx] && /cancel/i.test(cells[cancelIdx])) continue;
+        addBoardPinsFromText(cells.join(" "), 48);
+      }
+    } catch (e) {
+      console.warn("Aug 10 ledger CSV not loaded", e);
+    }
+    return { thuCount, aug10Added: ledgerSold.size - thuCount, total: ledgerSold.size };
+  }
+
+  function ingestNotInClone(val) {
+    notInClone = new Set();
+    for (const [k, v] of Object.entries(val || {})) {
+      if (!v) continue;
+      notInClone.add(k);
+      notInClone.add(normStem(k));
+      if (v && v.crop_stem) {
+        notInClone.add(v.crop_stem);
+        notInClone.add(normStem(v.crop_stem));
+      }
+    }
+  }
+
+  function collectCloneRemovals(gone) {
+    const items = [];
+    const skippedLedger = [];
+    const skippedNotInClone = [];
+    for (const v of Object.values(gone || {})) {
+      if (!isManualGone(v)) continue;
+      const crop = v.crop_stem || "";
+      const meta = boardPinFromCrop(crop);
+      const board = v.board || meta.board;
+      const pin = v.pin || meta.pin;
+      const label = board && pin ? `Board ${board} Pin ${pin}` : meta.label;
+      const item = { crop, board: board || 9999, pin: pin || 0, label, by: v.by || "" };
+      if (isLedgerSold(board, pin)) { skippedLedger.push(item); continue; }
+      if (isNotInClone(crop)) { skippedNotInClone.push(item); continue; }
+      items.push(item);
+    }
+    items.sort((a, b) => a.board - b.board || a.pin - b.pin);
+    return { items, skippedLedger, skippedNotInClone };
+  }
+
+  async function markNotInClone(item) {
+    const user = ensureReviewer();
+    const key = normStem(item.crop);
+    await db.ref(`${NOT_IN_CLONE_PATH}/${key}`).set({
+      crop_stem: item.crop,
+      board: item.board === 9999 ? null : item.board,
+      pin: item.pin || null,
+      label: item.label,
+      at: new Date().toISOString(),
+      by: user,
+    });
+    toast("Hidden — not in clone");
+  }
+
+  async function dismissBoard(items) {
+    if (!items.length) return;
+    if (!window.confirm(`Hide all ${items.length} pins on this board as not in clone?`)) return;
+    const user = ensureReviewer();
+    const updates = {};
+    const now = new Date().toISOString();
+    items.forEach((item) => {
+      const key = normStem(item.crop);
+      updates[`${NOT_IN_CLONE_PATH}/${key}`] = {
+        crop_stem: item.crop,
+        board: item.board === 9999 ? null : item.board,
+        pin: item.pin || null,
+        label: item.label,
+        at: now,
+        by: user,
+      };
+    });
+    await db.ref().update(updates);
+    toast(`Hid ${items.length} pins`);
+  }
+
+  function render(result) {
+    const { items, skippedLedger, skippedNotInClone } = result;
+    const summary = document.getElementById("summary");
+    const main = document.getElementById("main");
+
+    if (!items.length) {
+      summary.innerHTML =
+        "<strong>0</strong> pins left to check in clone." +
+        (skippedNotInClone.length
+          ? `<div class="skip">Hidden <strong>${skippedNotInClone.length}</strong> confirmed not in clone.</div>` : "") +
+        (skippedLedger.length
+          ? `<div class="skip">Skipped <strong>${skippedLedger.length}</strong> already sold per ledger.</div>` : "");
+      main.innerHTML = '<div class="empty">Nothing left — nice work. Hidden pins stay in Firebase if you need to undo later.</div>';
+      return;
+    }
+
+    const boards = new Set(items.map((i) => i.board).filter((b) => b !== 9999));
+    summary.innerHTML =
+      `<strong>${items.length}</strong> pins to check in clone · <strong>${boards.size}</strong> boards` +
+      (skippedNotInClone.length
+        ? `<div class="skip">Hidden <strong>${skippedNotInClone.length}</strong> not in clone.</div>` : "") +
+      (skippedLedger.length
+        ? `<div class="skip">Skipped <strong>${skippedLedger.length}</strong> ledger sales.</div>` : "") +
+      `<div class="skip">Can’t find it in clone? Tap <strong>Not in clone</strong> — many D23 pulls were never listed on Whatnot.</div>`;
+
+    main.innerHTML = "";
+    let curBoard = null;
+    let sec = null;
+    let grid = null;
+    let boardItems = [];
+
+    function flushBoard() {
+      if (!sec || !boardItems.length) return;
+      const dismissBtn = document.createElement("button");
+      dismissBtn.type = "button";
+      dismissBtn.className = "ok small";
+      dismissBtn.textContent = "Whole board not in clone";
+      dismissBtn.addEventListener("click", () => dismissBoard(boardItems.slice()));
+      const lastCap = sec.querySelector(".board-actions");
+      if (lastCap) lastCap.appendChild(dismissBtn);
+    }
+
+    items.forEach((item) => {
+      if (item.board !== curBoard) {
+        flushBoard();
+        curBoard = item.board;
+        boardItems = [];
+        sec = document.createElement("section");
+        sec.className = "board-section";
+        const title = item.board === 9999 ? "Unknown board" : `Board ${item.board}`;
+        sec.innerHTML =
+          `<div class="board-head">` +
+          `<h2>${title}</h2>` +
+          `<div class="board-actions"><span class="count">checking…</span></div>` +
+          `</div>`;
+        grid = document.createElement("div");
+        grid.className = "grid";
+        sec.appendChild(grid);
+        main.appendChild(sec);
+      }
+      boardItems.push(item);
+      const countEl = sec.querySelector(".count");
+      if (countEl) countEl.textContent = `${boardItems.length} pin${boardItems.length === 1 ? "" : "s"}`;
+
+      const card = document.createElement("div");
+      card.className = "card";
+      const cap = document.createElement("div");
+      cap.className = "cap";
+      cap.innerHTML = `${item.label}${item.by ? `<span class="sub">by ${item.by}</span>` : ""}`;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ok small";
+      btn.textContent = "Not in clone";
+      btn.addEventListener("click", () => markNotInClone(item));
+      card.innerHTML = `<div class="thumb"><img loading="lazy" alt="" src="${CROP_BASE}${encodeURIComponent(cropFile(item.crop))}"></div>`;
+      card.appendChild(cap);
+      card.appendChild(btn);
+      grid.appendChild(card);
+    });
+    flushBoard();
+  }
+
+  function refresh() {
+    const result = collectCloneRemovals(goneVal);
+    render(result);
+    setStatus(`Updated ${new Date().toLocaleString()}`);
+  }
+
+  document.getElementById("btnRefresh").addEventListener("click", () => {
+    Promise.all([loadLedgerSold(), db.ref(GONE_PATH).once("value"), db.ref(NOT_IN_CLONE_PATH).once("value")])
+      .then(([meta, goneSnap, nicSnap]) => {
+        ledgerMeta = meta;
+        goneVal = goneSnap.val() || {};
+        ingestNotInClone(nicSnap.val() || {});
+        refresh();
+      });
+  });
+  document.getElementById("btnPrint").addEventListener("click", () => window.print());
+
+  Promise.all([loadLedgerSold(), db.ref(GONE_PATH).once("value")])
+    .then(([meta, goneSnap]) => {
+      ledgerMeta = meta;
+      goneVal = goneSnap.val() || {};
+      db.ref(GONE_PATH).on("value", (snap) => { goneVal = snap.val() || {}; refresh(); });
+      db.ref(NOT_IN_CLONE_PATH).on("value", (snap) => { ingestNotInClone(snap.val() || {}); refresh(); });
+    })
+    .catch((e) => {
+      console.error(e);
+      setStatus("Failed to load: " + e.message, true);
+    });
+})();
+</script>
+</body>
+</html>

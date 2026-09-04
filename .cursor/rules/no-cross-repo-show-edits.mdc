@@ -1,0 +1,27 @@
+---
+description: Prevent cross-repo edits between ClickToClaim and PreparingInventory scopes
+alwaysApply: true
+---
+
+# Scope guard — ClickToClaim vs PreparingInventory
+
+Rationale: We already hit two scope mistakes and must prevent repeats.
+
+- Incident 1: commit `2c2f245` (later reverted by `203c50d`) changed board labels in ClickToClaim show pages when scope was elsewhere.
+- Incident 2: commit `6d63152` edited `ClickToClaim/20260521/index.html` for Board header behavior when the requested scope was PreparingInventory live CTR harness work.
+
+## Hard boundaries
+
+- If the user request mentions `PreparingInventory`, `PriceCollection`, `testing_ui_visual_baseline_with_live_ctr`, or `pinsandpins.github.io/PreparingInventory`, do **not** edit files under `ClickToClaim/**` unless the user explicitly asks to include ClickToClaim.
+- If the user request mentions `ClickToClaim` or `finsandpins.github.io/ClickToClaim`, do **not** edit PreparingInventory paths unless explicitly requested.
+
+## Path allowlist protocol
+
+- Before editing, restate the exact allowed file paths from the user request and only touch those paths.
+- If the user names one file, stage only that file with explicit `git add <exact-path>`.
+- Never use broad staging commands (`git add -A`, `git add .`, `git commit -a`) for these tasks.
+
+## Show-folder protection
+
+- Before any edit under `ClickToClaim/YYYYMMDD/`, require explicit user wording that ClickToClaim show files should be modified.
+- If that explicit wording is missing, stop and ask for confirmation instead of making changes.

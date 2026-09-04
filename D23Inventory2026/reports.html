@@ -98,6 +98,7 @@
     <section>
         <h2>Summary</h2>
         <p id="invSummary" class="summary-line">Loading…</p>
+        <p id="costNote" class="muted">Catalog cost uses the printed D23 flyer retail for each counted pin. Duo / starter-set photos that are two boxes share one set price so they are not charged twice. Mystery pages use the printed per-box price. Changing qty still only changes the count — not the flyer prices.</p>
         <div class="csv-row">
             <button type="button" class="btn" id="csvCatalogBtn">Download CSV — catalog order</button>
             <button type="button" class="btn secondary" id="csvCountBtn">Download CSV — highest count first</button>
@@ -109,7 +110,7 @@
         <h2>1. In stock — catalog order</h2>
         <p class="muted">Pins we have 1 or more of, in flyer page order. Adjust qty here or on the catalog — both update the same count.</p>
         <table>
-            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Counted by</th><th></th></tr></thead>
+            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Catalog $</th><th>Line cost</th><th>Counted by</th><th></th></tr></thead>
             <tbody id="catalogBody"></tbody>
         </table>
     </section>
@@ -118,7 +119,7 @@
         <h2>2. In stock — highest count first</h2>
         <p class="muted">Same pins, sorted by quantity (high → low), then catalog order.</p>
         <table>
-            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Counted by</th><th></th></tr></thead>
+            <thead><tr><th>Pin</th><th>Location</th><th>Qty</th><th>Catalog $</th><th>Line cost</th><th>Counted by</th><th></th></tr></thead>
             <tbody id="countBody"></tbody>
         </table>
     </section>
@@ -159,7 +160,53 @@
 const SHOW_DATE_SLUG_FALLBACK = "D23Inventory2026";
 const CTR_BOARDS_BASE = "../2026D23/boards";
 const CTR_HIDDEN_PINS_SLUG = "2026D23";
+const EXTRA_BOARDS_BASE = "./extra-boards";
+const EXTRA_BOARD_TITLES = {
+    D23MP_AUG14: "D23 Marketplace · Fri Aug 14",
+    D23MP_AUG15: "D23 Marketplace · Sat Aug 15",
+    D23MP_AUG16: "D23 Marketplace · Sun Aug 16"
+};
 const BOARDS_MANIFEST_VERSION = String(Date.now());
+function boardAssetBase(name) {
+    return Object.prototype.hasOwnProperty.call(EXTRA_BOARD_TITLES, name) ? EXTRA_BOARDS_BASE : CTR_BOARDS_BASE;
+}
+function boardTitle(name, index) {
+    return EXTRA_BOARD_TITLES[name] || ("Board " + (index + 1));
+}
+async function loadInventoryBoardNames() {
+    const ctrRes = await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+    const ctr = await ctrRes.json();
+    let extra = [];
+    try {
+        const extraRes = await fetch(`${EXTRA_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" });
+        if (extraRes.ok) extra = await extraRes.json();
+    } catch (e) {}
+    if (!Array.isArray(ctr)) return [];
+    return ctr.concat(Array.isArray(extra) ? extra : []);
+}
+
+let catalogPriceTable = { board_defaults: {}, pin_overrides: {} };
+
+function catalogUnitPrice(pinKey) {
+    const over = catalogPriceTable.pin_overrides || {};
+    if (Object.prototype.hasOwnProperty.call(over, pinKey) && over[pinKey] != null) {
+        const n = Number(over[pinKey]);
+        return Number.isFinite(n) && n > 0 ? n : null;
+    }
+    const board = String(pinKey).replace(/-\d+$/, "");
+    const def = (catalogPriceTable.board_defaults || {})[board];
+    const n = Number(def);
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function moneyUsd(n) {
+    if (n == null || !Number.isFinite(n)) return "";
+    return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function roundCents(n) {
+    return Math.round(Number(n) * 100) / 100;
+}
 const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", authDomain: "fins-and-pins-click-to-claim.firebaseapp.com", databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com", projectId: "fins-and-pins-click-to-claim", storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app", messagingSenderId: "31512845258", appId: "1:31512845258:web:2124fae24cfee229084d33" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
@@ -369,6 +416,13 @@ async function loadData() {
     fillTimeSelect(document.getElementById("cfgStartM"), 59);
     fillTimeSelect(document.getElementById("cfgEndM"), 59);
 
+    try {
+        catalogPriceTable = await (await fetch(`./catalog-prices.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+    } catch (e) {
+        catalogPriceTable = { board_defaults: {}, pin_overrides: {} };
+        console.warn("catalog-prices.json load failed", e);
+    }
+
     db.ref(`showConfig/${fbName}`).once("value").then(snap => {
         const v = snap.val() || {};
         const sh = v.startHour != null ? Number(v.startHour) : 12;
@@ -429,11 +483,11 @@ async function loadData() {
         `).join("") || "No feedback yet.";
     });
 
-    const manifest = await (await fetch(`${CTR_BOARDS_BASE}/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+    const manifest = await loadInventoryBoardNames();
     const boardMeta = {};
     await Promise.all(manifest.map(async (name, boardIndex) => {
         try {
-            const data = await (await fetch(`${CTR_BOARDS_BASE}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+            const data = await (await fetch(`${boardAssetBase(name)}/${name}.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
             boardMeta[name] = {
                 boardIndex,
                 image: data.image || {},
@@ -465,7 +519,7 @@ async function loadData() {
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = () => resolve(null);
-            img.src = `${CTR_BOARDS_BASE}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
+            img.src = `${boardAssetBase(name)}/${name}.JPG?v=${BOARDS_MANIFEST_VERSION}`;
         });
         boardImgCache.set(name, p);
         return p;
@@ -506,6 +560,8 @@ async function loadData() {
                 if (hiddenPinKeys.has(pinKey)) return;
                 const qty = inventoryCountFromRow(invData[pinKey]);
                 if (qty < 1) return;
+                const unit = catalogUnitPrice(pinKey);
+                const lineCost = unit != null ? roundCents(unit * qty) : null;
                 rows.push({
                     pinKey,
                     name,
@@ -513,10 +569,12 @@ async function loadData() {
                     boardNum: meta.boardIndex + 1,
                     catalogOrder,
                     qty,
+                    catalogPrice: unit,
+                    lineCost,
                     countedBy: staffBreakdownText(invData[pinKey]),
                     pin,
                     image: meta.image,
-                    loc: `Board ${meta.boardIndex + 1} (Pin ${idx + 1})`
+                    loc: `${boardTitle(name, meta.boardIndex)} (Pin ${idx + 1})`
                 });
             });
         });
@@ -538,6 +596,8 @@ async function loadData() {
             ? `<button type="button" class="pin-thumb-btn" data-qty-delta="1" data-pin="${row.pinKey}" title="Tap photo to add 1"><img class="pin-thumb" alt="" src="${row.thumb}"></button>`
             : "";
         const by = row.countedBy || "";
+        const unitTxt = row.catalogPrice != null ? moneyUsd(row.catalogPrice) : "—";
+        const lineTxt = row.lineCost != null ? moneyUsd(row.lineCost) : "—";
         return `<tr>
             <td>${thumb}</td>
             <td>${row.loc}<br><small class="muted">${row.pinKey}</small></td>
@@ -548,6 +608,8 @@ async function loadData() {
                     <button type="button" class="qty-plus" data-qty-delta="1" data-pin="${row.pinKey}" aria-label="Increase count">+</button>
                 </div>
             </td>
+            <td>${unitTxt}</td>
+            <td>${lineTxt}</td>
             <td>${by}</td>
             <td><a href="index.html?admin=${ADMIN_KEY}#pin-${row.pinKey}" style="color:#0066aa;font-weight:bold;">View on board</a></td>
         </tr>`;
@@ -558,12 +620,17 @@ async function loadData() {
         const catalog = stockRows.slice().sort((a, b) => a.catalogOrder - b.catalogOrder);
         const byCount = stockRows.slice().sort((a, b) => b.qty - a.qty || a.catalogOrder - b.catalogOrder);
         const units = catalog.reduce((n, r) => n + r.qty, 0);
+        const cost = catalog.reduce((n, r) => n + (r.lineCost || 0), 0);
+        const unpriced = catalog.filter((r) => r.catalogPrice == null).length;
+        const costBit = unpriced
+            ? `${moneyUsd(cost)} catalog cost · <strong>${unpriced}</strong> unpriced`
+            : `${moneyUsd(cost)} catalog cost`;
         document.getElementById("invSummary").innerHTML =
-            `<strong>${catalog.length}</strong> pin${catalog.length === 1 ? "" : "s"} in stock · <strong>${units}</strong> unit${units === 1 ? "" : "s"} total`;
+            `<strong>${catalog.length}</strong> pin${catalog.length === 1 ? "" : "s"} in stock · <strong>${units}</strong> unit${units === 1 ? "" : "s"} total · <strong>${costBit}</strong>`;
         document.getElementById("catalogBody").innerHTML = catalog.map(rowHtml).join("") ||
-            '<tr><td colspan="5" class="muted">Nothing in stock yet. Tap pins on the boards page to start at 1.</td></tr>';
+            '<tr><td colspan="7" class="muted">Nothing in stock yet. Tap pins on the boards page to start at 1.</td></tr>';
         document.getElementById("countBody").innerHTML = byCount.map(rowHtml).join("") ||
-            '<tr><td colspan="5" class="muted">Nothing in stock yet.</td></tr>';
+            '<tr><td colspan="7" class="muted">Nothing in stock yet.</td></tr>';
         const dist = {};
         catalog.forEach((r) => { dist[r.qty] = (dist[r.qty] || 0) + 1; });
         const counts = Object.keys(dist).map(Number).sort((a, b) => b - a);
@@ -587,8 +654,8 @@ async function loadData() {
 
     function csvRows(list) {
         return [
-            ["catalog_order", "board", "board_number", "pin_index", "pin_key", "qty", "counted_by", "location"],
-            ...list.map((r) => [r.catalogOrder, r.name, r.boardNum, r.idx + 1, r.pinKey, r.qty, r.countedBy || "", r.loc])
+            ["catalog_order", "board", "board_number", "pin_index", "pin_key", "qty", "catalog_price", "line_cost", "counted_by", "location"],
+            ...list.map((r) => [r.catalogOrder, r.name, r.boardNum, r.idx + 1, r.pinKey, r.qty, r.catalogPrice != null ? r.catalogPrice : "", r.lineCost != null ? r.lineCost : "", r.countedBy || "", r.loc])
         ];
     }
     document.getElementById("csvCatalogBtn").onclick = () => {

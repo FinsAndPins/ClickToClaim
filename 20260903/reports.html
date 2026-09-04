@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>Fins and Pins — Click To Request (Reports)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { padding: 10px 15px; background: #0066aa; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
+        section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
+        th { background: #f9f9f9; position: sticky; top: 0; }
+        tr:hover { background: #f1f7ff; }
+        .badge-pull { background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .badge-wait { background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .feedback-msg { background: #fff9c4; padding: 10px; border-radius: 4px; margin-bottom: 5px; border-left: 4px solid #fbc02d; }
+        #summaryTable td:first-child { font-weight: bold; color: #333; font-size: 16px; }
+        #summaryTable td:last-child { color: #0066aa; font-size: 15px; }
+        .user-include-cell { text-align: center; width: 44px; }
+        .user-include-cell input { width: 18px; height: 18px; cursor: pointer; }
+        .user-filter-note { font-size: 13px; color: #555; margin: 0 0 12px; line-height: 1.45; }
+        .show-window-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 8px; }
+        .show-window-form label { font-size: 14px; }
+        .show-window-form select { font-size: 15px; padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; }
+        .tz-colon { margin: 0 2px; }
+        .show-config-status { font-size: 13px; color: #333; min-width: 120px; }
+        .reports-phase-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px solid #ddd; }
+        .reports-phase-wrap > p { font-size: 13px; color: #555; margin: 0 0 10px; line-height: 1.45; }
+        .reports-phase-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .reports-phase-btn { font-size: 12px; font-weight: bold; padding: 8px 12px; border-radius: 8px; border: 1px solid #999; background: #e8e8e8; color: #222; cursor: pointer; font-family: inherit; }
+        .reports-phase-btn:hover { background: #ddd; }
+        .reports-phase-btn.reports-phase-active { background: #0066aa; border-color: #004a80; color: #fff; }
+        .reports-phase-status { font-size: 12px; color: #333; margin-left: 4px; }
+        .reports-price-wrap { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; }
+        .reports-price-wrap label { font-size: 13px; color: #333; font-weight: 600; }
+        #_po-sel-reports {
+            font-size: 13px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            border: 1px solid #999;
+            background: #fff;
+            color: #222;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .box-tools-note { font-size: 13px; color: #555; margin: 0 0 12px; line-height: 1.45; }
+        .box-tools-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        /* Collapsible report sections */
+        details.report-section {
+            background: white; padding: 0; border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; overflow: hidden;
+        }
+        details.report-section > summary {
+            list-style: none; cursor: pointer; user-select: none;
+            display: flex; align-items: center; gap: 10px;
+            padding: 16px 20px; background: #f9f9f9; border-bottom: 1px solid #eee;
+            font-size: 1.17em; font-weight: bold;
+        }
+        details.report-section > summary::-webkit-details-marker { display: none; }
+        details.report-section > summary::before {
+            content: "▸"; display: inline-block; width: 1em; color: #0066aa;
+            transition: transform 0.15s ease;
+        }
+        details.report-section[open] > summary::before { transform: rotate(90deg); }
+        details.report-section > summary:hover { background: #f1f7ff; }
+        details.report-section .section-body { padding: 16px 20px 20px; overflow-x: auto; }
+        .pin-thumb {
+            width: 80px; height: 80px; object-fit: cover; border-radius: 6px;
+            border: 1px solid #ddd; background: #f3f3f3; flex: 0 0 auto;
+            vertical-align: middle; image-rendering: auto;
+        }
+        .pin-thumb-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; }
+        .pin-cell { width: 88px; vertical-align: middle; }
+        #popularityTable td, #summaryTable td, #soldPinsTable td { vertical-align: middle; }
+        #soldPinsTable td.sold-hammer { color: #198754; font-weight: bold; }
+        .pd-note { font-size: 13px; color: #555; margin: 0 0 14px; line-height: 1.45; }
+        .pd-grid {
+            display: grid;
+            grid-template-columns: minmax(110px, 140px) 1fr 1fr minmax(90px, 120px);
+            grid-template-rows: auto auto auto auto;
+            gap: 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            min-width: 640px;
+        }
+        .pd-cell {
+            border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;
+            padding: 10px 12px; vertical-align: top;
+        }
+        .pd-grid > :nth-child(4n) { border-right: none; }
+        .pd-grid > :nth-last-child(-n+4) { border-bottom: none; }
+        .pd-corner, .pd-colhead, .pd-rowhead, .pd-margin {
+            background: #f5f7fa; font-size: 13px; font-weight: bold; color: #333;
+        }
+        .pd-corner { display: flex; align-items: flex-end; justify-content: flex-start; }
+        .pd-colhead { text-align: center; }
+        .pd-rowhead { display: flex; align-items: center; }
+        .pd-box-head {
+            display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px;
+            margin-bottom: 8px; font-size: 13px; color: #333;
+        }
+        .pd-box-head strong { color: #0066aa; font-size: 15px; }
+        .pd-margin { text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+        .pd-margin .pd-m-val { color: #0066aa; font-size: 15px; }
+        .pd-unpriced { font-size: 13px; color: #666; margin: 12px 0 0; line-height: 1.45; }
+    </style>
+</head>
+<body>
+<div id="authContent" style="display:none;">
+    <div class="header"><h1>Reports</h1><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="mark_pending.html" class="btn" style="background:#444">Mark pending auth</a><a href="mark_leftover_sold.html" class="btn" style="background:#444">Mark leftover sold</a><a href="leftover_sheet.html" class="btn" style="background:#444">Leftover sheet</a><a id="boardBoxEditorBtn" href="../BoardBoxEditor/" class="btn" style="background:#0b6e4f">Board box editor</a><a id="backBtn" href="index.html" class="btn">Boards</a></div></div>
+
+    <details class="report-section" open id="showWindowSection" data-section-key="show-window">
+        <summary>Show window (Eastern Time)</summary>
+        <div class="section-body">
+        <p style="font-size:14px;color:#555;margin:0 0 12px;">Applies to folder date <strong id="showWindowSlugLabel"></strong> (America/New_York). The banner counts down to the <strong>End</strong> time (“Request window closes in …”). <strong>Start</strong> still controls when the request window opens for B/N badges and phase logic. Click <strong>Save Window</strong> after changes. On the boards page, <strong>Schedule</strong> uses this clock; <strong>Pre-Show</strong> shows the same close countdown until the end time passes.</p>
+        <div class="show-window-form">
+            <label>Start <select id="cfgStartH"></select><span class="tz-colon">:</span><select id="cfgStartM"></select></label>
+            <label>End <select id="cfgEndH"></select><span class="tz-colon">:</span><select id="cfgEndM"></select></label>
+            <button type="button" class="btn" id="saveShowConfigBtn">Save Window</button>
+            <span id="showConfigStatus" class="show-config-status"></span>
+        </div>
+        <div class="reports-phase-wrap" id="reportsBoxTools" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid #ddd;">
+            <h2 style="margin:0 0 8px;font-size:1.17em;">Box tools (admin only)</h2>
+            <p class="box-tools-note"><strong>Board box editor</strong> — move, resize, add, or delete pin boxes. Save syncs across devices. Same admin key as this page. After edits, ask to sync JSON into the live CTR boards folder before relying on them for clicks/prices.</p>
+            <div class="box-tools-row">
+                <a id="boardBoxEditorBtn2" href="../BoardBoxEditor/" class="btn" style="background:#0b6e4f">Open board box editor</a>
+            </div>
+        </div>
+        <div class="reports-phase-wrap" id="reportsPhaseBar">
+            <p>Show state (same as boards page; visible to everyone). <strong>Post Show</strong> turns on the full-screen “show ended” on the boards URL. Use <strong>Schedule</strong>, <strong>Pre-Show</strong>, or <strong>During Show</strong> here or on boards to turn that screen off.</p>
+            <div class="reports-phase-row">
+                <button type="button" class="reports-phase-btn" data-phase="pre" title="Force Pre-Show banner">Pre-Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="post" title="Force Post Show banner + full-screen ended">Post Show</button>
+                <button type="button" class="reports-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
+                <span class="reports-price-wrap" title="Controls price badges on the boards page">
+                    <label for="_po-sel-reports">Prices</label>
+                    <select id="_po-sel-reports" aria-label="Price visibility on boards page">
+                        <option value="none">Hide prices (default)</option>
+                        <option value="all">Show all prices</option>
+                        <option value="clicked">Prices on clicked pins only</option>
+                    </select>
+                </span>
+                <span id="reportsPhaseStatus" class="reports-phase-status" aria-live="polite"></span>
+            </div>
+        </div>
+        </div>
+    </details>
+
+    <details class="report-section" open data-section-key="user-tally">
+        <summary>1. User Tally</summary>
+        <div class="section-body">
+            <p class="user-filter-note">Uncheck a user to exclude their clicks from every table below and from <strong>admin</strong> overlays on the boards page (this browser only — nothing is deleted from Firebase).</p>
+            <table id="userTallyTable"><thead><tr><th class="user-include-cell" title="Include in reports">✓</th><th>User</th><th>VB gen</th><th>VB save</th><th>Last Active</th><th>Unique</th><th>Contested</th><th>Total</th><th>$ Value</th></tr></thead><tbody></tbody><tfoot id="userTallyFooter" style="background:#eee; font-weight:bold;"></tfoot></table>
+        </div>
+    </details>
+
+    <details class="report-section" open data-section-key="live-feed">
+        <summary>2. Live Request Feed</summary>
+        <div class="section-body"><table id="liveFeedTable"><thead><tr><th>Status</th><th>Location</th><th>User</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+    </details>
+
+    <details class="report-section" open data-section-key="popularity">
+        <summary>3. Popularity (2+ Clicks)</summary>
+        <div class="section-body"><table id="popularityTable"><thead><tr><th>Pin</th><th>Location</th><th>Clicks</th><th>Users</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+    </details>
+
+    <details class="report-section" open data-section-key="click-summary">
+        <summary>4. Click Summary</summary>
+        <div class="section-body"><table id="summaryTable"><thead><tr><th>Pins</th><th>Clicks</th><th>Count</th></tr></thead><tbody></tbody></table></div>
+    </details>
+
+    <details class="report-section" open data-section-key="price-demand-matrix">
+        <summary>5. Price × Demand</summary>
+        <div class="section-body" id="priceDemandMatrixBody">
+            <p class="pd-note">Clicked pins only, each in exactly one box. Price = same sale $ as User Tally. Above = strictly greater than median; ties go to Below. Unpriced clicked pins are listed under the grid, not placed in a box.</p>
+            <div id="priceDemandMatrix">Loading…</div>
+        </div>
+    </details>
+
+    <details class="report-section" open data-section-key="sold-pins">
+        <summary>6. Sold Pins (Hammer)</summary>
+        <div class="section-body">
+            <p class="pd-note" style="margin-top:0;">From pricing harness <strong>Sale Mode</strong> (Firebase <code>sale_price</code>). List = harness list price ($10 min, round up to $5). Sold = hammer entered on overlay.</p>
+            <table id="soldPinsTable"><thead><tr><th>Pin</th><th>Location</th><th>List</th><th>Sold</th><th>Recorded by</th></tr></thead><tbody></tbody><tfoot id="soldPinsFooter" style="background:#eee;font-weight:bold;"></tfoot></table>
+        </div>
+    </details>
+
+    <details class="report-section" open data-section-key="feedback">
+        <summary>7. Tester Feedback</summary>
+        <div class="section-body"><div id="feedbackContainer">None yet.</div></div>
+    </details>
+</div>
+<script>
+/* Persist collapse/expand across Boards ↔ Reports (same browser). Runs before auth UI so no open/close flash. */
+(function () {
+    const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
+    const segments = pathClean.split("/").filter(Boolean);
+    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+    const m = last.match(/(\d{8})/);
+    const slug = m ? m[1] : "20260822";
+    const storageKey = `fp_reports_sections_${slug}`;
+    const sections = () => [...document.querySelectorAll("details.report-section[data-section-key]")];
+
+    function readState() {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) return null;
+            const obj = JSON.parse(raw);
+            return obj && typeof obj === "object" ? obj : null;
+        } catch (_) { return null; }
+    }
+    function writeState() {
+        const out = {};
+        sections().forEach((el) => { out[el.getAttribute("data-section-key")] = !!el.open; });
+        try { localStorage.setItem(storageKey, JSON.stringify(out)); } catch (_) {}
+    }
+    const saved = readState();
+    if (saved) {
+        sections().forEach((el) => {
+            const k = el.getAttribute("data-section-key");
+            if (Object.prototype.hasOwnProperty.call(saved, k)) {
+                if (saved[k]) el.setAttribute("open", "");
+                else el.removeAttribute("open");
+            }
+        });
+    }
+    sections().forEach((el) => {
+        el.addEventListener("toggle", writeState);
+    });
+})();
+</script>
+<div id="authMsg" style="text-align:center; margin-top:100px; font-weight:bold;" onclick="checkAuth(true)">Checking Authorization...</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/user_filter.js?v=3"></script>
+<script>
+const SHOW_DATE_SLUG_FALLBACK = "20260903";
+let reportsShowSlug = SHOW_DATE_SLUG_FALLBACK;
+function parseShowDateSlugFromPathReports() {
+    const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
+    const segments = pathClean.split("/").filter(Boolean);
+    const last = segments.length ? decodeURIComponent(segments[segments.length - 1]) : "";
+    const m = last.match(/(\d{8})/);
+    return m ? m[1] : null;
+}
+const firebaseConfig = { apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o", authDomain: "fins-and-pins-click-to-claim.firebaseapp.com", databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com", projectId: "fins-and-pins-click-to-claim", storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app", messagingSenderId: "31512845258", appId: "1:31512845258:web:2124fae24cfee229084d33" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ADMIN_KEY = "0626200207081986";
+let globalData = null;
+/** showConfig virtual-board analytics — never claims. */
+let virtualBoardGenerate = {};
+let virtualBoardSave = {};
+let virtualBoardUsed = {}; // legacy save leaf
+
+function userInVbMap(map, repUid, canon) {
+    if (!map || typeof map !== "object") return false;
+    if (repUid && map[repUid]) return true;
+    const want = canon || "";
+    return Object.values(map).some((row) => {
+        if (!row || typeof row !== "object") return false;
+        const lab = normalizeUserDisplayName(String(row.label || "")) || String(row.label || "");
+        return lab && want && lab === want;
+    });
+}
+
+function userGeneratedVirtualBoard(repUid, canon) {
+    return userInVbMap(virtualBoardGenerate, repUid, canon);
+}
+
+function userSavedVirtualBoard(repUid, canon) {
+    return userInVbMap(virtualBoardSave, repUid, canon) || userInVbMap(virtualBoardUsed, repUid, canon);
+}
+
+function fillTimeSelect(sel, max) {
+    sel.innerHTML = "";
+    for (let i = 0; i <= max; i++) {
+        const o = document.createElement("option");
+        o.value = i;
+        o.textContent = String(i).padStart(2, "0");
+        sel.appendChild(o);
+    }
+}
+
+function checkAuth(m=false) {
+    if (new URLSearchParams(window.location.search).get('admin') === ADMIN_KEY || sessionStorage.getItem('fp_admin_active') === 'true' || m) {
+        sessionStorage.setItem('fp_admin_active', 'true');
+        document.getElementById('authMsg').style.display = 'none';
+        document.getElementById('authContent').style.display = 'block';
+        document.getElementById('backBtn').href = `index.html?admin=${ADMIN_KEY}`;
+        const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
+        const editorHref = `../BoardBoxEditor/${showDateSlug}/?admin=${ADMIN_KEY}`;
+        ["boardBoxEditorBtn", "boardBoxEditorBtn2"].forEach((id) => {
+            const a = document.getElementById(id);
+            if (a) a.href = editorHref;
+        });
+        loadData();
+    }
+}
+checkAuth();
+
+async function loadData() {
+    const showDateSlug = parseShowDateSlugFromPathReports() || SHOW_DATE_SLUG_FALLBACK;
+    reportsShowSlug = showDateSlug;
+    const fbName = showDateSlug;
+    const folder = showDateSlug;
+    document.getElementById("showWindowSlugLabel").textContent = showDateSlug;
+    fillTimeSelect(document.getElementById("cfgStartH"), 23);
+    fillTimeSelect(document.getElementById("cfgEndH"), 23);
+    fillTimeSelect(document.getElementById("cfgStartM"), 59);
+    fillTimeSelect(document.getElementById("cfgEndM"), 59);
+
+    db.ref(`showConfig/${fbName}`).once("value").then(snap => {
+        const v = snap.val() || {};
+        const sh = v.startHour != null ? Number(v.startHour) : 12;
+        const sm = v.startMin != null ? Number(v.startMin) : 0;
+        const eh = v.endHour != null ? Number(v.endHour) : 18;
+        const em = v.endMin != null ? Number(v.endMin) : 0;
+        document.getElementById("cfgStartH").value = String(Math.min(23, Math.max(0, sh)));
+        document.getElementById("cfgStartM").value = String(Math.min(59, Math.max(0, sm)));
+        document.getElementById("cfgEndH").value = String(Math.min(23, Math.max(0, eh)));
+        document.getElementById("cfgEndM").value = String(Math.min(59, Math.max(0, em)));
+    });
+
+    document.getElementById("saveShowConfigBtn").onclick = () => {
+        const st = document.getElementById("showConfigStatus");
+        st.textContent = "Saving…";
+        const payload = {
+            startHour: +document.getElementById("cfgStartH").value,
+            startMin: +document.getElementById("cfgStartM").value,
+            endHour: +document.getElementById("cfgEndH").value,
+            endMin: +document.getElementById("cfgEndM").value,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+        db.ref(`showConfig/${fbName}`).update(payload)
+            .then(() => { st.textContent = "Saved. Open boards page refreshes the countdown automatically."; })
+            .catch(e => { st.textContent = "Error: " + e.message; });
+    };
+
+    const phaseStatusEl = document.getElementById("reportsPhaseStatus");
+    function writeShowPhaseReports(phase) {
+        if (!["auto", "pre", "live", "post"].includes(phase)) return;
+        if (phaseStatusEl) phaseStatusEl.textContent = "Saving phase…";
+        const payload = {
+            phase,
+            phaseUpdatedAt: firebase.database.ServerValue.TIMESTAMP,
+            endedFullscreen: phase === "post"
+        };
+        db.ref(`showConfig/${fbName}`).update(payload)
+            .then(() => {
+                if (phaseStatusEl) phaseStatusEl.textContent = "Phase saved.";
+                setTimeout(() => { if (phaseStatusEl && phaseStatusEl.textContent === "Phase saved.") phaseStatusEl.textContent = ""; }, 3000);
+            })
+            .catch(e => { if (phaseStatusEl) phaseStatusEl.textContent = "Error: " + e.message; });
+    }
+    document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(btn => {
+        btn.addEventListener("click", () => writeShowPhaseReports(btn.getAttribute("data-phase")));
+    });
+    db.ref(`showConfig/${fbName}`).on("value", snap => {
+        const v = snap.val() || {};
+        const ph = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
+        document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(b => {
+            b.classList.toggle("reports-phase-active", b.getAttribute("data-phase") === ph);
+        });
+    });
+
+    // Price overlay control — shared via showConfig/{show}/priceMode (all devices).
+    // localStorage/BroadcastChannel remain as same-browser cache only.
+    const _PO_MODE_KEY = "_ctcPriceMode_20260903";
+    const priceSel = document.getElementById("_po-sel-reports");
+    if (priceSel) {
+        let bc = null;
+        try { bc = new BroadcastChannel("ctc_price_mode_20260903"); } catch (_) {}
+        function applyPriceSel(mode) {
+            if (!["all", "clicked", "none"].includes(mode)) mode = "none";
+            priceSel.value = mode;
+            try { localStorage.setItem(_PO_MODE_KEY, mode); } catch (_) {}
+            if (bc) bc.postMessage({ mode });
+        }
+        // Seed from Firebase; if unset, publish this browser's local preference once.
+        db.ref(`showConfig/${fbName}/priceMode`).once("value").then(snap => {
+            const fbMode = snap.val();
+            if (["all", "clicked", "none"].includes(fbMode)) {
+                applyPriceSel(fbMode);
+                return;
+            }
+            const localMode = localStorage.getItem(_PO_MODE_KEY) || "none";
+            const seed = ["all", "clicked", "none"].includes(localMode) ? localMode : "none";
+            applyPriceSel(seed);
+            return db.ref(`showConfig/${fbName}`).update({
+                priceMode: seed,
+                priceModeUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        }).catch(() => {
+            applyPriceSel(localStorage.getItem(_PO_MODE_KEY) || "none");
+        });
+        db.ref(`showConfig/${fbName}/priceMode`).on("value", snap => {
+            const m = snap.val();
+            if (["all", "clicked", "none"].includes(m) && priceSel.value !== m) applyPriceSel(m);
+        });
+        priceSel.addEventListener("change", () => {
+            const mode = priceSel.value;
+            applyPriceSel(mode);
+            if (phaseStatusEl) phaseStatusEl.textContent = "Saving price display…";
+            db.ref(`showConfig/${fbName}`).update({
+                priceMode: mode,
+                priceModeUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                if (phaseStatusEl) {
+                    phaseStatusEl.textContent = mode === "none" ? "Prices hidden on boards (all devices)." : "Price display updated on boards (all devices).";
+                    setTimeout(() => {
+                        if (phaseStatusEl && /Prices|price display/i.test(phaseStatusEl.textContent)) phaseStatusEl.textContent = "";
+                    }, 2500);
+                }
+            }).catch(e => {
+                if (phaseStatusEl) phaseStatusEl.textContent = "Error: " + e.message;
+            });
+        });
+    }
+
+    // Keep BOARDS_MANIFEST_VERSION in sync with index.html when boards change.
+    const BOARDS_MANIFEST_VERSION = "3";
+    const manifest = await (await fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })).json();
+
+    // Virtual board analytics — showConfig only; never claims.
+    db.ref(`showConfig/${fbName}/virtualBoardGenerate`).on("value", snap => {
+        virtualBoardGenerate = snap.val() || {};
+        if (globalData) renderReports();
+    });
+    db.ref(`showConfig/${fbName}/virtualBoardSave`).on("value", snap => {
+        virtualBoardSave = snap.val() || {};
+        if (globalData) renderReports();
+    });
+    db.ref(`showConfig/${fbName}/virtualBoardUsed`).on("value", snap => {
+        virtualBoardUsed = snap.val() || {};
+        if (globalData) renderReports();
+    });
+
+    db.ref(`claims/${fbName}`).on('value', snap => {
+        globalData = { raw: snap.val() || {}, boardList: manifest, showName: folder };
+        renderReports();
+    });
+
+    // $ values: claim key IMG_XXXX-idx → crop_stem (boards JSONs) → confirmed price
+    // (same sources as the boards-page overlay: Firebase match pins, prices.json fallback).
+    loadDollarValues(manifest, BOARDS_MANIFEST_VERSION).then(() => {
+        if (globalData) renderReports();
+    });
+
+    db.ref(`feedback/${fbName}`).on('value', snap => {
+        const fb = snap.val() || {};
+        document.getElementById('feedbackContainer').innerHTML = Object.values(fb).reverse().map(f => `
+            <div class="feedback-msg">
+                <strong>${normalizeUserDisplayName(String(f.user || "")) || f.user}</strong> <small>(${new Date(f.time).toLocaleString()})</small><br>${f.msg}
+            </div>
+        `).join('') || "No feedback yet.";
+    });
+}
+
+// ── Dollar value support (same as boards badges: list round, then 25% off) ──
+const PRICING_RUN_ID = 'test_PriceCollection_20260901_1340__build_20260903_fullres_visual_baseline';
+const PRICING_RUN_ID_LEFTOVER = 'test_CTR_20260903_pricing_unset';
+const pinKeyToStem = {};   // "IMG_8127-3" / "LO03_IMG_8621-0" → crop_stem
+const pinKeyToGeom = {};   // pinKey → { board, x, y, width, height, iw, ih }
+const boardImgCache = {};  // board stem → HTMLImageElement
+const pinThumbCache = {};  // pinKey → data URL
+const stemToPricePrimary = {};
+const stemToPriceLeftover = {};
+const stemToSale = {};     // crop_stem → { sale_price, sale_recorded_by, sale_recorded_at, … }
+const stemToPk = {};       // crop_stem → CTR pin key (IMG_…-idx)
+let saleFbUnsub = null;
+let salePaintTimer = null;
+let boardsManifestVer = "1";
+
+/** Harness list price ($10 min, round up to $5) — same list used before 25% show sale $. */
+function listPriceForPk(pk) {
+    const stem = pinKeyToStem[pk];
+    if (!stem) return 0;
+    const map = String(pk).startsWith("LO03_") ? stemToPriceLeftover : stemToPricePrimary;
+    const raw = map[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    return raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
+}
+
+/** List: <$10 → $10, else round UP to nearest $5. Sale: Math.round(list × 0.75). */
+function dollarValueForPk(pk) {
+    const stem = pinKeyToStem[pk];
+    if (!stem) return 0;
+    const map = String(pk).startsWith("LO03_") ? stemToPriceLeftover : stemToPricePrimary;
+    const raw = map[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    const list = raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
+    return Math.round(list * 0.75);
+}
+
+function loadBoardImage(name) {
+    if (boardImgCache[name]) return boardImgCache[name];
+    boardImgCache[name] = new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("board img " + name));
+        img.src = `./boards/${name}.JPG?v=${boardsManifestVer}`;
+    }).catch((e) => {
+        console.warn(e);
+        delete boardImgCache[name];
+        return null;
+    });
+    return boardImgCache[name];
+}
+
+// Thumbs come from CTR board JPGs (~1280px), not full-res originals.
+// Render ~2× CSS size for retina sharpness; full-res crops would re-download huge photos and slow §4.
+const PIN_THUMB_CSS_PX = 80;
+const PIN_THUMB_RENDER_PX = Math.min(160, Math.round(PIN_THUMB_CSS_PX * Math.min(window.devicePixelRatio || 1, 2)));
+
+async function pinThumbDataUrl(pk, maxSide = PIN_THUMB_RENDER_PX) {
+    if (pinThumbCache[pk]) return pinThumbCache[pk];
+    const g = pinKeyToGeom[pk];
+    if (!g) return "";
+    const img = await loadBoardImage(g.board);
+    if (!img || !img.naturalWidth) return "";
+    const sx = img.naturalWidth / (g.iw || img.naturalWidth);
+    const sy = img.naturalHeight / (g.ih || img.naturalHeight);
+    const halfW = g.width / 2;
+    const halfH = g.height / 2;
+    let l = (g.x - halfW) * sx;
+    let t = (g.y - halfH) * sy;
+    let r = (g.x + halfW) * sx;
+    let b = (g.y + halfH) * sy;
+    const padX = (r - l) * 0.04;
+    const padY = (b - t) * 0.04;
+    l = Math.max(0, l - padX);
+    t = Math.max(0, t - padY);
+    r = Math.min(img.naturalWidth, r + padX);
+    b = Math.min(img.naturalHeight, b + padY);
+    const sw = Math.max(1, r - l);
+    const sh = Math.max(1, b - t);
+    // Prefer downscale from board pixels; allow up to render size (retina) but not beyond source.
+    const scale = Math.min(maxSide / sw, maxSide / sh, 1);
+    const dw = Math.max(1, Math.round(sw * scale));
+    const dh = Math.max(1, Math.round(sh * scale));
+    const c = document.createElement("canvas");
+    c.width = dw;
+    c.height = dh;
+    const ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, l, t, sw, sh, 0, 0, dw, dh);
+    const url = c.toDataURL("image/jpeg", 0.92);
+    pinThumbCache[pk] = url;
+    return url;
+}
+
+function pinThumbHtmlSync(pk) {
+    const url = pinThumbCache[pk];
+    if (!url) return `<span class="pin-thumb" style="display:inline-block;" title="${pk}"></span>`;
+    return `<img class="pin-thumb" src="${url}" alt="" title="${pk}">`;
+}
+
+async function warmPinThumbs(pinKeys) {
+    const uniq = [...new Set(pinKeys.filter(Boolean))];
+    await Promise.all(uniq.map((pk) => pinThumbDataUrl(pk).catch(() => "")));
+}
+
+
+function stemFromPricingPin(pin, domKey) {
+    const cf = String(pin.crop_filename || "");
+    if (cf && !cf.includes("__")) return cf.replace(/\.(jpe?g|png)$/i, "");
+    const pk = String(pin.pin_key || domKey || "");
+    if (pk.includes(".jpg__")) return pk.split(".jpg__")[0];
+    if (String(domKey || "").includes("_jpg__")) return String(domKey).split("_jpg__")[0];
+    if (cf) return cf.replace(/\.(jpe?g|png)$/i, "").split("__")[0];
+    return null;
+}
+
+function rawPriceFromMatchPin(pin) {
+    const dp = Number(pin.display_price);
+    if (isFinite(dp) && dp > 0) return dp;
+    const sc = pin.selected_candidate;
+    if (sc && typeof sc === "object") {
+        const sp = Number(sc.price != null ? sc.price : sc.total_price);
+        if (isFinite(sp) && sp > 0) return sp;
+    }
+    return null;
+}
+
+async function loadPricingRunInto(runId, targetMap) {
+    const snap = await db.ref(`pin_pricing_tests/${runId}/visual_baseline/pins`).once("value");
+    const all = snap.val() || {};
+    let n = 0;
+    for (const [domKey, pin] of Object.entries(all)) {
+        if (!pin) continue;
+        const status = pin.match_status || "";
+        // match = eBay lookalike; priced = CTP/search/manual. Skip not_a_pin / bare no_match.
+        if (status === "priced") {
+            const dp = Number(pin.display_price);
+            if (!(isFinite(dp) && dp > 0)) continue;
+            const stem = stemFromPricingPin(pin, domKey);
+            if (stem) { targetMap[stem] = dp; n++; }
+            continue;
+        }
+        if (status !== "match") continue;
+        const raw = rawPriceFromMatchPin(pin);
+        if (raw == null) continue;
+        const stem = stemFromPricingPin(pin, domKey);
+        if (stem) { targetMap[stem] = raw; n++; }
+    }
+    return n;
+}
+
+function ingestSaleRecord(domKey, pin) {
+    if (!pin) return;
+    const stem = stemFromPricingPin(pin, domKey);
+    if (!stem) return;
+    const sp = Number(pin.sale_price);
+    if (!(isFinite(sp) && sp > 0)) {
+        delete stemToSale[stem];
+        return;
+    }
+    stemToSale[stem] = {
+        sale_price: sp,
+        sale_recorded_by: pin.sale_recorded_by || "",
+        sale_recorded_date: pin.sale_recorded_date || "",
+        sale_recorded_at: pin.sale_recorded_at || 0,
+        board_num: pin.board_num,
+        pin_n: pin.pin_n,
+    };
+}
+
+async function loadSaleRecordsFromRun(runId) {
+    const snap = await db.ref(`pin_pricing_tests/${runId}/visual_baseline/pins`).once("value");
+    const all = snap.val() || {};
+    Object.keys(stemToSale).forEach((k) => delete stemToSale[k]);
+    for (const [domKey, pin] of Object.entries(all)) ingestSaleRecord(domKey, pin);
+    return Object.keys(stemToSale).length;
+}
+
+function repaintSoldPinThumbs() {
+    document.querySelectorAll("#soldPinsTable tbody tr[data-sold-pk]").forEach((tr) => {
+        const pk = tr.getAttribute("data-sold-pk");
+        if (!pk) return;
+        const cell = tr.querySelector(".pin-cell");
+        if (cell) cell.innerHTML = pinThumbHtmlSync(pk);
+    });
+}
+
+function scheduleSoldPinsRefresh() {
+    if (salePaintTimer) clearTimeout(salePaintTimer);
+    salePaintTimer = setTimeout(() => {
+        salePaintTimer = null;
+        if (!globalData) return;
+        const soldThumbKeys = renderSoldPinsReport();
+        warmPinThumbs(soldThumbKeys).then(repaintSoldPinThumbs);
+    }, 120);
+}
+
+function wireSaleRecordsListener() {
+    if (saleFbUnsub) return;
+    const r = db.ref(`pin_pricing_tests/${PRICING_RUN_ID}/visual_baseline/pins`);
+    const onSnap = (snap) => {
+        ingestSaleRecord(snap.key, snap.val());
+        scheduleSoldPinsRefresh();
+    };
+    // child_added replays all ~320 pins on attach and was freezing the page.
+    r.on("child_changed", onSnap);
+    saleFbUnsub = () => {
+        r.off("child_changed", onSnap);
+        if (salePaintTimer) clearTimeout(salePaintTimer);
+        saleFbUnsub = null;
+    };
+}
+
+async function loadDollarValues(manifest, ver) {
+    boardsManifestVer = String(ver || "1");
+    await Promise.all(manifest.map(async name => {
+        try {
+            const data = await (await fetch(`./boards/${name}.json?v=${ver}`, { cache: "no-store" })).json();
+            const iw = Number((data.image && data.image.width) || 0);
+            const ih = Number((data.image && data.image.height) || 0);
+            (data.predictions || []).forEach((p, idx) => {
+                const pk = `${name}-${idx}`;
+                if (p.crop_stem) {
+                    pinKeyToStem[pk] = p.crop_stem;
+                    if (!stemToPk[p.crop_stem]) stemToPk[p.crop_stem] = pk;
+                }
+                if (p && p.width > 0 && p.height > 0) {
+                    pinKeyToGeom[pk] = {
+                        board: name,
+                        x: Number(p.x),
+                        y: Number(p.y),
+                        width: Number(p.width),
+                        height: Number(p.height),
+                        iw: iw || 0,
+                        ih: ih || 0
+                    };
+                }
+            });
+            loadBoardImage(name); // warm board rasters in background
+        } catch (e) { console.warn("boards json load failed for $ values:", name, e); }
+    }));
+    try {
+        const snap = await (await fetch("./prices.json", { cache: "no-store" })).json();
+        for (const [stem, raw] of Object.entries(snap || {})) {
+            if (isFinite(Number(raw)) && Number(raw) > 0) stemToPricePrimary[stem] = Number(raw);
+        }
+        console.info(`[$Value] prices.json base: ${Object.keys(snap || {}).length} prices`);
+    } catch (e) { console.warn("[$Value] prices.json load failed:", e); }
+    try {
+        const n1 = await loadPricingRunInto(PRICING_RUN_ID, stemToPricePrimary);
+        const n2 = await loadPricingRunInto(PRICING_RUN_ID_LEFTOVER, stemToPriceLeftover);
+        console.info(`[$Value] Firebase overlay: primary=${n1} leftover=${n2}`);
+    } catch (e) { console.warn("[$Value] Firebase overlay failed (using snapshot only):", e); }
+    try {
+        const ns = await loadSaleRecordsFromRun(PRICING_RUN_ID);
+        wireSaleRecordsListener();
+        console.info(`[SoldPins] Firebase sale_price records: ${ns}`);
+    } catch (e) { console.warn("[SoldPins] Firebase sale load failed:", e); }
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function setUserIncluded(userKey, included) {
+    if (typeof CtrUserFilter === "undefined") return;
+    const set = CtrUserFilter.getExcludedKeysSet(reportsShowSlug);
+    if (included) set.delete(userKey);
+    else set.add(userKey);
+    CtrUserFilter.saveExcludedKeysSet(reportsShowSlug, set);
+    renderReports();
+}
+
+function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+}
+
+function rowLabel(m) {
+    if (m && typeof m === "object" && m.label) return m.label;
+    return null;
+}
+function rowTime(m) {
+    if (m && typeof m === "object" && m.time != null) return m.time;
+    if (typeof m === "number") return m;
+    return 0;
+}
+
+function medianOf(nums) {
+    const a = nums.filter((n) => isFinite(n)).slice().sort((x, y) => x - y);
+    if (!a.length) return 0;
+    const mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+}
+
+function pdBoxStats(pins) {
+    const value = pins.reduce((s, p) => s + (p.value || 0), 0);
+    return { pins, count: pins.length, value };
+}
+
+function pdBoxHtml(stats, emptyLabel) {
+    if (!stats.count) {
+        return `<div class="pd-box-head"><span>${emptyLabel || "None"}</span><strong>$0</strong></div>`;
+    }
+    const thumbs = `<div class="pin-thumb-row">${stats.pins.map((p) => pinThumbHtmlSync(p.pin)).join("")}</div>`;
+    return `<div class="pd-box-head"><span>${stats.count} pin${stats.count !== 1 ? "s" : ""}</span><strong>$${stats.value}</strong></div>${thumbs}`;
+}
+
+function pdMarginHtml(label, stats) {
+    return `<div>${label}</div><div class="pd-m-val">$${stats.value}</div><div style="font-weight:normal;color:#555;">${stats.count} pin${stats.count !== 1 ? "s" : ""}</div>`;
+}
+
+/** 2×2: columns = price (Above | Below median), rows = demand (Above | Below median). */
+function renderPriceDemandMatrix(popularity) {
+    const host = document.getElementById("priceDemandMatrix");
+    if (!host) return [];
+
+    const clicked = (popularity || []).filter((p) => p && p.count > 0);
+    const priced = [];
+    const unpriced = [];
+    clicked.forEach((p) => {
+        const value = dollarValueForPk(p.pin);
+        if (value > 0) priced.push({ pin: p.pin, display: p.display, count: p.count, value });
+        else unpriced.push(p);
+    });
+
+    if (!priced.length) {
+        host.innerHTML = `<p style="color:#999;margin:0;">No priced clicked pins yet.</p>` +
+            (unpriced.length
+                ? `<p class="pd-unpriced"><strong>${unpriced.length}</strong> clicked pin${unpriced.length !== 1 ? "s" : ""} unpriced (left out of grid).</p>`
+                : "");
+        return unpriced.map((p) => p.pin);
+    }
+
+    const medPrice = medianOf(priced.map((p) => p.value));
+    const medClicks = medianOf(priced.map((p) => p.count));
+    const boxes = { aa: [], ab: [], ba: [], bb: [] }; // demandAbove-priceAbove, demandAbove-priceBelow, …
+    priced.forEach((p) => {
+        const demandAbove = p.count > medClicks;
+        const priceAbove = p.value > medPrice;
+        const key = (demandAbove ? "a" : "b") + (priceAbove ? "a" : "b");
+        boxes[key].push(p);
+    });
+
+    const aa = pdBoxStats(boxes.aa);
+    const ab = pdBoxStats(boxes.ab);
+    const ba = pdBoxStats(boxes.ba);
+    const bb = pdBoxStats(boxes.bb);
+    const rowAbove = pdBoxStats([...boxes.aa, ...boxes.ab]);
+    const rowBelow = pdBoxStats([...boxes.ba, ...boxes.bb]);
+    const colAbove = pdBoxStats([...boxes.aa, ...boxes.ba]);
+    const colBelow = pdBoxStats([...boxes.ab, ...boxes.bb]);
+    const all = pdBoxStats(priced);
+
+    host.innerHTML = `
+        <p class="pd-note" style="margin-top:0;">Medians among priced clicked pins: <strong>$${medPrice}</strong> sale · <strong>${medClicks}</strong> click${medClicks !== 1 ? "s" : ""}.</p>
+        <div class="pd-grid" role="table" aria-label="Price by demand matrix">
+            <div class="pd-cell pd-corner">Demand ↓ · Price →</div>
+            <div class="pd-cell pd-colhead">Above median price<br><span style="font-weight:normal;color:#555;">&gt; $${medPrice}</span></div>
+            <div class="pd-cell pd-colhead">Below median price<br><span style="font-weight:normal;color:#555;">≤ $${medPrice}</span></div>
+            <div class="pd-cell pd-colhead">Row total</div>
+
+            <div class="pd-cell pd-rowhead">Above median demand<br><span style="font-weight:normal;color:#555;">&gt; ${medClicks} click${medClicks !== 1 ? "s" : ""}</span></div>
+            <div class="pd-cell pd-box" data-pd-box="aa">${pdBoxHtml(aa, "None")}</div>
+            <div class="pd-cell pd-box" data-pd-box="ab">${pdBoxHtml(ab, "None")}</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("Above demand", rowAbove)}</div>
+
+            <div class="pd-cell pd-rowhead">Below median demand<br><span style="font-weight:normal;color:#555;">≤ ${medClicks} click${medClicks !== 1 ? "s" : ""}</span></div>
+            <div class="pd-cell pd-box" data-pd-box="ba">${pdBoxHtml(ba, "None")}</div>
+            <div class="pd-cell pd-box" data-pd-box="bb">${pdBoxHtml(bb, "None")}</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("Below demand", rowBelow)}</div>
+
+            <div class="pd-cell pd-margin">Col total</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("Above price", colAbove)}</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("Below price", colBelow)}</div>
+            <div class="pd-cell pd-margin">${pdMarginHtml("All priced", all)}</div>
+        </div>
+        <p class="pd-unpriced">${unpriced.length
+            ? `<strong>${unpriced.length}</strong> clicked pin${unpriced.length !== 1 ? "s" : ""} unpriced — left out of the grid (no sale $ yet): ${unpriced.map((p) => p.display || p.pin).join(", ")}.`
+            : `All clicked pins have a sale $ and are in exactly one box.`}</p>
+    `;
+    return priced.map((p) => p.pin).concat(unpriced.map((p) => p.pin));
+}
+
+/** §6 Sold pins from harness Sale Mode (sale_price in Firebase). */
+function renderSoldPinsReport() {
+    const tbody = document.querySelector("#soldPinsTable tbody");
+    const tfoot = document.getElementById("soldPinsFooter");
+    if (!tbody) return [];
+    const rows = [];
+    for (const [stem, sale] of Object.entries(stemToSale)) {
+        const soldPrice = Number(sale.sale_price);
+        if (!isFinite(soldPrice) || soldPrice <= 0) continue;
+        const pk = stemToPk[stem] || null;
+        let display = stem;
+        if (pk && globalData && globalData.boardList) {
+            const [bName, pIdx] = pk.split("-");
+            const bNum = globalData.boardList.indexOf(bName) + 1;
+            if (bNum > 0) display = `Board ${bNum} (Pin ${parseInt(pIdx, 10) + 1})`;
+        } else if (sale.board_num != null && sale.pin_n != null) {
+            display = `Board ${sale.board_num} (Pin ${sale.pin_n})`;
+        }
+        const listPrice = pk ? listPriceForPk(pk) : 0;
+        rows.push({
+            pk,
+            stem,
+            display,
+            listPrice,
+            soldPrice,
+            recordedAt: Number(sale.sale_recorded_at) || 0,
+            by: String(sale.sale_recorded_by || ""),
+        });
+    }
+    rows.sort((a, b) => (b.recordedAt - a.recordedAt) || a.display.localeCompare(b.display));
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="color:#999;">No hammer sales recorded yet. Use <strong>Sale Mode</strong> on the pricing overlay.</td></tr>';
+        if (tfoot) tfoot.innerHTML = "";
+        return [];
+    }
+    let totList = 0;
+    let totSold = 0;
+    tbody.innerHTML = rows.map((r) => {
+        totList += r.listPrice;
+        totSold += r.soldPrice;
+        const view = r.pk
+            ? `<a href="index.html?admin=${ADMIN_KEY}#pin-${r.pk}" style="color:#0066aa;font-weight:bold;">View</a>`
+            : "";
+        return `<tr data-sold-pk="${r.pk || ""}">
+            <td class="pin-cell">${r.pk ? pinThumbHtmlSync(r.pk) : ""}</td>
+            <td>${r.display} ${view ? "<br>" + view : ""}</td>
+            <td>$${r.listPrice}</td>
+            <td class="sold-hammer">$${r.soldPrice}</td>
+            <td><small>${r.by.replace(/</g, "&lt;")}</small></td>
+        </tr>`;
+    }).join("");
+    if (tfoot) {
+        tfoot.innerHTML = `<tr><td colspan="2">TOTALS (${rows.length} pin${rows.length !== 1 ? "s" : ""})</td><td>$${totList}</td><td class="sold-hammer">$${totSold}</td><td></td></tr>`;
+    }
+    return rows.map((r) => r.pk).filter(Boolean);
+}
+
+function renderReports() {
+    if (!globalData) return;
+    const excluded =
+        typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(reportsShowSlug) : new Set();
+    const aggRaw =
+        typeof CtrUserFilter !== "undefined" ? CtrUserFilter.filterClaims(globalData.raw, excluded) : globalData.raw;
+
+    const userStats = {}; const liveFeed = []; const popularity = [];
+    Object.entries(aggRaw).forEach(([pk, users]) => {
+        const [bName, pIdx] = pk.split("-");
+        const bNum = globalData.boardList.indexOf(bName) + 1;
+        const cleanLoc = `Board ${bNum} (Pin ${parseInt(pIdx)+1})`;
+        const uList = Object.entries(users).sort((a,b) => rowTime(a[1]) - rowTime(b[1]));
+        const isUnique = uList.length === 1;
+
+        const userLabels = uList.map(([u, m]) => normalizeUserDisplayName(rowLabel(m) || u) || u).join(", ");
+        popularity.push({ pin: pk, display: cleanLoc, count: uList.length, users: userLabels });
+
+        uList.forEach(([u, m]) => {
+            const t = rowTime(m);
+            const prettyRaw = rowLabel(m) || u;
+            const canon = normalizeUserDisplayName(prettyRaw) || u;
+            if (!userStats[u]) userStats[u] = { last: 0, unique: 0, contested: 0, value: 0, pretty: canon, repUid: u };
+            if (t > userStats[u].last) userStats[u].last = t;
+            if (isUnique) userStats[u].unique++; else userStats[u].contested++;
+            userStats[u].value += dollarValueForPk(pk);
+            liveFeed.push({
+                pin: pk,
+                display: cleanLoc,
+                user: normalizeUserDisplayName(prettyRaw) || prettyRaw,
+                uid: u,
+                time: t,
+                unique: isUnique
+            });
+        });
+    });
+
+    const allUsers =
+        typeof CtrUserFilter !== "undefined"
+            ? CtrUserFilter.collectUniqueUsers(globalData.raw)
+            : Object.values(userStats).map((s) => ({ userKey: s.repUid, label: s.pretty }));
+
+    let tU=0, tC=0, tT=0, tGen=0, tSave=0;
+    document.querySelector("#userTallyTable tbody").innerHTML = allUsers.map((u, i) => {
+        const included = !excluded.has(u.userKey);
+        const s = userStats[u.userKey] || { last: 0, unique: 0, contested: 0, value: 0, pretty: u.label, repUid: u.userKey };
+        const canon = s.pretty || u.label;
+        if (included) {
+            tU += s.unique; tC += s.contested; tT += (s.unique + s.contested);
+        }
+        const gen = included && userGeneratedVirtualBoard(s.repUid, canon);
+        const saved = included && userSavedVirtualBoard(s.repUid, canon);
+        if (gen) tGen++;
+        if (saved) tSave++;
+        const genCell = gen ? '<span title="Tapped Create Virtual Pin Board" style="color:#0d6efd;font-weight:bold;">✓</span>' : "";
+        const saveCell = saved ? '<span title="Saved a virtual pin board photo" style="color:#198754;font-weight:bold;">✓</span>' : "";
+        const cbId = "uf_row_" + i;
+        const enc = encodeURIComponent(u.userKey);
+        const lastStr = s.last ? new Date(s.last).toLocaleTimeString() : "—";
+        return `<tr><td class="user-include-cell"><input type="checkbox" id="${cbId}" data-user-key="${enc}" ${included ? "checked" : ""} title="Include in reports" /></td><td>${escapeHtml(canon)}<br><small style="color:#888">${escapeHtml(u.userKey)}</small></td><td style="text-align:center">${genCell}</td><td style="text-align:center">${saveCell}</td><td>${lastStr}</td><td>${included ? s.unique : 0}</td><td>${included ? s.contested : 0}</td><td>${included ? s.unique + s.contested : 0}</td><td>${included ? "$" + s.value : "—"}</td></tr>`;
+    }).join("");
+    document.querySelectorAll("#userTallyTable tbody input[type=checkbox][data-user-key]").forEach((cb) => {
+        cb.addEventListener("change", () => {
+            const key = decodeURIComponent(cb.getAttribute("data-user-key") || "");
+            setUserIncluded(key, cb.checked);
+        });
+    });
+    // Unduplicated total: each clicked pin counted once (contested pins sell once),
+    // unlike per-user rows where the same pin appears under every clicker.
+    let revTotal = 0, pinsPriced = 0;
+    const pinsClicked = Object.keys(aggRaw).length;
+    Object.keys(aggRaw).forEach(pk => {
+        const v = dollarValueForPk(pk);
+        if (v > 0) { revTotal += v; pinsPriced++; }
+    });
+    const genPeople = Object.keys(virtualBoardGenerate || {}).length;
+    const savePeople = new Set([
+        ...Object.keys(virtualBoardSave || {}),
+        ...Object.keys(virtualBoardUsed || {})
+    ]).size;
+    const genOnly = Math.max(0, genPeople - savePeople);
+    document.getElementById("userTallyFooter").innerHTML =
+        `<tr><td></td><td>TOTALS</td><td style="text-align:center">${tGen}</td><td style="text-align:center">${tSave}</td><td></td><td>${tU}</td><td>${tC}</td><td>${tT}</td><td>$${revTotal}</td></tr>` +
+        `<tr><td colspan="9" style="font-weight:normal; color:#333;">If every clicked pin sells at list price: <strong>$${revTotal}</strong> from <strong>${pinsClicked}</strong> pins (${pinsPriced} priced, each counted once even when contested). Per-user rows above count contested pins under every clicker, so they can sum higher. Virtual board: <strong>${genPeople}</strong> generated · <strong>${savePeople}</strong> saved` +
+        (genOnly > 0 ? ` · <strong>${genOnly}</strong> generated without a save` : "") +
+        `.</td></tr>`;
+
+    document.querySelector("#liveFeedTable tbody").innerHTML = liveFeed.sort((a,b) => b.time - a.time).map(f => `
+        <tr>
+            <td><span class="${f.unique ? 'badge-pull' : 'badge-wait'}">${f.unique ? '📦 PULL' : 'Contested'}</span></td>
+            <td>${f.display}</td><td>${f.user}</td><td>${new Date(f.time).toLocaleTimeString()}</td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${f.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
+        </tr>`).join('');
+
+    const contested = popularity.filter(p => p.count > 1).sort((a,b) => b.count - a.count);
+    document.querySelector("#popularityTable tbody").innerHTML = contested.length
+        ? contested.map(p => `
+        <tr>
+            <td class="pin-cell">${pinThumbHtmlSync(p.pin)}</td>
+            <td>${p.display}</td><td>${p.count}</td><td>${p.users}</td>
+            <td><a href="index.html?admin=${ADMIN_KEY}#pin-${p.pin}" style="color:#0066aa; font-weight:bold;">View</a></td>
+        </tr>`).join('')
+        : '<tr><td colspan="5" style="color:#999;">No contested pins yet.</td></tr>';
+
+    // Click summary: each click-count bucket with thumbs of every pin in that bucket
+    const byCount = {};
+    popularity.forEach(p => {
+        if (p.count > 0) {
+            if (!byCount[p.count]) byCount[p.count] = [];
+            byCount[p.count].push(p);
+        }
+    });
+    const sortedCounts = Object.keys(byCount).map(Number).sort((a, b) => b - a);
+    document.querySelector('#summaryTable tbody').innerHTML = sortedCounts.length
+        ? sortedCounts.map(c => {
+            const pins = byCount[c];
+            const thumbs = `<div class="pin-thumb-row">${pins.map(p => pinThumbHtmlSync(p.pin)).join("")}</div>`;
+            return `<tr><td>${thumbs}</td><td>${c} click${c !== 1 ? "s" : ""}</td><td>${pins.length} pin${pins.length !== 1 ? "s" : ""}</td></tr>`;
+        }).join("")
+        : '<tr><td colspan="3" style="color:#999;">No data yet.</td></tr>';
+
+    const matrixThumbKeys = renderPriceDemandMatrix(popularity);
+    const soldThumbKeys = renderSoldPinsReport();
+
+    // Fill thumbs asynchronously once board rasters / crops are ready
+    const thumbKeys = [
+        ...contested.map(p => p.pin),
+        ...sortedCounts.flatMap(c => byCount[c].map(p => p.pin)),
+        ...matrixThumbKeys,
+        ...soldThumbKeys
+    ];
+    warmPinThumbs(thumbKeys).then(() => {
+        if (!globalData) return;
+        // Re-paint only thumb cells using cache
+        document.querySelectorAll("#popularityTable tbody tr").forEach((tr, i) => {
+            const p = contested[i];
+            if (!p) return;
+            const cell = tr.querySelector(".pin-cell");
+            if (cell) cell.innerHTML = pinThumbHtmlSync(p.pin);
+        });
+        document.querySelectorAll("#summaryTable tbody tr").forEach((tr, i) => {
+            const c = sortedCounts[i];
+            if (c == null) return;
+            const pins = byCount[c] || [];
+            const cell = tr.querySelector("td");
+            if (cell) cell.innerHTML = `<div class="pin-thumb-row">${pins.map(p => pinThumbHtmlSync(p.pin)).join("")}</div>`;
+        });
+        repaintSoldPinThumbs();
+        // Re-render matrix so box thumbs pick up cache (keeps same medians/assignment)
+        renderPriceDemandMatrix(popularity);
+        renderSoldPinsReport();
+    });
+}
+</script>
+</body>
+</html>
