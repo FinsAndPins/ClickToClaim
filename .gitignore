@@ -1,17 +1,14 @@
-<<<<<<< HEAD
-intake/node_modules/
-intake/.wrangler/
-intake/.dev.vars
-
-.cursor/
-=======
 .DS_Store
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
 !.cursor/docs/
 !.cursor/docs/**
->>>>>>> origin/main
+
+# Sell My Collection intake (local secrets / build)
+intake/node_modules/
+intake/.wrangler/
+intake/.dev.vars
 
 # Local Python environments and scratch folders; keep out of GitHub.
 .venv*/
