@@ -1,70 +1,44 @@
 # What you need to do vs what waits for the Mac
 
-Phone-friendly checklist. Nothing here requires writing code.
+**Start here on home day:** [`docs/HOME_DAY.md`](docs/HOME_DAY.md) — ordered commands for Lexi-ready deploy.
 
 ---
 
-## Locked from you (this session)
+## Locked from planning
 
 - [x] Ship-to: **Fins and Pins, LLC**, 15049 Canopy Cover Dr, Winter Garden, FL 34787
-- [x] Lexi alerts / Access: **finsandpins@gmail.com** (plus Steve: steve.fierstein@gmail.com)
-- [x] Launch: invite-only first; 24h offer aim; Disney pins line; no minimum; photo tips
-- [x] No public email addresses on the site; offer mail says don’t reply
+- [x] Lexi alerts / Access: **finsandpins@gmail.com** (+ steve.fierstein@gmail.com)
+- [x] Invite-only; 24h offer aim; Disney pins; no minimum; photo tips; US shipping only
+- [x] No public email addresses; offer mail says don’t reply
+- [x] Moderation: **Google Cloud Vision SafeSearch**
+- [x] PR merge conflicts with `main` resolved on this branch
 
 ---
 
-## You can still do from your iPhone
+## You (accounts — phone or Mac)
 
-### Cloudflare (needed for sell.finsandpins.shop)
+- [ ] Cloudflare account
+- [ ] Google Cloud Vision API key (`docs/MODERATION.md`)
+- [ ] Resend account + domain verify for `offer@` / `noreply@`
+- [ ] Invite code (password manager; set via `wrangler secret put INVITE_CODE`)
 
-- [ ] Cloudflare account (same one you’ll use for the shop)
-- [ ] Later on Mac: DNS for **`sell.finsandpins.shop`**, Access for `/admin*`
-  - Allow **steve.fierstein@gmail.com** and **finsandpins@gmail.com**
-- [ ] R2 bucket `finsandpins-intake` + D1 database `intake`
+## You (Mac sitting — see HOME_DAY.md)
 
-### Email
+- [ ] `./scripts/setup_local.sh` + `npm run dev` + `./scripts/smoke_local.sh`
+- [ ] `wrangler login` + `./scripts/provision_cloudflare.sh`
+- [ ] Paste real D1 `database_id` into `wrangler.toml`
+- [ ] Secrets + `ENVIRONMENT=production` + `PUBLIC_BASE_URL`
+- [ ] `wrangler deploy` + DNS `sell.finsandpins.shop` + Access on `/admin*`
+- [ ] Lexi dry run (upload → price on Mac → offer → accept)
 
-- [ ] Resend (or similar) account — app is wired for Resend
-- [ ] From **`offer@finsandpins.shop`** + **`noreply@finsandpins.shop`** (Reply-To) + SPF/DKIM (Mac DNS is easier)
-- [x] Staff alerts: **finsandpins@gmail.com**
+## Me (already done / can do on Mac with you)
 
-### 3. Google Vision (required before real sellers)
+- [x] App code + invite gate + US-only + no-reply policy
+- [x] Merge conflicts with `main`
+- [x] `setup_local.sh`, `smoke_local.sh`, `provision_cloudflare.sh`, `HOME_DAY.md`
+- [ ] Fix bugs you hit during deploy (open Cursor on the Mac)
+- [ ] Tune Vision thresholds if real boards false-positive
 
-- [ ] On Mac: enable Cloud Vision API, create a **restricted API key**, `wrangler secret put GOOGLE_VISION_API_KEY`
-- [ ] Do **not** paste the key in chat
-- [ ] Optional: run `node scripts/test_google_safesearch.mjs` on real board photos
+## Later (not home day)
 
-### Lawyer (not blocking a private beta)
-
-- [ ] If Vision flags a severe category and we only store name/email + reason code (no image), what must we do?
-
----
-
-## When you’re back on the MacBook
-
-- [ ] `cd intake && npm install && npm run dev` — seller at `/`, staff at `/admin`
-- [ ] `npx wrangler login` and deploy
-- [ ] Create real D1 + R2; put the real `database_id` in `wrangler.toml`
-- [ ] `wrangler secret put INVITE_CODE` (private beta password; share as `https://sell.finsandpins.shop/?invite=CODE`)
-- [ ] `wrangler secret put GOOGLE_VISION_API_KEY`
-- [ ] `wrangler secret put RESEND_API_KEY`
-- [ ] Point `sell.finsandpins.shop` at the worker; Cloudflare Access on `/admin*`
-- [ ] `node scripts/test_google_safesearch.mjs /path/to/boards`
-- [ ] `./scripts/download_collection.sh <id>` → pricing watcher inbox
-- [ ] Paste overlay URL + harness total, send offer
-
-**Not this trip (later):** full cloud RF-DETR/eBay — blueprint is `docs/CLOUD_PRICING_MIGRATION.md`. PayPal API, second moderation vendor, Cindy Access.
-
----
-
-## What is already in the PR
-
-- Seller upload + terms + PayPal G&S
-- Temp → Google Vision (when keyed) → keep or delete; staff alert without image
-- Kanban, notes, overlay, % helpers, photos, event log
-- 7-day offer link + reissue
-- Accept → Ready to pay; ship-to LLC address; seller postage
-- Decline survey; waiting/received list
-- Mac download script + Vision board-test script
-- Invite-only seller site (`INVITE_CODE`); 24h offer aim on cards
-- No staff/offer emails printed on public pages; Reply-To noreply
+Cloud RF-DETR/eBay (`docs/CLOUD_PRICING_MIGRATION.md`), PayPal API, public no-invite, non-US exceptions.

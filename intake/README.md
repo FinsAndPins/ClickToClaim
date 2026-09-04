@@ -9,17 +9,16 @@ This folder is a Cloudflare Worker app: seller upload, moderation, staff dashboa
 
 ```bash
 cd intake
-cp .dev.vars.example .dev.vars
-npm install
-npx wrangler d1 execute intake --local --file=./schema.sql
+./scripts/setup_local.sh
 npm run dev
 ```
 
-Open:
-
-- Seller: http://127.0.0.1:8787/
+- Seller: http://127.0.0.1:8787/?invite=local-dev  
 - Staff: http://127.0.0.1:8787/admin  
-  (local bypass uses `DEV_ADMIN_EMAIL` in `.dev.vars`)
+
+Smoke: `./scripts/smoke_local.sh` (with `npm run dev` running).
+
+**Deploy day:** [`docs/HOME_DAY.md`](docs/HOME_DAY.md)
 
 ## What v1 does
 
@@ -46,7 +45,8 @@ Docs:
 
 | File | Purpose |
 |------|---------|
-| `ACTION_ITEMS.md` | Phone vs Mac checklist |
+| `ACTION_ITEMS.md` | Who does what |
 | `LOCKED_DECISIONS.md` | Product decisions |
+| `docs/HOME_DAY.md` | **Ordered Mac deploy + Lexi test** |
 | `docs/MODERATION.md` | Why Google Vision, how to add the key |
-| `docs/CLOUD_PRICING_MIGRATION.md` | How to move RF-DETR/eBay later **without** putting keys on the public site |
+| `docs/CLOUD_PRICING_MIGRATION.md` | Later: private RF-DETR/eBay (not v1) |

@@ -20,7 +20,8 @@ APP_NAME = "Fins & Pins — Sell My Collection"
 PUBLIC_BASE_URL = "http://127.0.0.1:8787"
 FROM_EMAIL = "offer@finsandpins.shop"
 NOREPLY_EMAIL = "noreply@finsandpins.shop"
-INVITE_CODE = "local-dev"
+# INVITE_CODE is a secret in production (never commit a real code here).
+# Local: set INVITE_CODE in .dev.vars (see .dev.vars.example).
 STAFF_ALERT_EMAILS = "finsandpins@gmail.com"
 STAFF_EMAILS = "steve.fierstein@gmail.com,finsandpins@gmail.com"
 SHIP_TO_NAME = "Fins and Pins, LLC"

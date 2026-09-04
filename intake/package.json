@@ -7,7 +7,10 @@
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "deploy": "wrangler deploy",
+    "setup:local": "bash ./scripts/setup_local.sh",
+    "smoke:local": "bash ./scripts/smoke_local.sh",
     "db:migrate:local": "wrangler d1 execute intake --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute intake --remote --file=./schema.sql",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "test:vision": "node scripts/test_google_safesearch.mjs"
   },
