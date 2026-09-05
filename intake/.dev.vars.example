@@ -1,0 +1,28 @@
+# Copy to .dev.vars (never commit .dev.vars)
+ENVIRONMENT=development
+# development = allow staff bypass + optional moderation skip for local UI work
+# production = fail closed without a moderation provider
+
+# Local staff bypass (wrangler dev only). Cloudflare Access replaces this in prod.
+DEV_ADMIN_EMAIL=steve.fierstein@gmail.com
+
+# Required in production. Prefer Google Cloud Vision SafeSearch (see docs/MODERATION.md).
+# GOOGLE_VISION_API_KEY=
+
+# Optional second vendor later (not needed for v1):
+# SIGHTENGINE_USER=
+# SIGHTENGINE_SECRET=
+
+# Required before seller emails actually send:
+# RESEND_API_KEY=
+
+# Shown to sellers after Accept:
+SHIP_TO_NAME=Fins and Pins, LLC
+SHIP_TO_ADDRESS=15049 Canopy Cover Dr, Winter Garden, FL 34787
+
+STAFF_ALERT_EMAILS=finsandpins@gmail.com
+STAFF_EMAILS=steve.fierstein@gmail.com,finsandpins@gmail.com
+
+# Private beta: sellers need this code or ?invite=...
+INVITE_CODE=local-dev
+NOREPLY_EMAIL=noreply@finsandpins.shop

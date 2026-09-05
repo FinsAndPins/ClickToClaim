@@ -5,6 +5,11 @@
 !.cursor/docs/
 !.cursor/docs/**
 
+# Sell My Collection intake (local secrets / build)
+intake/node_modules/
+intake/.wrangler/
+intake/.dev.vars
+
 # Local Python environments and scratch folders; keep out of GitHub.
 .venv*/
 _tmp_*/

@@ -1,0 +1,25 @@
+{
+  "name": "finsandpins-intake",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "setup:local": "bash ./scripts/setup_local.sh",
+    "smoke:local": "bash ./scripts/smoke_local.sh",
+    "db:migrate:local": "wrangler d1 execute intake --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute intake --remote --file=./schema.sql",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test:vision": "node scripts/test_google_safesearch.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.9.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260815.1",
+    "typescript": "^5.9.2",
+    "wrangler": "^4.33.1"
+  }
+}

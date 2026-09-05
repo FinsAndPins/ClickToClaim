@@ -1,0 +1,44 @@
+name = "finsandpins-intake"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Public hostname after DNS: sell.finsandpins.shop
+# After deploy (Mac):
+#   npx wrangler secret put GOOGLE_VISION_API_KEY
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put INVITE_CODE
+# Set PUBLIC_BASE_URL to https://sell.finsandpins.shop in the Worker dashboard (or wrangler vars).
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[vars]
+APP_NAME = "Fins & Pins — Sell My Collection"
+PUBLIC_BASE_URL = "http://127.0.0.1:8787"
+FROM_EMAIL = "offer@finsandpins.shop"
+NOREPLY_EMAIL = "noreply@finsandpins.shop"
+# INVITE_CODE is a secret in production (never commit a real code here).
+# Local: set INVITE_CODE in .dev.vars (see .dev.vars.example).
+STAFF_ALERT_EMAILS = "finsandpins@gmail.com"
+STAFF_EMAILS = "steve.fierstein@gmail.com,finsandpins@gmail.com"
+SHIP_TO_NAME = "Fins and Pins, LLC"
+SHIP_TO_ADDRESS = "15049 Canopy Cover Dr, Winter Garden, FL 34787"
+OFFER_TTL_DAYS = "7"
+MAX_PHOTOS = "100"
+MAX_PHOTO_BYTES = "15728640"
+ENVIRONMENT = "development"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "intake"
+database_id = "00000000-0000-0000-0000-000000000001"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "finsandpins-intake"
+
+[triggers]
+crons = ["*/10 * * * *"]
