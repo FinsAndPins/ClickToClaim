@@ -41,4 +41,4 @@
 
 ## Later (not home day)
 
-Cloud RF-DETR/eBay (`docs/CLOUD_PRICING_MIGRATION.md`), PayPal API, public no-invite, non-US exceptions.
+See **`FUTURE.md`** (seller box correction, cloud pricing, PayPal API, public launch, etc.).
