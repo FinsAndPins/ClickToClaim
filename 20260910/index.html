@@ -2317,8 +2317,6 @@ async function runVirtualBoardExport() {
     z-index: 101;
     line-height: 1.4;
 }
-.pin-pb s { opacity: 0.75; font-weight: 600; }
-.pin-pb .pb-d { color: #ffd700; margin-left: 3px; }
 /* not_a_pin only — unpriced / no_match pins stay claimable without a badge */
 .pin.pin-nap {
     visibility: hidden;
@@ -2326,7 +2324,7 @@ async function runVirtualBoardExport() {
 }
 </style>
 <script id="_ctcPriceOverlay">
-// Price overlay — template show. 25% off: round list first, then Math.round(list * 0.75).
+// Price overlay — 20260910. Rounded list price only (no strikethrough / no 25% off badge).
 // Pending auth stems live in showConfig/{show}/pendingStems (Whatnot excludes; no CTR label).
 // Visibility mode: showConfig/{show}/priceMode (shared across devices). localStorage is cache only.
 (function() {
@@ -2342,7 +2340,6 @@ const _PO_SHOW_ID = (typeof fbName !== 'undefined' && fbName) ? fbName
   : '20260910';
 const _PENDING_STEMS_PATH = `showConfig/${_PO_SHOW_ID}/pendingStems`;
 const _PO_MODE_PATH = `showConfig/${_PO_SHOW_ID}/priceMode`;
-const _PO_DISCOUNT = 0.75;
 
 // Safe default: hide until Firebase showConfig confirms otherwise (localStorage is write-only cache).
 let _priceMode = 'none';
@@ -2358,12 +2355,6 @@ function _roundForShow(raw) {
     if (raw == null || !isFinite(raw) || raw <= 0) return 0;
     if (raw < 10) return 10;
     return Math.ceil(raw / 5) * 5;
-}
-
-function _saleForShow(raw) {
-    const list = _roundForShow(raw);
-    if (!list) return 0;
-    return Math.round(list * _PO_DISCOUNT);
 }
 
 function _normStem(stem) {
@@ -2495,21 +2486,13 @@ function _applyPin(pinEl) {
         if (old) old.remove();
         return;
     }
-    const discounted = _saleForShow(raw);
     let badge = pinEl.querySelector('.pin-pb');
     if (!badge) {
         badge = document.createElement('span');
         badge.className = 'pin-pb';
         pinEl.appendChild(badge);
     }
-    badge.textContent = '';
-    const s = document.createElement('s');
-    s.textContent = '$' + rounded;
-    const d = document.createElement('span');
-    d.className = 'pb-d';
-    d.textContent = '$' + discounted;
-    badge.appendChild(s);
-    badge.appendChild(d);
+    badge.textContent = '$' + rounded;
     _updateBadgeViz(pinEl);
 }
 
@@ -2550,8 +2533,8 @@ window._ctcRoundedShowPriceForStem = function(stem, leftover) {
     const map = leftover ? _stemToPriceLeftover : _stemToPricePrimary;
     let raw = map[stem];
     if (raw == null) raw = map[_normStem(stem)];
-    // Virtual board / running total uses 25% off sale price.
-    return _saleForShow(raw);
+    // Virtual board / running total uses rounded list price.
+    return _roundForShow(raw);
 };
 
 // Shared show setting (phones + laptops). localStorage/BroadcastChannel are same-browser only.

@@ -176,7 +176,7 @@
     <details class="report-section" open data-section-key="price-demand-matrix">
         <summary>5. Price × Demand</summary>
         <div class="section-body" id="priceDemandMatrixBody">
-            <p class="pd-note">Clicked pins only, each in exactly one box. Price = same sale $ as User Tally. Above = strictly greater than median; ties go to Below. Unpriced clicked pins are listed under the grid, not placed in a box.</p>
+            <p class="pd-note">Clicked pins only, each in exactly one box. Price = same rounded list $ as User Tally. Above = strictly greater than median; ties go to Below. Unpriced clicked pins are listed under the grid, not placed in a box.</p>
             <div id="priceDemandMatrix">Loading…</div>
         </div>
     </details>
@@ -462,7 +462,7 @@ async function loadData() {
     });
 }
 
-// ── Dollar value support (same as boards badges: list round, then 25% off) ──
+// ── Dollar value support (same as boards badges: rounded list price only) ──
 const PRICING_RUN_ID = 'test_PriceCollection_20260907_1903__build_20260910_fullres_visual_baseline';
 const PRICING_RUN_ID_LEFTOVER = 'test_PriceCollection_20260907_1903__build_20260910_fullres_visual_baseline';
 const pinKeyToStem = {};   // "IMG_8127-3" / "LO03_IMG_8621-0" → crop_stem
@@ -477,7 +477,7 @@ let saleFbUnsub = null;
 let salePaintTimer = null;
 let boardsManifestVer = "1";
 
-/** Harness list price ($10 min, round up to $5) — same list used before 25% show sale $. */
+/** List price ($10 min, round up to $5). 20260910 shows list only (no 25% off). */
 function listPriceForPk(pk) {
     const stem = pinKeyToStem[pk];
     if (!stem) return 0;
@@ -487,15 +487,9 @@ function listPriceForPk(pk) {
     return raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
 }
 
-/** List: <$10 → $10, else round UP to nearest $5. Sale: Math.round(list × 0.75). */
+/** Same as list for 20260910 (list-only badges / user tally). */
 function dollarValueForPk(pk) {
-    const stem = pinKeyToStem[pk];
-    if (!stem) return 0;
-    const map = String(pk).startsWith("LO03_") ? stemToPriceLeftover : stemToPricePrimary;
-    const raw = map[stem];
-    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
-    const list = raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
-    return Math.round(list * 0.75);
+    return listPriceForPk(pk);
 }
 
 function loadBoardImage(name) {
