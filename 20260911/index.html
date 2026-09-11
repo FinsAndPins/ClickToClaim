@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v11-20260911-fix-boxes">
+    <meta name="ctr-countdown" content="closes-to-end-v11-20260911-sold-booklabels">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -1053,6 +1053,20 @@ function updateCountdowns() {
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
 const BOARDS_MANIFEST_VERSION = "1";
 
+/** 20260911 Whatnot layout: Book1=IMG_9741+, Book2=IMG_9751+, Book3=IMG_9761+. */
+function bookPageLabelForBoard(stem, fallbackIndex) {
+    const m = String(stem || "").match(/IMG_(\d+)/i);
+    if (!m) return `Board ${fallbackIndex + 1}`;
+    const n = parseInt(m[1], 10);
+    let book = 0;
+    let page = 0;
+    if (n >= 9761) { book = 3; page = n - 9761 + 1; }
+    else if (n >= 9751) { book = 2; page = n - 9751 + 1; }
+    else if (n >= 9741) { book = 1; page = n - 9741 + 1; }
+    else return `Board ${fallbackIndex + 1}`;
+    return `Book ${book} Page ${page}`;
+}
+
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
     const chunk = 12;
@@ -1218,7 +1232,7 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
             const leftoverLabel = String(name).startsWith("LO03_") ? " · From Monday's show" : "";
             container.innerHTML = `
                 <div class="board-header">
-                    <span class="board-title">Board ${index + 1}${leftoverLabel}</span>
+                    <span class="board-title">${bookPageLabelForBoard(name, index)}${leftoverLabel}</span>
                     <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">-</span>
                 </div>
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
@@ -2338,11 +2352,8 @@ function _refreshAllBadges() {
 }
 
 function _applySoldGate(pinEl) {
+    // 20260911: Sold overlay for all pins (primary boards + leftovers), visible to every visitor.
     if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
-    if (!_isLeftoverPin(pinEl)) {
-        pinEl.classList.remove('pin-sold');
-        return;
-    }
     const sold = _isSoldStem(pinEl.dataset.cropStem);
     pinEl.classList.toggle('pin-sold', sold);
     if (sold) {
