@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v11-20260911-na-label">
+    <meta name="ctr-countdown" content="closes-to-end-v11-20260911-admin-sold-na-remaining">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -478,7 +478,7 @@
     </div>
     <span id="totalPins" hidden>0</span>
     <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
-        Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · $<span id="adminTotalValue">0</span> · VB gen <span id="adminVirtualBoardGen" title="People who tapped Create Virtual Pin Board">0</span> · VB save <span id="adminVirtualBoardSave" title="People who saved a virtual pin board photo">0</span>
+        Pins <span id="adminTotalPins">0</span> · Sold <span id="adminSoldPins">0</span> · N/A <span id="adminNaPins">0</span> · Remaining <span id="adminRemainingPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · $<span id="adminTotalValue">0</span> · VB gen <span id="adminVirtualBoardGen" title="People who tapped Create Virtual Pin Board">0</span> · VB save <span id="adminVirtualBoardSave" title="People who saved a virtual pin board photo">0</span>
     </div>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
@@ -995,6 +995,8 @@ const hiddenPinKeys = new Set();
 let boxCleanupMode = false;
 let excludePinsMode = false;
 const excludedStems = new Set();
+/** Unique Firebase excluded keys (not doubled by norm aliases). */
+let excludedStemUniqueCount = 0;
 
 function _normExcludedStem(stem) {
     return stem ? String(stem).replace(/[^A-Za-z0-9_-]/g, "_") : "";
@@ -1003,7 +1005,7 @@ function _normExcludedStem(stem) {
 function refreshExcludedCount() {
     const el = document.getElementById("excludePinsCount");
     if (!el) return;
-    el.textContent = excludedStems.size ? `${excludedStems.size} excluded` : "";
+    el.textContent = excludedStemUniqueCount ? `${excludedStemUniqueCount} excluded` : "";
 }
 
 function _isExcludedStem(stem) {
@@ -1096,10 +1098,12 @@ db.ref(`hiddenPins/${fbName}`).on("value", snap => {
 
 db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     excludedStems.clear();
+    excludedStemUniqueCount = 0;
     const v = snap.val() || {};
     Object.keys(v).forEach(k => {
         const row = v[k];
         if (row === true || (row && typeof row === "object" && row.excluded !== false)) {
+            excludedStemUniqueCount += 1;
             excludedStems.add(k);
             excludedStems.add(_normExcludedStem(k));
             if (row && row.crop_stem) {
@@ -1109,6 +1113,7 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
         }
     });
     applyAllExcludedPins();
+    if (typeof calculateGlobals === "function") calculateGlobals();
 });
 
 db.ref(`showConfig/${fbName}`).on("value", snap => {
@@ -1650,7 +1655,36 @@ function calculateGlobals() {
     document.getElementById("totalPins").textContent     = total;
     document.getElementById("totalMyClaims").textContent = my;
     if (isAdmin) {
+        // Pins = inventory still on boards (excludes Fix-boxes hidden + NaP).
+        // Sold / N/A are called out separately; Remaining = Pins - Sold - N/A.
+        let soldCount = (typeof window._ctcCountSoldStems === "function") ? (window._ctcCountSoldStems() || 0) : 0;
+        let naCount = (typeof excludedStemUniqueCount === "number") ? excludedStemUniqueCount : 0;
+        // Prefer live DOM counts when pins are rendered (more accurate than stem-set aliases).
+        const rendered = document.querySelectorAll(".pin");
+        if (rendered.length) {
+            let domPins = 0, domSold = 0, domNa = 0;
+            rendered.forEach((el) => {
+                if (el.classList.contains("pin-nap") || el.classList.contains("pin-hidden")) return;
+                domPins++;
+                if (el.classList.contains("pin-sold")) domSold++;
+                else if (el.classList.contains("pin-excluded")) domNa++;
+            });
+            // In full-board view, DOM is authoritative. In lite mode only a page is rendered,
+            // so keep stem-set Sold/N/A and treat `total` as the Pins baseline.
+            if (!isLiteMode) {
+                total = domPins;
+                soldCount = domSold;
+                naCount = domNa;
+            }
+        }
+        const remaining = Math.max(0, total - soldCount - naCount);
         document.getElementById("adminTotalPins").textContent      = total;
+        const soldEl = document.getElementById("adminSoldPins");
+        const naEl = document.getElementById("adminNaPins");
+        const remEl = document.getElementById("adminRemainingPins");
+        if (soldEl) soldEl.textContent = soldCount;
+        if (naEl) naEl.textContent = naCount;
+        if (remEl) remEl.textContent = remaining;
         document.getElementById("adminTotalRequested").textContent = globalRequested;
         document.getElementById("adminUnique").textContent         = globalUnique;
         document.getElementById("adminContested").textContent      = globalContested;
@@ -2577,7 +2611,10 @@ window._ctcApplyPendingGate = _applyPendingGate;
 window._ctcStemIsUnavailable = function(stem, leftover) {
     if (!stem) return false;
     // Pending is labeled but still requestable (excluded only from Whatnot CSV).
-    if (leftover && _isSoldStem(stem)) return true;
+    if (_isSoldStem(stem)) return true;
+    try {
+        if (typeof _isExcludedStem === "function" && _isExcludedStem(stem)) return true;
+    } catch (e) {}
     const set = leftover ? _napLeftover : _napPrimary;
     return set.has(stem) || set.has(_normStem(stem));
 };
@@ -2694,7 +2731,17 @@ function _ingestSoldStems(val) {
     console.info(`[PriceOverlay] leftover sold stems: ${_soldStems.size}`);
     _applyAllPins();
     _applyMode(_priceMode);
+    if (typeof calculateGlobals === 'function') calculateGlobals();
 }
+
+window._ctcCountSoldStems = function() {
+    const uniq = new Set();
+    _soldStems.forEach((k) => {
+        const n = _normStem(k);
+        if (n) uniq.add(n);
+    });
+    return uniq.size;
+};
 
 function _ingestPendingStems(val) {
     _pendingStems.clear();
