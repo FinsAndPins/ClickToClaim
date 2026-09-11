@@ -1,33 +1,31 @@
 ---
-description: Whatnot CSV character naming (VLM + eBay title + review). Cursor Projects only; never wire into pricing or CTR watchers.
-alwaysApply: false
+description: When Steve asks for characters on a Whatnot CSV, always use WhatnotCharacterPipeline (crop + eBay title + hybrid pick + review). Never wire into pricing/CTR watchers.
+alwaysApply: true
 ---
 
-# Whatnot character pipeline (future shows)
+# Whatnot CSV characters (standing order)
 
-When building **Whatnot upload CSVs** (ShowYYYYMMDD_Whatnot, Inventory_*_Whatnot, Offerables*, etc.):
+**When this applies:** Any time Steve asks for **characters** on a **Whatnot CSV** (new show upload, inventory Whatnot, $15 boards, CTR leftover BIN, rebuild titles, etc.).
+
+**Default:** Use `Cursor Projects/WhatnotCharacterPipeline/` end-to-end. Do not invent a one-off image-only VLM path unless he explicitly says image-only or there is no pricing title source.
 
 ## Hard isolation
 
-- Work only under `Cursor Projects/<WhatnotProject>/` (and crop publish folders on ClickToClaim such as `WhatnotUpload_*/` when asked).
+- Implement under `Cursor Projects/<WhatnotProject>/` only (plus ClickToClaim crop publish folders when asked).
 - Do **not** edit pricing watchers, PrepareClickToClaim, CTR inbox/LaunchAgents, PinPricingStudyMVP production, or Application Support mirrors.
-- Do **not** add character/VLM imports or flags into those production systems. Copy helpers into the Whatnot project (or import from `Cursor Projects/WhatnotCharacterPipeline/`) instead.
+- Do **not** add VLM/character logic into those systems. Import or copy from `WhatnotCharacterPipeline/`.
 
-## Required character flow (priced / CTR shows)
+## Required steps
 
-1. **Wire eBay titles into VLM.** For every priced pin, pass `listing_title` or `selected_candidate.title` from the pricing Firebase/export as `ebay_title` on the pin record. Image-only VLM is a last resort when no title exists.
-2. **Hybrid pick** (see `Cursor Projects/WhatnotCharacterPipeline/character_pick.py`):
-   - Prefer a clear title-derived character when VLM is empty, low-confidence, or wildly disagrees.
-   - Prefer VLM when the crop clearly shows someone else than the title.
-   - Fallback display name: `Disney Pin` (never invent from thin air).
-3. **Review gate before CSV upload:** build character contact sheet + editable review; apply corrections into `character_map_for_whatnot.json`; rebuild CSV from that map.
-4. **Flag for review:** empty character, low VLM confidence, A2Z / letter-board crops, non-character “subject” labels, title/VLM hard disagree.
+1. **Titles into VLM (priced/CTR):** Set `ebay_title` from pricing (`listing_title` or `selected_candidate.title`). Image-only only when no title exists.
+2. **Hybrid pick:** `character_pick.pick_character(...)` (title fills empty/low/disagree; VLM wins on clear crop mismatch; fallback `Disney Pin`).
+3. **Review gate:** Contact sheet + editable review → `character_map_for_whatnot.json` → build CSV from that map.
+4. **Flag:** empty/generic, low confidence, A2Z boards, subject labels, title/VLM hard disagree, missing ebay title.
 
-## $15 / no-pricing boards
+## $15 / no-pricing
 
-- Image-only VLM is OK, but still run the contact-sheet review before upload when time allows.
-- Do not claim title-assisted quality for those rows.
+Image-only VLM is OK; still run contact-sheet review before upload when time allows.
 
 ## Reference
 
-Full playbook: `Cursor Projects/WhatnotCharacterPipeline/README.md`
+`Cursor Projects/WhatnotCharacterPipeline/README.md`
