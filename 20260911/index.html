@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v11-20260911-tap-exclude">
+    <meta name="ctr-countdown" content="closes-to-end-v11-20260911-na-label">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -105,7 +105,7 @@
             cursor: default;
         }
         .pin.pin-excluded:not(.pin-sold)::after {
-            content: "Not Available";
+            content: "N/A";
             position: absolute;
             left: 50%;
             top: 50%;
@@ -496,7 +496,7 @@
         <p><strong>Fix boxes (live for everyone):</strong> green outline = clickable pin. Tap a bad box to hide it for all visitors (red dashed). Tap again to restore. Saves to Firebase immediately, not just this browser.</p>
     </div>
     <div id="excludePinsBar" aria-label="Exclude pins help">
-        <p><strong>Tap to Exclude pins (live for everyone):</strong> tap a pin to mark it <em>Not Available</em> (visitors cannot click it). Tap again to restore. Sold pins stay Sold and stay non-clickable. Saves to Firebase immediately.</p>
+        <p><strong>Tap to Exclude pins (live for everyone):</strong> tap a pin to mark it <em>N/A</em> (visitors cannot click it). Tap again to restore. Sold pins stay Sold and stay non-clickable. Saves to Firebase immediately.</p>
     </div>
     <div id="countdownArea"></div>
     <div id="liteModeControls">
