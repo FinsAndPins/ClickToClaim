@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Pin Matching Game — Staff Report</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f0f0;color:#222;padding:20px;line-height:1.4}
+.header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+h1{font-size:22px}
+.btn{display:inline-block;padding:10px 14px;background:#0066aa;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;font-size:14px;border:0;cursor:pointer}
+.panel{background:#fff;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.08);padding:16px;margin-bottom:20px}
+.meta{font-size:14px;color:#555;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #eee;vertical-align:top}
+th{background:#f9f9f9;position:sticky;top:0}
+.thumb{width:72px;height:72px;object-fit:contain;border:1px solid #ddd;border-radius:6px;background:#fafafa}
+.badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;color:#fff}
+.badge.match{background:#198754}
+.badge.no_match{background:#dc3545}
+.badge.not_a_pin{background:#fd7e14}
+.badge.escape{background:#6c757d}
+.badge.consensus{background:#0d6efd}
+.cand{font-size:12px;color:#444;max-width:260px}
+.cand a{color:#0066aa;word-break:break-all}
+#authMsg{text-align:center;margin-top:100px;font-weight:700;color:#666;cursor:pointer}
+#authContent{display:none}
+.empty{color:#888;padding:20px 0}
+</style>
+</head>
+<body>
+<div id="authMsg" onclick="checkAuth(true)">Checking authorization...</div>
+<div id="authContent">
+  <div class="header">
+    <h1>Pin Matching Game — Resolved Items</h1>
+    <a class="btn" href="index.html">Open public game</a>
+  </div>
+  <div class="panel">
+    <p class="meta" id="summary">Loading...</p>
+    <div id="tableWrap">Loading resolved items...</div>
+  </div>
+</div>
+<script>
+const DB = "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com";
+const ROOT = "pin_matching_game/v1";
+const ADMIN_KEY = "0626200207081986";
+
+function checkAuth(force) {
+  const ok =
+    new URLSearchParams(window.location.search).get("admin") === ADMIN_KEY ||
+    sessionStorage.getItem("fp_admin_active") === "true" ||
+    force;
+  if (!ok) {
+    document.getElementById("authMsg").textContent = "Unauthorized. Add ?admin=... to the URL.";
+    return;
+  }
+  sessionStorage.setItem("fp_admin_active", "true");
+  document.getElementById("authMsg").style.display = "none";
+  document.getElementById("authContent").style.display = "block";
+  loadResolved();
+}
+checkAuth();
+
+async function fbGet(path) {
+  const r = await fetch(DB + "/" + path + ".json");
+  if (!r.ok) throw new Error("GET " + r.status);
+  return r.json();
+}
+
+function esc(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function badgeClass(action, reason) {
+  if (reason === "escape") return "escape";
+  if (action === "match") return "match";
+  if (action === "no_match") return "no_match";
+  if (action === "not_a_pin") return "not_a_pin";
+  return "consensus";
+}
+
+function badgeLabel(action, reason) {
+  if (reason === "escape") return "escalated";
+  return action || reason || "resolved";
+}
+
+async function loadResolved() {
+  const wrap = document.getElementById("tableWrap");
+  const summary = document.getElementById("summary");
+  try {
+    const resolved = (await fbGet(ROOT + "/resolved")) || {};
+    const rows = Object.keys(resolved)
+      .map(function(id) {
+        const r = resolved[id] || {};
+        return {
+          id: id,
+          at: r.at || "",
+          kind: r.kind || "",
+          action: r.action || "",
+          reason: r.reason || "",
+          collection: r.collection || "",
+          pin_key: r.pin_key || "",
+          crop_url: r.crop_url || "",
+          cand_title: r.cand_title || "",
+          cand_url: r.cand_url || ""
+        };
+      })
+      .sort(function(a, b) {
+        return String(b.at).localeCompare(String(a.at));
+      });
+
+    summary.textContent = rows.length + " resolved item(s). Newest first.";
+
+    if (!rows.length) {
+      wrap.innerHTML = '<p class="empty">No resolved items yet.</p>';
+      return;
+    }
+
+    let html =
+      "<table><thead><tr>" +
+      "<th>When</th><th>Kind</th><th>Our pin</th><th>Candidate</th>" +
+      "<th>Action</th><th>Reason</th><th>Collection</th><th>Pin key</th>" +
+      "</tr></thead><tbody>";
+
+    rows.forEach(function(r) {
+      const when = r.at ? new Date(r.at).toLocaleString() : "";
+      const crop = r.crop_url
+        ? '<img class="thumb" src="' + esc(r.crop_url) + '" alt="crop"/>'
+        : "";
+      const cand =
+        '<div class="cand">' +
+        esc(r.cand_title) +
+        (r.cand_url
+          ? '<br><a href="' + esc(r.cand_url) + '" target="_blank" rel="noopener">listing</a>'
+          : "") +
+        "</div>";
+      const badge =
+        '<span class="badge ' +
+        badgeClass(r.action, r.reason) +
+        '">' +
+        esc(badgeLabel(r.action, r.reason)) +
+        "</span>";
+
+      html +=
+        "<tr>" +
+        "<td>" + esc(when) + "</td>" +
+        "<td>" + esc(r.kind) + "</td>" +
+        "<td>" + crop + "</td>" +
+        "<td>" + cand + "</td>" +
+        "<td>" + badge + "</td>" +
+        "<td>" + esc(r.reason) + "</td>" +
+        "<td>" + esc(r.collection) + "</td>" +
+        "<td>" + esc(r.pin_key) + "</td>" +
+        "</tr>";
+    });
+
+    html += "</tbody></table>";
+    wrap.innerHTML = html;
+  } catch (e) {
+    console.warn(e);
+    wrap.innerHTML = '<p class="empty">Failed to load data.</p>';
+    summary.textContent = "Error loading Firebase.";
+  }
+}
+</script>
+</body>
+</html>

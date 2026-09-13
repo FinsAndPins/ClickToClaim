@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Pin Matching Game</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#111;color:#eee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;min-height:100dvh;padding-bottom:env(safe-area-inset-bottom,0)}
+.view{flex:1;display:none;flex-direction:column}
+.view.on{display:flex}
+#gate,#done{align-items:center;justify-content:center;padding:24px;text-align:center;gap:14px}
+h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.sub{color:#aaa;font-size:15px;max-width:320px;line-height:1.4}
+#userIn{width:min(320px,100%);padding:14px 16px;border-radius:12px;border:1px solid #333;background:#1a1a1a;color:#fff;font-size:17px}
+.btn{appearance:none;border:0;border-radius:12px;padding:14px 22px;font-size:16px;font-weight:700;cursor:pointer}
+.btn.primary{background:#2a6eff;color:#fff}
+.btn.ghost{background:#222;color:#ddd}
+#hdr{height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;padding-top:env(safe-area-inset-top,0);background:#1a1a1a;border-bottom:1px solid #333;flex-shrink:0}
+#hdr .title{font-weight:700;font-size:15px;flex:1}
+#hdr .meta{font-size:12px;color:#888}
+#hdr .btn{padding:8px 10px;font-size:12px}
+#photos{flex:1;display:flex;min-height:0;position:relative}
+.pane{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#151515}
+.pane+.pane{border-left:2px solid #333}
+.pane img{width:100%;height:100%;object-fit:contain;background:#0d0d0d}
+.pane .tag{position:absolute;top:8px;left:8px;font-size:11px;color:#ccc;background:rgba(0,0,0,.65);padding:3px 7px;border-radius:6px}
+#busy{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:5;font-weight:700}
+#busy.on{display:flex}
+#btnArea{display:flex;height:168px;flex-shrink:0}
+.col{flex:1;display:flex;flex-direction:column}
+.rail{flex:1;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15;padding:0 6px;touch-action:manipulation}
+#btnBack{background:#1a1a3a;color:#8888ff;flex:1}
+#btnNo{background:#6b1a1a;color:#ff6e6e;flex:2}
+#btnNotPin{background:#5a3a00;color:#ffb84d;width:78px;flex-shrink:0}
+#btnSkip{background:#2a2a2a;color:#aaa;flex:1}
+#btnMatch{background:#1a6b1a;color:#6eff6e;flex:2}
+#toast{position:fixed;left:50%;bottom:190px;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
+#toast.on{opacity:1}
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:80;padding:24px 16px;overflow:auto}
+#lb.on{display:block}
+#lb table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+#lb th,#lb td{padding:8px 6px;border-bottom:1px solid #333;text-align:left}
+#lb .you{color:#6eff6e;font-weight:700}
+</style>
+</head>
+<body>
+<div id="gate" class="view on">
+  <h1>Pin Matching Game</h1>
+  <p class="sub">Compare our pin to the eBay photo. Match, No Match, Not a pin, or Skip. Username keeps your score.</p>
+  <input id="userIn" maxlength="30" placeholder="Username" autocomplete="username" enterkeyhint="go"/>
+  <button class="btn primary" id="startBtn" type="button">Play</button>
+  <button class="btn ghost" id="lb1" type="button">Leaderboard</button>
+</div>
+<div id="done" class="view">
+  <h1>You are caught up</h1>
+  <p class="sub">Check back later for more pins.</p>
+  <button class="btn ghost" id="lb2" type="button">Leaderboard</button>
+  <button class="btn ghost" id="retryBtn" type="button">Try again</button>
+</div>
+<div id="play" class="view">
+  <div id="hdr">
+    <div class="title">Pin Matching Game</div>
+    <div class="meta" id="hdrMeta"></div>
+    <button class="btn ghost" id="lb3" type="button">Leaderboard</button>
+  </div>
+  <div id="photos">
+    <div class="pane"><img id="cropImg" alt="Our pin"/><div class="tag">Our pin</div></div>
+    <div class="pane"><img id="ebayImg" alt="eBay candidate"/><div class="tag">eBay</div></div>
+    <div id="busy">Saving...</div>
+  </div>
+  <div id="btnArea">
+    <div class="col">
+      <button class="rail" id="btnBack" type="button">Back</button>
+      <button class="rail" id="btnNo" type="button">No Match</button>
+    </div>
+    <button class="rail" id="btnNotPin" type="button">Not a<br>pin</button>
+    <div class="col">
+      <button class="rail" id="btnSkip" type="button">Skip</button>
+      <button class="rail" id="btnMatch" type="button">Match</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="lb">
+  <h2>Accuracy leaderboard</h2>
+  <p class="sub" style="max-width:none;text-align:left">Control accuracy only. Names stay private.</p>
+  <div id="lbBody">Loading...</div>
+  <button class="btn ghost" id="lbClose" type="button" style="margin-top:16px">Close</button>
+</div>
+<script>
+const DB = "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com";
+const ROOT = "pin_matching_game/v1";
+const USER_KEY = "pmg_username";
+const MIN_CONTROLS = 10;
+const TRUST_ACC = 0.80;
+const ESCAPE_N = 6;
+const CONTROL_EVERY = 20;
+
+let username = localStorage.getItem(USER_KEY) || "";
+let safeUser = "";
+let player = null;
+let current = null;
+let historyStack = [];
+let pricingSinceControl = 0;
+let needMatchControl = true;
+let needNoMatchControl = true;
+let sessionSeen = new Set();
+let voting = false;
+
+const userIn = document.getElementById("userIn");
+const hdrMeta = document.getElementById("hdrMeta");
+const cropImg = document.getElementById("cropImg");
+const ebayImg = document.getElementById("ebayImg");
+const busyEl = document.getElementById("busy");
+const toastEl = document.getElementById("toast");
+const lbEl = document.getElementById("lb");
+const lbBody = document.getElementById("lbBody");
+if (username) userIn.value = username;
+
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("on");
+  clearTimeout(toastEl._t);
+  toastEl._t = setTimeout(() => toastEl.classList.remove("on"), 1600);
+}
+function show(name) {
+  document.getElementById("gate").classList.toggle("on", name === "gate");
+  document.getElementById("play").classList.toggle("on", name === "play");
+  document.getElementById("done").classList.toggle("on", name === "done");
+}
+function safeKey(s) {
+  return String(s || "").replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 100);
+}
+async function fbGet(path) {
+  const r = await fetch(DB + "/" + path + ".json");
+  if (!r.ok) throw new Error("GET " + r.status);
+  return r.json();
+}
+async function fbPut(path, data) {
+  const r = await fetch(DB + "/" + path + ".json", {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error("PUT " + r.status);
+  return r.json();
+}
+async function fbPatch(path, data) {
+  const r = await fetch(DB + "/" + path + ".json", {
+    method: "PATCH",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error("PATCH " + r.status);
+  return r.json();
+}
+function isTrusted(p) {
+  const t = Number(p.control_total || 0);
+  if (t < MIN_CONTROLS) return false;
+  return (Number(p.control_correct || 0) / t) >= TRUST_ACC;
+}
+function wilsonLower(c, n) {
+  if (!n) return 0;
+  const z = 1.96, phat = c / n;
+  const denom = 1 + z * z / n;
+  const centre = phat + z * z / (2 * n);
+  const margin = z * Math.sqrt((phat * (1 - phat) + z * z / (4 * n)) / n);
+  return (centre - margin) / denom;
+}
+async function ensurePlayer() {
+  const path = ROOT + "/players/" + safeUser;
+  let row = await fbGet(path);
+  if (!row) {
+    row = {
+      username: username,
+      control_correct: 0,
+      control_total: 0,
+      pricing_votes: 0,
+      trusted: false,
+      created_at: new Date().toISOString()
+    };
+    await fbPut(path, row);
+  }
+  row.trusted = isTrusted(row);
+  player = row;
+  await fbPatch(path, {trusted: row.trusted, last_seen: new Date().toISOString()});
+}
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
+async function listOpenIds(kind) {
+  if (kind === "control") return Object.keys((await fbGet(ROOT + "/open_control")) || {});
+  const meta = (await fbGet(ROOT + "/meta")) || {};
+  const batch = meta.active_batch;
+  if (!batch) return [];
+  return Object.keys((await fbGet(ROOT + "/open_pricing/" + batch)) || {});
+}
+async function pickItem(preferControlAnswer) {
+  const kind = preferControlAnswer ? "control" : "pricing";
+  let ids = shuffle(await listOpenIds(kind));
+  for (const id of ids) {
+    if (sessionSeen.has(id)) continue;
+    const item = await fbGet(ROOT + "/items/" + id);
+    if (!item || item.status !== "open") continue;
+    if (preferControlAnswer && item.control_answer !== preferControlAnswer) continue;
+    if ((item.votes || {})[safeUser]) continue;
+    return item;
+  }
+  if (preferControlAnswer) return null;
+  ids = shuffle(await listOpenIds("control"));
+  for (const id of ids) {
+    if (sessionSeen.has(id)) continue;
+    const item = await fbGet(ROOT + "/items/" + id);
+    if (!item || item.status !== "open") continue;
+    if ((item.votes || {})[safeUser]) continue;
+    return item;
+  }
+  return null;
+}
+function renderItem(item) {
+  current = item;
+  sessionSeen.add(item.id);
+  historyStack.push(item.id);
+  cropImg.src = item.crop_url || "";
+  ebayImg.src = item.cand_thumb || "";
+  const trust = player && player.trusted ? "trusted" : "practice";
+  hdrMeta.textContent = username + " · " + trust;
+  show("play");
+}
+async function nextCard() {
+  let item = null;
+  if (pricingSinceControl >= CONTROL_EVERY) {
+    needMatchControl = true;
+    needNoMatchControl = true;
+    pricingSinceControl = 0;
+  }
+  if (needMatchControl) {
+    item = await pickItem("match");
+    needMatchControl = false;
+  }
+  if (!item && needNoMatchControl) {
+    item = await pickItem("no_match");
+    needNoMatchControl = false;
+  }
+  if (!item) item = await pickItem(null);
+  if (!item) { show("done"); return; }
+  renderItem(item);
+}
+function setBusy(on) {
+  voting = on;
+  busyEl.classList.toggle("on", on);
+}
+async function writeHarness(item, action) {
+  const h = item.harness || {};
+  if (!h.write || !h.test_run_id || !h.approach_id) return;
+  const pk = safeKey(h.pin_key || item.pin_key);
+  const basePath = "pin_pricing_tests/" + h.test_run_id + "/" + h.approach_id + "/pins/" + pk;
+  const now = new Date().toISOString();
+  if (action === "match") {
+    const price = Math.round((Number(item.cand_price) || 0) * 100) / 100;
+    await fbPatch(basePath, {
+      pin_key: item.pin_key,
+      crop_filename: item.crop_filename || "",
+      board_num: String(item.board_num || ""),
+      pin_n: item.pin_n || 0,
+      match_status: "match",
+      ctm_match_status: "match",
+      matched_at: now,
+      reviewed_by: "pmg:" + username,
+      price_source: "listing",
+      display_price: price,
+      selected_candidate_idx: Number(item.cand_slot || 0),
+      listing_title: item.cand_title || "",
+      selected_candidate: {
+        itemId: item.cand_item_id || item.cand_url || "slot_0",
+        title: item.cand_title || "",
+        itemUrl: item.cand_url || "",
+        thumbUrl: item.cand_thumb || "",
+        price: price,
+        total_price: price,
+        rank: Number(item.cand_slot || 0) + 1
+      },
+      pmg_consensus: true,
+      pmg_item_id: item.id
+    });
+    return;
+  }
+  if (action === "not_a_pin") {
+    await fbPatch(basePath, {
+      pin_key: item.pin_key,
+      crop_filename: item.crop_filename || "",
+      board_num: String(item.board_num || ""),
+      pin_n: item.pin_n || 0,
+      match_status: "not_a_pin",
+      ctm_match_status: "not_a_pin",
+      display_price: 0,
+      marked_not_a_pin_at: now,
+      reviewed_by: "pmg:" + username,
+      pmg_consensus: true,
+      pmg_item_id: item.id
+    });
+    return;
+  }
+  await fbPatch(basePath, {
+    pin_key: item.pin_key,
+    crop_filename: item.crop_filename || "",
+    board_num: String(item.board_num || ""),
+    pin_n: item.pin_n || 0,
+    match_status: "no_match",
+    ctm_match_status: "no_match",
+    matched_at: now,
+    reviewed_by: "pmg:" + username,
+    pmg_consensus: true,
+    pmg_item_id: item.id
+  });
+}
+async function enqueueNextCandidate(item) {
+  const slot = Number(item.cand_slot || 0) + 1;
+  const all = item.all_candidates || [];
+  if (slot >= all.length) return;
+  const c = all[slot] || {};
+  const id = safeKey(item.collection + "__" + item.pin_key + "__s" + slot);
+  const next = {
+    id: id,
+    kind: "pricing",
+    batch_id: item.batch_id || item.collection,
+    collection: item.collection,
+    pin_key: item.pin_key,
+    crop_filename: item.crop_filename || "",
+    crop_url: item.crop_url || "",
+    board_num: item.board_num || "",
+    pin_n: item.pin_n || 0,
+    candidate_count: item.candidate_count || all.length,
+    all_candidates: all,
+    control_answer: null,
+    status: "open",
+    tallies: {match: 0, no_match: 0, not_a_pin: 0},
+    participant_count: 0,
+    harness: item.harness,
+    cand_slot: slot,
+    cand_title: c.title || "",
+    cand_url: c.itemUrl || "",
+    cand_thumb: c.thumbUrl || "",
+    cand_price: Number(c.total_price != null ? c.total_price : c.price) || 0,
+    cand_item_id: c.itemId || ""
+  };
+  await fbPut(ROOT + "/items/" + id, next);
+  await fbPatch(ROOT + "/open_pricing/" + item.collection, {[id]: true});
+}
+async function closeItem(item, action, reason) {
+  await fbPatch(ROOT + "/items/" + item.id, {
+    status: reason === "escape" ? "escalated" : "resolved",
+    consensus: {action: action, at: new Date().toISOString(), reason: reason, source: "pin_matching_game"}
+  });
+  if (item.kind === "pricing") {
+    await fbPut(ROOT + "/open_pricing/" + item.collection + "/" + item.id, null);
+  } else {
+    await fbPut(ROOT + "/open_control/" + item.id, null);
+  }
+  if (item.kind === "pricing" && reason === "consensus") {
+    await writeHarness(item, action);
+    if (action === "no_match") await enqueueNextCandidate(item);
+  }
+  await fbPatch(ROOT + "/resolved/" + item.id, {
+    id: item.id,
+    kind: item.kind,
+    action: action,
+    reason: reason,
+    pin_key: item.pin_key,
+    collection: item.collection,
+    cand_title: item.cand_title || "",
+    cand_url: item.cand_url || "",
+    crop_url: item.crop_url || "",
+    at: new Date().toISOString()
+  });
+}
+async function recomputeAndMaybeClose(itemId) {
+  const item = await fbGet(ROOT + "/items/" + itemId);
+  if (!item || item.status !== "open") return item;
+  const votes = item.votes || {};
+  const tallies = {match: 0, no_match: 0, not_a_pin: 0};
+  let participants = 0;
+  Object.keys(votes).forEach(function(k) {
+    const v = votes[k];
+    if (!v) return;
+    participants += 1;
+    if (!v.trusted) return;
+    if (v.action === "match" || v.action === "no_match" || v.action === "not_a_pin") {
+      tallies[v.action] += 1;
+    }
+  });
+  await fbPatch(ROOT + "/items/" + itemId, {tallies: tallies, participant_count: participants});
+  const actions = ["match", "no_match", "not_a_pin"];
+  for (let i = 0; i < actions.length; i++) {
+    if (tallies[actions[i]] >= 3) {
+      await closeItem(item, actions[i], "consensus");
+      return fbGet(ROOT + "/items/" + itemId);
+    }
+  }
+  if (participants >= ESCAPE_N) await closeItem(item, "escape", "escape");
+  return fbGet(ROOT + "/items/" + itemId);
+}
+async function updatePlayerStats(item, action) {
+  const path = ROOT + "/players/" + safeUser;
+  const patch = {last_seen: new Date().toISOString()};
+  if (item.kind === "control" && action !== "skip") {
+    const correct = action === item.control_answer;
+    patch.control_total = Number(player.control_total || 0) + 1;
+    patch.control_correct = Number(player.control_correct || 0) + (correct ? 1 : 0);
+    player.control_total = patch.control_total;
+    player.control_correct = patch.control_correct;
+    patch.trusted = isTrusted(player);
+    player.trusted = patch.trusted;
+  } else if (item.kind === "pricing" && action !== "skip") {
+    patch.pricing_votes = Number(player.pricing_votes || 0) + 1;
+    player.pricing_votes = patch.pricing_votes;
+  }
+  await fbPatch(path, patch);
+}
+async function cast(action) {
+  if (voting || !current) return;
+  setBusy(true);
+  try {
+    const item = current;
+    if (item.kind === "pricing" && action !== "skip") pricingSinceControl += 1;
+    const trusted = !!(player && player.trusted);
+    await fbPut(ROOT + "/items/" + item.id + "/votes/" + safeUser, {
+      action: action,
+      trusted: trusted,
+      username: username,
+      at: new Date().toISOString()
+    });
+    await updatePlayerStats(item, action);
+    await recomputeAndMaybeClose(item.id);
+    await nextCard();
+  } catch (e) {
+    console.warn(e);
+    toast("Save failed. Try again.");
+  } finally {
+    setBusy(false);
+  }
+}
+async function goBack() {
+  if (historyStack.length < 2) return;
+  historyStack.pop();
+  const prevId = historyStack[historyStack.length - 1];
+  const item = await fbGet(ROOT + "/items/" + prevId);
+  if (!item) return;
+  current = item;
+  cropImg.src = item.crop_url || "";
+  ebayImg.src = item.cand_thumb || "";
+  toast("Back");
+}
+async function renderLeaderboard() {
+  lbBody.textContent = "Loading...";
+  const players = (await fbGet(ROOT + "/players")) || {};
+  const rows = Object.keys(players).map(function(id) {
+    const p = players[id] || {};
+    const total = Number(p.control_total || 0);
+    const correct = Number(p.control_correct || 0);
+    return {
+      id: id,
+      username: p.username || id,
+      total: total,
+      correct: correct,
+      score: wilsonLower(correct, total),
+      acc: total ? correct / total : 0
+    };
+  }).filter(function(r) { return r.total >= MIN_CONTROLS; })
+    .sort(function(a, b) { return b.score - a.score || b.total - a.total; });
+
+  if (!rows.length) {
+    lbBody.innerHTML = '<p style="color:#888">No ranked players yet (need 10+ controls).</p>';
+    return;
+  }
+  let html = "<table><thead><tr><th>#</th><th>Player</th><th>Accuracy</th></tr></thead><tbody>";
+  rows.forEach(function(r, i) {
+    const you = r.id === safeUser;
+    const label = you ? ("You (" + r.username + ")") : ("Player " + (i + 1));
+    html += '<tr class="' + (you ? "you" : "") + '"><td>' + (i + 1) + "</td><td>" + label + "</td><td>" + Math.round(r.acc * 100) + "%</td></tr>";
+  });
+  html += "</tbody></table>";
+  if (safeUser && player && Number(player.control_total || 0) < MIN_CONTROLS) {
+    const t = Number(player.control_total || 0);
+    const c = Number(player.control_correct || 0);
+    const acc = t ? Math.round(100 * c / t) : 0;
+    html += '<p style="margin-top:12px;color:#aaa">You: ' + acc + "% on " + t + "/" + MIN_CONTROLS + " controls (not ranked yet)</p>";
+  }
+  lbBody.innerHTML = html;
+}
+async function start() {
+  username = (userIn.value || "").trim().slice(0, 30);
+  if (!username) { toast("Enter a username"); return; }
+  localStorage.setItem(USER_KEY, username);
+  safeUser = safeKey(username.toLowerCase());
+  try {
+    await ensurePlayer();
+    await nextCard();
+  } catch (e) {
+    console.warn(e);
+    toast("Could not start. Check network.");
+  }
+}
+document.getElementById("startBtn").onclick = start;
+userIn.addEventListener("keydown", function(e) { if (e.key === "Enter") start(); });
+document.getElementById("retryBtn").onclick = function() {
+  sessionSeen.clear();
+  nextCard();
+};
+document.getElementById("btnMatch").onclick = function() { cast("match"); };
+document.getElementById("btnNo").onclick = function() { cast("no_match"); };
+document.getElementById("btnNotPin").onclick = function() { cast("not_a_pin"); };
+document.getElementById("btnSkip").onclick = function() { cast("skip"); };
+document.getElementById("btnBack").onclick = function() { goBack(); };
+["lb1", "lb2", "lb3"].forEach(function(id) {
+  document.getElementById(id).onclick = async function() {
+    lbEl.classList.add("on");
+    await renderLeaderboard();
+  };
+});
+document.getElementById("lbClose").onclick = function() { lbEl.classList.remove("on"); };
+</script>
+</body>
+</html>
