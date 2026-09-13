@@ -108,6 +108,12 @@ let needMatchControl = true;
 let needNoMatchControl = true;
 let sessionSeen = new Set();
 let voting = false;
+let itemCache = new Map();
+let prefetchQueue = [];
+let prefetching = false;
+let openIdCache = {pricing: null, control: null, at: 0};
+const OPEN_ID_TTL_MS = 15000;
+const PREFETCH_TARGET = 3;
 
 const userIn = document.getElementById("userIn");
 const hdrMeta = document.getElementById("hdrMeta");
@@ -195,36 +201,103 @@ function shuffle(arr) {
   return arr;
 }
 async function listOpenIds(kind) {
-  if (kind === "control") return Object.keys((await fbGet(ROOT + "/open_control")) || {});
-  const meta = (await fbGet(ROOT + "/meta")) || {};
-  const batch = meta.active_batch;
-  if (!batch) return [];
-  return Object.keys((await fbGet(ROOT + "/open_pricing/" + batch)) || {});
+  const now = Date.now();
+  if (openIdCache[kind] && (now - openIdCache.at) < OPEN_ID_TTL_MS) {
+    return openIdCache[kind].slice();
+  }
+  let ids = [];
+  if (kind === "control") {
+    ids = Object.keys((await fbGet(ROOT + "/open_control")) || {});
+  } else {
+    const meta = (await fbGet(ROOT + "/meta")) || {};
+    const batch = meta.active_batch;
+    if (!batch) return [];
+    ids = Object.keys((await fbGet(ROOT + "/open_pricing/" + batch)) || {});
+  }
+  openIdCache[kind] = ids.slice();
+  openIdCache.at = now;
+  return ids;
+}
+function warmImages(item) {
+  if (!item) return;
+  if (item.crop_url) {
+    const a = new Image();
+    a.src = item.crop_url;
+  }
+  if (item.cand_thumb) {
+    const b = new Image();
+    b.src = item.cand_thumb;
+  }
+}
+function acceptItem(item, preferControlAnswer) {
+  if (!item || item.status !== "open") return false;
+  if (sessionSeen.has(item.id)) return false;
+  if (prefetchQueue.some(function(x) { return x.id === item.id; })) return false;
+  if (preferControlAnswer && item.control_answer !== preferControlAnswer) return false;
+  if ((item.votes || {})[safeUser]) return false;
+  return true;
 }
 async function pickItem(preferControlAnswer) {
   const kind = preferControlAnswer ? "control" : "pricing";
   let ids = shuffle(await listOpenIds(kind));
   for (const id of ids) {
     if (sessionSeen.has(id)) continue;
+    if (prefetchQueue.some(function(x) { return x.id === id; })) continue;
     const item = await fbGet(ROOT + "/items/" + id);
-    if (!item || item.status !== "open") continue;
-    if (preferControlAnswer && item.control_answer !== preferControlAnswer) continue;
-    if ((item.votes || {})[safeUser]) continue;
+    if (!acceptItem(item, preferControlAnswer)) continue;
+    itemCache.set(item.id, item);
     return item;
   }
   if (preferControlAnswer) return null;
   ids = shuffle(await listOpenIds("control"));
   for (const id of ids) {
     if (sessionSeen.has(id)) continue;
+    if (prefetchQueue.some(function(x) { return x.id === id; })) continue;
     const item = await fbGet(ROOT + "/items/" + id);
-    if (!item || item.status !== "open") continue;
-    if ((item.votes || {})[safeUser]) continue;
+    if (!acceptItem(item, null)) continue;
+    itemCache.set(item.id, item);
     return item;
   }
   return null;
 }
+async function refillPrefetch() {
+  if (prefetching) return;
+  prefetching = true;
+  try {
+    while (prefetchQueue.length < PREFETCH_TARGET) {
+      let item = null;
+      if (pricingSinceControl + prefetchQueue.filter(function(x) { return x.kind === "pricing"; }).length >= CONTROL_EVERY) {
+        if (needMatchControl) {
+          item = await pickItem("match");
+          if (item) needMatchControl = false;
+        }
+        if (!item && needNoMatchControl) {
+          item = await pickItem("no_match");
+          if (item) needNoMatchControl = false;
+        }
+      }
+      if (!item && needMatchControl && pricingSinceControl >= Math.floor(CONTROL_EVERY / 2)) {
+        item = await pickItem("match");
+        if (item) needMatchControl = false;
+      }
+      if (!item && needNoMatchControl && pricingSinceControl >= CONTROL_EVERY) {
+        item = await pickItem("no_match");
+        if (item) needNoMatchControl = false;
+      }
+      if (!item) item = await pickItem(null);
+      if (!item) break;
+      prefetchQueue.push(item);
+      warmImages(item);
+    }
+  } catch (e) {
+    console.warn("prefetch failed", e);
+  } finally {
+    prefetching = false;
+  }
+}
 function renderItem(item) {
   current = item;
+  itemCache.set(item.id, item);
   sessionSeen.add(item.id);
   historyStack.push(item.id);
   cropImg.src = item.crop_url || "";
@@ -232,23 +305,26 @@ function renderItem(item) {
   const trust = player && player.trusted ? "trusted" : "practice";
   hdrMeta.textContent = username + " · " + trust;
   show("play");
+  refillPrefetch();
 }
 async function nextCard() {
-  let item = null;
   if (pricingSinceControl >= CONTROL_EVERY) {
     needMatchControl = true;
     needNoMatchControl = true;
     pricingSinceControl = 0;
   }
-  if (needMatchControl) {
-    item = await pickItem("match");
-    needMatchControl = false;
+  let item = prefetchQueue.shift() || null;
+  if (!item) {
+    if (needMatchControl) {
+      item = await pickItem("match");
+      needMatchControl = false;
+    }
+    if (!item && needNoMatchControl) {
+      item = await pickItem("no_match");
+      needNoMatchControl = false;
+    }
+    if (!item) item = await pickItem(null);
   }
-  if (!item && needNoMatchControl) {
-    item = await pickItem("no_match");
-    needNoMatchControl = false;
-  }
-  if (!item) item = await pickItem(null);
   if (!item) { show("done"); return; }
   renderItem(item);
 }
@@ -423,36 +499,43 @@ async function updatePlayerStats(item, action) {
   }
   await fbPatch(path, patch);
 }
+async function persistVote(item, action) {
+  const trusted = !!(player && player.trusted);
+  await fbPut(ROOT + "/items/" + item.id + "/votes/" + safeUser, {
+    action: action,
+    trusted: trusted,
+    username: username,
+    at: new Date().toISOString()
+  });
+  await updatePlayerStats(item, action);
+  await recomputeAndMaybeClose(item.id);
+}
 async function cast(action) {
   if (voting || !current) return;
-  setBusy(true);
+  const item = current;
+  voting = true;
   try {
-    const item = current;
     if (item.kind === "pricing" && action !== "skip") pricingSinceControl += 1;
-    const trusted = !!(player && player.trusted);
-    await fbPut(ROOT + "/items/" + item.id + "/votes/" + safeUser, {
-      action: action,
-      trusted: trusted,
-      username: username,
-      at: new Date().toISOString()
+    // Advance UI immediately (CTM-style). Persist in background.
+    const advance = nextCard();
+    persistVote(item, action).catch(function(e) {
+      console.warn(e);
+      toast("Save failed. Keep going; we will retry on later taps.");
     });
-    await updatePlayerStats(item, action);
-    await recomputeAndMaybeClose(item.id);
-    await nextCard();
-  } catch (e) {
-    console.warn(e);
-    toast("Save failed. Try again.");
+    await advance;
   } finally {
-    setBusy(false);
+    voting = false;
   }
 }
 async function goBack() {
   if (historyStack.length < 2) return;
   historyStack.pop();
   const prevId = historyStack[historyStack.length - 1];
-  const item = await fbGet(ROOT + "/items/" + prevId);
+  let item = itemCache.get(prevId);
+  if (!item) item = await fbGet(ROOT + "/items/" + prevId);
   if (!item) return;
   current = item;
+  itemCache.set(item.id, item);
   cropImg.src = item.crop_url || "";
   ebayImg.src = item.cand_thumb || "";
   toast("Back");
