@@ -63,6 +63,7 @@ h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
   <div id="hdr">
     <div class="title">Pin Matching Game</div>
     <div class="meta" id="hdrMeta"></div>
+    <button class="btn ghost" id="switchUserBtn" type="button">Switch</button>
     <button class="btn ghost" id="lb3" type="button">Leaderboard</button>
   </div>
   <div id="photos">
@@ -590,6 +591,20 @@ async function start() {
     toast("Could not start. Check network.");
   }
 }
+function switchUser() {
+  localStorage.removeItem(USER_KEY);
+  username = "";
+  safeUser = "";
+  player = null;
+  current = null;
+  historyStack = [];
+  sessionSeen = new Set();
+  prefetchQueue = [];
+  itemCache = new Map();
+  userIn.value = "";
+  show("gate");
+  userIn.focus();
+}
 document.getElementById("startBtn").onclick = start;
 userIn.addEventListener("keydown", function(e) { if (e.key === "Enter") start(); });
 document.getElementById("retryBtn").onclick = function() {
@@ -601,6 +616,7 @@ document.getElementById("btnNo").onclick = function() { cast("no_match"); };
 document.getElementById("btnNotPin").onclick = function() { cast("not_a_pin"); };
 document.getElementById("btnSkip").onclick = function() { cast("skip"); };
 document.getElementById("btnBack").onclick = function() { goBack(); };
+document.getElementById("switchUserBtn").onclick = switchUser;
 ["lb1", "lb2", "lb3"].forEach(function(id) {
   document.getElementById(id).onclick = async function() {
     lbEl.classList.add("on");
@@ -608,6 +624,12 @@ document.getElementById("btnBack").onclick = function() { goBack(); };
   };
 });
 document.getElementById("lbClose").onclick = function() { lbEl.classList.remove("on"); };
+
+// Resume with saved username so returning players skip the gate.
+if (username) {
+  userIn.value = username;
+  start();
+}
 </script>
 </body>
 </html>
