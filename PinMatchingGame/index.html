@@ -51,12 +51,12 @@ h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
   <p class="sub">Compare the two photos. Match, No Match, Not a pin, or Skip. Username keeps your score.</p>
   <input id="userIn" maxlength="30" placeholder="Username" autocomplete="username" enterkeyhint="go"/>
   <button class="btn primary" id="startBtn" type="button">Play</button>
-  <button class="btn ghost" id="lb1" type="button">Leaderboard</button>
+  <button class="btn ghost" id="lb1" type="button" hidden>Leaderboard</button>
 </div>
 <div id="done" class="view">
   <h1>You are caught up</h1>
   <p class="sub">Check back later for more pins.</p>
-  <button class="btn ghost" id="lb2" type="button">Leaderboard</button>
+  <button class="btn ghost" id="lb2" type="button" hidden>Leaderboard</button>
   <button class="btn ghost" id="retryBtn" type="button">Try again</button>
 </div>
 <div id="play" class="view">
@@ -64,7 +64,7 @@ h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
     <div class="title">Pin Matching Game</div>
     <div class="meta" id="hdrMeta"></div>
     <button class="btn ghost" id="switchUserBtn" type="button">Switch</button>
-    <button class="btn ghost" id="lb3" type="button">Leaderboard</button>
+    <button class="btn ghost" id="lb3" type="button" hidden>Leaderboard</button>
   </div>
   <div id="photos">
     <div class="pane"><img id="cropImg" alt="Pin"/></div>
@@ -86,7 +86,6 @@ h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
 <div id="toast"></div>
 <div id="lb">
   <h2>Accuracy leaderboard</h2>
-  <p class="sub" style="max-width:none;text-align:left">Control accuracy only. Names stay private.</p>
   <div id="lbBody">Loading...</div>
   <button class="btn ghost" id="lbClose" type="button" style="margin-top:16px">Close</button>
 </div>
@@ -510,6 +509,7 @@ async function persistVote(item, action) {
   });
   await updatePlayerStats(item, action);
   await recomputeAndMaybeClose(item.id);
+  if (item.kind === "control") refreshLeaderboardButtons();
 }
 async function cast(action) {
   if (voting || !current) return;
@@ -541,6 +541,24 @@ async function goBack() {
   ebayImg.src = item.cand_thumb || "";
   toast("Back");
 }
+async function hasLeaderboardData() {
+  const players = (await fbGet(ROOT + "/players")) || {};
+  return Object.keys(players).some(function(id) {
+    return Number((players[id] || {}).control_total || 0) >= MIN_CONTROLS;
+  });
+}
+async function refreshLeaderboardButtons() {
+  let show = false;
+  try {
+    show = await hasLeaderboardData();
+  } catch (e) {
+    console.warn(e);
+  }
+  ["lb1", "lb2", "lb3"].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.hidden = !show;
+  });
+}
 async function renderLeaderboard() {
   lbBody.textContent = "Loading...";
   const players = (await fbGet(ROOT + "/players")) || {};
@@ -560,7 +578,8 @@ async function renderLeaderboard() {
     .sort(function(a, b) { return b.score - a.score || b.total - a.total; });
 
   if (!rows.length) {
-    lbBody.innerHTML = '<p style="color:#888">No ranked players yet (need 10+ controls).</p>';
+    lbBody.innerHTML = '<p style="color:#888">No ranked players yet.</p>';
+    refreshLeaderboardButtons();
     return;
   }
   let html = "<table><thead><tr><th>#</th><th>Player</th><th>Accuracy</th></tr></thead><tbody>";
@@ -577,6 +596,7 @@ async function renderLeaderboard() {
     html += '<p style="margin-top:12px;color:#aaa">You: ' + acc + "% on " + t + "/" + MIN_CONTROLS + " controls (not ranked yet)</p>";
   }
   lbBody.innerHTML = html;
+  refreshLeaderboardButtons();
 }
 async function start() {
   username = (userIn.value || "").trim().slice(0, 30);
@@ -624,6 +644,8 @@ document.getElementById("switchUserBtn").onclick = switchUser;
   };
 });
 document.getElementById("lbClose").onclick = function() { lbEl.classList.remove("on"); };
+
+refreshLeaderboardButtons();
 
 // Resume with saved username so returning players skip the gate.
 if (username) {
