@@ -3,36 +3,36 @@
     {
       "x": 498.125,
       "y": 331.5625,
-      "width": 307.8125,
-      "height": 473.125,
+      "width": 308.28125,
+      "height": 473.4375,
       "confidence": 0.95413738489151,
       "class": "pin",
       "crop_stem": "img30_pin01"
     },
     {
-      "x": 177.5,
+      "x": 177.8125,
       "y": 437.5,
-      "width": 313.28125,
-      "height": 482.5,
-      "confidence": 0.9614614844322205,
+      "width": 312.8125,
+      "height": 482.1875,
+      "confidence": 0.9623913168907166,
       "class": "pin",
       "crop_stem": "img30_pin02"
     },
     {
       "x": 799.375,
-      "y": 492.1875,
-      "width": 302.03125,
+      "y": 491.875,
+      "width": 302.65625,
       "height": 472.1875,
-      "confidence": 0.953880250453949,
+      "confidence": 0.9542226791381836,
       "class": "pin",
       "crop_stem": "img30_pin03"
     },
     {
-      "x": 497.5,
+      "x": 496.875,
       "y": 809.375,
-      "width": 304.21875,
-      "height": 474.375,
-      "confidence": 0.9504110217094421,
+      "width": 304.375,
+      "height": 474.0625,
+      "confidence": 0.9507778882980347,
       "class": "pin",
       "crop_stem": "img30_pin04"
     }
@@ -40,5 +40,16 @@
   "image": {
     "width": 960,
     "height": 1280
+  },
+  "_imported_from_pricing": {
+    "collection": "PriceCollection_20260913_1356",
+    "source_roboflow": "IMG_30_roboflow.json",
+    "source_image": "IMG_30.JPG",
+    "source_image_size": {
+      "width": 4284,
+      "height": 5712
+    },
+    "pin_order": "reading_order_y_then_x",
+    "note": "Boxes scaled from pricing RF-DETR JSON; stems match pricing crops imgN_pinNN"
   }
 }

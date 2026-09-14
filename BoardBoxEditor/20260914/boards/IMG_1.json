@@ -5,70 +5,70 @@
       "y": 228.125,
       "width": 205.3125,
       "height": 325.3125,
-      "confidence": 0.9559813141822815,
+      "confidence": 0.9562273025512695,
       "class": "pin",
       "crop_stem": "img1_pin01"
     },
     {
       "x": 578.125,
       "y": 235.3125,
-      "width": 217.03125,
+      "width": 216.25,
       "height": 329.0625,
-      "confidence": 0.9516838788986206,
+      "confidence": 0.9505029916763306,
       "class": "pin",
       "crop_stem": "img1_pin02"
     },
     {
-      "x": 120.625,
+      "x": 120.46875,
       "y": 294.53125,
-      "width": 206.25,
-      "height": 324.0625,
-      "confidence": 0.9515040516853333,
+      "width": 205.9375,
+      "height": 323.4375,
+      "confidence": 0.9502266049385071,
       "class": "pin",
       "crop_stem": "img1_pin03"
     },
     {
       "x": 816.875,
-      "y": 300.0,
-      "width": 251.5625,
+      "y": 300.15625,
+      "width": 251.40625,
       "height": 342.8125,
-      "confidence": 0.9391365647315979,
+      "confidence": 0.939581573009491,
       "class": "pin",
       "crop_stem": "img1_pin04"
     },
     {
       "x": 344.6875,
       "y": 556.25,
-      "width": 208.90625,
-      "height": 334.6875,
-      "confidence": 0.9501341581344604,
+      "width": 208.4375,
+      "height": 334.375,
+      "confidence": 0.9495759606361389,
       "class": "pin",
       "crop_stem": "img1_pin05"
     },
     {
       "x": 578.75,
-      "y": 568.4375,
-      "width": 212.96875,
+      "y": 568.125,
+      "width": 212.8125,
       "height": 329.375,
-      "confidence": 0.9482505321502686,
+      "confidence": 0.9474782943725586,
       "class": "pin",
       "crop_stem": "img1_pin06"
     },
     {
       "x": 826.875,
       "y": 616.25,
-      "width": 207.8125,
-      "height": 320.625,
-      "confidence": 0.952397346496582,
+      "width": 207.5,
+      "height": 320.3125,
+      "confidence": 0.9519526958465576,
       "class": "pin",
       "crop_stem": "img1_pin07"
     },
     {
       "x": 114.53125,
       "y": 623.75,
-      "width": 209.375,
+      "width": 209.0625,
       "height": 330.0,
-      "confidence": 0.9569571614265442,
+      "confidence": 0.957277774810791,
       "class": "pin",
       "crop_stem": "img1_pin08"
     },
@@ -76,26 +76,26 @@
       "x": 337.5,
       "y": 890.625,
       "width": 202.65625,
-      "height": 325.625,
-      "confidence": 0.9492946267127991,
+      "height": 325.9375,
+      "confidence": 0.9478657245635986,
       "class": "pin",
       "crop_stem": "img1_pin09"
     },
     {
       "x": 569.375,
       "y": 894.375,
-      "width": 202.5,
+      "width": 202.96875,
       "height": 321.5625,
-      "confidence": 0.9374402165412903,
+      "confidence": 0.9365176558494568,
       "class": "pin",
       "crop_stem": "img1_pin10"
     },
     {
-      "x": 123.125,
+      "x": 122.96875,
       "y": 950.625,
-      "width": 207.5,
+      "width": 207.03125,
       "height": 330.3125,
-      "confidence": 0.9487276077270508,
+      "confidence": 0.9493885040283203,
       "class": "pin",
       "crop_stem": "img1_pin11"
     },
@@ -103,8 +103,8 @@
       "x": 797.5,
       "y": 956.875,
       "width": 207.1875,
-      "height": 325.625,
-      "confidence": 0.9519526958465576,
+      "height": 326.25,
+      "confidence": 0.9511421918869019,
       "class": "pin",
       "crop_stem": "img1_pin12"
     }
@@ -112,5 +112,16 @@
   "image": {
     "width": 960,
     "height": 1280
+  },
+  "_imported_from_pricing": {
+    "collection": "PriceCollection_20260913_1356",
+    "source_roboflow": "IMG_1_roboflow.json",
+    "source_image": "IMG_1.JPG",
+    "source_image_size": {
+      "width": 4284,
+      "height": 5712
+    },
+    "pin_order": "reading_order_y_then_x",
+    "note": "Boxes scaled from pricing RF-DETR JSON; stems match pricing crops imgN_pinNN"
   }
 }

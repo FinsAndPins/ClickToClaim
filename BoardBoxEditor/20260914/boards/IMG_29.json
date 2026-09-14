@@ -2,55 +2,55 @@
   "predictions": [
     {
       "x": 495.625,
-      "y": 323.75,
-      "width": 306.5625,
-      "height": 474.0625,
-      "confidence": 0.9547319412231445,
+      "y": 323.4375,
+      "width": 306.40625,
+      "height": 474.375,
+      "confidence": 0.9550683498382568,
       "class": "pin",
       "crop_stem": "img29_pin01"
     },
     {
       "x": 800.0,
-      "y": 403.125,
-      "width": 296.40625,
+      "y": 403.4375,
+      "width": 296.09375,
       "height": 473.4375,
-      "confidence": 0.9503188729286194,
+      "confidence": 0.9509603977203369,
       "class": "pin",
       "crop_stem": "img29_pin02"
     },
     {
       "x": 179.6875,
-      "y": 405.9375,
+      "y": 405.625,
       "width": 305.0,
-      "height": 482.5,
-      "confidence": 0.9642541408538818,
+      "height": 482.1875,
+      "confidence": 0.9645892381668091,
       "class": "pin",
       "crop_stem": "img29_pin03"
     },
     {
-      "x": 500.625,
+      "x": 500.0,
       "y": 806.875,
-      "width": 301.25,
-      "height": 474.0625,
-      "confidence": 0.9558166265487671,
+      "width": 300.15625,
+      "height": 473.75,
+      "confidence": 0.956063449382782,
       "class": "pin",
       "crop_stem": "img29_pin04"
     },
     {
-      "x": 803.125,
+      "x": 803.75,
       "y": 881.25,
       "width": 287.96875,
       "height": 468.75,
-      "confidence": 0.9553191661834717,
+      "confidence": 0.9558166265487671,
       "class": "pin",
       "crop_stem": "img29_pin05"
     },
     {
       "x": 176.875,
       "y": 889.375,
-      "width": 302.5,
-      "height": 470.3125,
-      "confidence": 0.960878312587738,
+      "width": 302.34375,
+      "height": 470.9375,
+      "confidence": 0.9614614844322205,
       "class": "pin",
       "crop_stem": "img29_pin06"
     }
@@ -58,5 +58,16 @@
   "image": {
     "width": 960,
     "height": 1280
+  },
+  "_imported_from_pricing": {
+    "collection": "PriceCollection_20260913_1356",
+    "source_roboflow": "IMG_29_roboflow.json",
+    "source_image": "IMG_29.JPG",
+    "source_image_size": {
+      "width": 4284,
+      "height": 5712
+    },
+    "pin_order": "reading_order_y_then_x",
+    "note": "Boxes scaled from pricing RF-DETR JSON; stems match pricing crops imgN_pinNN"
   }
 }

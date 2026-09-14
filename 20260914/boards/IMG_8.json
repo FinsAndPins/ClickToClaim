@@ -1,29 +1,29 @@
 {
   "predictions": [
     {
-      "x": 346.87499237060547,
-      "y": 245.9375,
-      "width": 212.50001525878906,
-      "height": 337.5,
-      "confidence": 0.9383503198623657,
+      "x": 346.875,
+      "y": 245.78125,
+      "width": 212.5,
+      "height": 337.8125,
+      "confidence": 0.9376689791679382,
       "class": "pin",
       "crop_stem": "img8_pin01"
     },
     {
       "x": 122.5,
       "y": 249.84375,
-      "width": 235.9375,
-      "height": 359.6875,
-      "confidence": 0.9448931217193604,
+      "width": 236.09375,
+      "height": 360.0,
+      "confidence": 0.944587230682373,
       "class": "pin",
       "crop_stem": "img8_pin02"
     },
     {
       "x": 156.25,
       "y": 606.25,
-      "width": 270.0,
-      "height": 393.75,
-      "confidence": 0.9503188729286194,
+      "width": 269.53125,
+      "height": 393.4375,
+      "confidence": 0.9505029916763306,
       "class": "pin",
       "crop_stem": "img8_pin03"
     }
@@ -31,5 +31,16 @@
   "image": {
     "width": 960,
     "height": 1280
+  },
+  "_imported_from_pricing": {
+    "collection": "PriceCollection_20260913_1356",
+    "source_roboflow": "IMG_8_roboflow.json",
+    "source_image": "IMG_8.JPG",
+    "source_image_size": {
+      "width": 4284,
+      "height": 5712
+    },
+    "pin_order": "reading_order_y_then_x",
+    "note": "Boxes scaled from pricing RF-DETR JSON; stems match pricing crops imgN_pinNN"
   }
 }
