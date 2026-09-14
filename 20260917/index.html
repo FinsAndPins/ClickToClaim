@@ -544,7 +544,7 @@ let showPhaseOverride = "auto";
 /** Firebase `showConfig/…/endedFullscreen`: full-screen “show ended” — true only on Post Show; false on Schedule, Pre, or During. */
 let showEndedFullscreenActive = false;
 /** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
-const SHOW_DATE_SLUG_FALLBACK = "20260914";
+const SHOW_DATE_SLUG_FALLBACK = "20260917";
 /** Paste your whatnot invite / referral URL here (shown in FAQ links). */
 const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
 
@@ -2417,13 +2417,13 @@ async function runVirtualBoardExport() {
 const _PO_TR = 'test_PriceCollection_20260913_1356__build_6567_visual_baseline';
 const _PO_TR_LEFTOVER = 'test_PriceCollection_20260913_1356__build_6567_visual_baseline';
 const _PO_AP = 'visual_baseline';
-const _PO_MODE_KEY = '_ctcPriceMode_20260914';
+const _PO_MODE_KEY = '_ctcPriceMode_20260917';
 const _PO_PINS_PATH = `pin_pricing_tests/${_PO_TR}/${_PO_AP}/pins`;
 const _PO_PINS_PATH_LEFTOVER = `pin_pricing_tests/${_PO_TR_LEFTOVER}/${_PO_AP}/pins`;
-const _SOLD_STEMS_PATH = 'showConfig/20260914/soldStems';
+const _SOLD_STEMS_PATH = 'showConfig/20260917/soldStems';
 const _PO_SHOW_ID = (typeof fbName !== 'undefined' && fbName) ? fbName
   : (typeof showDateSlug !== 'undefined' && showDateSlug) ? showDateSlug
-  : '20260914';
+  : '20260917';
 const _PENDING_STEMS_PATH = `showConfig/${_PO_SHOW_ID}/pendingStems`;
 const _PO_MODE_PATH = `showConfig/${_PO_SHOW_ID}/priceMode`;
 
@@ -2643,7 +2643,7 @@ window.addEventListener('storage', (e) => {
 });
 
 try {
-    const bc = new BroadcastChannel('ctc_price_mode_20260914');
+    const bc = new BroadcastChannel('ctc_price_mode_20260917');
     bc.onmessage = (ev) => {
         if (ev && ev.data && ev.data.mode) _applyMode(ev.data.mode);
     };

@@ -239,7 +239,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="js/user_filter.js?v=3"></script>
 <script>
-const SHOW_DATE_SLUG_FALLBACK = "20260914";
+const SHOW_DATE_SLUG_FALLBACK = "20260917";
 let reportsShowSlug = SHOW_DATE_SLUG_FALLBACK;
 function parseShowDateSlugFromPathReports() {
     const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
@@ -371,11 +371,11 @@ async function loadData() {
 
     // Price overlay control — shared via showConfig/{show}/priceMode (all devices).
     // localStorage/BroadcastChannel remain as same-browser cache only.
-    const _PO_MODE_KEY = "_ctcPriceMode_20260914";
+    const _PO_MODE_KEY = "_ctcPriceMode_20260917";
     const priceSel = document.getElementById("_po-sel-reports");
     if (priceSel) {
         let bc = null;
-        try { bc = new BroadcastChannel("ctc_price_mode_20260914"); } catch (_) {}
+        try { bc = new BroadcastChannel("ctc_price_mode_20260917"); } catch (_) {}
         function applyPriceSel(mode) {
             if (!["all", "clicked", "none"].includes(mode)) mode = "none";
             priceSel.value = mode;
