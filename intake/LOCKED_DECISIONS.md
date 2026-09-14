@@ -28,4 +28,4 @@ Planning conversation (Aug 2026). Implementation lives in `/intake`.
 | Homepage | “We pay reasonable prices for authentic Disney pins.” |
 | From address | `offer@finsandpins.shop` (not shown on the site). Reply-To `noreply@…`. Copy says don’t reply. |
 
-Later (not v1): cloud RF-DETR + eBay pricing, PayPal API, auto labels, Cindy Access.
+Later (not v1): see **`FUTURE.md`** — includes seller CTR-style box fix (tap remove / drag add), cloud RF-DETR + eBay pricing, PayPal API, auto labels, Cindy Access.
