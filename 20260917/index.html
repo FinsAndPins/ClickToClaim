@@ -1483,12 +1483,8 @@ function handlePinClick(boardName, idx) {
                     "This pin has already been selected. Check out our whatnot show and it will be coming up soon!"
                 );
             }
-        } else {
-            const queueNum = countClaimedPinsFromState() + 1;
-            showToast(
-                `You are the first person to select this pin! This pin is ${queueNum} in line. Head over to whatnot to purchase!`
-            );
         }
+        // No toast when you are the first to request a pin.
     }
 }
 
