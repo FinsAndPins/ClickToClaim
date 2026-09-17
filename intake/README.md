@@ -47,6 +47,7 @@ Docs:
 |------|---------|
 | `ACTION_ITEMS.md` | Who does what |
 | `LOCKED_DECISIONS.md` | Product decisions |
+| `FUTURE.md` | Post-v1 ideas (e.g. seller box editing) |
 | `docs/HOME_DAY.md` | **Ordered Mac deploy + Lexi test** |
 | `docs/MODERATION.md` | Why Google Vision, how to add the key |
 | `docs/CLOUD_PRICING_MIGRATION.md` | Later: private RF-DETR/eBay (not v1) |
