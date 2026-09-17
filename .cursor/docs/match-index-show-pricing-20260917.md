@@ -1,4 +1,4 @@
-# Match-index show pricing (20260917) — lessons and deferral
+# Match-index show pricing (20260917): lessons and deferral
 
 **Status:** Deferred. Do not pursue as a pricing / Whatnot-title source for now.  
 **Date:** 2026-09-17  
