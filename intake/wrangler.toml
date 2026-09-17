@@ -17,7 +17,7 @@ run_worker_first = true
 
 [vars]
 APP_NAME = "Fins & Pins — Sell My Collection"
-PUBLIC_BASE_URL = "http://127.0.0.1:8787"
+PUBLIC_BASE_URL = "https://finsandpins-intake.finsandpins.workers.dev"
 FROM_EMAIL = "offer@finsandpins.shop"
 NOREPLY_EMAIL = "noreply@finsandpins.shop"
 # INVITE_CODE is a secret in production (never commit a real code here).
@@ -29,12 +29,12 @@ SHIP_TO_ADDRESS = "15049 Canopy Cover Dr, Winter Garden, FL 34787"
 OFFER_TTL_DAYS = "7"
 MAX_PHOTOS = "100"
 MAX_PHOTO_BYTES = "15728640"
-ENVIRONMENT = "development"
+ENVIRONMENT = "production"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "intake"
-database_id = "00000000-0000-0000-0000-000000000001"
+database_id = "b3cab9a9-1171-4421-9fb3-2cbdc2634c9e"
 
 [[r2_buckets]]
 binding = "BUCKET"

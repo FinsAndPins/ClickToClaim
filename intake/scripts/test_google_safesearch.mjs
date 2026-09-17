@@ -7,12 +7,24 @@
  *   node scripts/test_google_safesearch.mjs /path/to/board/jpgs
  *
  * Does not upload anything to Fins & Pins storage. Prints pass/fail + labels.
- * Fail rules match the Worker: POSSIBLE / LIKELY / VERY_LIKELY on any SafeSearch category.
+ * Fail rules match the Worker (pin-board tuned):
+ *   racy → VERY_LIKELY only
+ *   adult / violence / medical → LIKELY or VERY_LIKELY
+ *   spoof → never reject
  */
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-const FAIL = new Set(["LIKELY", "VERY_LIKELY", "POSSIBLE"]);
+function categoryFails(category, value) {
+  const v = String(value).toUpperCase();
+  if (category === "spoof") return false;
+  if (category === "racy") return v === "VERY_LIKELY";
+  if (category === "adult" || category === "violence" || category === "medical") {
+    return v === "LIKELY" || v === "VERY_LIKELY";
+  }
+  return v === "LIKELY" || v === "VERY_LIKELY";
+}
+
 const key = process.env.GOOGLE_VISION_API_KEY;
 const dir = process.argv[2];
 
@@ -54,7 +66,7 @@ for (const name of files) {
   const data = await res.json();
   const ann = data.responses?.[0]?.safeSearchAnnotation ?? {};
   const codes = Object.entries(ann)
-    .filter(([, v]) => FAIL.has(String(v)))
+    .filter(([k, v]) => categoryFails(k, v))
     .map(([k, v]) => `${k}.${v}`);
   if (codes.length) {
     failed++;
