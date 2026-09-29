@@ -170,15 +170,15 @@ CTR leftover lane ≠ Whatnot inactive→next show clone lane.
 
 Steve’s Whatnot flow: after a show, Buy Now goes inactive; filter by upload date; add to next show (Whatnot excludes already sold). Hard part: distinguishing **second-chance leftovers** (e.g. Mon 43–66 / items not getting another CTR pass) from **new** listings uploaded the same day.
 
-**Idea:** put a stable token in the listing text for that cohort, e.g. `Clone` (or `BIN2`) in Title or Description at Script A/CSV build time for boards in the leftover/BIN-only section.
+**Locked (Steve 2026-09-28):** put **`fpclone`** in **Description** (not Title; not SKU) at Script A/CSV build time for the BIN/second-chance cohort only.
 
-Then after 20261001: filter inactive by upload date **and** description contains `Clone`, clone only those into the next show.
+Then after the show: filter inactive by upload date **and** description contains `fpclone`, clone only those into the next show. Steve verified inactive search matches Description; SKU is not a reliable/visible search field; BoardNN works in Buy Now but not Sold.
 
 ### Thoughts
 
 - **Good:** matches how Whatnot UI filtering works; no extra spreadsheet.  
-- **Prefer Description over Title** so the customer-facing title stays clean (`Board NN Pin N RELY ON PHOTO`), with `Clone` in Description or SKU/tag field if Whatnot search/filter hits it. Confirm filter searches description.  
-- **Token choice:** `Clone` is clear for ops; slightly odd for buyers if visible. Alternatives: `LaneBIN`, `FPCLONE`, or a hidden-ish tag in SKU (`…-CLONE`).  
-- **Do not** put `Clone` on first-run boards that will appear in next CTR leftovers (1–42 lane); only on the cohort you will **not** put in CTR again.  
-- Script A can set the token from config: `bin_clone_tag: "Clone"` for `leftover_board_range` or `bin_only_board_range`.
+- **Title stays clean** (`Board NN Pin N RELY ON PHOTO`); ops token lives in Description.  
+- **`fpclone`** is distinctive enough to avoid accidental matches on normal words like “clone.”  
+- **Do not** put `fpclone` on first-run boards that will appear in next CTR leftovers (1–42 lane); only on the cohort you will **not** put in CTR again.  
+- Script A config: `bin_clone_tag: "fpclone"` for `bin_only_board_range`.
 
