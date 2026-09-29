@@ -164,21 +164,36 @@ Seller config can default to `leftover_detect: prior_ctr_filenames` with optiona
 
 ---
 
-## Whatnot “Clone” tag for BIN/shop roll-forward (idea, 2026-09-28)
+## Whatnot `fpclone` tag for BIN/shop roll-forward (locked, 2026-09-28)
 
-CTR leftover lane ≠ Whatnot inactive→next show clone lane.
+CTR leftover lane and Whatnot inactive→next-show clone lane are related but not identical.
 
-Steve’s Whatnot flow: after a show, Buy Now goes inactive; filter by upload date; add to next show (Whatnot excludes already sold). Hard part: distinguishing **second-chance leftovers** (e.g. Mon 43–66 / items not getting another CTR pass) from **new** listings uploaded the same day.
+### Lifecycle (corrected)
 
-**Locked (Steve 2026-09-28):** put **`fpclone`** in **Description** (not Title; not SKU) at Script A/CSV build time for the BIN/second-chance cohort only.
+Example Mon 20260928 boards **1–42** → Thu **20261001** leftover section:
 
-Then after the show: filter inactive by upload date **and** description contains `fpclone`, clone only those into the next show. Steve verified inactive search matches Description; SKU is not a reliable/visible search field; BoardNN works in Buy Now but not Sold.
+| When | Boards | `fpclone` in Description? |
+|---|---|---|
+| First CTR/show (Mon): boards 1–42 as **new** | New lane | **No** |
+| Next CTR (Thu 20261001): those same boards as **leftovers** | Leftover lane | **Yes** |
+| Thu **new** boards | New lane | **No** |
+| After Thu show: inactive filter upload-date + `fpclone` | BIN/shop clone to following Whatnot show | (already tagged) |
 
-### Thoughts
+So `fpclone` marks “this listing is on its **CTR leftover / second-chance** pass; after this show, clone unsold to shop/BIN, not into a third CTR.” It goes on **leftover boards only**, not new boards. Steve’s intent for Mon 1–42 getting `fpclone` on **20261001** (not on Monday’s first upload) is correct.
 
-- **Good:** matches how Whatnot UI filtering works; no extra spreadsheet.  
-- **Title stays clean** (`Board NN Pin N RELY ON PHOTO`); ops token lives in Description.  
-- **`fpclone`** is distinctive enough to avoid accidental matches on normal words like “clone.”  
-- **Do not** put `fpclone` on first-run boards that will appear in next CTR leftovers (1–42 lane); only on the cohort you will **not** put in CTR again.  
-- Script A config: `bin_clone_tag: "fpclone"` for `bin_only_board_range`.
+### Placement and description shape (locked)
+
+- Put **`fpclone`** in **Description**, as its **own token**, immediately after `ShowYYYYMMDD` (spaces around it), e.g. `… Show20261001 fpclone …`.  
+- That position should survive long text before it.  
+- **Drop** unused `Board##Character` (e.g. `Board01KermittheFrogAndFozzieBear`); Steve has not used it.  
+- Title stays clean: `Board NN Pin N RELY ON PHOTO`.  
+- Inactive search matches Description (verified). SKU not reliable. BoardNN works in Buy Now, not Sold.
+
+### Whatnot tokenization (ops warning)
+
+Whatnot search behaves like **token / whole-segment** match, not arbitrary substring. Example: `FrogAndFozzie` inside `Board01KermittheFrogAndFozzieBear` does **not** hit. So searchable ops tags must be **space-separated standalone tokens** (`fpclone`, `Show20261001`), not buried inside CamelCase blobs. Keep this in mind for any future filter tags.
+
+### Config sketch
+
+`bin_clone_tag: "fpclone"` applied when building CSV rows for the **leftover board lane** only (`requested_by_policy: merge_prior_and_current` still applies to those rows).
 
