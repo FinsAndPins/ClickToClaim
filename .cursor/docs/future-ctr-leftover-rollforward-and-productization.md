@@ -136,3 +136,49 @@ Example seller config:
 - No leftover pack build until new board count + shop sales CSV + explicit go.  
 - No production pricing watcher changes.  
 - No multi-tenant billing/auth.
+
+
+---
+
+## Auto-detect leftovers by prior CTR filename (idea, 2026-09-28)
+
+Steve ask: can the pipeline infer leftover vs new so he does not have to declare board ranges?
+
+**Yes, mostly.** Treat a dropped board as leftover if its **board stem** (`IMG_0440`, etc.) already exists in the **immediately prior CTR** `boards/manifest` (or boards folder). Then:
+
+- Skip RF-DETR / nest-suppress / pricing for that stem.  
+- Copy prior box JSON + crop_stem join as-is.  
+- Apply sold overlay from live + shop sales CSVs keyed by crop_stem / Board+Pin.  
+- Everything else in the drop = new (run detect + price).
+
+### Caveats
+
+- **Filename stability:** leftovers must keep the same `IMG_####` names when re-dropped or copied into the next show. Renaming breaks auto-detect.  
+- **Which prior show?** Default = previous dated CTR folder (or `leftover_source_show` override if two shows overlap).  
+- **First-run vs second-run leftovers:** If 20260928 boards 43–66 were already leftovers, their stems also appear in an older CTR. Auto-detect alone cannot know “only roll one generation into CTR.” Need either: (a) only compare to **immediate prior** show and only roll stems that were in that show’s **new** section (requires tagging new stems at build time), or (b) a simple allow/deny list. Practical hybrid: auto-detect “seen in prior CTR” for skip-OD/pricing, plus a stored `new_stems_20260928.json` so only those stems are eligible to appear as CTR leftovers next time.  
+- **Empty / wrong prior:** fail closed (treat as new and warn) rather than silently skip pricing.
+
+### Productization
+
+Seller config can default to `leftover_detect: prior_ctr_filenames` with optional `only_stems_tagged_new_in_prior: true`.
+
+---
+
+## Whatnot “Clone” tag for BIN/shop roll-forward (idea, 2026-09-28)
+
+CTR leftover lane ≠ Whatnot inactive→next show clone lane.
+
+Steve’s Whatnot flow: after a show, Buy Now goes inactive; filter by upload date; add to next show (Whatnot excludes already sold). Hard part: distinguishing **second-chance leftovers** (e.g. Mon 43–66 / items not getting another CTR pass) from **new** listings uploaded the same day.
+
+**Idea:** put a stable token in the listing text for that cohort, e.g. `Clone` (or `BIN2`) in Title or Description at Script A/CSV build time for boards in the leftover/BIN-only section.
+
+Then after 20261001: filter inactive by upload date **and** description contains `Clone`, clone only those into the next show.
+
+### Thoughts
+
+- **Good:** matches how Whatnot UI filtering works; no extra spreadsheet.  
+- **Prefer Description over Title** so the customer-facing title stays clean (`Board NN Pin N RELY ON PHOTO`), with `Clone` in Description or SKU/tag field if Whatnot search/filter hits it. Confirm filter searches description.  
+- **Token choice:** `Clone` is clear for ops; slightly odd for buyers if visible. Alternatives: `LaneBIN`, `FPCLONE`, or a hidden-ish tag in SKU (`…-CLONE`).  
+- **Do not** put `Clone` on first-run boards that will appear in next CTR leftovers (1–42 lane); only on the cohort you will **not** put in CTR again.  
+- Script A can set the token from config: `bin_clone_tag: "Clone"` for `leftover_board_range` or `bin_only_board_range`.
+
