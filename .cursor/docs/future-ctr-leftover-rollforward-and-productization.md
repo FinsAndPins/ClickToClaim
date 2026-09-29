@@ -1,7 +1,48 @@
 # Future: CTR leftover roll-forward + productizing Script A/B
 
-**Status:** Plan / product notes only. Do **not** implement yet (Steve 2026-09-28 evening).  
-**Related:** Script A/B Whatnot flow; live show CSV analysis; deferred BIN requester notify.
+**Status:** Plan locked for next show; **do not implement until Steve says go** after new photos + marketplace sales CSV.  
+**Related:** Script A/B Whatnot flow; live show CSV analysis; nest-suppress trial 20261001; deferred BIN requester notify.
+
+---
+
+## RESUME HERE (bookmark)
+
+Paste this into a new agent / next chat when ready:
+
+> Resume CTR leftover roll-forward for show **20261001**. Read `.cursor/docs/future-ctr-leftover-rollforward-and-productization.md` (Locked decisions). Do not implement until I drop new board count + marketplace sales CSV in Cursor Projects and say go. Leftovers = 20260928 boards **1–42** only; no detect/pricing/nest-suppress on leftovers; merge Requested-by from 20260928 claims + 20261001 claims; sold = live export ∪ shop sales CSV; one-generation only (no third CTR; BIN clone OK).
+
+Also mirrored under Cursor Projects:  
+`Show20260928_Whatnot/RESUME_leftover_rollforward_20261001.md`
+
+---
+
+## Locked decisions (2026-09-28 night)
+
+| Topic | Decision |
+|---|---|
+| Next show id | **20261001** |
+| New board count | TBD tomorrow afternoon (when photos done) |
+| Roll set from 20260928 | Boards **1–42 only** (not 43–66) |
+| Requested by (usernames) | **Merge:** all clickers from 20260928 CTR (including after Script B / after 1:30pm) **plus** new clickers on 20261001. Dedupe. New boards = 20261001 claims only. |
+| CTR post-show | 20260928 is in post-show (no more clicks). Use full Firebase `claims/20260928` (or export) as the prior-username snapshot. |
+| Click rules next CTR | Unsold leftover pins **clickable**. **NaP** and **sold** not clickable. |
+| Sales inputs | Live show export (have) + **marketplace/shop sales CSV** in Cursor Projects before build |
+| Lexi reprice leftovers | Not expected; Steve will say if that changes → keep Monday prices |
+| Nest-suppress / detect / pricing | **New boards only.** Leftover boards 1–42 keep **current box coordinates**; no RF-DETR, no nest-suppress, no reprice on leftovers |
+| One-generation rule | Roll into **next show only**, not a third CTR. Further sell-through via **clone listings into Buy Now / shop**, not another CTR pass (may revisit) |
+| Implement now? | **No.** Sequence below. |
+
+### Recommended sequence (agree)
+
+1. Finish / count **new** board photos (tomorrow afternoon).  
+2. Download latest **marketplace/shop** Whatnot sales CSV → Cursor Projects.  
+3. Finalize plan with board count + sold union.  
+4. **Then** say go: build leftover pack + drop new photos to CTR watcher (or staged build).  
+5. Price **only** new boards; mixed Script A later.
+
+Do **not** drop new photos into the CTR watcher for 20261001 until leftover pack + sold mask plan is finalized (avoids a half-built show).
+
+---
 
 ## Internal cadence (Fins & Pins)
 
@@ -9,64 +50,58 @@
 
 Each CTR show has two sections:
 
-1. **New boards** (front of manifest): need detect + pricing + Script A VLM.  
-2. **Leftover boards** (back of manifest): copied from the **prior show’s new section only**, with **sold overlays** from Whatnot sales, keeping existing `crop_stem` / pricing / crop URLs.
+1. **New boards** (front of manifest): need detect (+ optional nest-suppress) + pricing + Script A VLM.  
+2. **Leftover boards** (back of manifest): copied from the **prior show’s new section only**, with **sold overlays** from Whatnot sales, keeping existing `crop_stem` / pricing / crop URLs / box JSON.
 
 Do **not** consolidate leftover pins onto newly photographed boards (that forces reprice and breaks stem joins).
 
-### Today’s special case (20260928 → next show)
+### 20260928 → 20261001
 
-As far as CTR was concerned, all boards were “new” because pricing was re-run. Only **boards 1–42** should roll into the next CTR leftover section. Boards 43–66 were already prior leftovers and should not roll again under this cadence.
-
-Going forward, each show should record (config or short note Steve provides):
-
-- `new_board_range` (e.g. 1–30)  
-- `leftover_board_range` (e.g. 31–72)  
-- `leftover_source_show` + source new-board range  
-
-Only the **new** range rolls to the next show’s leftover section.
+- Source leftovers: **20260928 boards 1–42**.  
+- 43–66 stay out of next CTR (BIN/shop clone path if still selling).  
+- Record on 20261001 when built: `new_board_range`, `leftover_board_range`, `leftover_source_show=20260928`, `leftover_source_boards=1-42`.
 
 ### Shop sales between shows
 
-Pins stay in the Whatnot shop and can sell before the next CTR. Before leftover pack / Script A for the next show, download a **fresh Whatnot sales/shipments report** (in addition to the live-show export) and union sold stems so those pins are marked sold / excluded from the CSV.
+Union sold stems from:
 
-### Username / `Requested by:` on leftover pins (open product choice)
+1. Live show export (e.g. `live-01065a3c-….csv`)  
+2. Later marketplace/shop shipments/sales CSV in Cursor Projects  
 
-When a leftover pin appears in the next show’s Whatnot CSV:
+Mark sold on CTR leftovers; exclude from Whatnot leftover CSV rows.
 
-| Policy | Behavior |
-|---|---|
-| **A. Current show only** | Only Thursday CTR clickers |
-| **B. Merge prior + current** | Union handles from prior show claims/CSV and new CTR claims; dedupe |
-| **C. Prior only until new clicks** | Carry prior names until someone clicks in the new show |
+### Username / `Requested by:` (locked: merge)
 
-**Lean recommendation:** **B (merge, dedupe, cap length)** for leftovers. Prior clickers are still warm leads; new clickers matter too. Script B near showtime refreshes current-show claims and re-merges with a saved prior-request snapshot for leftover stems. New boards stay current-show-only.
+For leftover stems in the next CSV: union handles from prior show claims + current show claims; dedupe; cap length if needed. Capture **full** 20260928 claims after post-show (includes late clicks after 1:30pm / after Script B).
 
 ### Script A/B shape (when built)
 
-- Dual pricing source: new run + prior run; VLM only new stems; reuse prior character map for leftovers.  
-- Keep leftover `crop_stem` and board filenames stable; board **numbers** come from next manifest order.  
-- Exclude sold stems from live + interim shop reports.
+- Dual pricing source: new run + Monday run; VLM only new stems; reuse Monday character map for leftovers.  
+- Keep leftover `crop_stem` and board filenames stable; board **numbers** from 20261001 manifest order.  
+- No object detection / nest-suppress / pricing pipeline on leftover boards.
+
+### Attention / revenue note (Steve)
+
+Hypothesis under test: more CTR pins may not raise revenue, only time-on-show. Prefer one leftover generation in CTR, then BIN/shop for further sell-through. Revisit if data says otherwise.
 
 ---
 
 ## Productization (other sellers, fee later)
 
-Script A/B (characters after pricing; username refresh near showtime) and leftover roll-forward could be offered to other resellers with **simple customization**, not a bespoke agent every week.
+Script A/B and leftover roll-forward could be offered to other resellers with **simple customization**.
 
 ### Principles
 
-- One repeatable pipeline; seller fills a small config (show id, board ranges, pricing run ids, brand strings).  
-- No requirement that they use Fins & Pins Firebase project long-term (multi-tenant later).  
-- Clear success definition: CSV row contract + image URL checks (same as WhatnotUploadRunner lessons).
+- Repeatable pipeline; seller fills config (show id, board ranges, pricing run ids, brand strings).  
+- Clear success definition: CSV contract + image URL checks.
 
 ### Leftover roll-forward as a product feature
 
-Sellers need a **simple way to define which boards roll** and how sold is applied, e.g. a show config block:
+Example seller config:
 
 ```json
 {
-  "show_id": "20261002",
+  "show_id": "20261001",
   "new_boards": { "from": 1, "to": 30 },
   "leftover_from": {
     "show_id": "20260928",
@@ -74,33 +109,30 @@ Sellers need a **simple way to define which boards roll** and how sold is applie
     "sales_reports": [
       "live-export.csv",
       "shop-sales-since-show.csv"
-    ]
+    ],
+    "requested_by_policy": "merge_prior_and_current"
   }
 }
 ```
 
 **How we might do that (sketch only):**
 
-1. **Config UI or YAML/JSON** the seller edits once per show (board ranges + paths to sales CSVs).  
-2. **Roll-forward tool** reads prior CTR `boards/` for that range, builds sold-stem set from all listed sales files (Board/Pin or crop stem), writes next show leftover pack + sold mask.  
-3. **CTR builder** appends leftover boards after new boards; marks sold pins unclaimable.  
-4. **Script A (mixed)** merges pricing sources per config; seller does not hand-edit stems.  
-5. Optional: preset “only roll boards tagged new in prior show” so they do not re-roll leftovers forever.
-
-That is the productized version of what Fins & Pins wants internally: declare ranges + drop sales files, get a correct next CTR + CSV without moving pins on foam boards.
-
-### Other customization knobs (later)
-
-- Title prefix / RELY ON PHOTO text  
-- Price rounding rules  
-- Offerable true/false  
-- Character VLM on/off for leftovers  
-- `Requested by:` policy: current / merge / prior  
+1. Config UI or JSON the seller edits per show.  
+2. Roll-forward tool: prior CTR boards in range + sold set from all sales files → leftover pack + sold mask.  
+3. CTR builder appends leftovers after new boards; NaP/sold unclaimable.  
+4. Script A mixed merge per config.  
+5. Preset: only roll boards tagged “new” in prior show (one-generation default).
 
 ---
 
+## Still open (nice to confirm later, not blocking bookmark)
+
+- Exact filename pattern Steve will use for shop sales CSV.  
+- Whether 20261001 nest-suppress trial LaunchAgent stays swapped in for **new** boards only (trial detect path).  
+- BIN clone workflow for boards 43–66 / unsold after one CTR leftover pass (process, not code yet).
+
 ## Do not do yet
 
-- No production CTR/pricing watcher changes.  
-- No Script A/B dual-source implementation until Steve asks for the next-show build.  
-- No multi-tenant billing/auth work until product direction is firm.
+- No leftover pack build until new board count + shop sales CSV + explicit go.  
+- No production pricing watcher changes.  
+- No multi-tenant billing/auth.
