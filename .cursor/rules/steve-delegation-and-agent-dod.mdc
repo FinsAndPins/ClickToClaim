@@ -1,0 +1,76 @@
+---
+description: Make default agent outcomes not need Steve; standing DoD, CTR/pricing defaults, and brief prompt coaching.
+alwaysApply: true
+---
+
+# Steve delegation — default outcome must not need Steve
+
+Steve’s scarce time is for irreversible and taste-critical moves only. Prefer finishing work that does not require him mid-task.
+
+## North star
+
+Stop optimizing for “more agents.” Optimize for: **the default agent outcome does not need Steve.**
+
+Steve has historically done things himself because that felt faster. Treat incomplete prompts as the bug, not his availability. Agents should absorb repetition (policy + DoD + verification) the way manners are coached: short reminders, then do the polite/complete version.
+
+## When Steve asks for work (coaching loop)
+
+**Default intensity (near term): frequent.** Until Steve says to dial it back, every substantive task gets a short coaching check-in. Prefer frequent, measurable, actionable feedback over silence.
+
+1. If the ask is outcome-shaped enough, **execute** and include the verification appendix below.
+2. If the ask is step-shaped or missing a finish line, give a **brief** rewrite (2–5 lines): clearer outcome, DoD, what will not be asked of him. Then proceed unless a single blocking fact is missing (show date, SHIP TO PRODUCTION, which collection).
+3. Do not lecture. One short “remember please” style nudge is enough; then do the work the strong way.
+4. **End-of-task coaching check-in (default on):** after finishing (or when blocked), add a compact block:
+   - **Prompt score:** 1–5 (5 = agent could finish with no Steve mid-task)
+   - **What worked:** one line
+   - **Gap:** what was missing or step-shaped
+   - **Stronger ask next time:** paste-ready rewrite (2–5 lines)
+   - **Steve minutes saved if he’d used the stronger ask:** rough estimate
+   Skip only for trivial yes/no or pure info lookups. When Steve later says coaching is enough, switch to check-ins only on weak prompts or on request (`coaching check-in`).
+
+## Standing defaults (Fins & Pins)
+
+Unless Steve explicitly overrides:
+
+- **One box set for CTR + pricing:** same photos share one RF-DETR box JSON and `crop_stem`s (`imgN_pinNN`). Never run a second RF on the other path. Order A: detect for CTR → price those boxes via `CtrFullresPricing` (full-res crops, not web JPG). Order B (priced haul): pricing boxes → scale into CTR. Prefer-parent nest-suppress is retired (failed 20261001); do not re-enable as default.
+- **Show date:** confirm YYYYMMDD before first publish. Do not publish under a placeholder date and rename later.
+- **Pricing watcher / overnight runs:** success = Pages harness live + notify link matches URL + drop zone cleared only after that. eBay timeouts must **resume from checkpoint**, not die as the final state. Steve message only if resume cannot recover.
+- **Production pricing / PrepareClickToClaim / inbox install:** still require explicit **SHIP TO PRODUCTION** (see production isolation rule).
+- **Show folders `ClickToClaim/YYYYMMDD/`:** need explicit show-edit wording (see show-folder protection).
+- **Path allowlists:** stage only named paths; no `git add -A` for scoped tasks.
+
+## Definition of Done stub (attach mentally to every task)
+
+Before finishing, the agent should be able to paste:
+
+- **Done:** one sentence outcome
+- **Live / path:** URL or local path, or “not shipped”
+- **Verification:** bullets (counts, run id, stem match, claim labels, sample prices)
+- **Steve needed?** no / yes (one reason)
+- **Not done / next:** only if blocked
+
+### CTR + pricing verification appendix (when relevant)
+
+- Overlay / harness run id
+- CTR pin count vs pricing crop count; stem mismatches = 0 (or list)
+- Claim count by label if claims were in scope
+- Sample: 2–3 stems with Match/priced Firebase (or harness) price vs what CTR would show
+
+## What stays human (do not fake autonomy)
+
+- Irreversible production installs and drop-zone retargets
+- Mass Firebase deletes (except when Steve clearly asks to clear specific test claims)
+- Public show date, customer-facing copy tone, Lexi-facing “it’s ready” when ambiguous
+- Taste-critical UI when he did not specify the template/chrome
+
+## Prompt smell tests (rewrite these)
+
+| Weak | Strong |
+|------|--------|
+| Look at the pricing watcher | Overnight pricing ends with Lexi URL + empty inbox; timeouts auto-resume; text me only if unrecoverable |
+| Make a CTR for these boards | Show `YYYYMMDD`; boards from collection X; **reuse pricing boxes**; wire overlay run id Y; verify stems; no re-detect |
+| Is it done? | (Agent already sent verification appendix + live link) |
+
+## Related rules
+
+Keep obeying: `production-pricing-experiment-isolation`, `pricing-watcher-lessons`, `ctr-fullres-pricing`, `no-cross-repo-show-edits`, `auto-ship-commit-push-merge`, `no-em-dash`.
