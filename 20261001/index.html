@@ -2360,10 +2360,35 @@ async function runVirtualBoardExport() {
     z-index: 101;
     line-height: 1.4;
 }
-/* not_a_pin only — unpriced / no_match pins stay claimable without a badge */
-.pin.pin-nap {
+/* New-board NaP: hide bad detections. Leftover NaP: show N/A (Sold wins if both). */
+.pin.pin-nap:not([data-leftover="1"]):not(.pin-sold) {
     visibility: hidden;
     pointer-events: none;
+}
+.pin.pin-nap[data-leftover="1"]:not(.pin-sold) {
+    visibility: visible;
+    background: rgba(0, 0, 0, 0.42) !important;
+    border: 2px solid rgba(255, 180, 60, 0.9) !important;
+    pointer-events: none;
+    cursor: default;
+}
+.pin.pin-nap[data-leftover="1"]:not(.pin-sold)::after {
+    content: "N/A";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-28deg);
+    font-size: clamp(8px, 2.1vw, 13px);
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    color: #fff;
+    text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+    pointer-events: none;
+    z-index: 120;
+    line-height: 1.05;
+    white-space: nowrap;
+    text-align: center;
+    max-width: 96%;
 }
 </style>
 <script id="_ctcPriceOverlay">
