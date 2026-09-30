@@ -98,19 +98,19 @@
       "confidence": 0.9329437017440796,
       "class": "pin",
       "crop_stem": "img0540_pin11"
+    },
+    {
+      "x": 634.375,
+      "y": 1155.625,
+      "width": 143.984375,
+      "height": 131.5625,
+      "confidence": 0.929951012134552,
+      "class": "pin",
+      "crop_stem": "img0540_pin12"
     }
   ],
   "image": {
     "width": 960,
     "height": 1280
-  },
-  "nest_suppress_v1": {
-    "kept": 11,
-    "dropped": 1,
-    "dropped_indices": [
-      7
-    ],
-    "contain_frac": 0.85,
-    "rule": "prefer_parent_v1"
   }
 }

@@ -283,12 +283,5 @@
   "image": {
     "width": 960,
     "height": 1280
-  },
-  "nest_suppress_v1": {
-    "kept": 31,
-    "dropped": 0,
-    "dropped_indices": [],
-    "contain_frac": 0.85,
-    "rule": "prefer_parent_v1"
   }
 }

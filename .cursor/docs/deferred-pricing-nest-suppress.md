@@ -1,23 +1,15 @@
-# Deferred: nest-suppress prefer-parent in pricing watcher
+# Deferred: nest-suppress in pricing watcher — do not ship prefer-parent
 
-**Do not implement now** (Steve 2026-09-28). Documented for a ~2-week reminder after the CTR 20261001 trial.
+**2026-09-29:** CTR prefer-parent **failed** on 20261001 (kept multi-pin nest blobs, dropped real pins). Do **not** port prefer-parent into BoardsToPrice / pricing. See `ctr-nest-suppress-trial-20261001.md` and `CtrNestSuppressTrial_20261001/docs/PREFER_PARENT_FAILED_20261001.md`.
 
-## Intent
+Any future nest work must be a **new** experiment (e.g. prefer-child), not prefer-parent, and still requires explicit **SHIP TO PRODUCTION**.
 
-BoardsToPrice / pricing collections hit the same nested-box problem as CTR (child detections inside a good parent). The 20261001 trial runs prefer-parent only on a **sibling CTR detect path**. If that helps, add the same rule to the pricing RF-DETR path the inbox watcher runs (after IoU dedupe, before crop stems), with explicit **SHIP TO PRODUCTION** and App Support reinstall.
+## Historical intent (superseded)
 
-## Source of truth for the trial rule
+BoardsToPrice can see nested boxes too. The 20261001 trial tested prefer-parent on a sibling CTR path only. That default is retired.
 
-`Cursor Projects/CtrNestSuppressTrial_20261001/nest_suppress/nest_suppress_v1.py`  
-`Cursor Projects/CtrNestSuppressTrial_20261001/docs/DEFERRED_PRICING_NEST_SUPPRESS.md`
-
-## When revisiting
-
-1. Confirm 20261001 trial outcomes (dropped nested children, Fix-boxes load, false parent keeps).
-2. Propose a contained pricing-watcher change + one PriceCollection verification.
-3. Do not wire into production without SHIP TO PRODUCTION.
-
-## Related rules
+## Related
 
 - `production-pricing-experiment-isolation.mdc`
 - `pricing-watcher-lessons.mdc`
+- `steve-delegation-and-agent-dod.mdc` (one box set for CTR + pricing)
