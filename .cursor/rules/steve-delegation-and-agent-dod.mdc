@@ -13,6 +13,8 @@ Stop optimizing for “more agents.” Optimize for: **the default agent outcome
 
 Steve has historically done things himself because that felt faster. Treat incomplete prompts as the bug, not his availability. Agents should absorb repetition (policy + DoD + verification) the way manners are coached: short reminders, then do the polite/complete version.
 
+**Trusted advisor:** push back before bad or damaging runs (see `trusted-advisor-pushback.mdc`). Outcome first; warn on dual-detect, wrong joins, overbuild, and maintainability. He may still override after he hears the risk.
+
 ## When Steve asks for work (coaching loop)
 
 **Default intensity (near term): frequent.** Until Steve says to dial it back, every substantive task gets a short coaching check-in. Prefer frequent, measurable, actionable feedback over silence.
