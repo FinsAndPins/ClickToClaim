@@ -1,0 +1,26 @@
+---
+description: When forking a working end-to-end workflow, spell out parity vs intentional diffs before coding
+alwaysApply: true
+---
+
+# Fork a working “complete thing”
+
+Steve’s layman model: systems like BoardsToPrice are one black box (input → usable output / text link). He does not distinguish staging vs harness vs notify unless we say so.
+
+## Before coding a sibling / fork
+
+In plain language, state:
+
+1. **Must stay identical end-to-end** (customer outcome parity): e.g. photo rename before detect, harness pages, one success text, preview thumb, fail/retry policy, retention prune.
+2. **Intentionally different** (only the new feature): e.g. named folders → slug in the URL.
+3. **One real-world acceptance test** both paths must pass: same ugly Lexi inputs (iPhone UUID JPG names, HEIC if relevant) through the original and the fork → publish + single success text.
+
+Do not treat “duplicate the middle engine” as “duplicate the complete thing.” Staging and notify are part of the product.
+
+## Prefer shared helpers over drifting copies
+
+When two watchers should behave the same before/after the shared engine, share one helper (e.g. stage boards like BoardsToPrice) rather than rewriting staging in each script.
+
+## Related
+
+CollectionsToPrice was meant as BoardsToPrice + folder names. Missing Boards staging rename caused the UUID harness failure; dual notify caused double texts. See overnight lessons in chat / NamedCollectionsPricing README.
