@@ -4,7 +4,21 @@ export type ModerationResult =
   | { ok: true; provider: string }
   | { ok: false; provider: string; codes: string[] };
 
-const STRICT_GOOGLE_FAIL = new Set(["LIKELY", "VERY_LIKELY", "POSSIBLE"]);
+/**
+ * Google SafeSearch thresholds for Disney pin boards.
+ * POSSIBLE (and often racy LIKELY) false-positives on enamel, packaging glare,
+ * and cartoon characters. Keep adult/violence strict at LIKELY+; racy only VERY_LIKELY.
+ * Spoof never rejects (not relevant for intake).
+ */
+function googleCategoryFails(category: string, value: string): boolean {
+  const v = value.toUpperCase();
+  if (category === "spoof") return false;
+  if (category === "racy") return v === "VERY_LIKELY";
+  if (category === "adult" || category === "violence" || category === "medical") {
+    return v === "LIKELY" || v === "VERY_LIKELY";
+  }
+  return v === "LIKELY" || v === "VERY_LIKELY";
+}
 
 export function hasModerationProvider(env: Bindings): boolean {
   return Boolean(
@@ -116,7 +130,7 @@ async function moderateGoogle(env: Bindings, bytes: ArrayBuffer): Promise<Modera
   const ann = data.responses?.[0]?.safeSearchAnnotation ?? {};
   const codes: string[] = [];
   for (const [k, v] of Object.entries(ann)) {
-    if (STRICT_GOOGLE_FAIL.has(v)) codes.push(`safesearch.${k}.${v}`);
+    if (googleCategoryFails(k, String(v))) codes.push(`safesearch.${k}.${v}`);
   }
   if (codes.length) return { ok: false, provider: "google_vision", codes };
   return { ok: true, provider: "google_vision" };

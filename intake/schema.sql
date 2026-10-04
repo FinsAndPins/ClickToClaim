@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS collections (
   decline_detail TEXT,
   tracking TEXT,
   photo_count INTEGER NOT NULL DEFAULT 0,
+  mac_handoff_status TEXT,
+  mac_handoff_at TEXT,
+  mac_handoff_folder TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
