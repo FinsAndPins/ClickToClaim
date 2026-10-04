@@ -17,7 +17,7 @@ export function layout(opts: {
 }): string {
   const nav = opts.staff
     ? `<nav class="topnav"><a href="/admin">Dashboard</a><a href="/admin/alerts">Moderation alerts</a><a href="/admin/waiting">Waiting / received</a><a href="/">Seller site</a></nav>`
-    : `<nav class="topnav"><a href="/">Sell my collection</a><a href="/privacy">Privacy &amp; terms</a></nav>`;
+    : `<nav class="topnav"><a href="/">Sell my collection</a><a href="/privacy">Privacy and terms</a></nav>`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

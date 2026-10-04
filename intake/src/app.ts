@@ -196,7 +196,7 @@ app.get("/", (c) => {
         <label>Instagram <span class="hint">(optional)</span><input name="instagram" placeholder="@you" /></label>
         <label class="agree">
           <input required type="checkbox" name="agree" value="yes" />
-          <span>I will ship from the United States (USPS, UPS, or similar). I agree to the <a href="/privacy">privacy notice and terms</a>. Photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin crops for our research.</span>
+          <span>I will ship from the United States (USPS, UPS, or similar). I agree to the <a href="/privacy">privacy and terms</a>. Photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin crops for our research.</span>
         </label>
         <button type="submit">Continue to photos</button>
       </form>
@@ -207,22 +207,22 @@ app.get("/", (c) => {
 app.get("/privacy", (c) => {
   return html(
     c.env,
-    "Privacy & terms",
-    `<h1>Privacy &amp; terms</h1>
+    "Privacy and terms",
+    `<h1>Privacy and terms</h1>
     <div class="card legal">
-      <p>Fins &amp; Pins buys authentic Disney pin collections. This site is an offer to purchase, not a free pricing tool. There is no minimum number of pins or photos.</p>
-      <h2>What you submit</h2>
-      <p>Name, email, optional Instagram, and photos of the pins you want to sell. If you accept an offer, we also ask for a PayPal Goods &amp; Services email so we can pay you.</p>
-      <h2>Content moderation</h2>
-      <p>Every photo is checked by automated safety filters before we keep it. If a photo fails, it is deleted immediately and never stored. We may notify ourselves with your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
+      <p>We're Fins and Pins. We buy authentic Disney pin collections that ship from the United States. Upload photos of the boards you want to sell. We'll email you our best offer for everything in those photos, usually within 24 hours. There is no minimum number of pins or photos.</p>
+      <h2>What you send us</h2>
+      <p>Your name, email, optional Instagram, and board photos. If you accept an offer, we ask for a PayPal Goods and Services email so we can pay you.</p>
+      <h2>Photo checks</h2>
+      <p>Every photo is checked by automated safety filters before we keep it. If a photo doesn't pass, it is deleted right away and never stored. We may email ourselves your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
       <h2>What we keep</h2>
-      <p>Photos that pass moderation may be kept as board originals and as cropped pin images. Crops are kept for future research and training. Board originals are kept for now; we may later delete originals after a set period, after we receive a collection, or after an offer is declined.</p>
+      <p>Photos that pass may be kept as board photos and as cropped pin images. We keep crops for our research. We keep board photos for now. We may later delete board photos after a set time, after we receive a collection, or after an offer is declined.</p>
       <h2>Offers</h2>
-      <p>We aim to send one total offer within 24 hours of a complete submission. That offer is for everything in the photos you uploaded. You can accept or decline in the link we send. Declining is fine. No pressure. Please don’t reply to offer emails; we don’t negotiate by email. If you share why you declined, we use that to learn, not to haggle.</p>
-      <h2>Shipping &amp; payment</h2>
-      <p>If you accept, we pay PayPal Goods &amp; Services, then you ship to us in Florida using your own US postage. We show our ship-to address after you accept. For now we only buy collections shipped from the United States.</p>
-      <h2>How we contact you</h2>
-      <p>We only email about your offer, using the address you enter. Use the link in that email to accept or decline. We don’t publish a contact address on this site and we don’t monitor replies.</p>
+      <p>We send one total offer for everything in the photos you uploaded. You can accept or decline with the link in that email. Declining is fine. No pressure. If you tell us why you declined, we use that to learn.</p>
+      <h2>Shipping and payment</h2>
+      <p>You agree to ship from the United States (USPS, UPS, or similar). If you accept, we pay PayPal Goods and Services first, then you ship to us in Florida using your own postage. We show our ship-to address after you accept.</p>
+      <h2>How we email you</h2>
+      <p>We only email about your offer, using the address you enter. Use the link in that email to accept or decline.</p>
     </div>`
   );
 });
