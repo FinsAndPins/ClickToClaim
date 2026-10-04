@@ -20,7 +20,7 @@ That welcome is part of the in-person brand, not just a script.
 
 ## What this means for the intake site
 
-- Warm welcome, not a wall of terms
+- Warm welcome, including the PinDad IYKYK line under the banner (inside joke; easy to remove if Lexi does not like it)
 - Easy to start (wide net). Invite-only is still the abuse gate until public launch
 - PayPal at accept, not on page 1
 - One firm offer, no seller-facing comps

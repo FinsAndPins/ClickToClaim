@@ -38,7 +38,14 @@ h1 { font-size: 1.45rem; margin: 0 0 10px; }
   font-size: clamp(1.55rem, 4.8vw, 2.2rem);
   font-weight: 800;
   line-height: 1.2;
-  margin: 6px 0 10px;
+  margin: 6px 0 8px;
+}
+.welcome-iykyk {
+  color: var(--fp-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-style: italic;
+  margin: 0 0 12px;
 }
 .welcome-next {
   font-size: 1.18rem;
