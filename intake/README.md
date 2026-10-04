@@ -24,6 +24,7 @@ Smoke: `./scripts/smoke_local.sh` (with `npm run dev` running).
 
 - Seller: name, email, PayPal G&S, agree to terms, up to 100 photos (15 MB each)
 - Photos sit in a temp bucket, get moderated, then either **deleted** (reject + staff alert, no image) or stored as clean originals
+- After seller confirmation + Vision pass, photos auto-queue to the Mac CollectionsToPrice helper (admin Hold / re-queue still available)
 - Staff Kanban, cover photo, private note, overlay URL, harness total + 30/40/50/60% helpers
 - One firm offer email from `offer@finsandpins.shop` (when Resend is configured)
 - Reusable offer link, **7 days**, reissue without repricing

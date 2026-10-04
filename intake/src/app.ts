@@ -45,6 +45,34 @@ async function logEvent(
     .run();
 }
 
+/** Queue for the Mac intake helper (does not touch NamedCollections / BoardsToPrice). */
+async function queueMacHandoff(
+  db: D1Database,
+  row: { id: string; seller_name: string; status: string },
+  actor: string,
+  extra?: { auto?: boolean }
+): Promise<string> {
+  const folder = folderNameFromSeller(row.seller_name, row.id);
+  const updated = nowIso();
+  await db
+    .prepare(
+      `UPDATE collections SET mac_handoff_status = 'queued', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ? WHERE id = ?`
+    )
+    .bind(folder, updated, updated, row.id)
+    .run();
+  if (row.status === "submitted") {
+    await db
+      .prepare(`UPDATE collections SET status = 'pricing', updated_at = ? WHERE id = ?`)
+      .bind(updated, row.id)
+      .run();
+  }
+  await logEvent(db, row.id, actor, "mac_handoff_queued", {
+    folder,
+    auto: extra?.auto === true,
+  });
+  return folder;
+}
+
 function adminUrl(env: Bindings, collectionId: string) {
   return `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${collectionId}`;
 }
@@ -505,6 +533,12 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
   await c.env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(sessionId).run();
   await c.env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(sessionId).run();
   await logEvent(c.env.DB, collectionId, session.seller_email, "submitted", { photo_count: photos.length });
+  await queueMacHandoff(
+    c.env.DB,
+    { id: collectionId, seller_name: session.seller_name, status: "submitted" },
+    session.seller_email,
+    { auto: true }
+  );
   return c.json({ ok: true, collectionId });
 });
 
@@ -845,9 +879,12 @@ app.get("/admin/collections/:id", async (c) => {
       <h2>Status</h2>
       <div class="row">${next || "<span class='hint'>No staff moves from here (accept/decline are seller actions).</span>"}</div>
       <form method="post" action="/admin/collections/${row.id}/send-to-ctp" style="margin-top:14px">
-        <button type="submit">Send to CollectionsToPrice</button>
+        <button type="submit">${row.mac_handoff_status === "queued" || row.mac_handoff_status === "delivered" ? "Re-queue CollectionsToPrice" : "Send to CollectionsToPrice"}</button>
       </form>
-      <p class="hint">Queues this collection for the Mac helper. Folder name: seller name from the form (plus a short id). Does not change the CollectionsToPrice watcher.
+      <form method="post" action="/admin/collections/${row.id}/hold-ctp" style="margin-top:8px">
+        <button class="secondary" type="submit">Hold / don't price</button>
+      </form>
+      <p class="hint">New uploads auto-queue after the seller confirmation screen (Vision pass). Use Hold to skip pricing. Re-queue if the Mac helper was down. Folder: seller name from the form plus a short id. Does not change the CollectionsToPrice watcher.
       ${
         row.mac_handoff_status
           ? ` Current: <strong>${escapeHtml(row.mac_handoff_status)}</strong>${
@@ -1003,19 +1040,24 @@ app.post("/admin/collections/:id/send-to-ctp", async (c) => {
     .bind(c.req.param("id"))
     .first<CollectionRow>();
   if (!row) return c.redirect("/admin");
-  const folder = folderNameFromSeller(row.seller_name, row.id);
+  await queueMacHandoff(c.env.DB, row, staff.email);
+  return c.redirect(`/admin/collections/${row.id}`);
+});
+
+app.post("/admin/collections/:id/hold-ctp", async (c) => {
+  const staff = await requireStaff(c.env, c.req.raw);
+  if (staff instanceof Response) return staff;
+  const row = await c.env.DB.prepare(`SELECT * FROM collections WHERE id = ?`)
+    .bind(c.req.param("id"))
+    .first<CollectionRow>();
+  if (!row) return c.redirect("/admin");
   const updated = nowIso();
   await c.env.DB.prepare(
-    `UPDATE collections SET mac_handoff_status = 'queued', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ? WHERE id = ?`
+    `UPDATE collections SET mac_handoff_status = 'held', mac_handoff_at = ?, updated_at = ? WHERE id = ?`
   )
-    .bind(folder, updated, updated, row.id)
+    .bind(updated, updated, row.id)
     .run();
-  if (row.status === "submitted") {
-    await c.env.DB.prepare(`UPDATE collections SET status = 'pricing', updated_at = ? WHERE id = ?`)
-      .bind(updated, row.id)
-      .run();
-  }
-  await logEvent(c.env.DB, row.id, staff.email, "mac_handoff_queued", { folder });
+  await logEvent(c.env.DB, row.id, staff.email, "mac_handoff_held");
   return c.redirect(`/admin/collections/${row.id}`);
 });
 
