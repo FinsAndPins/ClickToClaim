@@ -7,7 +7,7 @@ export type OutboundEmail = {
 };
 
 const NO_REPLY_LINE =
-  "Please don’t reply to this email — this inbox isn’t monitored. Use the link in the message if we sent one.";
+  "Please don’t reply to this email. This inbox isn’t monitored. Use the link in the message if we sent one.";
 
 export async function sendEmail(
   env: Bindings,
@@ -15,7 +15,7 @@ export async function sendEmail(
 ): Promise<{ sent: boolean; error?: string }> {
   const key = env.RESEND_API_KEY;
   if (!key) {
-    return { sent: false, error: "RESEND_API_KEY missing — logged only" };
+    return { sent: false, error: "RESEND_API_KEY missing (logged only)" };
   }
   const replyTo = (env.NOREPLY_EMAIL || "noreply@finsandpins.shop").trim();
   const res = await fetch("https://api.resend.com/emails", {
@@ -66,16 +66,16 @@ export function offerEmail(opts: {
       "",
       `Our offer for everything in the photos you uploaded is ${opts.offerLabel}.`,
       "",
-      "This is our best offer — it takes real work to price a collection, and we send the number we'd pay.",
+      "This is our best offer. It takes real work to price a collection, and we send the number we'd pay.",
       "",
       `View the offer and accept or decline here (link works for ${opts.days} days):`,
       opts.link,
       "",
-      "No pressure either way. If you decline, you can optionally tell us why — we won't use that to haggle.",
+      "No pressure either way. If you decline, you can optionally tell us why. We won't use that to haggle.",
       "",
       NO_REPLY_LINE,
       "",
-      "— Fins & Pins",
+      "- Fins & Pins",
     ].join("\n"),
   };
 }
@@ -90,7 +90,7 @@ export function readyToPayEmail(opts: {
 }): OutboundEmail {
   return {
     to: [],
-    subject: `Ready to pay — ${opts.sellerName} accepted ${opts.offerLabel}`,
+    subject: `Ready to pay: ${opts.sellerName} accepted ${opts.offerLabel}`,
     text: [
       `${opts.sellerName} accepted the offer.`,
       "",
@@ -138,11 +138,11 @@ export function sellerPhotosRejectedEmail(sellerName: string): OutboundEmail {
       "One or more photos didn't pass our automated safety checks, so we could not accept this submission.",
       "Those files were not saved.",
       "",
-      "Please try again with photos of pin boards only — a clear picture of the pins, without people or other content. Use the same invite link you were given; don’t reply to this email.",
+      "Please try again with photos of pin boards only: a clear picture of the pins, without people or other content. Use the same invite link you were given; don’t reply to this email.",
       "",
       NO_REPLY_LINE,
       "",
-      "— Fins & Pins",
+      "- Fins & Pins",
     ].join("\n"),
   };
 }

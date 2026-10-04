@@ -28,3 +28,19 @@ export async function requireStaff(
     headers: { "content-type": "text/plain; charset=utf-8" },
   });
 }
+
+/** Mac handoff helper: Bearer MAC_HANDOFF_TOKEN (preferred) or staff Access email. */
+export async function requireMacOrStaff(
+  env: Bindings,
+  request: Request
+): Promise<{ email: string; via: "mac_token" | "staff" } | Response> {
+  const auth = request.headers.get("Authorization") || "";
+  const m = /^Bearer\s+(.+)$/i.exec(auth);
+  const token = (env.MAC_HANDOFF_TOKEN || "").trim();
+  if (token && m && m[1].trim() === token) {
+    return { email: "mac-handoff@local", via: "mac_token" };
+  }
+  const staff = await requireStaff(env, request);
+  if (staff instanceof Response) return staff;
+  return { email: staff.email, via: "staff" };
+}

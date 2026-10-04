@@ -50,3 +50,4 @@ Docs:
 | `docs/HOME_DAY.md` | **Ordered Mac deploy + Lexi test** |
 | `docs/MODERATION.md` | Why Google Vision, how to add the key |
 | `docs/CLOUD_PRICING_MIGRATION.md` | Later: private RF-DETR/eBay (not v1) |
+| `docs/BRAND_VIBE.md` | In-person table vibe to match on the site (deferred; do not ship from this file alone) |

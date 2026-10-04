@@ -20,6 +20,8 @@ export type Bindings = {
   SIGHTENGINE_SECRET?: string;
   GOOGLE_VISION_API_KEY?: string;
   RESEND_API_KEY?: string;
+  /** Bearer token for Mac one-click handoff helper (never commit). */
+  MAC_HANDOFF_TOKEN?: string;
 };
 
 export type Status =
@@ -56,6 +58,9 @@ export type CollectionRow = {
   decline_detail: string | null;
   tracking: string | null;
   photo_count: number;
+  mac_handoff_status: string | null;
+  mac_handoff_at: string | null;
+  mac_handoff_folder: string | null;
   created_at: string;
   updated_at: string;
 };

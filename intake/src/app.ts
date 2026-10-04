@@ -13,9 +13,11 @@ import {
 } from "./email";
 import { centsToDollars, offerHelpers, parseDollarsToCents } from "./money";
 import { addDaysIso, canStaffMove, KANBAN_COLUMNS, offerDueLabel, offerExpired, staffNextStatuses } from "./workflow";
-import { requireStaff } from "./auth";
+import { requireStaff, requireMacOrStaff } from "./auth";
 import { getCookie, setCookie } from "hono/cookie";
 import { INVITE_COOKIE, inviteGateEnabled, presentedInviteMatches } from "./invite";
+import { buildZip, safeZipBaseName } from "./zip";
+import { folderNameFromSeller, reencodeToJpeg } from "./reencode";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
@@ -91,7 +93,12 @@ const OPEN_PATHS = new Set(["/health", "/styles.css", "/invite"]);
 
 app.use("*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
-  if (path.startsWith("/admin") || path.startsWith("/o/") || OPEN_PATHS.has(path)) {
+  if (
+    path.startsWith("/admin") ||
+    path.startsWith("/o/") ||
+    path.startsWith("/api/mac/") ||
+    OPEN_PATHS.has(path)
+  ) {
     return next();
   }
   const q = c.req.query("invite");
@@ -150,12 +157,12 @@ app.get("/", (c) => {
     "Sell my collection",
     `${flash}
     <h1>Sell your pin collection</h1>
-    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email <strong>one best offer</strong> for everything in those photos, usually within <strong>24 hours</strong>. For now we only buy collections that ship from the United States. It takes real work to price a collection — that’s why we ask for PayPal Goods &amp; Services details up front, and why this isn’t a free appraisal.</p>
+    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email <strong>one best offer</strong> for everything in those photos, usually within <strong>24 hours</strong>. For now we only buy collections that ship from the United States. It takes real work to price a collection. That’s why we ask for PayPal Goods &amp; Services details up front, and why this isn’t a free appraisal.</p>
     <div class="card">
       <form id="start" method="post" action="/api/submissions">
         <label>Name<input required name="seller_name" autocomplete="name" /></label>
         <label>Email<input required type="email" name="seller_email" autocomplete="email" /></label>
-        <p class="hint">We’ll send the offer to the address you type here. Please use the link in that message to accept or decline — we don’t negotiate by email or in DMs.</p>
+        <p class="hint">We’ll send the offer to the address you type here. Please use the link in that message to accept or decline. We don’t negotiate by email or in DMs.</p>
         <label>PayPal Goods &amp; Services email<input required type="email" name="paypal_gs_email" /></label>
         <p class="hint">Required so we can pay you if you accept. We pay via PayPal G&amp;S after you accept, before you ship. For now we only buy collections that ship from the United States.</p>
         <label>Instagram <span class="hint">(optional)</span><input name="instagram" placeholder="@you" /></label>
@@ -183,11 +190,11 @@ app.get("/privacy", (c) => {
       <h2>What you submit</h2>
       <p>Name, email, PayPal Goods &amp; Services email, optional Instagram, and photos of the pins you want to sell.</p>
       <h2>Content moderation</h2>
-      <p>Every photo is checked by automated safety filters before we keep it. If a photo fails, it is deleted immediately and never stored. We may notify ourselves with your name, email, and a reason code — not the image — so we know a submission was blocked.</p>
+      <p>Every photo is checked by automated safety filters before we keep it. If a photo fails, it is deleted immediately and never stored. We may notify ourselves with your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
       <h2>What we keep</h2>
       <p>Photos that pass moderation may be kept as board originals and as cropped pin images. Crops are kept for future research and training. Board originals are kept for now; we may later delete originals after a set period, after we receive a collection, or after an offer is declined.</p>
       <h2>Offers</h2>
-      <p>We aim to send one total offer within 24 hours of a complete submission. That offer is for everything in the photos you uploaded. You can accept or decline in the link we send. Declining is fine — no pressure. Please don’t reply to offer emails; we don’t negotiate by email. If you share why you declined, we use that to learn, not to haggle.</p>
+      <p>We aim to send one total offer within 24 hours of a complete submission. That offer is for everything in the photos you uploaded. You can accept or decline in the link we send. Declining is fine. No pressure. Please don’t reply to offer emails; we don’t negotiate by email. If you share why you declined, we use that to learn, not to haggle.</p>
       <h2>Shipping &amp; payment</h2>
       <p>If you accept, we pay PayPal Goods &amp; Services, then you ship to us in Florida using your own US postage. We show our ship-to address after you accept. For now we only buy collections shipped from the United States.</p>
       <h2>How we contact you</h2>
@@ -452,11 +459,17 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
     const obj = await c.env.BUCKET.get(p.r2_key);
     if (!obj) continue;
     const buf = await obj.arrayBuffer();
-    const digest = await crypto.subtle.digest("SHA-256", buf);
+    const re = await reencodeToJpeg(buf, p.content_type || "image/jpeg", p.original_filename);
+    // Prefer a fresh JPEG we control. If decode fails (e.g. HEIC on Workers), keep bytes
+    // and let the Mac handoff helper convert with sips before CollectionsToPrice.
+    const storeBytes = re.ok ? re.bytes : new Uint8Array(buf);
+    const storeType = re.ok ? re.contentType : p.content_type || "image/jpeg";
+    const storeName = re.ok ? re.filename : p.original_filename;
+    const digest = await crypto.subtle.digest("SHA-256", storeBytes);
     const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
     const destKey = `o_${p.id}`;
-    await c.env.BUCKET.put(destKey, buf, {
-      httpMetadata: { contentType: p.content_type || "image/jpeg" },
+    await c.env.BUCKET.put(destKey, storeBytes, {
+      httpMetadata: { contentType: storeType },
       customMetadata: {
         collectionId,
         sellerEmail: session.seller_email,
@@ -464,6 +477,8 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
         kind: "original",
         timestamp: created,
         sha256: sha,
+        reencoded: re.ok ? "jpeg" : "passthrough",
+        reencode_reason: re.ok ? "" : re.reason,
       },
     });
     await c.env.BUCKET.delete(p.r2_key);
@@ -475,9 +490,9 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
         p.id,
         collectionId,
         destKey,
-        p.original_filename,
-        p.content_type,
-        p.size_bytes,
+        storeName,
+        storeType,
+        storeBytes.byteLength,
         sha,
         created
       )
@@ -499,7 +514,7 @@ app.get("/thanks", (c) => {
     "Thanks",
     `<h1>We have your photos</h1>
     <div class="card">
-      <p>Thanks — we’ll email our best offer to the address you gave, usually within 24 hours. No pressure if it’s not a fit.</p>
+      <p>Thanks. We’ll email our best offer to the address you gave, usually within 24 hours. No pressure if it’s not a fit.</p>
       <p class="hint">Use the link in that email to accept or decline. Please don’t reply to the message; we don’t negotiate by email.</p>
     </div>`
   );
@@ -518,7 +533,7 @@ app.get("/o/:token", async (c) => {
     return html(
       c.env,
       "Declined",
-      `<h1>Offer declined</h1><div class="card"><p>Thanks for letting us know. No pressure — we kept a record in case you want to talk later, but this link can’t accept anymore.</p></div>`
+      `<h1>Offer declined</h1><div class="card"><p>Thanks for letting us know. No pressure. We kept a record in case you want to talk later, but this link can’t accept anymore.</p></div>`
     );
   }
   if (row.status === "accepted" || row.status === "paid" || row.status === "waiting_for_package" || row.status === "received" || row.status === "done") {
@@ -543,7 +558,7 @@ app.get("/o/:token", async (c) => {
       c.env,
       "Expired",
       `<h1>This offer link has expired</h1>
-      <div class="card"><p>No pressure — if you’d still like to sell, email us and we can reissue the same offer without starting pricing over.</p></div>`
+      <div class="card"><p>No pressure. If you’d still like to sell, email us and we can reissue the same offer without starting pricing over.</p></div>`
     );
   }
   return html(
@@ -600,7 +615,7 @@ app.get("/o/:token/decline", async (c) => {
     "Decline",
     `<h1>Decline this offer</h1>
     <div class="card">
-      <p>Totally fine. If you want, tell us why — optional, and we won’t use it to negotiate.</p>
+      <p>Totally fine. If you want, tell us why (optional), and we won’t use it to negotiate.</p>
       <form method="post" action="/o/${encodeURIComponent(row.offer_token!)}/decline">
         <label>Reason
           <select name="reason">
@@ -829,6 +844,17 @@ app.get("/admin/collections/:id", async (c) => {
     <div class="card">
       <h2>Status</h2>
       <div class="row">${next || "<span class='hint'>No staff moves from here (accept/decline are seller actions).</span>"}</div>
+      <form method="post" action="/admin/collections/${row.id}/send-to-ctp" style="margin-top:14px">
+        <button type="submit">Send to CollectionsToPrice</button>
+      </form>
+      <p class="hint">Queues this collection for the Mac helper. Folder name: seller name from the form (plus a short id). Does not change the CollectionsToPrice watcher.
+      ${
+        row.mac_handoff_status
+          ? ` Current: <strong>${escapeHtml(row.mac_handoff_status)}</strong>${
+              row.mac_handoff_folder ? ` → ${escapeHtml(row.mac_handoff_folder)}` : ""
+            }${row.mac_handoff_at ? ` at ${escapeHtml(row.mac_handoff_at)}` : ""}.`
+          : ""
+      }</p>
       <form method="post" action="/admin/collections/${row.id}/tracking" style="margin-top:12px">
         <label>Tracking (optional)<input name="tracking" value="${escapeHtml(row.tracking || "")}" /></label>
         <button class="secondary" type="submit">Save tracking</button>
@@ -836,14 +862,18 @@ app.get("/admin/collections/:id", async (c) => {
     </div>
     <div class="card">
       <h2>Photos (${row.photo_count})</h2>
-      <p><a href="/admin/collections/${row.id}/manifest.json">Download manifest</a> — on the Mac, run the download script in intake/scripts.</p>
+      <p>
+        <a class="btn" href="/admin/collections/${row.id}/photos.zip">Download all photos (ZIP)</a>
+        <span class="hint"> Unzip into CollectionsToPrice/&lt;SellerName&gt;/ for Mac pricing.</span>
+      </p>
+      <p class="hint"><a href="/admin/collections/${row.id}/manifest.json">Download manifest</a> (JSON)</p>
       <div class="photo-grid">${photoGrid}</div>
     </div>
     ${
       row.decline_reason || row.decline_wanted_cents || row.decline_detail
         ? `<div class="card"><h2>Decline feedback</h2>
-           <p>Reason: ${escapeHtml(row.decline_reason || "—")}<br>
-           Wanted: ${row.decline_wanted_cents != null ? escapeHtml(centsToDollars(row.decline_wanted_cents)) : "—"}<br>
+           <p>Reason: ${escapeHtml(row.decline_reason || "-")}<br>
+           Wanted: ${row.decline_wanted_cents != null ? escapeHtml(centsToDollars(row.decline_wanted_cents)) : "-"}<br>
            ${escapeHtml(row.decline_detail || "")}</p></div>`
         : ""
     }
@@ -966,6 +996,109 @@ app.post("/admin/collections/:id/tracking", async (c) => {
   return c.redirect(`/admin/collections/${c.req.param("id")}`);
 });
 
+app.post("/admin/collections/:id/send-to-ctp", async (c) => {
+  const staff = await requireStaff(c.env, c.req.raw);
+  if (staff instanceof Response) return staff;
+  const row = await c.env.DB.prepare(`SELECT * FROM collections WHERE id = ?`)
+    .bind(c.req.param("id"))
+    .first<CollectionRow>();
+  if (!row) return c.redirect("/admin");
+  const folder = folderNameFromSeller(row.seller_name, row.id);
+  const updated = nowIso();
+  await c.env.DB.prepare(
+    `UPDATE collections SET mac_handoff_status = 'queued', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ? WHERE id = ?`
+  )
+    .bind(folder, updated, updated, row.id)
+    .run();
+  if (row.status === "submitted") {
+    await c.env.DB.prepare(`UPDATE collections SET status = 'pricing', updated_at = ? WHERE id = ?`)
+      .bind(updated, row.id)
+      .run();
+  }
+  await logEvent(c.env.DB, row.id, staff.email, "mac_handoff_queued", { folder });
+  return c.redirect(`/admin/collections/${row.id}`);
+});
+
+/** Mac helper: list collections queued for CollectionsToPrice. */
+app.get("/api/mac/handoff/pending", async (c) => {
+  const auth = await requireMacOrStaff(c.env, c.req.raw);
+  if (auth instanceof Response) return auth;
+  const rows = await c.env.DB.prepare(
+    `SELECT id, seller_name, seller_email, photo_count, mac_handoff_folder, mac_handoff_status, mac_handoff_at, status
+     FROM collections WHERE mac_handoff_status = 'queued' ORDER BY mac_handoff_at ASC LIMIT 20`
+  ).all();
+  return c.json({ ok: true, collections: rows.results || [] });
+});
+
+app.get("/api/mac/handoff/:id/manifest", async (c) => {
+  const auth = await requireMacOrStaff(c.env, c.req.raw);
+  if (auth instanceof Response) return auth;
+  const row = await c.env.DB.prepare(`SELECT * FROM collections WHERE id = ?`)
+    .bind(c.req.param("id"))
+    .first<CollectionRow>();
+  if (!row) return c.json({ error: "not found" }, 404);
+  const photos = await c.env.DB.prepare(
+    `SELECT id, original_filename, content_type, size_bytes FROM photos WHERE collection_id = ? ORDER BY created_at`
+  )
+    .bind(row.id)
+    .all();
+  return c.json({
+    collectionId: row.id,
+    seller_name: row.seller_name,
+    folder: row.mac_handoff_folder || folderNameFromSeller(row.seller_name, row.id),
+    photos: (photos.results || []).map((p: { id: string; original_filename: string | null; content_type: string | null }, i: number) => ({
+      id: p.id,
+      filename: p.original_filename || `photo_${String(i + 1).padStart(3, "0")}.jpg`,
+      content_type: p.content_type,
+      url: `/api/mac/handoff/${row.id}/photos/${p.id}`,
+    })),
+  });
+});
+
+app.get("/api/mac/handoff/:id/photos/:photoId", async (c) => {
+  const auth = await requireMacOrStaff(c.env, c.req.raw);
+  if (auth instanceof Response) return auth;
+  const photo = await c.env.DB.prepare(
+    `SELECT * FROM photos WHERE id = ? AND collection_id = ?`
+  )
+    .bind(c.req.param("photoId"), c.req.param("id"))
+    .first<PhotoRow>();
+  if (!photo) return c.notFound();
+  const obj = await c.env.BUCKET.get(photo.r2_key);
+  if (!obj) return c.notFound();
+  return new Response(obj.body, {
+    headers: {
+      "content-type": photo.content_type || "image/jpeg",
+      "cache-control": "private, no-store",
+    },
+  });
+});
+
+app.post("/api/mac/handoff/:id/complete", async (c) => {
+  const auth = await requireMacOrStaff(c.env, c.req.raw);
+  if (auth instanceof Response) return auth;
+  const body = (await c.req.json().catch(() => ({}))) as { folder?: string; error?: string };
+  const updated = nowIso();
+  if (body.error) {
+    await c.env.DB.prepare(
+      `UPDATE collections SET mac_handoff_status = 'failed', mac_handoff_at = ?, updated_at = ? WHERE id = ?`
+    )
+      .bind(updated, updated, c.req.param("id"))
+      .run();
+    await logEvent(c.env.DB, c.req.param("id"), auth.email, "mac_handoff_failed", { error: body.error });
+    return c.json({ ok: false });
+  }
+  await c.env.DB.prepare(
+    `UPDATE collections SET mac_handoff_status = 'delivered', mac_handoff_folder = COALESCE(?, mac_handoff_folder), mac_handoff_at = ?, updated_at = ? WHERE id = ?`
+  )
+    .bind(body.folder || null, updated, updated, c.req.param("id"))
+    .run();
+  await logEvent(c.env.DB, c.req.param("id"), auth.email, "mac_handoff_delivered", {
+    folder: body.folder || null,
+  });
+  return c.json({ ok: true });
+});
+
 app.get("/admin/collections/:id/photos/:photoId", async (c) => {
   const staff = await requireStaff(c.env, c.req.raw);
   if (staff instanceof Response) return staff;
@@ -981,6 +1114,41 @@ app.get("/admin/collections/:id/photos/:photoId", async (c) => {
   headers.set("content-type", photo.content_type || "image/jpeg");
   headers.set("cache-control", "private, max-age=60");
   return new Response(obj.body, { headers });
+});
+
+app.get("/admin/collections/:id/photos.zip", async (c) => {
+  const staff = await requireStaff(c.env, c.req.raw);
+  if (staff instanceof Response) return staff;
+  const row = await c.env.DB.prepare(`SELECT * FROM collections WHERE id = ?`)
+    .bind(c.req.param("id"))
+    .first<CollectionRow>();
+  if (!row) return c.notFound();
+  const photos = await c.env.DB.prepare(
+    `SELECT * FROM photos WHERE collection_id = ? ORDER BY created_at`
+  )
+    .bind(row.id)
+    .all<PhotoRow>();
+  const entries: { name: string; bytes: Uint8Array }[] = [];
+  let i = 0;
+  for (const photo of photos.results || []) {
+    i += 1;
+    const obj = await c.env.BUCKET.get(photo.r2_key);
+    if (!obj) continue;
+    const bytes = new Uint8Array(await obj.arrayBuffer());
+    const rawName = photo.original_filename || `${photo.id}.jpg`;
+    const base = rawName.replace(/[\\/]+/g, "_");
+    entries.push({ name: `${String(i).padStart(3, "0")}_${base}`, bytes });
+  }
+  if (!entries.length) return c.text("No photos", 404);
+  const zip = buildZip(entries);
+  const fileBase = safeZipBaseName(row.seller_name);
+  return new Response(zip, {
+    headers: {
+      "content-type": "application/zip",
+      "content-disposition": `attachment; filename="${fileBase}_${row.id.slice(0, 8)}.zip"`,
+      "cache-control": "private, no-store",
+    },
+  });
 });
 
 app.get("/admin/collections/:id/manifest.json", async (c) => {
@@ -1011,7 +1179,7 @@ app.get("/admin/collections/:id/download.sh", async (c) => {
   const origin = new URL(c.req.url).origin;
   const script = `#!/bin/bash
 set -euo pipefail
-# Run on the Mac while signed into Cloudflare Access in the same browser isn't enough —
+# Run on the Mac while signed into Cloudflare Access in the same browser isn't enough;
 # for curl, use a Cloudflare Access service token later, or download from the dashboard.
 DIR="$HOME/Desktop/Intake_${idParam}"
 mkdir -p "$DIR"
