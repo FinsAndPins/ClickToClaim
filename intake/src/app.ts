@@ -184,23 +184,18 @@ app.get("/", (c) => {
     c.env,
     "Sell my collection",
     `${flash}
-    <h1>Sell your pin collection</h1>
-    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email <strong>one best offer</strong> for everything in those photos, usually within <strong>24 hours</strong>. For now we only buy collections that ship from the United States. It takes real work to price a collection. That’s why we ask for PayPal Goods &amp; Services details up front, and why this isn’t a free appraisal.</p>
+    <h1 class="welcome">Welcome to the website of Fins and Pins!!!</h1>
+    <p class="welcome-next">The easiest way to sell your collection to Fins and Pins</p>
+    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email you our best offer for everything in those photos, usually within 24 hours. For now we only buy collections that ship from the United States.</p>
     <div class="card">
       <form id="start" method="post" action="/api/submissions">
         <label>Name<input required name="seller_name" autocomplete="name" /></label>
         <label>Email<input required type="email" name="seller_email" autocomplete="email" /></label>
-        <p class="hint">We’ll send the offer to the address you type here. Please use the link in that message to accept or decline. We don’t negotiate by email or in DMs.</p>
-        <label>PayPal Goods &amp; Services email<input required type="email" name="paypal_gs_email" /></label>
-        <p class="hint">Required so we can pay you if you accept. We pay via PayPal G&amp;S after you accept, before you ship. For now we only buy collections that ship from the United States.</p>
+        <p class="hint">We’ll send the offer to this address. Use the link in that email to accept or decline.</p>
         <label>Instagram <span class="hint">(optional)</span><input name="instagram" placeholder="@you" /></label>
         <label class="agree">
-          <input required type="checkbox" name="ship_us" value="yes" />
-          <span>I will ship from the United States (USPS, UPS, or similar). We aren’t taking international shipments yet.</span>
-        </label>
-        <label class="agree">
           <input required type="checkbox" name="agree" value="yes" />
-          <span>I agree to the <a href="/privacy">privacy notice and terms</a>. I understand photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin crops for our research.</span>
+          <span>I will ship from the United States (USPS, UPS, or similar). I agree to the <a href="/privacy">privacy notice and terms</a>. Photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin crops for our research.</span>
         </label>
         <button type="submit">Continue to photos</button>
       </form>
@@ -216,7 +211,7 @@ app.get("/privacy", (c) => {
     <div class="card legal">
       <p>Fins &amp; Pins buys authentic Disney pin collections. This site is an offer to purchase, not a free pricing tool. There is no minimum number of pins or photos.</p>
       <h2>What you submit</h2>
-      <p>Name, email, PayPal Goods &amp; Services email, optional Instagram, and photos of the pins you want to sell.</p>
+      <p>Name, email, optional Instagram, and photos of the pins you want to sell. If you accept an offer, we also ask for a PayPal Goods &amp; Services email so we can pay you.</p>
       <h2>Content moderation</h2>
       <p>Every photo is checked by automated safety filters before we keep it. If a photo fails, it is deleted immediately and never stored. We may notify ourselves with your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
       <h2>What we keep</h2>
@@ -235,13 +230,12 @@ app.post("/api/submissions", async (c) => {
   const form = await c.req.parseBody();
   const seller_name = String(form.seller_name || "").trim();
   const seller_email = String(form.seller_email || "").trim().toLowerCase();
-  const paypal_gs_email = String(form.paypal_gs_email || "").trim().toLowerCase();
   const instagram = String(form.instagram || "").trim() || null;
   const agree = String(form.agree || "") === "yes";
-  const shipUs = String(form.ship_us || "") === "yes";
-  if (!agree || !shipUs || !seller_name || !seller_email || !paypal_gs_email) {
-    return c.redirect("/?err=" + encodeURIComponent("Please fill name, email, PayPal, US shipping, and agree to the terms."));
+  if (!agree || !seller_name || !seller_email) {
+    return c.redirect("/?err=" + encodeURIComponent("Please fill name, email, and the shipping / privacy box."));
   }
+  const paypal_gs_email = seller_email;
   const sessionId = id();
   const created = nowIso();
   const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
@@ -549,7 +543,7 @@ app.get("/thanks", (c) => {
     `<h1>We have your photos</h1>
     <div class="card">
       <p>Thanks. We’ll email our best offer to the address you gave, usually within 24 hours. No pressure if it’s not a fit.</p>
-      <p class="hint">Use the link in that email to accept or decline. Please don’t reply to the message; we don’t negotiate by email.</p>
+      <p class="hint">Use the link in that email to accept or decline.</p>
     </div>`
   );
 });
@@ -602,7 +596,9 @@ app.get("/o/:token", async (c) => {
     <div class="card">
       <p>This is our best offer for <strong>everything in the photos you uploaded</strong>.</p>
       <div class="offer-amt">${escapeHtml(amount)}</div>
-      <form method="post" action="/o/${encodeURIComponent(row.offer_token!)}/accept" onsubmit="return confirm('Accept this offer of ${escapeHtml(amount)}?');">
+      <form method="post" action="/o/${encodeURIComponent(row.offer_token!)}/accept">
+        <label>PayPal Goods &amp; Services email<input required type="email" name="paypal_gs_email" value="${escapeHtml(row.paypal_gs_email || row.seller_email)}" autocomplete="email" /></label>
+        <p class="hint">We pay this address after you accept, before you ship.</p>
         <button type="submit">Accept</button>
       </form>
       <form method="get" action="/o/${encodeURIComponent(row.offer_token!)}/decline" style="margin-top:12px">
@@ -620,16 +616,18 @@ app.post("/o/:token/accept", async (c) => {
   if (!row || row.status !== "offer_sent" || row.offer_cents == null || offerExpired(row.offer_expires_at)) {
     return c.redirect(`/o/${c.req.param("token")}`);
   }
+  const form = await c.req.parseBody();
+  const paypal = String(form.paypal_gs_email || "").trim().toLowerCase() || row.seller_email;
   const updated = nowIso();
-  await c.env.DB.prepare(`UPDATE collections SET status = 'accepted', updated_at = ? WHERE id = ?`)
-    .bind(updated, row.id)
+  await c.env.DB.prepare(`UPDATE collections SET status = 'accepted', paypal_gs_email = ?, updated_at = ? WHERE id = ?`)
+    .bind(paypal, updated, row.id)
     .run();
-  await logEvent(c.env.DB, row.id, row.seller_email, "accepted", { offer_cents: row.offer_cents });
+  await logEvent(c.env.DB, row.id, row.seller_email, "accepted", { offer_cents: row.offer_cents, paypal });
   const mail = readyToPayEmail({
     collectionId: row.id,
     sellerName: row.seller_name,
     sellerEmail: row.seller_email,
-    paypal: row.paypal_gs_email,
+    paypal,
     offerLabel: centsToDollars(row.offer_cents),
     adminLink: adminUrl(c.env, row.id),
   });
