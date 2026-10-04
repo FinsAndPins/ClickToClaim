@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v11-20261005-fix-boxes">
+    <meta name="ctr-countdown" content="closes-to-end-v12-20261005-visitor-tally">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -1385,15 +1385,18 @@ function listenForFirebase() {
                     if (isAdmin) {
                         pinEl.classList.add(adminPinIsPreShow(usersOverlay) ? "selection-now" : "selection-before");
                         if (users[userKey]) pinEl.classList.add("pin-mine");
-                        if (count >= 2) {
-                            const tally = document.createElement("div");
-                            tally.className = "tally-badge offset-left";
-                            tally.textContent = count;
-                            pinEl.appendChild(tally);
-                        }
                     } else if (users[userKey]) {
                         pinEl.classList.add("pin-mine");
                         pinEl.classList.add("selection-green");
+                    }
+                    // Visitors + admin: numeric interest badge only when contested (2+).
+                    // Left corner so list-price badge on the right stays readable.
+                    if (count >= 2) {
+                        const tally = document.createElement("div");
+                        tally.className = "tally-badge offset-left";
+                        tally.textContent = String(count);
+                        tally.title = count + " people clicked";
+                        pinEl.appendChild(tally);
                     }
                 }
             }
