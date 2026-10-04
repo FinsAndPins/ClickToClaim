@@ -1,6 +1,6 @@
-# Intake brand vibe (deferred)
+# Intake brand vibe
 
-Steve captured this on 2026-10-04. **Do not change the live site from this note until he asks.**
+Steve captured the table welcome on 2026-10-04. Landing copy was updated 2026-10-04 to match that energy (wide net, PayPal at accept).
 
 ## In-person welcome (source of truth)
 
@@ -20,17 +20,7 @@ That welcome is part of the in-person brand, not just a script.
 
 ## What this means for the intake site
 
-V1 copy and first-screen hurdles veered from that feeling: cautious, legal, “not a free appraisal,” PayPal-up-front, extra warnings.
-
-When Steve asks to change the site, aim for:
-
 - Warm welcome, not a wall of terms
 - Easy to start (wide net). Invite-only is still the abuse gate until public launch
-- PayPal and heavier “prove you will sell” hurdles later, if pricing time is wasted on non-sellers
-- One firm offer, no seller-facing comps (that is still the product, not the vibe)
-
-Related (also not implemented from chat alone): shorter landing, fewer page-1 fields. See Steve’s 2026-10-04 “wide net” direction.
-
-## Not this note
-
-Do not use this file as permission to rewrite `src/app.ts`, emails, or privacy copy.
+- PayPal at accept, not on page 1
+- One firm offer, no seller-facing comps
