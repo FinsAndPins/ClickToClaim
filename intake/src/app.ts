@@ -185,6 +185,7 @@ app.get("/", (c) => {
     "Sell my collection",
     `${flash}
     <h1 class="welcome">Welcome to the website of Fins and Pins!!!</h1>
+    <p class="welcome-iykyk">(IYKYK re-read that using your best PinDad voice as if we're at a trading event)</p>
     <p class="welcome-next">The easiest way to sell your collection to Fins and Pins</p>
     <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email you our best offer for everything in those photos, usually within 24 hours. For now we only buy collections that ship from the United States.</p>
     <div class="card">
