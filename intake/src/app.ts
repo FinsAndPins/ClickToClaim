@@ -892,15 +892,15 @@ app.get("/admin/collections/:id", async (c) => {
         <label>Private note<textarea name="note">${escapeHtml(row.internal_note || "")}</textarea></label>
         <button type="submit">Save note</button>
       </form>
-      ${
-        row.asking_cents != null
-          ? `<p class="hint">They had in mind ${escapeHtml(centsToDollars(row.asking_cents))} on the intake form.</p>`
-          : ""
-      }
     </div>
     <div class="card">
       <h2>Offer</h2>
-      <p>${row.offer_cents != null ? escapeHtml(centsToDollars(row.offer_cents)) : "None yet"}
+      <p><strong>Their price:</strong> ${
+        row.asking_cents != null
+          ? escapeHtml(centsToDollars(row.asking_cents))
+          : "They did not enter a price"
+      }</p>
+      <p><strong>Our offer:</strong> ${row.offer_cents != null ? escapeHtml(centsToDollars(row.offer_cents)) : "None yet"}
          ${row.offer_expires_at ? " · expires " + escapeHtml(row.offer_expires_at) : ""}
          ${expired && row.offer_cents != null ? " · <strong>expired</strong>" : ""}</p>
       <form method="post" action="/admin/collections/${row.id}/offer">
