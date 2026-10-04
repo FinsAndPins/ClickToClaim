@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { addDaysIso, canStaffMove, offerDueLabel, offerExpired, staffNextStatuses } from "../src/workflow.ts";
-import { centsToDollars, offerHelpers, parseDollarsToCents } from "../src/money.ts";
+import { centsToDollars, declinedWantedMore, offerHelpers, parseDollarsToCents, percentOfValue } from "../src/money.ts";
 import { inviteGateEnabled, presentedInviteMatches } from "../src/invite.ts";
 
 describe("money", () => {
@@ -16,6 +16,25 @@ describe("money", () => {
     assert.ok(h);
     assert.equal(h.p50, 50000);
     assert.equal(centsToDollars(50000), "$500");
+  });
+  it("computes percent of harness value", () => {
+    assert.equal(percentOfValue(40000, 100000), "40%");
+    assert.equal(percentOfValue(60000, 100000), "60%");
+    assert.equal(percentOfValue(50000, null), "n/a");
+  });
+  it("flags declined wanted more than offer", () => {
+    assert.equal(
+      declinedWantedMore({ status: "declined", offer_cents: 40000, decline_wanted_cents: 60000 }),
+      true
+    );
+    assert.equal(
+      declinedWantedMore({ status: "declined", offer_cents: 40000, decline_wanted_cents: 40000 }),
+      false
+    );
+    assert.equal(
+      declinedWantedMore({ status: "accepted", offer_cents: 40000, decline_wanted_cents: 60000 }),
+      false
+    );
   });
 });
 
