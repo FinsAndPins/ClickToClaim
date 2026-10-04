@@ -11,7 +11,7 @@ import {
   moderationAlertEmail,
   sellerPhotosRejectedEmail,
 } from "./email";
-import { centsToDollars, offerHelpers, parseDollarsToCents } from "./money";
+import { centsToDollars, declinedWantedMore, offerHelpers, parseDollarsToCents, percentOfValue } from "./money";
 import { addDaysIso, canStaffMove, KANBAN_COLUMNS, offerDueLabel, offerExpired, staffNextStatuses } from "./workflow";
 import { requireStaff, requireMacOrStaff } from "./auth";
 import { getCookie, setCookie } from "hono/cookie";
@@ -190,10 +190,14 @@ app.get("/", (c) => {
     <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email you our best offer for everything in those photos, usually within 24 hours. For now we only buy collections that ship from the United States.</p>
     <div class="card">
       <form id="start" method="post" action="/api/submissions">
-        <label>Name<input required name="seller_name" autocomplete="name" /></label>
+        <label>Name<input required type="text" name="seller_name" autocomplete="name" /></label>
         <label>Email<input required type="email" name="seller_email" autocomplete="email" /></label>
-        <p class="hint">We’ll send the offer to this address. Use the link in that email to accept or decline.</p>
-        <label>Instagram <span class="hint">(optional)</span><input name="instagram" placeholder="@you" /></label>
+        <p class="hint">We'll send the offer to this address. Use the link in that email to accept or decline.</p>
+        <label>Price (if you have one in mind) <span class="hint">(optional)</span>
+          <input type="text" name="asking" inputmode="decimal" placeholder="$" autocomplete="off" />
+        </label>
+        <p class="hint">Optional. We'll still send one offer. This just helps us see what you had in mind.</p>
+        <label>Instagram <span class="hint">(optional)</span><input type="text" name="instagram" placeholder="@you" autocomplete="username" /></label>
         <label class="agree">
           <input required type="checkbox" name="agree" value="yes" />
           <span>I will ship from the United States (USPS, UPS, or similar). I agree to the <a href="/privacy">privacy and terms</a>. Photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin crops for our research.</span>
@@ -212,7 +216,7 @@ app.get("/privacy", (c) => {
     <div class="card legal">
       <p>We're Fins and Pins. We buy authentic Disney pin collections that ship from the United States. Upload photos of the boards you want to sell. We'll email you our best offer for everything in those photos, usually within 24 hours. There is no minimum number of pins or photos.</p>
       <h2>What you send us</h2>
-      <p>Your name, email, optional Instagram, and board photos. If you accept an offer, we ask for a PayPal Goods and Services email so we can pay you.</p>
+      <p>Your name, email, optional Instagram, optional price you have in mind, and board photos. If you accept an offer, we ask for a PayPal Goods and Services email so we can pay you.</p>
       <h2>Photo checks</h2>
       <p>Every photo is checked by automated safety filters before we keep it. If a photo doesn't pass, it is deleted right away and never stored. We may email ourselves your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
       <h2>What we keep</h2>
@@ -232,6 +236,7 @@ app.post("/api/submissions", async (c) => {
   const seller_name = String(form.seller_name || "").trim();
   const seller_email = String(form.seller_email || "").trim().toLowerCase();
   const instagram = String(form.instagram || "").trim() || null;
+  const asking_cents = parseDollarsToCents(String(form.asking || ""));
   const agree = String(form.agree || "") === "yes";
   if (!agree || !seller_name || !seller_email) {
     return c.redirect("/?err=" + encodeURIComponent("Please fill name, email, and the shipping / privacy box."));
@@ -241,10 +246,10 @@ app.post("/api/submissions", async (c) => {
   const created = nowIso();
   const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
   await c.env.DB.prepare(
-    `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, accepted_terms_at, created_at, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, accepted_terms_at, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(sessionId, seller_name, seller_email, paypal_gs_email, instagram, created, created, exp)
+    .bind(sessionId, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, created, created, exp)
     .run();
   await logEvent(c.env.DB, null, seller_email, "session_started", { sessionId });
   return c.redirect(`/upload/${sessionId}`);
@@ -371,6 +376,7 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
       seller_email: string;
       paypal_gs_email: string;
       instagram: string | null;
+      asking_cents: number | null;
       accepted_terms_at: string;
     }>();
   if (!session) return c.json({ error: "Session not found" }, 404);
@@ -461,8 +467,8 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
   await c.env.DB.prepare(
     `INSERT INTO collections (
       id, status, seller_name, seller_email, paypal_gs_email, instagram, accepted_terms_at,
-      photo_count, created_at, updated_at
-    ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?)`
+      asking_cents, photo_count, created_at, updated_at
+    ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       collectionId,
@@ -471,6 +477,7 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
       session.paypal_gs_email,
       session.instagram,
       session.accepted_terms_at,
+      session.asking_cents,
       photos.length,
       created,
       created
@@ -711,7 +718,11 @@ app.get("/admin", async (c) => {
     byStatus.set(r.status, list);
   }
   const cols = KANBAN_COLUMNS.map((col) => {
-    const cards = (byStatus.get(col.id) || [])
+    const source =
+      col.id === "declined"
+        ? (byStatus.get("declined") || []).filter((r) => !declinedWantedMore(r))
+        : byStatus.get(col.id) || [];
+    const cards = source
       .map((r) => {
         const img = r.cover_photo_id
           ? `<img src="/admin/collections/${r.id}/photos/${r.cover_photo_id}" alt="" />`
@@ -719,10 +730,33 @@ app.get("/admin", async (c) => {
         const offer = r.offer_cents != null ? escapeHtml(centsToDollars(r.offer_cents)) : "No offer yet";
         const due = offerDueLabel(r.created_at, r.status);
         const dueHtml = due ? `<div class="meta">${escapeHtml(due)}</div>` : "";
-        return `<a class="mini" href="/admin/collections/${r.id}">${img}<div class="who">${escapeHtml(r.seller_name)}</div><div class="meta">${escapeHtml(offer)} · ${r.photo_count} photos</div>${dueHtml}</a>`;
+        const asking =
+          r.asking_cents != null
+            ? `<div class="meta">Had in mind ${escapeHtml(centsToDollars(r.asking_cents))}</div>`
+            : "";
+        return `<a class="mini" href="/admin/collections/${r.id}">${img}<div class="who">${escapeHtml(r.seller_name)}</div><div class="meta">${escapeHtml(offer)} · ${r.photo_count} photos</div>${asking}${dueHtml}</a>`;
       })
       .join("");
-    return `<section class="col"><h3>${escapeHtml(col.label)} (${(byStatus.get(col.id) || []).length})</h3>${cards || `<p class="hint">Empty</p>`}</section>`;
+    const declinedCol = `<section class="col"><h3>${escapeHtml(col.label)} (${source.length})</h3>${cards || `<p class="hint">Empty</p>`}</section>`;
+    if (col.id !== "declined") return declinedCol;
+    const more = (byStatus.get("declined") || []).filter(declinedWantedMore);
+    const moreCards = more
+      .map((r) => {
+        const img = r.cover_photo_id
+          ? `<img src="/admin/collections/${r.id}/photos/${r.cover_photo_id}" alt="" />`
+          : "";
+        const offered = r.offer_cents != null ? centsToDollars(r.offer_cents) : "n/a";
+        const wanted = r.decline_wanted_cents != null ? centsToDollars(r.decline_wanted_cents) : "n/a";
+        const ourPct = percentOfValue(r.offer_cents, r.harness_total_cents);
+        const theirPct = percentOfValue(r.decline_wanted_cents, r.harness_total_cents);
+        return `<a class="mini" href="/admin/collections/${r.id}">${img}<div class="who">${escapeHtml(r.seller_name)}</div>
+          <div class="meta">Wanted ${escapeHtml(wanted)}</div>
+          <div class="meta">We offered ${escapeHtml(offered)}</div>
+          <div class="meta">Our offer ${escapeHtml(ourPct)} of value</div>
+          <div class="meta">They wanted ${escapeHtml(theirPct)} of value</div></a>`;
+      })
+      .join("");
+    return `${declinedCol}<section class="col"><h3>Declined - wanted more money (${more.length})</h3>${moreCards || `<p class="hint">Empty</p>`}</section>`;
   }).join("");
   return html(
     c.env,
@@ -858,6 +892,11 @@ app.get("/admin/collections/:id", async (c) => {
         <label>Private note<textarea name="note">${escapeHtml(row.internal_note || "")}</textarea></label>
         <button type="submit">Save note</button>
       </form>
+      ${
+        row.asking_cents != null
+          ? `<p class="hint">They had in mind ${escapeHtml(centsToDollars(row.asking_cents))} on the intake form.</p>`
+          : ""
+      }
     </div>
     <div class="card">
       <h2>Offer</h2>
@@ -910,6 +949,9 @@ app.get("/admin/collections/:id", async (c) => {
         ? `<div class="card"><h2>Decline feedback</h2>
            <p>Reason: ${escapeHtml(row.decline_reason || "-")}<br>
            Wanted: ${row.decline_wanted_cents != null ? escapeHtml(centsToDollars(row.decline_wanted_cents)) : "-"}<br>
+           We offered: ${row.offer_cents != null ? escapeHtml(centsToDollars(row.offer_cents)) : "-"}<br>
+           Our offer: ${escapeHtml(percentOfValue(row.offer_cents, row.harness_total_cents))} of value<br>
+           They wanted: ${escapeHtml(percentOfValue(row.decline_wanted_cents, row.harness_total_cents))} of value<br>
            ${escapeHtml(row.decline_detail || "")}</p></div>`
         : ""
     }

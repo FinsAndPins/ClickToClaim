@@ -64,14 +64,29 @@ h2 { font-size: 1.1rem; margin: 22px 0 10px; }
 }
 
 label { display: block; font-weight: 700; margin: 12px 0 6px; font-size: 0.95rem; }
-input[type="text"], input[type="email"], input[type="number"], input[type="url"], textarea, select {
+input:not([type]),
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="url"],
+textarea, select {
   width: 100%;
+  max-width: 100%;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid var(--fp-border);
   background: #16163a;
   color: var(--fp-text);
   font: inherit;
+  box-sizing: border-box;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--fp-text);
+  caret-color: var(--fp-text);
+  box-shadow: 0 0 0 1000px #16163a inset;
+  border: 1px solid var(--fp-border);
 }
 textarea { min-height: 80px; }
 .hint { color: var(--fp-muted); font-size: 0.88rem; margin: 4px 0 0; font-weight: normal; }
