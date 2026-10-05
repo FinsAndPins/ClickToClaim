@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v20-20261005-canva-bg-frost">
+    <meta name="ctr-countdown" content="closes-to-end-v21-20261005-canva-bg-tile-y">
     <style>
         :root {
             --fp-bg: #c9b8d8;
@@ -21,9 +21,10 @@
             color: var(--fp-text);
             background-color: var(--fp-bg);
             background-image: url("ctr-bg-canva.jpg");
-            background-size: cover;
-            background-position: center top;
-            background-repeat: no-repeat;
+            /* Full width L→R, no crop; tile vertically as page scrolls */
+            background-size: 100% auto;
+            background-position: top center;
+            background-repeat: repeat-y;
             background-attachment: scroll;
             min-height: 100vh;
         }
