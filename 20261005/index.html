@@ -5,15 +5,28 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v19-20261005-admin-tally-num">
+    <meta name="ctr-countdown" content="closes-to-end-v20-20261005-canva-bg-frost">
     <style>
         :root {
-            --fp-bg: #1A1A42;
-            --fp-chunk: #C659A5;
+            --fp-bg: #c9b8d8;
+            /* Was brand pink #C659A5; Lexi trial: frosted white buffers over Canva bg */
+            --fp-chunk: rgba(255, 255, 255, 0.35);
             --fp-text: #FFFFFF;
             --fp-muted: #FBAD8D;
         }
-        body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 10px 10px 100px; background: var(--fp-bg); color: var(--fp-text); }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 10px 10px 100px;
+            color: var(--fp-text);
+            background-color: var(--fp-bg);
+            background-image: url("ctr-bg-canva.jpg");
+            background-size: cover;
+            background-position: center top;
+            background-repeat: no-repeat;
+            background-attachment: scroll;
+            min-height: 100vh;
+        }
         a { color: var(--fp-text); }
         #socialBar { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
         #socialBar a { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: var(--fp-chunk); border-radius: 10px; text-decoration: none; }
