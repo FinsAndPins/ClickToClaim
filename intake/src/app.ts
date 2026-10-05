@@ -370,18 +370,17 @@ app.get("/", (c) => {
     "Sell my collection",
     `${flash}
     <h1 class="welcome">Welcome to the website of Fins and Pins!!!</h1>
-    <p class="welcome-iykyk">(IYKYK re-read that using your best PinDad voice as if we're at a trading event)</p>
+    <p class="welcome-iykyk">(Re-read that using your best PinDad voice as if we're at a trading event)</p>
     <p class="welcome-next">The easiest way to sell your collection to Fins and Pins</p>
     <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email you our best offer for everything in those photos, usually within 24 hours. For now we buy collections that ship within the United States, or that you drop off with us in person at a pin event in Florida.</p>
     <div class="card">
       <form id="start" method="post" action="/api/submissions">
-        <label>Name<input required type="text" name="seller_name" autocomplete="name" /></label>
-        <label>Email<input required type="email" name="seller_email" autocomplete="email" /></label>
+        <label>Name (required)<input required type="text" name="seller_name" autocomplete="name" /></label>
+        <label>Email address (required)<input required type="email" name="seller_email" autocomplete="email" /></label>
         <p class="hint">We'll send the offer to this address. Use the link in that email to accept or decline.</p>
-        <label>Price if you have one in mind
+        <label>Price you have in mind (required)
           <input required type="text" name="asking" inputmode="decimal" placeholder="$" autocomplete="off" />
         </label>
-        <p class="hint">Required. We'll still send one offer. This helps us see what you had in mind.</p>
         <label>Instagram <span class="hint">(optional)</span><input type="text" name="instagram" placeholder="@you" autocomplete="username" /></label>
         <fieldset class="delivery">
           <legend>How will you get the pins to us?</legend>
