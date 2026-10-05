@@ -135,8 +135,8 @@ export function sellerPhotosRejectedEmail(sellerName: string): OutboundEmail {
     text: [
       `Hi ${sellerName},`,
       "",
-      "One or more photos didn't pass our automated safety checks, so we could not accept this submission.",
-      "Those files were not saved.",
+      "Thanks for submitting. One or more photos didn't pass our automated safety checks, so we could not keep this submission.",
+      "Those files were not saved, and nothing was sent on for pricing.",
       "",
       "Please try again with photos of pin boards only: a clear picture of the pins, without people or other content. Use the same invite link you were given; don’t reply to this email.",
       "",

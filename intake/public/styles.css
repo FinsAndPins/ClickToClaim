@@ -98,6 +98,26 @@ textarea { min-height: 80px; }
 }
 .agree input { margin-top: 4px; }
 
+.delivery {
+  border: 1px solid var(--fp-border);
+  border-radius: 12px;
+  padding: 12px 14px 4px;
+  margin: 16px 0;
+}
+.delivery legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+.delivery .agree { margin: 10px 0; }
+.or-line {
+  margin: 0;
+  text-align: center;
+  color: var(--fp-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
 button, .btn {
   display: inline-block;
   border: none;
