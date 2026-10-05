@@ -16,7 +16,7 @@ export function layout(opts: {
   extraHead?: string;
 }): string {
   const staffNav = `<nav class="staff-nav"><a href="/admin">Dashboard</a><a href="/admin/alerts">Moderation alerts</a><a href="/admin/waiting">Waiting / received</a><a href="/">Seller site</a></nav>`;
-  const sellerFoot = `<footer class="site-footer"><nav class="footnav"><a href="/">Sell my collection</a><a href="/privacy">Privacy and terms</a></nav></footer>`;
+  const sellerFoot = `<footer class="site-footer"><nav class="footnav"><a href="/privacy">Privacy and terms</a></nav></footer>`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
