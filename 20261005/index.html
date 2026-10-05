@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v18-20261005-admin-tally-all">
+    <meta name="ctr-countdown" content="closes-to-end-v19-20261005-admin-tally-num">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -1390,11 +1390,12 @@ function listenForFirebase() {
                         pinEl.classList.add("selection-green");
                     }
                     // Contested (2+): admin sees tallies on every pin; visitors only after they click that pin.
-                    // Short "N clicks" (full "people clicked" overlapped list $ on small pins).
+                    // Admin: compact number only. Visitors: short "N clicks" for meaning.
                     if (count >= 2 && (isAdmin || users[userKey])) {
                         const tally = document.createElement("div");
                         tally.className = "tally-badge offset-left";
-                        tally.textContent = count + " clicks";
+                        tally.textContent = isAdmin ? String(count) : (count + " clicks");
+                        if (isAdmin) tally.title = count + " clicks";
                         pinEl.appendChild(tally);
                     }
                 }
