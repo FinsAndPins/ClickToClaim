@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v22-20261005-canva-bg-v3">
+    <meta name="ctr-countdown" content="closes-to-end-v23-20261005-canva-no-white-frame">
     <style>
         :root {
             --fp-bg: #c9b8d8;
@@ -14,18 +14,21 @@
             --fp-text: #FFFFFF;
             --fp-muted: #FBAD8D;
         }
+        html {
+            margin: 0;
+            background-color: var(--fp-bg);
+            background-image: url("ctr-bg-canva.jpg");
+            background-size: 100% auto;
+            background-position: top center;
+            background-repeat: repeat-y;
+        }
         body {
             font-family: Arial, Helvetica, sans-serif;
             margin: 0;
             padding: 10px 10px 100px;
             color: var(--fp-text);
-            background-color: var(--fp-bg);
-            background-image: url("ctr-bg-canva.jpg");
-            /* Full width L→R, no crop; tile vertically as page scrolls */
-            background-size: 100% auto;
-            background-position: top center;
-            background-repeat: repeat-y;
-            background-attachment: scroll;
+            /* Transparent so html Canva shows edge-to-edge; avoids white gutters on iOS */
+            background: transparent;
             min-height: 100vh;
         }
         a { color: var(--fp-text); }
@@ -54,13 +57,14 @@
         #countdownArea { font-size: 11px; color: var(--fp-muted); margin-top: 5px; font-weight: normal; min-height: 14px; line-height: 1.35; }
         #countdownArea .countdown-line-accent { color: #FC97D4; }
         #countdownArea .countdown-line-accent strong { color: #FC97D4; }
-        .board-container { margin-bottom: 36px; background: var(--fp-chunk); padding: 12px; border-radius: 10px; }
-        .board-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        /* Frost only the title strip; photo goes edge-to-edge so Canva is not framed in white */
+        .board-container { margin-bottom: 28px; background: transparent; padding: 0; border-radius: 0; }
+        .board-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; padding: 10px 12px 0; background: var(--fp-chunk); border-radius: 10px 10px 0 0; }
         .board-title { font-size: 18px; font-weight: bold; color: var(--fp-text); }
         .admin-board-total { font-size: 12px; color: var(--fp-text); font-weight: bold; text-align: right; max-width: 230px; line-height: 1.5; }
-        .board-count { font-size: 14px; margin-bottom: 8px; color: var(--fp-muted); }
-        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: auto; min-height: 300px; background: rgba(0,0,0,0.2); border-radius: 8px; }
-        .board-img { width: 100%; display: block; border-radius: 8px; }
+        .board-count { font-size: 14px; margin: 0; padding: 0 12px 8px; color: var(--fp-muted); background: var(--fp-chunk); }
+        .board-wrapper { position: relative; width: 100%; max-width: none; margin: 0; min-height: 300px; background: rgba(0,0,0,0.15); border-radius: 0 0 10px 10px; overflow: hidden; }
+        .board-img { width: 100%; display: block; border-radius: 0; }
         .pin { position: absolute; border-radius: 6px; border: none; background: transparent; box-sizing: border-box; cursor: pointer; z-index: 100; -webkit-tap-highlight-color: transparent; }
         /* Public: hidden pins are not clickable and not visible. */
         .pin.pin-hidden { visibility: hidden; pointer-events: none; }
