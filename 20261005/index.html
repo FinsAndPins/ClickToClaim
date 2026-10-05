@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v15-20261005-tally-on-mine">
+    <meta name="ctr-countdown" content="closes-to-end-v16-20261005-tally-number">
     <style>
         :root {
             --fp-bg: #1A1A42;
@@ -97,7 +97,7 @@
             line-height: 1;
             white-space: nowrap;
         }
-        .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 11px; min-width: 22px; height: 22px; padding: 0 7px; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 112; pointer-events: none; border: 2px solid white; white-space: nowrap; }
+        .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 112; pointer-events: none; border: 2px solid white; }
         .tally-badge.offset-left { left: -10px; right: auto; }
         #footerControls { position: fixed; bottom: 0; left: 0; right: 0; background: var(--fp-chunk); border-top: 1px solid rgba(255,255,255,0.15); padding: 10px 12px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; z-index: 2000; }
         #footerControls .footer-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; }
@@ -1390,11 +1390,12 @@ function listenForFirebase() {
                         pinEl.classList.add("selection-green");
                     }
                     // Interest badge only on pins THIS user clicked, and only when contested (2+).
-                    // Same reveal timing as selection/price: after they click. Left corner keeps list $ readable.
+                    // Compact # only (full phrase overlapped list $ on small pins). title = meaning.
                     if (count >= 2 && users[userKey]) {
                         const tally = document.createElement("div");
                         tally.className = "tally-badge offset-left";
-                        tally.textContent = count + " people clicked";
+                        tally.textContent = String(count);
+                        tally.title = count + " people clicked";
                         pinEl.appendChild(tally);
                     }
                 }
