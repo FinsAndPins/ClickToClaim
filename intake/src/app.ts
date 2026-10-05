@@ -19,14 +19,199 @@ import { INVITE_COOKIE, inviteGateEnabled, presentedInviteMatches } from "./invi
 import { buildZip, safeZipBaseName } from "./zip";
 import { folderNameFromSeller, reencodeToJpeg } from "./reencode";
 
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
-
-function nowIso() {
-  return new Date().toISOString();
+function asciiMeta(value: string, max = 180): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7E]+/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
 }
 
-function id() {
-  return crypto.randomUUID();
+type UploadSessionSnap = {
+  id: string;
+  seller_name: string;
+  seller_email: string;
+  paypal_gs_email: string;
+  instagram: string | null;
+  asking_cents: number | null;
+  delivery_method: string | null;
+  accepted_terms_at: string;
+};
+
+type TempPhotoSnap = {
+  id: string;
+  r2_key: string;
+  original_filename: string | null;
+  content_type: string | null;
+  size_bytes: number | null;
+};
+
+async function rejectModerationAndNotify(
+  env: Bindings,
+  session: UploadSessionSnap,
+  photos: TempPhotoSnap[],
+  failedCodes: string[]
+): Promise<void> {
+  for (const p of photos) {
+    try {
+      await env.BUCKET.delete(p.r2_key);
+    } catch {
+      /* ignore */
+    }
+  }
+  await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(session.id).run();
+  const alertId = id();
+  await env.DB.prepare(
+    `INSERT INTO moderation_alerts (id, seller_name, seller_email, paypal_gs_email, reason_codes, attempted_photo_count, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      alertId,
+      session.seller_name,
+      session.seller_email,
+      session.paypal_gs_email,
+      failedCodes.join(","),
+      photos.length,
+      nowIso()
+    )
+    .run();
+  await logEvent(env.DB, null, "system", "moderation_rejected", {
+    seller_email: session.seller_email,
+    codes: failedCodes,
+    count: photos.length,
+  });
+  const staff = moderationAlertEmail({
+    sellerName: session.seller_name,
+    sellerEmail: session.seller_email,
+    paypal: session.paypal_gs_email,
+    codes: failedCodes,
+    count: photos.length,
+  });
+  staff.to = staffEmails(env);
+  const s1 = await sendEmail(env, staff);
+  const seller = sellerPhotosRejectedEmail(session.seller_name);
+  seller.to = [session.seller_email];
+  const s2 = await sendEmail(env, seller);
+  await logEvent(env.DB, null, "system", "moderation_emails", { staff: s1, seller: s2 });
+}
+
+/** Runs after the seller already saw Thanks. Never queues Mac handoff until moderation passes. */
+async function processSubmissionBackground(
+  env: Bindings,
+  session: UploadSessionSnap,
+  photos: TempPhotoSnap[]
+): Promise<void> {
+  try {
+    const failedCodes: string[] = [];
+    for (const p of photos) {
+      const obj = await env.BUCKET.get(p.r2_key);
+      if (!obj) {
+        failedCodes.push("missing_temp_object");
+        break;
+      }
+      const buf = await obj.arrayBuffer();
+      const result = await moderateImage(env, buf, p.content_type || "image/jpeg");
+      if (!result.ok) {
+        failedCodes.push(...result.codes);
+        break;
+      }
+    }
+
+    if (failedCodes.length) {
+      await rejectModerationAndNotify(env, session, photos, failedCodes);
+      return;
+    }
+
+    const collectionId = id();
+    const created = nowIso();
+    await env.DB.prepare(
+      `INSERT INTO collections (
+        id, status, seller_name, seller_email, paypal_gs_email, instagram, accepted_terms_at,
+        asking_cents, delivery_method, photo_count, created_at, updated_at
+      ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        collectionId,
+        session.seller_name,
+        session.seller_email,
+        session.paypal_gs_email,
+        session.instagram,
+        session.accepted_terms_at,
+        session.asking_cents,
+        session.delivery_method,
+        photos.length,
+        created,
+        created
+      )
+      .run();
+
+    let cover: string | null = null;
+    for (const p of photos) {
+      const obj = await env.BUCKET.get(p.r2_key);
+      if (!obj) continue;
+      const buf = await obj.arrayBuffer();
+      const re = await reencodeToJpeg(buf, p.content_type || "image/jpeg", p.original_filename);
+      const storeBytes = re.ok ? re.bytes : new Uint8Array(buf);
+      const storeType = re.ok ? re.contentType : p.content_type || "image/jpeg";
+      const storeName = re.ok ? re.filename : p.original_filename;
+      const digest = await crypto.subtle.digest("SHA-256", storeBytes);
+      const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+      const destKey = `o_${p.id}`;
+      await env.BUCKET.put(destKey, storeBytes, {
+        httpMetadata: { contentType: storeType },
+        customMetadata: {
+          collectionId,
+          sellerEmail: asciiMeta(session.seller_email, 120),
+          photoId: p.id,
+          kind: "original",
+          timestamp: created,
+          sha256: sha,
+          reencoded: re.ok ? "jpeg" : "passthrough",
+          reencode_reason: re.ok ? "" : asciiMeta(re.reason || "", 80),
+        },
+      });
+      await env.BUCKET.delete(p.r2_key);
+      await env.DB.prepare(
+        `INSERT INTO photos (id, collection_id, kind, r2_key, original_filename, content_type, size_bytes, sha256, moderation_status, created_at)
+         VALUES (?, ?, 'original', ?, ?, ?, ?, ?, 'passed', ?)`
+      )
+        .bind(
+          p.id,
+          collectionId,
+          destKey,
+          storeName,
+          storeType,
+          storeBytes.byteLength,
+          sha,
+          created
+        )
+        .run();
+      if (!cover) cover = p.id;
+    }
+    if (cover) {
+      await env.DB.prepare(`UPDATE collections SET cover_photo_id = ? WHERE id = ?`)
+        .bind(cover, collectionId)
+        .run();
+    }
+    await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(session.id).run();
+    await logEvent(env.DB, collectionId, session.seller_email, "submitted", {
+      photo_count: photos.length,
+      async_moderation: true,
+    });
+    await queueMacHandoff(
+      env.DB,
+      { id: collectionId, seller_name: session.seller_name, status: "submitted" },
+      session.seller_email,
+      { auto: true }
+    );
+  } catch (e) {
+    await logEvent(env.DB, null, "system", "async_finish_error", {
+      session_id: session.id,
+      seller_email: session.seller_email,
+      error: String(e).slice(0, 300),
+    });
+  }
 }
 
 async function logEvent(
@@ -187,20 +372,32 @@ app.get("/", (c) => {
     <h1 class="welcome">Welcome to the website of Fins and Pins!!!</h1>
     <p class="welcome-iykyk">(IYKYK re-read that using your best PinDad voice as if we're at a trading event)</p>
     <p class="welcome-next">The easiest way to sell your collection to Fins and Pins</p>
-    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email you our best offer for everything in those photos, usually within 24 hours. For now we only buy collections that ship from the United States.</p>
+    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email you our best offer for everything in those photos, usually within 24 hours. For now we buy collections that ship within the United States, or that you drop off with us in person at a pin event in Florida.</p>
     <div class="card">
       <form id="start" method="post" action="/api/submissions">
         <label>Name<input required type="text" name="seller_name" autocomplete="name" /></label>
         <label>Email<input required type="email" name="seller_email" autocomplete="email" /></label>
         <p class="hint">We'll send the offer to this address. Use the link in that email to accept or decline.</p>
-        <label>Price (if you have one in mind) <span class="hint">(optional)</span>
-          <input type="text" name="asking" inputmode="decimal" placeholder="$" autocomplete="off" />
+        <label>Price if you have one in mind
+          <input required type="text" name="asking" inputmode="decimal" placeholder="$" autocomplete="off" />
         </label>
-        <p class="hint">Optional. We'll still send one offer. This just helps us see what you had in mind.</p>
+        <p class="hint">Required. We'll still send one offer. This helps us see what you had in mind.</p>
         <label>Instagram <span class="hint">(optional)</span><input type="text" name="instagram" placeholder="@you" autocomplete="username" /></label>
+        <fieldset class="delivery">
+          <legend>How will you get the pins to us?</legend>
+          <label class="agree">
+            <input required type="radio" name="delivery" value="ship_us" />
+            <span>I will ship within the United States (USPS, UPS, or similar).</span>
+          </label>
+          <p class="or-line">or</p>
+          <label class="agree">
+            <input required type="radio" name="delivery" value="dropoff_florida" />
+            <span>I will drop off with Fins and Pins at a pin event in person in Florida.</span>
+          </label>
+        </fieldset>
         <label class="agree">
           <input required type="checkbox" name="agree" value="yes" />
-          <span>I will ship from the United States (USPS, UPS, or similar). I agree to the <a href="/privacy">privacy and terms</a>. Photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin crops for our research.</span>
+          <span>I agree to the <a href="/privacy">privacy and terms</a>. Photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin detections for our research.</span>
         </label>
         <button type="submit">Continue to photos</button>
       </form>
@@ -214,17 +411,17 @@ app.get("/privacy", (c) => {
     "Privacy and terms",
     `<h1>Privacy and terms</h1>
     <div class="card legal">
-      <p>We're Fins and Pins. We buy authentic Disney pin collections that ship from the United States. Upload photos of the boards you want to sell. We'll email you our best offer for everything in those photos, usually within 24 hours. There is no minimum number of pins or photos.</p>
+      <p>We're Fins and Pins. We buy authentic Disney pin collections that ship within the United States, or that you drop off with us in person at a pin event in Florida. Upload photos of the boards you want to sell. We'll email you our best offer for everything in those photos, usually within 24 hours. There is no minimum number of pins or photos.</p>
       <h2>What you send us</h2>
-      <p>Your name, email, optional Instagram, optional price you have in mind, and board photos. If you accept an offer, we ask for a PayPal Goods and Services email so we can pay you.</p>
+      <p>Your name, email, the price you have in mind, optional Instagram, how you'll get the pins to us, and board photos. If you accept an offer, we ask for a PayPal Goods and Services email so we can pay you.</p>
       <h2>Photo checks</h2>
-      <p>Every photo is checked by automated safety filters before we keep it. If a photo doesn't pass, it is deleted right away and never stored. We may email ourselves your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
+      <p>Every photo is checked by automated safety filters after you submit. You see a confirmation right away. If a photo doesn't pass, it is deleted and we email you. We may also email ourselves your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
       <h2>What we keep</h2>
-      <p>Photos that pass may be kept as board photos and as cropped pin images. We keep crops for our research. We keep board photos for now. We may later delete board photos after a set time, after we receive a collection, or after an offer is declined.</p>
+      <p>Photos that pass may be kept as board photos and as pin detections. We keep detections for our research. We keep board photos for now. We may later delete board photos after a set time, after we receive a collection, or after an offer is declined.</p>
       <h2>Offers</h2>
       <p>We send one total offer for everything in the photos you uploaded. You can accept or decline with the link in that email. Declining is fine. No pressure. If you tell us why you declined, we use that to learn.</p>
-      <h2>Shipping and payment</h2>
-      <p>You agree to ship from the United States (USPS, UPS, or similar). If you accept, we pay PayPal Goods and Services first, then you ship to us in Florida using your own postage. We show our ship-to address after you accept.</p>
+      <h2>Getting pins to us and payment</h2>
+      <p>You choose either: ship within the United States (USPS, UPS, or similar), or drop off with Fins and Pins at a pin event in person in Florida. If you accept, we pay PayPal Goods and Services first. If you chose shipping, you then ship to us in Florida using your own postage, and we show our ship-to address after you accept. If you chose drop-off, we'll coordinate the Florida event handoff after you accept.</p>
       <h2>How we email you</h2>
       <p>We only email about your offer, using the address you enter. Use the link in that email to accept or decline.</p>
     </div>`
@@ -237,21 +434,39 @@ app.post("/api/submissions", async (c) => {
   const seller_email = String(form.seller_email || "").trim().toLowerCase();
   const instagram = String(form.instagram || "").trim() || null;
   const asking_cents = parseDollarsToCents(String(form.asking || ""));
+  const delivery = String(form.delivery || "").trim();
   const agree = String(form.agree || "") === "yes";
-  if (!agree || !seller_name || !seller_email) {
-    return c.redirect("/?err=" + encodeURIComponent("Please fill name, email, and the shipping / privacy box."));
+  const deliveryOk = delivery === "ship_us" || delivery === "dropoff_florida";
+  if (!agree || !seller_name || !seller_email || asking_cents == null || !deliveryOk) {
+    return c.redirect(
+      "/?err=" +
+        encodeURIComponent(
+          "Please fill name, email, your price, how you'll get the pins to us, and the privacy box."
+        )
+    );
   }
   const paypal_gs_email = seller_email;
   const sessionId = id();
   const created = nowIso();
   const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
   await c.env.DB.prepare(
-    `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, accepted_terms_at, created_at, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, delivery_method, accepted_terms_at, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(sessionId, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, created, created, exp)
+    .bind(
+      sessionId,
+      seller_name,
+      seller_email,
+      paypal_gs_email,
+      instagram,
+      asking_cents,
+      delivery,
+      created,
+      created,
+      exp
+    )
     .run();
-  await logEvent(c.env.DB, null, seller_email, "session_started", { sessionId });
+  await logEvent(c.env.DB, null, seller_email, "session_started", { sessionId, delivery });
   return c.redirect(`/upload/${sessionId}`);
 });
 
@@ -269,7 +484,7 @@ app.get("/upload/:sessionId", async (c) => {
     c.env,
     "Upload photos",
     `<h1>Upload board photos</h1>
-    <p class="lede">No minimum count. Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. We’ll check each photo with automated safety filters before anything is saved.</p>
+    <p class="lede">No minimum count. Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. After you submit, we run automated safety filters in the background. If a photo doesn’t pass, we’ll email you and those files are not kept.</p>
     <div class="card">
       <h2>How to shoot a board</h2>
       <ul class="legal">
@@ -293,6 +508,15 @@ app.get("/upload/:sessionId", async (c) => {
       const filesEl = document.getElementById('files');
       const status = document.getElementById('status');
       const go = document.getElementById('go');
+      async function readJson(res) {
+        const text = await res.text();
+        try { return text ? JSON.parse(text) : {}; }
+        catch (_) {
+          throw new Error(res.ok
+            ? 'Unexpected response from server.'
+            : ('Upload failed (HTTP ' + res.status + '). Please try again.'));
+        }
+      }
       go.onclick = async () => {
         const files = Array.from(filesEl.files || []);
         if (!files.length) { status.textContent = 'Choose at least one photo.'; return; }
@@ -306,16 +530,16 @@ app.get("/upload/:sessionId", async (c) => {
             const body = new FormData();
             body.append('photo', f);
             const res = await fetch('/api/submissions/' + sessionId + '/photos', { method: 'POST', body });
-            const data = await res.json();
+            const data = await readJson(res);
             if (!res.ok) throw new Error(data.error || 'Upload failed');
           }
-          status.textContent = 'Checking photos… this can take a minute.';
+          status.textContent = 'Finishing…';
           const fin = await fetch('/api/submissions/' + sessionId + '/finish', { method: 'POST' });
-          const data = await fin.json();
+          const data = await readJson(fin);
           if (!fin.ok) throw new Error(data.error || 'Could not finish');
           location.href = '/thanks';
         } catch (e) {
-          status.textContent = e.message || String(e);
+          status.textContent = (e && e.message) ? e.message : String(e);
           go.disabled = false;
         }
       };
@@ -347,19 +571,24 @@ app.post("/api/submissions/:sessionId/photos", async (c) => {
   const photoId = id();
   const key = `t_${sessionId}_${photoId}`;
   const bytes = await file.arrayBuffer();
-  await c.env.BUCKET.put(key, bytes, {
-    httpMetadata: { contentType: file.type || "image/jpeg" },
-    customMetadata: {
-      sessionId,
-      temp: "1",
-      originalFilename: file.name.slice(0, 180),
-    },
-  });
+  const safeName = asciiMeta(file.name || "photo.jpg");
+  try {
+    await c.env.BUCKET.put(key, bytes, {
+      httpMetadata: { contentType: file.type || "image/jpeg" },
+      customMetadata: {
+        sessionId,
+        temp: "1",
+        originalFilename: safeName,
+      },
+    });
+  } catch (e) {
+    return c.json({ error: "Could not store that photo. Please try JPEG and submit again." }, 500);
+  }
   await c.env.DB.prepare(
     `INSERT INTO upload_temp_photos (id, session_id, r2_key, original_filename, content_type, size_bytes, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(photoId, sessionId, key, file.name, file.type || "image/jpeg", file.size, nowIso())
+    .bind(photoId, sessionId, key, safeName || file.name, file.type || "image/jpeg", file.size, nowIso())
     .run();
   return c.json({ ok: true, photoId });
 });
@@ -370,28 +599,14 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
     `SELECT * FROM upload_sessions WHERE id = ?`
   )
     .bind(sessionId)
-    .first<{
-      id: string;
-      seller_name: string;
-      seller_email: string;
-      paypal_gs_email: string;
-      instagram: string | null;
-      asking_cents: number | null;
-      accepted_terms_at: string;
-    }>();
+    .first<UploadSessionSnap>();
   if (!session) return c.json({ error: "Session not found" }, 404);
 
   const temps = await c.env.DB.prepare(
     `SELECT * FROM upload_temp_photos WHERE session_id = ?`
   )
     .bind(sessionId)
-    .all<{
-      id: string;
-      r2_key: string;
-      original_filename: string | null;
-      content_type: string | null;
-      size_bytes: number | null;
-    }>();
+    .all<TempPhotoSnap>();
   const photos = temps.results || [];
   if (!photos.length) return c.json({ error: "Please upload at least one photo" }, 400);
 
@@ -399,149 +614,11 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
     return c.json({ error: "Uploads are paused until content moderation is configured." }, 503);
   }
 
-  const failedCodes: string[] = [];
-  for (const p of photos) {
-    const obj = await c.env.BUCKET.get(p.r2_key);
-    if (!obj) {
-      failedCodes.push("missing_temp_object");
-      break;
-    }
-    const buf = await obj.arrayBuffer();
-    const result = await moderateImage(c.env, buf, p.content_type || "image/jpeg");
-    if (!result.ok) {
-      failedCodes.push(...result.codes);
-      break;
-    }
-  }
-
-  if (failedCodes.length) {
-    for (const p of photos) {
-      await c.env.BUCKET.delete(p.r2_key);
-    }
-    await c.env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(sessionId).run();
-    await c.env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(sessionId).run();
-    const alertId = id();
-    await c.env.DB.prepare(
-      `INSERT INTO moderation_alerts (id, seller_name, seller_email, paypal_gs_email, reason_codes, attempted_photo_count, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(
-        alertId,
-        session.seller_name,
-        session.seller_email,
-        session.paypal_gs_email,
-        failedCodes.join(","),
-        photos.length,
-        nowIso()
-      )
-      .run();
-    await logEvent(c.env.DB, null, "system", "moderation_rejected", {
-      seller_email: session.seller_email,
-      codes: failedCodes,
-      count: photos.length,
-    });
-    const staff = moderationAlertEmail({
-      sellerName: session.seller_name,
-      sellerEmail: session.seller_email,
-      paypal: session.paypal_gs_email,
-      codes: failedCodes,
-      count: photos.length,
-    });
-    staff.to = staffEmails(c.env);
-    const s1 = await sendEmail(c.env, staff);
-    const seller = sellerPhotosRejectedEmail(session.seller_name);
-    seller.to = [session.seller_email];
-    const s2 = await sendEmail(c.env, seller);
-    await logEvent(c.env.DB, null, "system", "moderation_emails", { staff: s1, seller: s2 });
-    return c.json(
-      {
-        error:
-          "One or more photos couldn't be accepted. They were not saved. Please try again with board photos only.",
-      },
-      400
-    );
-  }
-
-  const collectionId = id();
-  const created = nowIso();
-  await c.env.DB.prepare(
-    `INSERT INTO collections (
-      id, status, seller_name, seller_email, paypal_gs_email, instagram, accepted_terms_at,
-      asking_cents, photo_count, created_at, updated_at
-    ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      collectionId,
-      session.seller_name,
-      session.seller_email,
-      session.paypal_gs_email,
-      session.instagram,
-      session.accepted_terms_at,
-      session.asking_cents,
-      photos.length,
-      created,
-      created
-    )
-    .run();
-
-  let cover: string | null = null;
-  for (const p of photos) {
-    const obj = await c.env.BUCKET.get(p.r2_key);
-    if (!obj) continue;
-    const buf = await obj.arrayBuffer();
-    const re = await reencodeToJpeg(buf, p.content_type || "image/jpeg", p.original_filename);
-    // Prefer a fresh JPEG we control. If decode fails (e.g. HEIC on Workers), keep bytes
-    // and let the Mac handoff helper convert with sips before CollectionsToPrice.
-    const storeBytes = re.ok ? re.bytes : new Uint8Array(buf);
-    const storeType = re.ok ? re.contentType : p.content_type || "image/jpeg";
-    const storeName = re.ok ? re.filename : p.original_filename;
-    const digest = await crypto.subtle.digest("SHA-256", storeBytes);
-    const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-    const destKey = `o_${p.id}`;
-    await c.env.BUCKET.put(destKey, storeBytes, {
-      httpMetadata: { contentType: storeType },
-      customMetadata: {
-        collectionId,
-        sellerEmail: session.seller_email,
-        photoId: p.id,
-        kind: "original",
-        timestamp: created,
-        sha256: sha,
-        reencoded: re.ok ? "jpeg" : "passthrough",
-        reencode_reason: re.ok ? "" : re.reason,
-      },
-    });
-    await c.env.BUCKET.delete(p.r2_key);
-    await c.env.DB.prepare(
-      `INSERT INTO photos (id, collection_id, kind, r2_key, original_filename, content_type, size_bytes, sha256, moderation_status, created_at)
-       VALUES (?, ?, 'original', ?, ?, ?, ?, ?, 'passed', ?)`
-    )
-      .bind(
-        p.id,
-        collectionId,
-        destKey,
-        storeName,
-        storeType,
-        storeBytes.byteLength,
-        sha,
-        created
-      )
-      .run();
-    if (!cover) cover = p.id;
-  }
-  if (cover) {
-    await c.env.DB.prepare(`UPDATE collections SET cover_photo_id = ? WHERE id = ?`).bind(cover, collectionId).run();
-  }
-  await c.env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(sessionId).run();
+  // Claim the session so a double-tap cannot start two finish jobs.
   await c.env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(sessionId).run();
-  await logEvent(c.env.DB, collectionId, session.seller_email, "submitted", { photo_count: photos.length });
-  await queueMacHandoff(
-    c.env.DB,
-    { id: collectionId, seller_name: session.seller_name, status: "submitted" },
-    session.seller_email,
-    { auto: true }
-  );
-  return c.json({ ok: true, collectionId });
+
+  c.executionCtx.waitUntil(processSubmissionBackground(c.env, session, photos));
+  return c.json({ ok: true, accepted: true });
 });
 
 app.get("/thanks", (c) => {
@@ -551,7 +628,7 @@ app.get("/thanks", (c) => {
     `<h1>We have your photos</h1>
     <div class="card">
       <p>Thanks. We’ll email our best offer to the address you gave, usually within 24 hours. No pressure if it’s not a fit.</p>
-      <p class="hint">Use the link in that email to accept or decline.</p>
+      <p class="hint">We still run a quick automated safety check in the background. If a photo doesn’t pass, we’ll email you and those files are not kept. Use the link in the offer email to accept or decline.</p>
     </div>`
   );
 });
@@ -574,10 +651,11 @@ app.get("/o/:token", async (c) => {
   }
   if (row.status === "accepted" || row.status === "paid" || row.status === "waiting_for_package" || row.status === "received" || row.status === "done") {
     const ship =
-      row.status === "accepted" || row.status === "paid" || row.status === "waiting_for_package" || row.status === "received" || row.status === "done"
-        ? `<h2>Ship to</h2><p><strong>${escapeHtml(c.env.SHIP_TO_NAME)}</strong><br>${escapeHtml(c.env.SHIP_TO_ADDRESS).replace(/\n/g, "<br>")}</p>
-           <p class="hint">Please ship with USPS, UPS, or similar from the United States. We pay via PayPal Goods &amp; Services after you accept.</p>`
-        : "";
+      row.delivery_method === "dropoff_florida"
+        ? `<h2>Drop off</h2><p>You chose to drop off with Fins and Pins at a pin event in person in Florida. We'll coordinate the handoff after payment.</p>
+           <p class="hint">We pay via PayPal Goods &amp; Services after you accept.</p>`
+        : `<h2>Ship to</h2><p><strong>${escapeHtml(c.env.SHIP_TO_NAME)}</strong><br>${escapeHtml(c.env.SHIP_TO_ADDRESS).replace(/\n/g, "<br>")}</p>
+           <p class="hint">Please ship with USPS, UPS, or similar within the United States. We pay via PayPal Goods &amp; Services after you accept.</p>`;
     return html(
       c.env,
       "Accepted",
@@ -606,7 +684,9 @@ app.get("/o/:token", async (c) => {
       <div class="offer-amt">${escapeHtml(amount)}</div>
       <form method="post" action="/o/${encodeURIComponent(row.offer_token!)}/accept">
         <label>PayPal Goods &amp; Services email<input required type="email" name="paypal_gs_email" value="${escapeHtml(row.paypal_gs_email || row.seller_email)}" autocomplete="email" /></label>
-        <p class="hint">We pay this address after you accept, before you ship.</p>
+        <p class="hint">We pay this address after you accept, before you ${
+          row.delivery_method === "dropoff_florida" ? "drop off" : "ship"
+        }.</p>
         <button type="submit">Accept</button>
       </form>
       <form method="get" action="/o/${encodeURIComponent(row.offer_token!)}/decline" style="margin-top:12px">
@@ -878,7 +958,14 @@ app.get("/admin/collections/:id", async (c) => {
     `${cover}
     <h1>${escapeHtml(row.seller_name)}</h1>
     <p class="lede">${escapeHtml(row.status.replace(/_/g, " "))} · ${escapeHtml(row.seller_email)} · PayPal ${escapeHtml(row.paypal_gs_email)}
-    ${row.instagram ? " · " + escapeHtml(row.instagram) : ""}</p>
+    ${row.instagram ? " · " + escapeHtml(row.instagram) : ""}
+    ${
+      row.delivery_method === "dropoff_florida"
+        ? " · Drop off in Florida"
+        : row.delivery_method === "ship_us"
+          ? " · Ship within US"
+          : ""
+    }</p>
     <div class="card">
       <h2>Internal (seller never sees this)</h2>
       ${helperHtml}
@@ -1289,5 +1376,22 @@ export async function cleanupExpired(env: Bindings) {
     }
     await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(s.id).run();
     await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(s.id).run();
+  }
+  // Finish claims the session before background moderation. Orphans = temps with no session left.
+  const orphanCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  const orphans = await env.DB.prepare(
+    `SELECT t.id, t.r2_key FROM upload_temp_photos t
+     LEFT JOIN upload_sessions s ON s.id = t.session_id
+     WHERE s.id IS NULL AND t.created_at < ?`
+  )
+    .bind(orphanCutoff)
+    .all<{ id: string; r2_key: string }>();
+  for (const p of orphans.results || []) {
+    try {
+      await env.BUCKET.delete(p.r2_key);
+    } catch {
+      /* ignore */
+    }
+    await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ?`).bind(p.id).run();
   }
 }

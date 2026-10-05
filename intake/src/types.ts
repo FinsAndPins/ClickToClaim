@@ -57,6 +57,7 @@ export type CollectionRow = {
   decline_wanted_cents: number | null;
   decline_detail: string | null;
   asking_cents: number | null;
+  delivery_method: string | null;
   tracking: string | null;
   photo_count: number;
   mac_handoff_status: string | null;
