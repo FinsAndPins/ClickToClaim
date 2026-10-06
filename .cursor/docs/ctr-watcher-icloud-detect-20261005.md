@@ -14,3 +14,10 @@ Detect writes web JPGs into the iCloud show `boards/` path, then CoreML/PIL read
 
 ## Where
 ClickToRequest watcher / PrepareClickToClaim; App Support `CtrDetectWork/`; NotifyOutbox + Terminal `.command`.
+
+## Template pin (20261005 Canva) — shipped production
+
+- **Symptom:** Next CTR would still bootstrap from `20260910` pink chrome.
+- **Cause:** `CTR_TEMPLATE_ID` default in `click_to_request_watcher_launcher.sh` was pinned to `20260910`; bootstrap did not copy `ctr-bg-canva.jpg`.
+- **Rule:** When Lexi locks a new CTR look, update launcher `CTR_TEMPLATE_ID`, copy any new root assets (e.g. `ctr-bg-canva.jpg`) in `bootstrap_show`, then re-run `install_click_to_request_launchagent.sh` and verify the live Application Support launcher.
+- **Where:** PreparingInventory `prepare_click_to_claim.sh` + `launchd/click_to_request_watcher_launcher.sh`; live mirror under Application Support `ClickToRequestWatcherBin` / `click_to_request_watcher_launcher.sh`.
