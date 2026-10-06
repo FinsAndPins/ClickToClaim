@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS collections (
   decline_wanted_cents INTEGER,
   decline_detail TEXT,
   asking_cents INTEGER,
+  seller_notes TEXT,
   delivery_method TEXT,
   tracking TEXT,
   photo_count INTEGER NOT NULL DEFAULT 0,
@@ -80,10 +81,12 @@ CREATE TABLE IF NOT EXISTS upload_sessions (
   paypal_gs_email TEXT NOT NULL,
   instagram TEXT,
   asking_cents INTEGER,
+  seller_notes TEXT,
   delivery_method TEXT,
   accepted_terms_at TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  expires_at TEXT NOT NULL
+  expires_at TEXT NOT NULL,
+  finish_started_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS upload_temp_photos (

@@ -31,8 +31,11 @@ echo "home -> $home"
 python3 - <<'PY'
 from pathlib import Path
 t=Path("/tmp/home.html").read_text()
-assert "Sell your pin collection" in t, "home page missing headline"
+assert "Welcome to the website of Fins and Pins" in t, "home page missing headline"
+assert "Step 1 of 2" in t, "step 1 missing"
+assert "Step 2 of 2" in t, "step 2 missing"
 assert "United States" in t, "US-only copy missing"
+assert "AP / PP" in t, "notes prompt missing"
 print("home copy ok")
 PY
 

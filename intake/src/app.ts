@@ -45,8 +45,10 @@ type UploadSessionSnap = {
   paypal_gs_email: string;
   instagram: string | null;
   asking_cents: number | null;
+  seller_notes: string | null;
   delivery_method: string | null;
   accepted_terms_at: string;
+  finish_started_at?: string | null;
 };
 
 type TempPhotoSnap = {
@@ -71,6 +73,7 @@ async function rejectModerationAndNotify(
     }
   }
   await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(session.id).run();
+  await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
   const alertId = id();
   await env.DB.prepare(
     `INSERT INTO moderation_alerts (id, seller_name, seller_email, paypal_gs_email, reason_codes, attempted_photo_count, created_at)
@@ -138,8 +141,8 @@ async function processSubmissionBackground(
     await env.DB.prepare(
       `INSERT INTO collections (
         id, status, seller_name, seller_email, paypal_gs_email, instagram, accepted_terms_at,
-        asking_cents, delivery_method, photo_count, created_at, updated_at
-      ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        asking_cents, seller_notes, delivery_method, photo_count, created_at, updated_at
+      ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         collectionId,
@@ -149,6 +152,7 @@ async function processSubmissionBackground(
         session.instagram,
         session.accepted_terms_at,
         session.asking_cents,
+        session.seller_notes ?? null,
         session.delivery_method,
         photos.length,
         created,
@@ -205,9 +209,11 @@ async function processSubmissionBackground(
         .run();
     }
     await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(session.id).run();
+    await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
     await logEvent(env.DB, collectionId, session.seller_email, "submitted", {
       photo_count: photos.length,
       async_moderation: true,
+      has_seller_notes: Boolean(session.seller_notes),
     });
     await queueMacHandoff(
       env.DB,
@@ -276,6 +282,50 @@ function offerUrl(env: Bindings, token: string) {
   return `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/o/${token}`;
 }
 
+function strField(v: unknown): string {
+  return String(v ?? "").trim();
+}
+
+async function readFinishIdentity(c: Context<{ Bindings: Bindings }>): Promise<{
+  seller_name: string;
+  seller_email: string;
+  instagram: string | null;
+  asking_cents: number | null;
+  delivery_method: string;
+  seller_notes: string | null;
+  agree: boolean;
+}> {
+  const ct = (c.req.header("content-type") || "").toLowerCase();
+  let raw: Record<string, unknown> = {};
+  if (ct.includes("application/json")) {
+    const parsed = await c.req.json().catch(() => ({}));
+    raw = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } else {
+    try {
+      const form = await c.req.parseBody();
+      raw = form as Record<string, unknown>;
+    } catch {
+      raw = {};
+    }
+  }
+  const notes = strField(raw.seller_notes) || strField(raw.notes);
+  const agreeRaw = raw.agree;
+  const agree =
+    strField(agreeRaw) === "yes" ||
+    agreeRaw === true ||
+    strField(agreeRaw) === "true" ||
+    strField(agreeRaw) === "on";
+  return {
+    seller_name: strField(raw.seller_name),
+    seller_email: strField(raw.seller_email).toLowerCase(),
+    instagram: strField(raw.instagram) || null,
+    asking_cents: parseDollarsToCents(strField(raw.asking)),
+    delivery_method: strField(raw.delivery) || strField(raw.delivery_method),
+    seller_notes: notes ? notes.slice(0, 2000) : null,
+    agree,
+  };
+}
+
 function inviteCookieOptions(env: Bindings) {
   return {
     httpOnly: true,
@@ -312,7 +362,7 @@ function inviteGatePage(env: Bindings, err?: string) {
 
 export const app = new Hono<{ Bindings: Bindings }>();
 
-const OPEN_PATHS = new Set(["/health", "/styles.css", "/invite", "/ctr-bg-canva.jpg"]);
+const OPEN_PATHS = new Set(["/health", "/styles.css", "/invite", "/ctr-bg-canva.jpg", "/seller-home.js"]);
 
 app.use("*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
@@ -373,6 +423,12 @@ app.get("/ctr-bg-canva.jpg", async (c) => {
   return res;
 });
 
+app.get("/seller-home.js", async (c) => {
+  const res = await c.env.ASSETS.fetch(new URL("/seller-home.js", c.req.url));
+  if (res.status === 404) return c.notFound();
+  return res;
+});
+
 app.get("/", (c) => {
   const err = c.req.query("err");
   const ok = c.req.query("ok");
@@ -381,6 +437,8 @@ app.get("/", (c) => {
     : ok
       ? `<div class="flash ok">${escapeHtml(ok)}</div>`
       : "";
+  const maxPhotos = Number(c.env.MAX_PHOTOS || 100);
+  const maxBytes = Number(c.env.MAX_PHOTO_BYTES || 15728640);
   return html(
     c.env,
     "Sell my collection",
@@ -388,34 +446,67 @@ app.get("/", (c) => {
     <h1 class="welcome">Welcome to the website of Fins and Pins!</h1>
     <p class="welcome-next">The easiest way to sell your collection</p>
     <p class="lede">We pay reasonable prices for authentic Disney pins! Simply upload photos of the boards you want to sell and we’ll email you our best offer for everything in those photos within 24-48 business hours. Currently we only buy collections that ship within the United States, or that you drop off with us in person at a pin event in Florida. Thank you for your understanding</p>
-    <div class="card">
-      <form id="start" method="post" action="/api/submissions">
-        <label>Name (required)<input required type="text" name="seller_name" autocomplete="name" /></label>
-        <label>Email address (required)<input required type="email" name="seller_email" autocomplete="email" /></label>
-        <p class="hint">We'll send the offer to this address. Use the link in that email to accept or decline.</p>
-        <label>Price you have in mind (required)
-          <input required type="text" name="asking" inputmode="decimal" placeholder="$" autocomplete="off" />
-        </label>
-        <label>Instagram <span class="hint">(optional)</span><input type="text" name="instagram" placeholder="@you" autocomplete="username" /></label>
-        <fieldset class="delivery">
-          <legend>How will you get the pins to us?</legend>
-          <label class="agree">
-            <input required type="radio" name="delivery" value="ship_us" />
-            <span>I will ship within the United States (USPS, UPS, or similar).</span>
+    <p class="steps-overview">Two steps. Photos first, then a short form while they upload.</p>
+    <div class="card step-card" id="step1">
+      <p class="step-kicker">Step 1 of 2</p>
+      <h2>Upload board photos</h2>
+      <ul class="legal">
+        <li>One board (or one clear group of pins) per photo.</li>
+        <li>Fill the frame with the pins. Straight-on is better than a steep angle.</li>
+        <li>Use even light. Avoid heavy glare on cellophane if you can.</li>
+        <li>Don’t include people, faces, or anything that isn’t the pins.</li>
+        <li>JPEG is safest on iPhone: Settings → Camera → Most Compatible.</li>
+      </ul>
+      <p class="hint">No minimum count. Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. Upload starts as soon as you pick files.</p>
+      <div class="choose-wrap">
+        <input id="files" type="file" accept="image/*" multiple />
+      </div>
+      <p class="hint">On iPhone you can pick from Photos.</p>
+      <div class="upload-status" id="uploadStatus">Choose board photos to get started.</div>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+    <div class="card step-card is-locked" id="step2" aria-hidden="true">
+      <p class="step-kicker">Step 2 of 2</p>
+      <h2>Contact information</h2>
+      <p class="almost" id="almostDone" hidden>You’re almost done. Fill this in while your photos upload.</p>
+      <form id="contactForm">
+        <fieldset class="contact-fields" id="contactFields" disabled>
+          <label>Name (required)<input required type="text" name="seller_name" autocomplete="name" /></label>
+          <label>Email address (required)<input required type="email" name="seller_email" autocomplete="email" /></label>
+          <p class="hint">We'll send the offer to this address. Use the link in that email to accept or decline.</p>
+          <label>Price you have in mind (required)
+            <input required type="text" name="asking" inputmode="decimal" placeholder="$" autocomplete="off" />
           </label>
-          <p class="or-line">or</p>
-          <label class="agree">
-            <input required type="radio" name="delivery" value="dropoff_florida" />
-            <span>I will drop off with Fins and Pins at a pin event in person in Florida.</span>
+          <label>Notes <span class="hint">(optional)</span>
+            <textarea name="seller_notes" maxlength="2000" placeholder="AP / PP, extras, anything not obvious in the photos"></textarea>
           </label>
+          <p class="hint">Please tell us anything that’s not obvious in the photos, for example AP / PP.</p>
+          <label>Instagram <span class="hint">(optional)</span><input type="text" name="instagram" placeholder="@you" autocomplete="username" /></label>
+          <fieldset class="delivery">
+            <legend>How will you get the pins to us?</legend>
+            <label class="agree">
+              <input required type="radio" name="delivery" value="ship_us" />
+              <span>I will ship within the United States (USPS, UPS, or similar).</span>
+            </label>
+            <p class="or-line">or</p>
+            <label class="agree">
+              <input required type="radio" name="delivery" value="dropoff_florida" />
+              <span>I will drop off with Fins and Pins at a pin event in person in Florida.</span>
+            </label>
+          </fieldset>
+          <label class="agree">
+            <input required type="checkbox" name="agree" value="yes" />
+            <span>I agree to the <a href="/privacy">privacy and terms</a>. Photos you pick are held briefly so they can upload while you fill this form. They are not a submitted collection until you tap Submit. Rejected files are not stored. If we buy the collection, we may keep board photos and pin detections for our research.</span>
+          </label>
+          <div class="flash err form-err" id="formErr" hidden></div>
+          <div class="row">
+            <button id="submitAll" type="submit" disabled>Submit collection</button>
+          </div>
         </fieldset>
-        <label class="agree">
-          <input required type="checkbox" name="agree" value="yes" />
-          <span>I agree to the <a href="/privacy">privacy and terms</a>. Photos are checked by automated content moderation. Rejected files are not stored. If we buy the collection, we may keep board photos and pin detections for our research.</span>
-        </label>
-        <button type="submit">Continue to photos</button>
       </form>
-    </div>`
+    </div>
+    <script>window.INTAKE = ${JSON.stringify({ maxPhotos, maxBytes })};</script>
+    <script src="/seller-home.js"></script>`
   );
 });
 
@@ -427,9 +518,9 @@ app.get("/privacy", (c) => {
     <div class="card legal">
       <p>We're Fins and Pins. We buy authentic Disney pin collections that ship within the United States, or that you drop off with us in person at a pin event in Florida. Upload photos of the boards you want to sell. We'll email you our best offer for everything in those photos, usually within 24 hours. There is no minimum number of pins or photos.</p>
       <h2>What you send us</h2>
-      <p>Your name, email, the price you have in mind, optional Instagram, how you'll get the pins to us, and board photos. If you accept an offer, we ask for a PayPal Goods and Services email so we can pay you.</p>
+      <p>Your name, email, the price you have in mind, optional notes (for example AP / PP), optional Instagram, how you'll get the pins to us, and board photos. If you accept an offer, we ask for a PayPal Goods and Services email so we can pay you.</p>
       <h2>Photo checks</h2>
-      <p>Every photo is checked by automated safety filters after you submit. You see a confirmation right away. If a photo doesn't pass, it is deleted and we email you. We may also email ourselves your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
+      <p>You pick photos first. We hold those files briefly so they can upload while you fill in your contact information. They are not a submitted collection until you tap Submit. After you submit, every photo is checked by automated safety filters. You see a confirmation right away. If a photo doesn't pass, it is deleted and we email you. If you leave without submitting, leftover files are deleted. We may also email ourselves your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
       <h2>What we keep</h2>
       <p>Photos that pass may be kept as board photos and as pin detections. We keep detections for our research. We keep board photos for now. We may later delete board photos after a set time, after we receive a collection, or after an offer is declined.</p>
       <h2>Offers</h2>
@@ -440,6 +531,25 @@ app.get("/privacy", (c) => {
       <p>We only email about your offer, using the address you enter. Use the link in that email to accept or decline.</p>
     </div>`
   );
+});
+
+app.post("/api/upload-sessions", async (c) => {
+  try {
+    const sessionId = id();
+    const created = nowIso();
+    const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
+    await c.env.DB.prepare(
+      `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, delivery_method, accepted_terms_at, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(sessionId, "", "", "", null, null, null, created, created, exp)
+      .run();
+    await logEvent(c.env.DB, null, "seller", "photo_session_started", { sessionId });
+    return c.json({ ok: true, sessionId });
+  } catch (e) {
+    console.error("upload_session_create_failed", e);
+    return c.json({ error: "Could not start upload. Please try again." }, 500);
+  }
 });
 
 app.post("/api/submissions", async (c) => {
@@ -535,7 +645,7 @@ app.get("/upload/:sessionId", async (c) => {
         catch (_) {
           throw new Error(res.ok
             ? 'Unexpected response from server.'
-            : ('Upload failed (HTTP ' + res.status + '). Please try again.'));
+            : ('Something went wrong (HTTP ' + res.status + '). Please try again.'));
         }
       }
       go.onclick = async () => {
@@ -558,6 +668,7 @@ app.get("/upload/:sessionId", async (c) => {
           const fin = await fetch('/api/submissions/' + sessionId + '/finish', { method: 'POST' });
           const data = await readJson(fin);
           if (!fin.ok) throw new Error(data.error || 'Could not finish');
+          status.textContent = 'Done. Opening thank-you page…';
           location.href = '/thanks';
         } catch (e) {
           status.textContent = (e && e.message) ? e.message : String(e);
@@ -569,77 +680,193 @@ app.get("/upload/:sessionId", async (c) => {
 });
 
 app.post("/api/submissions/:sessionId/photos", async (c) => {
-  const sessionId = c.req.param("sessionId");
-  const session = await c.env.DB.prepare(`SELECT * FROM upload_sessions WHERE id = ?`).bind(sessionId).first();
-  if (!session) return c.json({ error: "Session not found" }, 404);
-  const countRow = await c.env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM upload_temp_photos WHERE session_id = ?`
-  )
-    .bind(sessionId)
-    .first<{ n: number }>();
-  const maxPhotos = Number(c.env.MAX_PHOTOS || 100);
-  if ((countRow?.n || 0) >= maxPhotos) return c.json({ error: "Photo limit reached" }, 400);
-
-  const body = await c.req.parseBody();
-  const file = body.photo;
-  if (!(file instanceof File)) return c.json({ error: "Missing photo" }, 400);
-  const maxBytes = Number(c.env.MAX_PHOTO_BYTES || 15728640);
-  if (file.size > maxBytes) return c.json({ error: "File too large" }, 400);
-  const type = (file.type || "image/jpeg").toLowerCase();
-  if (!ALLOWED_TYPES.has(type) && !file.name.toLowerCase().match(/\.(jpe?g|png|webp|heic|heif)$/)) {
-    return c.json({ error: "Please upload a photo file" }, 400);
-  }
-  const photoId = id();
-  const key = `t_${sessionId}_${photoId}`;
-  const bytes = await file.arrayBuffer();
-  const safeName = asciiMeta(file.name || "photo.jpg");
   try {
-    await c.env.BUCKET.put(key, bytes, {
-      httpMetadata: { contentType: file.type || "image/jpeg" },
-      customMetadata: {
-        sessionId,
-        temp: "1",
-        originalFilename: safeName,
-      },
-    });
+    const sessionId = c.req.param("sessionId");
+    const session = await c.env.DB.prepare(`SELECT * FROM upload_sessions WHERE id = ?`).bind(sessionId).first();
+    if (!session) return c.json({ error: "Session not found" }, 404);
+    const countRow = await c.env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM upload_temp_photos WHERE session_id = ?`
+    )
+      .bind(sessionId)
+      .first<{ n: number }>();
+    const maxPhotos = Number(c.env.MAX_PHOTOS || 100);
+    if ((countRow?.n || 0) >= maxPhotos) return c.json({ error: "Photo limit reached" }, 400);
+
+    const body = await c.req.parseBody();
+    const file = body.photo;
+    if (!(file instanceof File)) return c.json({ error: "Missing photo" }, 400);
+    const maxBytes = Number(c.env.MAX_PHOTO_BYTES || 15728640);
+    if (file.size > maxBytes) return c.json({ error: "File too large" }, 400);
+    const type = (file.type || "image/jpeg").toLowerCase();
+    if (!ALLOWED_TYPES.has(type) && !file.name.toLowerCase().match(/\.(jpe?g|png|webp|heic|heif)$/)) {
+      return c.json({ error: "Please upload a photo file" }, 400);
+    }
+    const photoId = id();
+    const key = `t_${sessionId}_${photoId}`;
+    const bytes = await file.arrayBuffer();
+    const safeName = asciiMeta(file.name || "photo.jpg") || "photo.jpg";
+    try {
+      await c.env.BUCKET.put(key, bytes, {
+        httpMetadata: { contentType: file.type || "image/jpeg" },
+        customMetadata: {
+          sessionId: asciiMeta(sessionId, 80),
+          temp: "1",
+          originalFilename: safeName,
+        },
+      });
+    } catch (e) {
+      console.error("photo_r2_put_failed", e);
+      return c.json({ error: "Could not store that photo. Please try JPEG and submit again." }, 500);
+    }
+    await c.env.DB.prepare(
+      `INSERT INTO upload_temp_photos (id, session_id, r2_key, original_filename, content_type, size_bytes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(photoId, sessionId, key, safeName, file.type || "image/jpeg", file.size, nowIso())
+      .run();
+    const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
+    await c.env.DB.prepare(`UPDATE upload_sessions SET expires_at = ? WHERE id = ?`).bind(exp, sessionId).run();
+    return c.json({ ok: true, photoId });
   } catch (e) {
-    return c.json({ error: "Could not store that photo. Please try JPEG and submit again." }, 500);
+    console.error("photo_upload_failed", e);
+    return c.json({ error: "Upload failed. Please try again." }, 500);
   }
-  await c.env.DB.prepare(
-    `INSERT INTO upload_temp_photos (id, session_id, r2_key, original_filename, content_type, size_bytes, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(photoId, sessionId, key, safeName || file.name, file.type || "image/jpeg", file.size, nowIso())
-    .run();
-  return c.json({ ok: true, photoId });
+});
+
+app.delete("/api/submissions/:sessionId/photos/:photoId", async (c) => {
+  try {
+    const sessionId = c.req.param("sessionId");
+    const photoId = c.req.param("photoId");
+    const session = await c.env.DB.prepare(`SELECT id FROM upload_sessions WHERE id = ?`).bind(sessionId).first();
+    if (!session) return c.json({ error: "Session not found" }, 404);
+    const photo = await c.env.DB.prepare(
+      `SELECT r2_key FROM upload_temp_photos WHERE id = ? AND session_id = ?`
+    )
+      .bind(photoId, sessionId)
+      .first<{ r2_key: string }>();
+    if (!photo) return c.json({ error: "Photo not found" }, 404);
+    try {
+      await c.env.BUCKET.delete(photo.r2_key);
+    } catch {
+      /* ignore */
+    }
+    await c.env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ? AND session_id = ?`)
+      .bind(photoId, sessionId)
+      .run();
+    return c.json({ ok: true });
+  } catch (e) {
+    console.error("photo_delete_failed", e);
+    return c.json({ error: "Could not remove that photo." }, 500);
+  }
 });
 
 app.post("/api/submissions/:sessionId/finish", async (c) => {
-  const sessionId = c.req.param("sessionId");
-  const session = await c.env.DB.prepare(
-    `SELECT * FROM upload_sessions WHERE id = ?`
-  )
-    .bind(sessionId)
-    .first<UploadSessionSnap>();
-  if (!session) return c.json({ error: "Session not found" }, 404);
+  try {
+    const sessionId = c.req.param("sessionId");
+    const session = await c.env.DB.prepare(
+      `SELECT * FROM upload_sessions WHERE id = ?`
+    )
+      .bind(sessionId)
+      .first<UploadSessionSnap>();
+    if (!session) return c.json({ error: "Session not found" }, 404);
 
-  const temps = await c.env.DB.prepare(
-    `SELECT * FROM upload_temp_photos WHERE session_id = ?`
-  )
-    .bind(sessionId)
-    .all<TempPhotoSnap>();
-  const photos = temps.results || [];
-  if (!photos.length) return c.json({ error: "Please upload at least one photo" }, 400);
+    const ident = await readFinishIdentity(c);
+    const seller_name = ident.seller_name || session.seller_name;
+    const seller_email = ident.seller_email || session.seller_email;
+    const instagram = ident.instagram || session.instagram;
+    const asking_cents = ident.asking_cents ?? session.asking_cents;
+    const delivery_method = ident.delivery_method || session.delivery_method;
+    const seller_notes = ident.seller_notes || session.seller_notes;
+    const deliveryOk = delivery_method === "ship_us" || delivery_method === "dropoff_florida";
+    const agree = ident.agree || Boolean(session.seller_email && session.accepted_terms_at);
+    if (!seller_name || !seller_email || asking_cents == null || !deliveryOk || !agree) {
+      return c.json(
+        { error: "Please fill name, email, your price, how you'll get the pins to us, and the privacy box." },
+        400
+      );
+    }
 
-  if (c.env.ENVIRONMENT === "production" && !hasModerationProvider(c.env)) {
-    return c.json({ error: "Uploads are paused until content moderation is configured." }, 503);
+    const temps = await c.env.DB.prepare(
+      `SELECT * FROM upload_temp_photos WHERE session_id = ?`
+    )
+      .bind(sessionId)
+      .all<TempPhotoSnap>();
+    const photos = temps.results || [];
+    if (!photos.length) return c.json({ error: "Please upload at least one photo" }, 400);
+
+    if (c.env.ENVIRONMENT === "production" && !hasModerationProvider(c.env)) {
+      return c.json({ error: "Uploads are paused until content moderation is configured." }, 503);
+    }
+
+    const snap: UploadSessionSnap = {
+      ...session,
+      seller_name,
+      seller_email,
+      paypal_gs_email: seller_email,
+      instagram,
+      asking_cents,
+      seller_notes,
+      delivery_method,
+      accepted_terms_at: session.seller_email ? session.accepted_terms_at : nowIso(),
+    };
+
+    // Claim without deleting: temp photos still reference this session (FK).
+    if (session.finish_started_at) {
+      return c.json({ ok: true, accepted: true });
+    }
+    const claimedAt = nowIso();
+    try {
+      const claim = await c.env.DB.prepare(
+        `UPDATE upload_sessions SET
+          seller_name = ?, seller_email = ?, paypal_gs_email = ?, instagram = ?,
+          asking_cents = ?, seller_notes = ?, delivery_method = ?, accepted_terms_at = ?,
+          finish_started_at = ?
+         WHERE id = ? AND finish_started_at IS NULL`
+      )
+        .bind(
+          snap.seller_name,
+          snap.seller_email,
+          snap.paypal_gs_email,
+          snap.instagram,
+          snap.asking_cents,
+          snap.seller_notes ?? null,
+          snap.delivery_method,
+          snap.accepted_terms_at,
+          claimedAt,
+          sessionId
+        )
+        .run();
+      if (!claim.meta.changes) {
+        return c.json({ ok: true, accepted: true });
+      }
+    } catch (claimErr) {
+      console.error("finish_claim_failed", claimErr);
+      return c.json({ error: "Could not finish. Please try again." }, 500);
+    }
+
+    // Thanks must return before moderation. Never await processSubmissionBackground here.
+    const background = processSubmissionBackground(c.env, snap, photos);
+    let scheduled = false;
+    try {
+      // Accessing the getter can throw on some Hono/Workers paths; keep it inside try.
+      const ctx = (c as { executionCtx?: ExecutionContext }).executionCtx;
+      if (ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil(background);
+        scheduled = true;
+      }
+    } catch (err) {
+      console.error("waitUntil_failed", err);
+    }
+    if (!scheduled) {
+      // Isolate may freeze after the response without waitUntil; still attempt best-effort.
+      background.catch((err) => console.error("async_finish_unawaited", err));
+    }
+
+    return c.json({ ok: true, accepted: true });
+  } catch (e) {
+    console.error("finish_failed", e);
+    return c.json({ error: "Could not finish. Please try again." }, 500);
   }
-
-  // Claim the session so a double-tap cannot start two finish jobs.
-  await c.env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(sessionId).run();
-
-  c.executionCtx.waitUntil(processSubmissionBackground(c.env, session, photos));
-  return c.json({ ok: true, accepted: true });
 });
 
 app.get("/thanks", (c) => {
@@ -1008,6 +1235,11 @@ app.get("/admin/collections/:id", async (c) => {
           ? escapeHtml(centsToDollars(row.asking_cents))
           : "They did not enter a price"
       }</p>
+      <p><strong>Seller notes:</strong> ${
+        row.seller_notes
+          ? escapeHtml(row.seller_notes)
+          : "None"
+      }</p>
       <p><strong>Our offer:</strong> ${row.offer_cents != null ? escapeHtml(centsToDollars(row.offer_cents)) : "None yet"}
          ${row.offer_expires_at ? " · expires " + escapeHtml(row.offer_expires_at) : ""}
          ${expired && row.offer_cents != null ? " · <strong>expired</strong>" : ""}</p>
@@ -1236,6 +1468,7 @@ app.get("/api/mac/handoff/:id/manifest", async (c) => {
   return c.json({
     collectionId: row.id,
     seller_name: row.seller_name,
+    seller_notes: row.seller_notes,
     folder: row.mac_handoff_folder || folderNameFromSeller(row.seller_name, row.id),
     photos: (photos.results || []).map((p: { id: string; original_filename: string | null; content_type: string | null }, i: number) => ({
       id: p.id,
