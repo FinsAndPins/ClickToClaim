@@ -19,6 +19,16 @@ import { INVITE_COOKIE, inviteGateEnabled, presentedInviteMatches } from "./invi
 import { buildZip, safeZipBaseName } from "./zip";
 import { folderNameFromSeller, reencodeToJpeg } from "./reencode";
 
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function id() {
+  return crypto.randomUUID();
+}
+
 function asciiMeta(value: string, max = 180): string {
   return value
     .normalize("NFKD")
@@ -302,7 +312,7 @@ function inviteGatePage(env: Bindings, err?: string) {
 
 export const app = new Hono<{ Bindings: Bindings }>();
 
-const OPEN_PATHS = new Set(["/health", "/styles.css", "/invite"]);
+const OPEN_PATHS = new Set(["/health", "/styles.css", "/invite", "/ctr-bg-canva.jpg"]);
 
 app.use("*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
@@ -357,6 +367,12 @@ app.get("/styles.css", async (c) => {
   return res;
 });
 
+app.get("/ctr-bg-canva.jpg", async (c) => {
+  const res = await c.env.ASSETS.fetch(new URL("/ctr-bg-canva.jpg", c.req.url));
+  if (res.status === 404) return c.notFound();
+  return res;
+});
+
 app.get("/", (c) => {
   const err = c.req.query("err");
   const ok = c.req.query("ok");
@@ -370,7 +386,6 @@ app.get("/", (c) => {
     "Sell my collection",
     `${flash}
     <h1 class="welcome">Welcome to the website of Fins and Pins!!!</h1>
-    <p class="welcome-iykyk">(Re-read that using your best PinDad voice as if we're at a trading event)</p>
     <p class="welcome-next">The easiest way to sell your collection to Fins and Pins</p>
     <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email you our best offer for everything in those photos, usually within 24 hours. For now we buy collections that ship within the United States, or that you drop off with us in person at a pin event in Florida.</p>
     <div class="card">
@@ -428,45 +443,52 @@ app.get("/privacy", (c) => {
 });
 
 app.post("/api/submissions", async (c) => {
-  const form = await c.req.parseBody();
-  const seller_name = String(form.seller_name || "").trim();
-  const seller_email = String(form.seller_email || "").trim().toLowerCase();
-  const instagram = String(form.instagram || "").trim() || null;
-  const asking_cents = parseDollarsToCents(String(form.asking || ""));
-  const delivery = String(form.delivery || "").trim();
-  const agree = String(form.agree || "") === "yes";
-  const deliveryOk = delivery === "ship_us" || delivery === "dropoff_florida";
-  if (!agree || !seller_name || !seller_email || asking_cents == null || !deliveryOk) {
+  try {
+    const form = await c.req.parseBody();
+    const seller_name = String(form.seller_name || "").trim();
+    const seller_email = String(form.seller_email || "").trim().toLowerCase();
+    const instagram = String(form.instagram || "").trim() || null;
+    const asking_cents = parseDollarsToCents(String(form.asking || ""));
+    const delivery = String(form.delivery || "").trim();
+    const agree = String(form.agree || "") === "yes";
+    const deliveryOk = delivery === "ship_us" || delivery === "dropoff_florida";
+    if (!agree || !seller_name || !seller_email || asking_cents == null || !deliveryOk) {
+      return c.redirect(
+        "/?err=" +
+          encodeURIComponent(
+            "Please fill name, email, your price, how you'll get the pins to us, and the privacy box."
+          )
+      );
+    }
+    const paypal_gs_email = seller_email;
+    const sessionId = id();
+    const created = nowIso();
+    const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
+    await c.env.DB.prepare(
+      `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, delivery_method, accepted_terms_at, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        sessionId,
+        seller_name,
+        seller_email,
+        paypal_gs_email,
+        instagram,
+        asking_cents,
+        delivery,
+        created,
+        created,
+        exp
+      )
+      .run();
+    await logEvent(c.env.DB, null, seller_email, "session_started", { sessionId, delivery });
+    return c.redirect(`/upload/${sessionId}`);
+  } catch (e) {
+    console.error("submissions_create_failed", e);
     return c.redirect(
-      "/?err=" +
-        encodeURIComponent(
-          "Please fill name, email, your price, how you'll get the pins to us, and the privacy box."
-        )
+      "/?err=" + encodeURIComponent("Something went wrong starting your upload. Please try again.")
     );
   }
-  const paypal_gs_email = seller_email;
-  const sessionId = id();
-  const created = nowIso();
-  const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
-  await c.env.DB.prepare(
-    `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, delivery_method, accepted_terms_at, created_at, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      sessionId,
-      seller_name,
-      seller_email,
-      paypal_gs_email,
-      instagram,
-      asking_cents,
-      delivery,
-      created,
-      created,
-      exp
-    )
-    .run();
-  await logEvent(c.env.DB, null, seller_email, "session_started", { sessionId, delivery });
-  return c.redirect(`/upload/${sessionId}`);
 });
 
 app.get("/upload/:sessionId", async (c) => {
