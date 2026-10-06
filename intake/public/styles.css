@@ -75,6 +75,7 @@ h1 { font-size: 1.45rem; margin: 0 0 10px; }
   font-weight: 800;
   line-height: 1.2;
   margin: 6px 0 8px;
+  text-align: center;
 }
 .welcome-iykyk {
   color: var(--fp-muted);
@@ -87,6 +88,7 @@ h1 { font-size: 1.45rem; margin: 0 0 10px; }
   font-size: 1.18rem;
   font-weight: 700;
   margin: 0 0 16px;
+  text-align: center;
 }
 h2 { font-size: 1.1rem; margin: 22px 0 10px; }
 .lede { color: var(--fp-muted); margin: 0 0 18px; }
