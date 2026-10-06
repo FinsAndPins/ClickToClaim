@@ -535,7 +535,7 @@ app.get("/upload/:sessionId", async (c) => {
         catch (_) {
           throw new Error(res.ok
             ? 'Unexpected response from server.'
-            : ('Upload failed (HTTP ' + res.status + '). Please try again.'));
+            : ('Something went wrong (HTTP ' + res.status + '). Please try again.'));
         }
       }
       go.onclick = async () => {
@@ -558,6 +558,7 @@ app.get("/upload/:sessionId", async (c) => {
           const fin = await fetch('/api/submissions/' + sessionId + '/finish', { method: 'POST' });
           const data = await readJson(fin);
           if (!fin.ok) throw new Error(data.error || 'Could not finish');
+          status.textContent = 'Done. Opening thank-you page…';
           location.href = '/thanks';
         } catch (e) {
           status.textContent = (e && e.message) ? e.message : String(e);
@@ -569,77 +570,105 @@ app.get("/upload/:sessionId", async (c) => {
 });
 
 app.post("/api/submissions/:sessionId/photos", async (c) => {
-  const sessionId = c.req.param("sessionId");
-  const session = await c.env.DB.prepare(`SELECT * FROM upload_sessions WHERE id = ?`).bind(sessionId).first();
-  if (!session) return c.json({ error: "Session not found" }, 404);
-  const countRow = await c.env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM upload_temp_photos WHERE session_id = ?`
-  )
-    .bind(sessionId)
-    .first<{ n: number }>();
-  const maxPhotos = Number(c.env.MAX_PHOTOS || 100);
-  if ((countRow?.n || 0) >= maxPhotos) return c.json({ error: "Photo limit reached" }, 400);
-
-  const body = await c.req.parseBody();
-  const file = body.photo;
-  if (!(file instanceof File)) return c.json({ error: "Missing photo" }, 400);
-  const maxBytes = Number(c.env.MAX_PHOTO_BYTES || 15728640);
-  if (file.size > maxBytes) return c.json({ error: "File too large" }, 400);
-  const type = (file.type || "image/jpeg").toLowerCase();
-  if (!ALLOWED_TYPES.has(type) && !file.name.toLowerCase().match(/\.(jpe?g|png|webp|heic|heif)$/)) {
-    return c.json({ error: "Please upload a photo file" }, 400);
-  }
-  const photoId = id();
-  const key = `t_${sessionId}_${photoId}`;
-  const bytes = await file.arrayBuffer();
-  const safeName = asciiMeta(file.name || "photo.jpg");
   try {
-    await c.env.BUCKET.put(key, bytes, {
-      httpMetadata: { contentType: file.type || "image/jpeg" },
-      customMetadata: {
-        sessionId,
-        temp: "1",
-        originalFilename: safeName,
-      },
-    });
+    const sessionId = c.req.param("sessionId");
+    const session = await c.env.DB.prepare(`SELECT * FROM upload_sessions WHERE id = ?`).bind(sessionId).first();
+    if (!session) return c.json({ error: "Session not found" }, 404);
+    const countRow = await c.env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM upload_temp_photos WHERE session_id = ?`
+    )
+      .bind(sessionId)
+      .first<{ n: number }>();
+    const maxPhotos = Number(c.env.MAX_PHOTOS || 100);
+    if ((countRow?.n || 0) >= maxPhotos) return c.json({ error: "Photo limit reached" }, 400);
+
+    const body = await c.req.parseBody();
+    const file = body.photo;
+    if (!(file instanceof File)) return c.json({ error: "Missing photo" }, 400);
+    const maxBytes = Number(c.env.MAX_PHOTO_BYTES || 15728640);
+    if (file.size > maxBytes) return c.json({ error: "File too large" }, 400);
+    const type = (file.type || "image/jpeg").toLowerCase();
+    if (!ALLOWED_TYPES.has(type) && !file.name.toLowerCase().match(/\.(jpe?g|png|webp|heic|heif)$/)) {
+      return c.json({ error: "Please upload a photo file" }, 400);
+    }
+    const photoId = id();
+    const key = `t_${sessionId}_${photoId}`;
+    const bytes = await file.arrayBuffer();
+    const safeName = asciiMeta(file.name || "photo.jpg") || "photo.jpg";
+    try {
+      await c.env.BUCKET.put(key, bytes, {
+        httpMetadata: { contentType: file.type || "image/jpeg" },
+        customMetadata: {
+          sessionId: asciiMeta(sessionId, 80),
+          temp: "1",
+          originalFilename: safeName,
+        },
+      });
+    } catch (e) {
+      console.error("photo_r2_put_failed", e);
+      return c.json({ error: "Could not store that photo. Please try JPEG and submit again." }, 500);
+    }
+    await c.env.DB.prepare(
+      `INSERT INTO upload_temp_photos (id, session_id, r2_key, original_filename, content_type, size_bytes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(photoId, sessionId, key, safeName, file.type || "image/jpeg", file.size, nowIso())
+      .run();
+    return c.json({ ok: true, photoId });
   } catch (e) {
-    return c.json({ error: "Could not store that photo. Please try JPEG and submit again." }, 500);
+    console.error("photo_upload_failed", e);
+    return c.json({ error: "Upload failed. Please try again." }, 500);
   }
-  await c.env.DB.prepare(
-    `INSERT INTO upload_temp_photos (id, session_id, r2_key, original_filename, content_type, size_bytes, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(photoId, sessionId, key, safeName || file.name, file.type || "image/jpeg", file.size, nowIso())
-    .run();
-  return c.json({ ok: true, photoId });
 });
 
 app.post("/api/submissions/:sessionId/finish", async (c) => {
-  const sessionId = c.req.param("sessionId");
-  const session = await c.env.DB.prepare(
-    `SELECT * FROM upload_sessions WHERE id = ?`
-  )
-    .bind(sessionId)
-    .first<UploadSessionSnap>();
-  if (!session) return c.json({ error: "Session not found" }, 404);
+  try {
+    const sessionId = c.req.param("sessionId");
+    const session = await c.env.DB.prepare(
+      `SELECT * FROM upload_sessions WHERE id = ?`
+    )
+      .bind(sessionId)
+      .first<UploadSessionSnap>();
+    if (!session) return c.json({ error: "Session not found" }, 404);
 
-  const temps = await c.env.DB.prepare(
-    `SELECT * FROM upload_temp_photos WHERE session_id = ?`
-  )
-    .bind(sessionId)
-    .all<TempPhotoSnap>();
-  const photos = temps.results || [];
-  if (!photos.length) return c.json({ error: "Please upload at least one photo" }, 400);
+    const temps = await c.env.DB.prepare(
+      `SELECT * FROM upload_temp_photos WHERE session_id = ?`
+    )
+      .bind(sessionId)
+      .all<TempPhotoSnap>();
+    const photos = temps.results || [];
+    if (!photos.length) return c.json({ error: "Please upload at least one photo" }, 400);
 
-  if (c.env.ENVIRONMENT === "production" && !hasModerationProvider(c.env)) {
-    return c.json({ error: "Uploads are paused until content moderation is configured." }, 503);
+    if (c.env.ENVIRONMENT === "production" && !hasModerationProvider(c.env)) {
+      return c.json({ error: "Uploads are paused until content moderation is configured." }, 503);
+    }
+
+    // Claim the session so a double-tap cannot start two finish jobs.
+    await c.env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(sessionId).run();
+
+    // Thanks must return before moderation. Never await processSubmissionBackground here.
+    const background = processSubmissionBackground(c.env, session, photos);
+    let scheduled = false;
+    try {
+      // Accessing the getter can throw on some Hono/Workers paths; keep it inside try.
+      const ctx = (c as { executionCtx?: ExecutionContext }).executionCtx;
+      if (ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil(background);
+        scheduled = true;
+      }
+    } catch (err) {
+      console.error("waitUntil_failed", err);
+    }
+    if (!scheduled) {
+      // Isolate may freeze after the response without waitUntil; still attempt best-effort.
+      background.catch((err) => console.error("async_finish_unawaited", err));
+    }
+
+    return c.json({ ok: true, accepted: true });
+  } catch (e) {
+    console.error("finish_failed", e);
+    return c.json({ error: "Could not finish. Please try again." }, 500);
   }
-
-  // Claim the session so a double-tap cannot start two finish jobs.
-  await c.env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(sessionId).run();
-
-  c.executionCtx.waitUntil(processSubmissionBackground(c.env, session, photos));
-  return c.json({ ok: true, accepted: true });
 });
 
 app.get("/thanks", (c) => {
