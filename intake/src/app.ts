@@ -385,9 +385,9 @@ app.get("/", (c) => {
     c.env,
     "Sell my collection",
     `${flash}
-    <h1 class="welcome">Welcome to the website of Fins and Pins!!!</h1>
-    <p class="welcome-next">The easiest way to sell your collection to Fins and Pins</p>
-    <p class="lede">We pay reasonable prices for authentic Disney pins. Upload photos of the boards you want to sell. We’ll email you our best offer for everything in those photos, usually within 24 hours. For now we buy collections that ship within the United States, or that you drop off with us in person at a pin event in Florida.</p>
+    <h1 class="welcome">Welcome to the website of Fins and Pins!</h1>
+    <p class="welcome-next">The easiest way to sell your collection</p>
+    <p class="lede">We pay reasonable prices for authentic Disney pins! Simply upload photos of the boards you want to sell and we’ll email you our best offer for everything in those photos within 24-48 business hours. Currently we only buy collections that ship within the United States, or that you drop off with us in person at a pin event in Florida. Thank you for your understanding</p>
     <div class="card">
       <form id="start" method="post" action="/api/submissions">
         <label>Name (required)<input required type="text" name="seller_name" autocomplete="name" /></label>
