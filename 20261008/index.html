@@ -524,6 +524,12 @@ let showPhaseOverride = "auto";
 let showEndedFullscreenActive = false;
 /** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
 const SHOW_DATE_SLUG_FALLBACK = "20261008";
+
+/* ctrandpricing:isLeftoverBoardName */
+function isLeftoverBoardName(name) {
+    return /^LO\d+_/.test(String(name || ""));
+}
+
 /** Paste your whatnot invite / referral URL here (shown in FAQ links). */
 const WHATNOT_REFERRAL_URL = "https://whatnot.com/invite/finsandpins";
 
@@ -1070,7 +1076,7 @@ function updateCountdowns() {
 }
 
 // Increment when boards/ or manifest.json changes (forces browsers + edge caches to refetch manifest, JPG, and JSON).
-const BOARDS_MANIFEST_VERSION = "1";
+const BOARDS_MANIFEST_VERSION = "2";
 
 async function computeAllBoardPinTotals(boardNames) {
     let sum = 0;
