@@ -265,7 +265,49 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   color: var(--fp-text);
   margin: 0 0 12px;
 }
-.choose-wrap { margin-top: 12px; }
+.choose-wrap {
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+.choose-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.choose-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 64px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 2px solid var(--fp-text);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--fp-text);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(26, 26, 64, 0.12);
+}
+.choose-btn:hover,
+.choose-btn:focus {
+  background: rgba(255, 255, 255, 0.72);
+  outline: none;
+}
+.choose-input:focus-visible + .choose-btn,
+.choose-btn:focus-visible {
+  outline: 3px solid var(--fp-muted);
+  outline-offset: 3px;
+}
 .thumbs {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
