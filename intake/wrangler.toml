@@ -3,12 +3,17 @@ main = "src/index.ts"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Public hostname after DNS: sell.finsandpins.shop
+# Public hostname: sellmycollection.finsandpins.shop (Worker custom domain).
 # After deploy (Mac):
 #   npx wrangler secret put GOOGLE_VISION_API_KEY
 #   npx wrangler secret put RESEND_API_KEY
 #   npx wrangler secret put INVITE_CODE
-# Set PUBLIC_BASE_URL to https://sell.finsandpins.shop in the Worker dashboard (or wrangler vars).
+
+workers_dev = true
+
+[[routes]]
+pattern = "sellmycollection.finsandpins.shop"
+custom_domain = true
 
 [assets]
 directory = "./public"
@@ -17,7 +22,7 @@ run_worker_first = true
 
 [vars]
 APP_NAME = "Fins & Pins: Sell My Collection"
-PUBLIC_BASE_URL = "https://finsandpins-intake.finsandpins.workers.dev"
+PUBLIC_BASE_URL = "https://sellmycollection.finsandpins.shop"
 FROM_EMAIL = "offer@finsandpins.shop"
 NOREPLY_EMAIL = "noreply@finsandpins.shop"
 # INVITE_CODE is a secret in production (never commit a real code here).
