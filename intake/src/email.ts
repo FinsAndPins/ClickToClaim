@@ -62,7 +62,7 @@ export function offerEmail(opts: {
     text: [
       `Hi ${opts.sellerName},`,
       "",
-      "Thank you for sending photos of your collection.",
+      "Thank you for uploading photos of your collection.",
       "",
       `Our best offer for everything in the photos you uploaded is ${opts.offerLabel}.`,
       "",
