@@ -542,13 +542,12 @@ app.get("/", (c) => {
         <li>Fill the frame with the pins. Straight-on is better than a steep angle.</li>
         <li>Use even light. Avoid heavy glare on cellophane if you can.</li>
         <li>Don’t include people, faces, or anything that isn’t the pins.</li>
-        <li>JPEG is safest on iPhone: Settings → Camera → Most Compatible.</li>
       </ul>
-      <p class="hint">No minimum count. Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. Upload starts as soon as you pick files.</p>
+      <p class="hint">Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. Upload starts as soon as you pick files.</p>
       <div class="choose-wrap">
-        <input id="files" type="file" accept="image/*" multiple />
+        <input id="files" class="choose-input" type="file" accept="image/*" multiple />
+        <label for="files" class="choose-btn">Choose board photos</label>
       </div>
-      <p class="hint">On iPhone you can pick from Photos.</p>
       <div class="upload-status" id="uploadStatus">Choose board photos to get started.</div>
       <div class="thumbs" id="thumbs"></div>
     </div>
@@ -702,7 +701,7 @@ app.get("/upload/:sessionId", async (c) => {
     c.env,
     "Upload photos",
     `<h1>Upload board photos</h1>
-    <p class="lede">No minimum count. Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. After you submit, we run automated safety filters in the background. If a photo doesn’t pass, we’ll email you and those files are not kept.</p>
+    <p class="lede">Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. After you submit, we run automated safety filters in the background. If a photo doesn’t pass, we’ll email you and those files are not kept.</p>
     <div class="card">
       <h2>How to shoot a board</h2>
       <ul class="legal">
@@ -710,10 +709,12 @@ app.get("/upload/:sessionId", async (c) => {
         <li>Fill the frame with the pins. Straight-on is better than a steep angle.</li>
         <li>Use even light. Avoid heavy glare on cellophane if you can.</li>
         <li>Don’t include people, faces, or anything that isn’t the pins.</li>
-        <li>JPEG is safest on iPhone: Settings → Camera → Most Compatible.</li>
       </ul>
-      <input id="files" type="file" accept="image/*" multiple />
-      <p class="hint">On iPhone you can pick from Photos. Upload starts when you tap Submit.</p>
+      <div class="choose-wrap">
+        <input id="files" class="choose-input" type="file" accept="image/*" multiple />
+        <label for="files" class="choose-btn">Choose board photos</label>
+      </div>
+      <p class="hint">Upload starts when you tap Submit.</p>
       <div class="progress" id="status"></div>
       <div class="row">
         <button id="go" type="button">Submit photos</button>
