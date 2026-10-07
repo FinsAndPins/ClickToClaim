@@ -282,6 +282,93 @@ function offerUrl(env: Bindings, token: string) {
   return `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/o/${token}`;
 }
 
+/** Parse PriceCollection_* folder name from a PreparingInventory Pages CTM/CTP URL. */
+function preparingInventoryFinalName(overlayUrl: string): string | null {
+  const m = overlayUrl.match(/\/PreparingInventory\/(PriceCollection_[^/?#]+)\//i);
+  return m ? m[1] : null;
+}
+
+function parseDisplayPriceCents(raw: unknown): number | null {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return Math.round(raw * 100);
+  }
+  if (typeof raw === "string") {
+    return parseDollarsToCents(raw);
+  }
+  return null;
+}
+
+/**
+ * Staff "Pull total from Firebase": sum display_price on pins Lexi has priced
+ * (CTM Match / CTP / manual all write display_price on the harness).
+ */
+async function pullHarnessTotalFromFirebase(overlayUrl: string): Promise<{
+  ok: true;
+  totalCents: number;
+  priced: number;
+  pinCount: number;
+  testRunId: string;
+} | { ok: false; error: string }> {
+  const finalName = preparingInventoryFinalName(overlayUrl);
+  if (!finalName) {
+    return { ok: false, error: "Could not read the PriceCollection name from the overlay link." };
+  }
+  const uiDataUrl = `https://finsandpins.github.io/PreparingInventory/${finalName}/testing_ui_visual_baseline/ui_data.json`;
+  let ui: {
+    test_run_id?: string;
+    approach_id?: string;
+    global_pin_count?: number;
+  };
+  try {
+    const res = await fetch(uiDataUrl);
+    if (!res.ok) {
+      return { ok: false, error: `Could not load harness ui_data.json (HTTP ${res.status}).` };
+    }
+    ui = (await res.json()) as typeof ui;
+  } catch {
+    return { ok: false, error: "Could not load harness ui_data.json from GitHub Pages." };
+  }
+  const testRunId = String(ui.test_run_id || "").trim();
+  const approachId = String(ui.approach_id || "visual_baseline").trim() || "visual_baseline";
+  if (!testRunId) {
+    return { ok: false, error: "Harness ui_data.json is missing test_run_id." };
+  }
+  const pinsUrl = `https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/pin_pricing_tests/${encodeURIComponent(testRunId)}/${encodeURIComponent(approachId)}/pins.json`;
+  let pins: Record<string, unknown> | null;
+  try {
+    const res = await fetch(pinsUrl);
+    if (!res.ok) {
+      return { ok: false, error: `Firebase read failed (HTTP ${res.status}).` };
+    }
+    pins = (await res.json()) as Record<string, unknown> | null;
+  } catch {
+    return { ok: false, error: "Could not read pin prices from Firebase." };
+  }
+  if (!pins || typeof pins !== "object") {
+    return {
+      ok: false,
+      error: "No Firebase prices yet. Open the overlay, finish CTM/CTP or manual prices, then pull again.",
+    };
+  }
+  let totalCents = 0;
+  let priced = 0;
+  for (const v of Object.values(pins)) {
+    if (!v || typeof v !== "object") continue;
+    const cents = parseDisplayPriceCents((v as { display_price?: unknown }).display_price);
+    if (cents == null) continue;
+    totalCents += cents;
+    priced += 1;
+  }
+  if (!priced) {
+    return {
+      ok: false,
+      error: "Firebase has pin rows but no display_price values yet. Finish matching, then pull again.",
+    };
+  }
+  const pinCount = Number(ui.global_pin_count) || Object.keys(pins).length;
+  return { ok: true, totalCents, priced, pinCount, testRunId };
+}
+
 function strField(v: unknown): string {
   return String(v ?? "").trim();
 }
@@ -1170,13 +1257,21 @@ app.get("/admin/collections/:id", async (c) => {
         <div><span>50%</span>${escapeHtml(centsToDollars(helpers.p50))}</div>
         <div><span>60%</span>${escapeHtml(centsToDollars(helpers.p60))}</div>
       </div>`
-    : `<p class="hint">Paste overlay URL + harness total after Mac pricing.</p>`;
+    : `<p class="hint">Harness total appears after you pull from Firebase (or enter it below).</p>`;
   const cover = row.cover_photo_id
     ? `<img class="cover" src="/admin/collections/${row.id}/photos/${row.cover_photo_id}" alt="Cover" />`
     : "";
-  const overlay = row.overlay_url
-    ? `<p><a class="btn" href="${escapeHtml(row.overlay_url)}" target="_blank" rel="noopener">Open pricing overlay</a></p>`
-    : "";
+  const flashOk = c.req.query("ok");
+  const flashErr = c.req.query("err");
+  const flash = flashErr
+    ? `<div class="flash err">${escapeHtml(flashErr)}</div>`
+    : flashOk
+      ? `<div class="flash ok">${escapeHtml(flashOk)}</div>`
+      : "";
+  const overlayBlock = row.overlay_url
+    ? `<p><a class="btn" href="${escapeHtml(row.overlay_url)}" target="_blank" rel="noopener">Open pricing overlay</a></p>
+       <p class="hint">Linked automatically when Named Collections finishes publishing.</p>`
+    : `<p class="hint">Pricing overlay button appears here automatically after Named Collections publishes the harness. No paste step.</p>`;
   const next = staffNextStatuses(row.status)
     .map(
       (s) =>
@@ -1204,6 +1299,7 @@ app.get("/admin/collections/:id", async (c) => {
     c.env,
     row.seller_name,
     `${cover}
+    ${flash}
     <h1>${escapeHtml(row.seller_name)}</h1>
     <p class="lede">${escapeHtml(row.status.replace(/_/g, " "))} · ${escapeHtml(row.seller_email)} · PayPal ${escapeHtml(row.paypal_gs_email)}
     ${row.instagram ? " · " + escapeHtml(row.instagram) : ""}
@@ -1216,12 +1312,17 @@ app.get("/admin/collections/:id", async (c) => {
     }</p>
     <div class="card">
       <h2>Internal (seller never sees this)</h2>
+      ${overlayBlock}
       ${helperHtml}
-      ${overlay}
-      <form method="post" action="/admin/collections/${row.id}/overlay">
-        <label>Pricing overlay URL<input name="overlay_url" value="${escapeHtml(row.overlay_url || "")}" placeholder="https://…" /></label>
+      <div class="row" style="margin-top:12px">
+        <form method="post" action="/admin/collections/${row.id}/pull-harness-total">
+          <button type="submit" ${row.overlay_url ? "" : "disabled"}>Pull total from Firebase</button>
+        </form>
+      </div>
+      <p class="hint">Pull after Lexi finishes CTM Match / CTP / manual prices. Uses Firebase display_price values (not the first-pass pipeline estimate).</p>
+      <form method="post" action="/admin/collections/${row.id}/overlay" style="margin-top:12px">
         <label>Harness total (dollars, no pin count shown to seller)<input name="harness_total" value="${row.harness_total_cents != null ? String(row.harness_total_cents / 100) : ""}" inputmode="decimal" /></label>
-        <button type="submit">Save overlay / total</button>
+        <button type="submit">Save total</button>
       </form>
       <form method="post" action="/admin/collections/${row.id}/note">
         <label>Private note<textarea name="note">${escapeHtml(row.internal_note || "")}</textarea></label>
@@ -1318,15 +1419,48 @@ app.post("/admin/collections/:id/overlay", async (c) => {
   const staff = await requireStaff(c.env, c.req.raw);
   if (staff instanceof Response) return staff;
   const form = await c.req.parseBody();
-  const url = String(form.overlay_url || "").trim() || null;
-  const total = parseDollarsToCents(String(form.harness_total || "")) ;
-  await c.env.DB.prepare(
-    `UPDATE collections SET overlay_url = ?, harness_total_cents = ?, updated_at = ? WHERE id = ?`
-  )
-    .bind(url, total, nowIso(), c.req.param("id"))
+  const total = parseDollarsToCents(String(form.harness_total || ""));
+  await c.env.DB.prepare(`UPDATE collections SET harness_total_cents = ?, updated_at = ? WHERE id = ?`)
+    .bind(total, nowIso(), c.req.param("id"))
     .run();
-  await logEvent(c.env.DB, c.req.param("id"), staff.email, "overlay_saved", { url, total });
-  return c.redirect(`/admin/collections/${c.req.param("id")}`);
+  await logEvent(c.env.DB, c.req.param("id"), staff.email, "harness_total_saved", { total });
+  return c.redirect(
+    `/admin/collections/${c.req.param("id")}?ok=` +
+      encodeURIComponent(total != null ? `Saved harness total ${centsToDollars(total)}.` : "Cleared harness total.")
+  );
+});
+
+app.post("/admin/collections/:id/pull-harness-total", async (c) => {
+  const staff = await requireStaff(c.env, c.req.raw);
+  if (staff instanceof Response) return staff;
+  const row = await c.env.DB.prepare(`SELECT * FROM collections WHERE id = ?`)
+    .bind(c.req.param("id"))
+    .first<CollectionRow>();
+  if (!row) return c.redirect("/admin");
+  if (!row.overlay_url) {
+    return c.redirect(
+      `/admin/collections/${row.id}?err=` +
+        encodeURIComponent("Open-pricing link is not set yet. Wait for Named Collections to finish, then try again.")
+    );
+  }
+  const pulled = await pullHarnessTotalFromFirebase(row.overlay_url);
+  if (!pulled.ok) {
+    return c.redirect(`/admin/collections/${row.id}?err=` + encodeURIComponent(pulled.error));
+  }
+  await c.env.DB.prepare(`UPDATE collections SET harness_total_cents = ?, updated_at = ? WHERE id = ?`)
+    .bind(pulled.totalCents, nowIso(), row.id)
+    .run();
+  await logEvent(c.env.DB, row.id, staff.email, "harness_total_pulled", {
+    total: pulled.totalCents,
+    priced: pulled.priced,
+    pin_count: pulled.pinCount,
+    test_run_id: pulled.testRunId,
+  });
+  const note =
+    pulled.priced < pulled.pinCount
+      ? `Pulled ${centsToDollars(pulled.totalCents)} from ${pulled.priced} of ${pulled.pinCount} pins (some still unpriced).`
+      : `Pulled ${centsToDollars(pulled.totalCents)} from ${pulled.priced} priced pins.`;
+  return c.redirect(`/admin/collections/${row.id}?ok=` + encodeURIComponent(note));
 });
 
 app.post("/admin/collections/:id/offer", async (c) => {
@@ -1451,6 +1585,53 @@ app.get("/api/mac/handoff/pending", async (c) => {
      FROM collections WHERE mac_handoff_status = 'queued' ORDER BY mac_handoff_at ASC LIMIT 20`
   ).all();
   return c.json({ ok: true, collections: rows.results || [] });
+});
+
+/**
+ * Intake-only overlay linker: collections that have a handoff folder but no overlay yet.
+ * Does not change Named Collections; a separate Mac script polls published harnesses.
+ */
+app.get("/api/mac/handoff/awaiting-overlay", async (c) => {
+  const auth = await requireMacOrStaff(c.env, c.req.raw);
+  if (auth instanceof Response) return auth;
+  const rows = await c.env.DB.prepare(
+    `SELECT id, seller_name, mac_handoff_folder, mac_handoff_status, mac_handoff_at, status, overlay_url
+     FROM collections
+     WHERE mac_handoff_folder IS NOT NULL
+       AND mac_handoff_folder != ''
+       AND (overlay_url IS NULL OR overlay_url = '')
+     ORDER BY mac_handoff_at DESC
+     LIMIT 100`
+  ).all();
+  return c.json({ ok: true, collections: rows.results || [] });
+});
+
+/** Intake-only linker posts the CTM URL after Named Collections publishes. */
+app.post("/api/mac/handoff/:id/pricing-overlay", async (c) => {
+  const auth = await requireMacOrStaff(c.env, c.req.raw);
+  if (auth instanceof Response) return auth;
+  const body = (await c.req.json().catch(() => ({}))) as {
+    overlay_url?: string;
+    pricing_final_name?: string;
+  };
+  const url = String(body.overlay_url || "").trim();
+  if (!url.startsWith("https://")) {
+    return c.json({ error: "overlay_url must be an https URL" }, 400);
+  }
+  const row = await c.env.DB.prepare(`SELECT id, overlay_url FROM collections WHERE id = ?`)
+    .bind(c.req.param("id"))
+    .first<{ id: string; overlay_url: string | null }>();
+  if (!row) return c.json({ error: "not found" }, 404);
+  const updated = nowIso();
+  await c.env.DB.prepare(`UPDATE collections SET overlay_url = ?, updated_at = ? WHERE id = ?`)
+    .bind(url, updated, row.id)
+    .run();
+  await logEvent(c.env.DB, row.id, auth.email, "pricing_overlay_linked", {
+    overlay_url: url,
+    pricing_final_name: body.pricing_final_name || preparingInventoryFinalName(url),
+    replaced: Boolean(row.overlay_url),
+  });
+  return c.json({ ok: true });
 });
 
 app.get("/api/mac/handoff/:id/manifest", async (c) => {
