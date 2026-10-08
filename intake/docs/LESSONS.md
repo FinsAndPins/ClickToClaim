@@ -19,3 +19,13 @@
 **Rule:** Intake-only `link_pricing_overlay_once.py` (same handoff LaunchAgent) links the Open pricing overlay button. Staff clicks **Pull total from Firebase** after Lexi finishes pricing (sums `display_price`). Do not edit Named Collections for this.
 
 **Where:** intake Worker admin card; `Cursor Projects/IntakeToCollectionsToPrice/link_pricing_overlay_once.py`
+
+## 2026-10-07 — Open pricing overlay → index.html (not CTM)
+
+**Symptom:** Dashboard Open pricing overlay opened `new_ctm.html`.
+
+**Cause:** Intake linker used Named Collections’ CTM share URL.
+
+**Rule:** Store and link `testing_ui_visual_baseline/index.html` (the overlay). Rewrite `new_ctm.html` → `index.html` on ingest. Pull total still uses `ui_data.json` / Firebase and does not care which page the button opens.
+
+**Where:** `link_pricing_overlay_once.py`; intake `POST /api/mac/handoff/:id/pricing-overlay`

@@ -1607,7 +1607,7 @@ app.get("/api/mac/handoff/awaiting-overlay", async (c) => {
   return c.json({ ok: true, collections: rows.results || [] });
 });
 
-/** Intake-only linker posts the CTM URL after Named Collections publishes. */
+/** Intake-only linker posts the overlay URL after Named Collections publishes. */
 app.post("/api/mac/handoff/:id/pricing-overlay", async (c) => {
   const auth = await requireMacOrStaff(c.env, c.req.raw);
   if (auth instanceof Response) return auth;
@@ -1615,7 +1615,10 @@ app.post("/api/mac/handoff/:id/pricing-overlay", async (c) => {
     overlay_url?: string;
     pricing_final_name?: string;
   };
-  const url = String(body.overlay_url || "").trim();
+  // Staff button opens the harness overlay (index.html), not CTM (new_ctm.html).
+  const url = String(body.overlay_url || "")
+    .trim()
+    .replace(/\/new_ctm\.html(\?.*)?$/i, "/index.html$1");
   if (!url.startsWith("https://")) {
     return c.json({ error: "overlay_url must be an https URL" }, 400);
   }
