@@ -282,6 +282,46 @@ function offerUrl(env: Bindings, token: string) {
   return `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/o/${token}`;
 }
 
+/** Staff: open PayPal checkout prefilled for Goods & Services to this seller. */
+function paypalPayUrl(email: string, offerCents: number | null): string {
+  const params = new URLSearchParams({
+    cmd: "_xclick",
+    business: email.trim(),
+    currency_code: "USD",
+    no_shipping: "1",
+    item_name: "Fins & Pins pin collection",
+  });
+  if (offerCents != null && offerCents > 0) {
+    params.set("amount", (offerCents / 100).toFixed(2));
+  }
+  return `https://www.paypal.com/cgi-bin/webscr?${params.toString()}`;
+}
+
+async function loadCollectionPhotos(db: D1Database, collectionId: string): Promise<PhotoRow[]> {
+  const photos = await db
+    .prepare(`SELECT * FROM photos WHERE collection_id = ? ORDER BY created_at`)
+    .bind(collectionId)
+    .all<PhotoRow>();
+  return photos.results || [];
+}
+
+/** Seller-facing gallery for offer / accept pages (token-gated image URLs). */
+function offerPhotoGridHtml(token: string, photos: PhotoRow[]): string {
+  if (!photos.length) return "";
+  const imgs = photos
+    .map(
+      (p) =>
+        `<a href="/o/${encodeURIComponent(token)}/photos/${encodeURIComponent(p.id)}" target="_blank" rel="noopener">
+           <img src="/o/${encodeURIComponent(token)}/photos/${encodeURIComponent(p.id)}" alt="Board photo you uploaded" loading="lazy" />
+         </a>`
+    )
+    .join("");
+  return `<div class="offer-photos">
+    <h2>Your uploaded photos</h2>
+    <div class="photo-grid offer-photo-grid">${imgs}</div>
+  </div>`;
+}
+
 /** Parse PriceCollection_* folder name from a PreparingInventory Pages CTM/CTP URL. */
 function preparingInventoryFinalName(overlayUrl: string): string | null {
   const m = overlayUrl.match(/\/PreparingInventory\/(PriceCollection_[^/?#]+)\//i);
@@ -978,6 +1018,9 @@ app.get("/o/:token", async (c) => {
   }
   const expired = offerExpired(row.offer_expires_at) || row.status === "withdrawn";
   const amount = centsToDollars(row.offer_cents);
+  const token = row.offer_token!;
+  const photos = await loadCollectionPhotos(c.env.DB, row.id);
+  const photoBlock = offerPhotoGridHtml(token, photos);
   if (row.status === "declined") {
     return html(
       c.env,
@@ -1000,6 +1043,7 @@ app.get("/o/:token", async (c) => {
         <p>Our offer for everything in the photos you uploaded:</p>
         <div class="offer-amt">${escapeHtml(amount)}</div>
         ${ship}
+        ${photoBlock}
       </div>`
     );
   }
@@ -1018,19 +1062,40 @@ app.get("/o/:token", async (c) => {
     <div class="card">
       <p>This is our best offer for <strong>everything in the photos you uploaded</strong>.</p>
       <div class="offer-amt">${escapeHtml(amount)}</div>
-      <form method="post" action="/o/${encodeURIComponent(row.offer_token!)}/accept">
+      ${photoBlock}
+      <form method="post" action="/o/${encodeURIComponent(token)}/accept">
         <label>PayPal Goods &amp; Services email<input required type="email" name="paypal_gs_email" value="${escapeHtml(row.paypal_gs_email || row.seller_email)}" autocomplete="email" /></label>
         <p class="hint">We pay this address after you accept, before you ${
           row.delivery_method === "dropoff_florida" ? "drop off" : "ship"
         }.</p>
         <button type="submit">Accept</button>
       </form>
-      <form method="get" action="/o/${encodeURIComponent(row.offer_token!)}/decline" style="margin-top:12px">
+      <form method="get" action="/o/${encodeURIComponent(token)}/decline" style="margin-top:12px">
         <button class="secondary" type="submit">Decline</button>
       </form>
       <p class="hint">The link works until ${escapeHtml(row.offer_expires_at || "")}. You can reopen it until then. No reminders, no pressure.</p>
     </div>`
   );
+});
+
+/** Seller photo bytes for an offer link (must match offer_token + collection). */
+app.get("/o/:token/photos/:photoId", async (c) => {
+  const row = await c.env.DB.prepare(`SELECT id FROM collections WHERE offer_token = ?`)
+    .bind(c.req.param("token"))
+    .first<{ id: string }>();
+  if (!row) return c.notFound();
+  const photo = await c.env.DB.prepare(
+    `SELECT * FROM photos WHERE id = ? AND collection_id = ?`
+  )
+    .bind(c.req.param("photoId"), row.id)
+    .first<PhotoRow>();
+  if (!photo) return c.notFound();
+  const obj = await c.env.BUCKET.get(photo.r2_key);
+  if (!obj) return c.notFound();
+  const headers = new Headers();
+  headers.set("content-type", photo.content_type || "image/jpeg");
+  headers.set("cache-control", "private, max-age=300");
+  return new Response(obj.body, { headers });
 });
 
 app.post("/o/:token/accept", async (c) => {
@@ -1296,13 +1361,32 @@ app.get("/admin/collections/:id", async (c) => {
     )
     .join("");
   const expired = offerExpired(row.offer_expires_at);
+  const paypalHref = paypalPayUrl(row.paypal_gs_email, row.offer_cents);
+  // Plain text (not mailto). Pay with the button so Lexi/Steve both open PayPal, not Mail.
+  const paypalPlain = escapeHtml(row.paypal_gs_email).replace(/@/g, "&#64;");
+  const showPaypalPay =
+    Boolean(row.paypal_gs_email) &&
+    (row.status === "accepted" ||
+      row.status === "paid" ||
+      row.status === "waiting_for_package" ||
+      row.status === "received");
+  const paypalPayBtn = showPaypalPay
+    ? `<div class="card">
+         <h2>Pay seller</h2>
+         <p>PayPal Goods &amp; Services: <strong>${paypalPlain}</strong></p>
+         <p class="row"><a class="btn" href="${escapeHtml(paypalHref)}" target="_blank" rel="noopener">Open in PayPal to pay</a></p>
+         <p class="hint">Opens PayPal with this email${
+           row.offer_cents != null ? " and the offer amount" : ""
+         }. Confirm Goods &amp; Services before you send.</p>
+       </div>`
+    : "";
   return html(
     c.env,
     row.seller_name,
     `${cover}
     ${flash}
     <h1>${escapeHtml(row.seller_name)}</h1>
-    <p class="lede">${escapeHtml(row.status.replace(/_/g, " "))} · ${escapeHtml(row.seller_email)} · PayPal ${escapeHtml(row.paypal_gs_email)}
+    <p class="lede">${escapeHtml(row.status.replace(/_/g, " "))} · ${escapeHtml(row.seller_email).replace(/@/g, "&#64;")} · PayPal ${paypalPlain}
     ${row.instagram ? " · " + escapeHtml(row.instagram) : ""}
     ${
       row.delivery_method === "dropoff_florida"
@@ -1311,6 +1395,7 @@ app.get("/admin/collections/:id", async (c) => {
           ? " · Ship within US"
           : ""
     }</p>
+    ${paypalPayBtn}
     <div class="card">
       <h2>Internal (seller never sees this)</h2>
       ${overlayBlock}
