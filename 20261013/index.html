@@ -145,7 +145,7 @@
             white-space: nowrap;
         }
 
-        /* Admin Tap to Exclude: visible Not Available for everyone; Sold wins if both. */
+        /* Admin Tap to Exclude: visible Not For Sale for everyone; Sold wins if both. */
         .pin.pin-excluded:not(.pin-sold) {
             background: rgba(0, 0, 0, 0.42) !important;
             border: 2px solid rgba(255, 180, 60, 0.9) !important;
@@ -153,14 +153,14 @@
             cursor: default;
         }
         .pin.pin-excluded:not(.pin-sold)::after {
-            content: "N/A";
+            content: "Not For Sale";
             position: absolute;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%) rotate(-28deg);
-            font-size: clamp(8px, 2.1vw, 13px);
+            font-size: clamp(6px, 1.55vw, 11px);
             font-weight: 900;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.01em;
             color: #fff;
             text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
             pointer-events: none;
@@ -545,14 +545,14 @@
         <button type="button" class="admin-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
         <button type="button" id="boxCleanupToggle" title="Show all boxes; tap to hide non-pins for everyone">Fix boxes</button>
         <span id="boxCleanupCount"></span>
-        <button type="button" id="excludePinsToggle" title="Tap pins to mark Not Available for everyone">Tap to Exclude pins</button>
+        <button type="button" id="excludePinsToggle" title="Tap pins to mark Not For Sale for everyone">Tap to Exclude pins</button>
         <span id="excludePinsCount"></span>
     </div>
     <div id="boxCleanupBar" aria-label="Box cleanup help">
         <p><strong>Fix boxes (live for everyone):</strong> green outline = clickable pin. Tap a bad box to hide it for all visitors (red dashed). Tap again to restore. Saves to Firebase immediately, not just this browser.</p>
     </div>
     <div id="excludePinsBar" aria-label="Exclude pins help">
-        <p><strong>Tap to Exclude pins (live for everyone):</strong> tap a pin to mark it <em>N/A</em> (visitors cannot click it). Tap again to restore. Sold pins stay Sold and stay non-clickable. Saves to Firebase immediately.</p>
+        <p><strong>Tap to Exclude pins (live for everyone):</strong> tap a pin to mark it <em>Not For Sale</em> (visitors cannot click it). Tap again to restore. Sold pins stay Sold and stay non-clickable. Saves to Firebase immediately.</p>
     </div>
     <div id="countdownArea"></div>
     <div id="liteModeControls">
