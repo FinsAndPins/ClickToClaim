@@ -62,6 +62,18 @@
         .board-container { margin-bottom: 28px; background: transparent; padding: 0; border-radius: 0; }
         .board-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0; padding: 10px 12px 0; background: var(--fp-chunk); border-radius: 10px 10px 0 0; }
         .board-title { font-size: 18px; font-weight: bold; color: var(--fp-text); }
+        .board-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; }
+        .board-day-picks { display: none; align-items: center; gap: 6px; flex-wrap: wrap; }
+        body.admin-on .board-day-picks { display: inline-flex; }
+        .board-day-pick {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 11px; font-weight: bold; color: var(--fp-text);
+            padding: 3px 7px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35);
+            background: rgba(0,0,0,0.12); cursor: pointer; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .board-day-pick.is-on { background: #1877f2; border-color: rgba(255,255,255,0.55); }
+        .board-day-pick input { margin: 0; accent-color: #fff; width: 13px; height: 13px; }
         .admin-board-total { font-size: 12px; color: var(--fp-text); font-weight: bold; text-align: right; max-width: 230px; line-height: 1.5; }
         .board-count { font-size: 14px; margin: 0; padding: 0 12px 8px; color: var(--fp-muted); background: var(--fp-chunk); }
         .board-wrapper { position: relative; width: 100%; max-width: none; margin: 0; min-height: 300px; background: rgba(0,0,0,0.15); border-radius: 0 0 10px 10px; overflow: hidden; }
@@ -631,6 +643,7 @@ const liteStart = Number.isFinite(liteStartRaw) ? Math.max(0, liteStartRaw) : 0;
 
 if (providedKey === ADMIN_KEY) sessionStorage.setItem('fp_admin_active', 'true');
 const isAdmin = sessionStorage.getItem('fp_admin_active') === 'true';
+if (isAdmin) document.body.classList.add('admin-on');
 
 function goToFullBoardView() {
     const u = new URL("index.html", window.location.href);
@@ -1145,6 +1158,73 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     if (typeof calculateGlobals === "function") calculateGlobals();
 });
 
+/** Admin: Lexi marks which show day each board goes to (Mon / Thu / both / none). */
+const boardShowDayByName = {};
+
+function _boardShowDayPath(boardName) {
+    return `showConfig/${fbName}/boardShowDay/${boardName}`;
+}
+
+function applyBoardShowDayUI() {
+    document.querySelectorAll(".board-day-picks[data-board]").forEach(wrap => {
+        const board = wrap.getAttribute("data-board");
+        const row = boardShowDayByName[board] || {};
+        const mon = !!row.monday;
+        const thu = !!row.thursday;
+        wrap.querySelectorAll("label.board-day-pick").forEach(lab => {
+            const day = lab.getAttribute("data-day");
+            const on = day === "monday" ? mon : day === "thursday" ? thu : false;
+            lab.classList.toggle("is-on", on);
+            const inp = lab.querySelector("input[type=checkbox]");
+            if (inp && inp.checked !== on) inp.checked = on;
+        });
+    });
+}
+
+function setBoardShowDay(boardName, day, checked) {
+    if (!isAdmin) return;
+    if (day !== "monday" && day !== "thursday") return;
+    const cur = boardShowDayByName[boardName] || {};
+    const next = {
+        monday: day === "monday" ? !!checked : !!cur.monday,
+        thursday: day === "thursday" ? !!checked : !!cur.thursday
+    };
+    const ref = db.ref(_boardShowDayPath(boardName));
+    if (!next.monday && !next.thursday) {
+        ref.set(null);
+        return;
+    }
+    ref.set({
+        monday: next.monday || null,
+        thursday: next.thursday || null,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+}
+
+db.ref(`showConfig/${fbName}/boardShowDay`).on("value", snap => {
+    const v = snap.val() || {};
+    Object.keys(boardShowDayByName).forEach(k => { delete boardShowDayByName[k]; });
+    Object.keys(v).forEach(board => {
+        const row = v[board];
+        if (!row || typeof row !== "object") return;
+        boardShowDayByName[board] = {
+            monday: row.monday === true || row.monday === 1 || row.monday === "true",
+            thursday: row.thursday === true || row.thursday === 1 || row.thursday === "true"
+        };
+    });
+    applyBoardShowDayUI();
+});
+
+document.addEventListener("change", (ev) => {
+    const t = ev.target;
+    if (!t || !t.matches || !t.matches("input[type=checkbox][data-board-day][data-board]")) return;
+    if (!isAdmin) {
+        t.checked = !t.checked;
+        return;
+    }
+    setBoardShowDay(t.getAttribute("data-board"), t.getAttribute("data-board-day"), t.checked);
+});
+
 
 db.ref(`showConfig/${fbName}`).on("value", snap => {
     const v = snap.val() || {};
@@ -1386,7 +1466,13 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
             const leftoverLabel = isLeftoverBoardName(name) ? " · From Monday's show" : "";
             container.innerHTML = `
                 <div class="board-header">
-                    <span class="board-title">Board ${index + 1}${leftoverLabel}</span>
+                    <div class="board-title-row">
+                        <span class="board-title">Board ${index + 1}${leftoverLabel}</span>
+                        <span class="board-day-picks" data-board="${name}" aria-label="Show day for Board ${index + 1}">
+                            <label class="board-day-pick" data-day="monday"><input type="checkbox" data-board-day="monday" data-board="${name}" /> Monday</label>
+                            <label class="board-day-pick" data-day="thursday"><input type="checkbox" data-board-day="thursday" data-board="${name}" /> Thursday</label>
+                        </span>
+                    </div>
                     <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">-</span>
                 </div>
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
@@ -1395,6 +1481,7 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
             boardsState[name] = { totalPins: 0, myClaims: 0, globalBoardClaims: 0, allClaims: {} };
             setupBoard(name);
         });
+        if (typeof applyBoardShowDayUI === "function") applyBoardShowDayUI();
         if (displayName) listenForFirebase();
     });
 
