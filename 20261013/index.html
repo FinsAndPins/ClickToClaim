@@ -74,6 +74,22 @@
         }
         .board-day-pick.is-on { background: #1877f2; border-color: rgba(255,255,255,0.55); }
         .board-day-pick input { margin: 0; accent-color: #fff; width: 13px; height: 13px; }
+        #adminBoardDayTally {
+            display: none;
+            margin-top: 6px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.28);
+            background: rgba(0,0,0,0.18);
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--fp-text);
+            line-height: 1.45;
+            text-align: center;
+        }
+        body.admin-on #adminBoardDayTally { display: block; }
+        #adminBoardDayTally .day-tally-sep { opacity: 0.55; margin: 0 0.45em; font-weight: normal; }
+        #adminBoardDayTally .day-tally-muted { font-weight: normal; color: var(--fp-muted); }
         .admin-board-total { font-size: 12px; color: var(--fp-text); font-weight: bold; text-align: right; max-width: 230px; line-height: 1.5; }
         .board-count { font-size: 14px; margin: 0; padding: 0 12px 8px; color: var(--fp-muted); background: var(--fp-chunk); }
         .board-wrapper { position: relative; width: 100%; max-width: none; margin: 0; min-height: 300px; background: rgba(0,0,0,0.15); border-radius: 0 0 10px 10px; overflow: hidden; }
@@ -512,6 +528,13 @@
     <span id="totalPins" hidden>0</span>
     <div id="adminGlobalDisplay" class="global-admin-row" style="display:none;">
         Pins <span id="adminTotalPins">0</span> · Req <span id="adminTotalRequested">0</span> · Unique <span id="adminUnique">0</span> · Contested <span id="adminContested">0</span> · Users <span id="adminTotalUsers">0</span> · $<span id="adminTotalValue">0</span> · VB gen <span id="adminVirtualBoardGen" title="People who tapped Create Virtual Pin Board">0</span> · VB save <span id="adminVirtualBoardSave" title="People who saved a virtual pin board photo">0</span>
+    </div>
+    <div id="adminBoardDayTally" aria-live="polite" title="Counts boards/pins marked Monday and/or Thursday (both counts in each day)">
+        Monday: <span id="adminMonBoards">0</span> boards, <span id="adminMonPins">0</span> pins
+        <span class="day-tally-sep">·</span>
+        Thursday: <span id="adminThuBoards">0</span> boards, <span id="adminThuPins">0</span> pins
+        <span class="day-tally-sep">·</span>
+        <span class="day-tally-muted">Unset: <span id="adminUnsetBoards">0</span> boards, <span id="adminUnsetPins">0</span> pins</span>
     </div>
     </div>
     <div id="adminPhaseBar" class="admin-phase-bar" aria-label="Show phase override">
@@ -1179,6 +1202,50 @@ function applyBoardShowDayUI() {
             if (inp && inp.checked !== on) inp.checked = on;
         });
     });
+    refreshBoardShowDayTally();
+}
+
+function _pinCountForBoard(boardName) {
+    const st = (typeof boardsState !== "undefined" && boardsState[boardName]) ? boardsState[boardName] : null;
+    const n = st && st.totalPins != null ? Number(st.totalPins) : 0;
+    return Number.isFinite(n) ? n : 0;
+}
+
+/** Monday/Thursday tallies from day checkboxes. A board marked both counts in both days. */
+function refreshBoardShowDayTally() {
+    if (!isAdmin) return;
+    const boardNames = new Set();
+    if (typeof boardsState === "object" && boardsState) {
+        Object.keys(boardsState).forEach(k => boardNames.add(k));
+    }
+    document.querySelectorAll(".board-day-picks[data-board]").forEach(wrap => {
+        const b = wrap.getAttribute("data-board");
+        if (b) boardNames.add(b);
+    });
+    Object.keys(boardShowDayByName || {}).forEach(k => boardNames.add(k));
+
+    let monBoards = 0, monPins = 0, thuBoards = 0, thuPins = 0;
+    let unsetBoards = 0, unsetPins = 0;
+    boardNames.forEach(board => {
+        const row = boardShowDayByName[board] || {};
+        const mon = !!row.monday;
+        const thu = !!row.thursday;
+        const pins = _pinCountForBoard(board);
+        if (mon) { monBoards += 1; monPins += pins; }
+        if (thu) { thuBoards += 1; thuPins += pins; }
+        if (!mon && !thu) { unsetBoards += 1; unsetPins += pins; }
+    });
+
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(val);
+    };
+    set("adminMonBoards", monBoards);
+    set("adminMonPins", monPins);
+    set("adminThuBoards", thuBoards);
+    set("adminThuPins", thuPins);
+    set("adminUnsetBoards", unsetBoards);
+    set("adminUnsetPins", unsetPins);
 }
 
 function setBoardShowDay(boardName, day, checked) {
@@ -1490,6 +1557,7 @@ async function setupBoard(name) {
     const data = await response.json();
     const pins = data.predictions || data.output?.predictions || [];
     boardsState[name].totalPins = pins.length;
+    if (typeof refreshBoardShowDayTally === "function") refreshBoardShowDayTally();
     const img = document.getElementById(`img-${name}`);
     const render = () => {
         const wrapper = document.getElementById(`wrapper-${name}`);
