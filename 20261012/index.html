@@ -91,6 +91,28 @@
         .pin.selection-before { border: 4px solid rgba(0, 72, 180, 0.95); background: rgba(80, 140, 255, 0.32); }
         .pin.selection-now { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
         .pin.pin-mine { box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.45); z-index: 105; }
+        #pinSearchWrap { margin: 12px 0 14px; }
+        #pinSearchWrap[hidden] { display: none !important; }
+        #pinSearchLabel { display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
+        #pinSearchInput {
+            width: 100%; box-sizing: border-box; font-size: 16px; padding: 10px 12px;
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.35);
+            background: rgba(0,0,0,0.28); color: var(--fp-text); font-family: inherit;
+        }
+        #pinSearchStatus { font-size: 13px; margin-top: 6px; color: var(--fp-muted); }
+        #pinSearchHits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        #pinSearchHits button {
+            font: inherit; font-size: 13px; font-weight: bold; color: var(--fp-text);
+            background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 8px; padding: 6px 10px; cursor: pointer;
+        }
+        .board-container.search-hide { display: none; }
+        .pin.pin-search-dim { opacity: 0.28; }
+        .pin.pin-search-hit {
+            outline: 3px solid #FC97D4;
+            box-shadow: 0 0 0 2px #1a1020;
+            z-index: 4;
+        }
         .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
         .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.45); }
         /* Leftover FOMO: still visible, not requestable */
@@ -484,6 +506,12 @@
 <h1>Fins and Pins Click To Request!</h1>
 <h2 id="showTitle">Show Date</h2>
 <p id="introNote">We hope you enjoy clicking the pins you want, rather than typing the board number and description 🧜‍♀️</p>
+<div id="pinSearchWrap">
+    <label id="pinSearchLabel" for="pinSearchInput">Search titles</label>
+    <input id="pinSearchInput" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" placeholder="Try a name from the listing, such as Ariel or Wall-E">
+    <div id="pinSearchStatus" aria-live="polite"></div>
+    <div id="pinSearchHits"></div>
+</div>
 <div id="socialBar" aria-label="Social links">
     <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram"><img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt=""></a>
     <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot"><img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt=""></a>
@@ -1146,6 +1174,133 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
 });
 
 
+(function initPinTitleSearch() {
+    const wrap = document.getElementById("pinSearchWrap");
+    const input = document.getElementById("pinSearchInput");
+    const statusEl = document.getElementById("pinSearchStatus");
+    const hitsEl = document.getElementById("pinSearchHits");
+    if (!wrap || !input || !statusEl || !hitsEl) return;
+
+    const boxes = [];
+    const boxKeys = new Set();
+    const titles = Object.create(null);
+    let visible = true;
+    let query = "";
+    const params = new URLSearchParams(window.location.search);
+    const initialQ = params.get("q") || "";
+    if (initialQ) {
+        query = initialQ;
+        input.value = initialQ;
+    }
+
+    function normStem(stem) {
+        return String(stem || "").replace(/\.(jpe?g|png)$/i, "").toLowerCase();
+    }
+
+    window._ctcRememberSearchBox = function (boardName, idx, stem) {
+        const key = boardName + "-" + idx;
+        if (boxKeys.has(key)) return;
+        boxKeys.add(key);
+        const boardNum = Array.isArray(manifestBoardNames) ? manifestBoardNames.indexOf(boardName) + 1 : 0;
+        boxes.push({ board: boardName, idx: idx, stem: normStem(stem), boardNum: boardNum > 0 ? boardNum : 0 });
+    };
+
+    window._ctcRememberTitle = function (stem, title) {
+        const key = normStem(stem);
+        const text = String(title || "").trim();
+        if (key && text) titles[key] = text;
+    };
+
+    window._ctcSetSearchBarVisible = function (show) {
+        visible = show !== false;
+        wrap.hidden = !visible;
+        if (!visible) {
+            query = "";
+            input.value = "";
+            window._ctcApplyPinSearch();
+        }
+    };
+
+    function goToBoard(boardName) {
+        const wrapper = document.getElementById("wrapper-" + boardName);
+        if (wrapper) {
+            wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+            return;
+        }
+        const names = Array.isArray(manifestBoardNames) ? manifestBoardNames : [];
+        const at = names.indexOf(boardName);
+        const start = at >= 0 ? Math.floor(at / LITE_PAGE_SIZE) * LITE_PAGE_SIZE : 0;
+        const next = new URLSearchParams(window.location.search);
+        next.set("lite", "1");
+        next.set("start", String(start));
+        if (query) next.set("q", query);
+        else next.delete("q");
+        if (isAdmin) next.set("admin", ADMIN_KEY);
+        window.location.href = window.location.pathname + "?" + next.toString() + "#wrapper-" + boardName;
+    }
+
+    window._ctcApplyPinSearch = function () {
+        document.querySelectorAll(".board-container").forEach((el) => el.classList.remove("search-hide"));
+        document.querySelectorAll(".pin").forEach((el) => el.classList.remove("pin-search-hit", "pin-search-dim"));
+        hitsEl.replaceChildren();
+        if (!visible || !query) {
+            statusEl.textContent = "";
+            return;
+        }
+        if (!boxes.length) {
+            statusEl.textContent = "Loading boards…";
+            return;
+        }
+        if (!Object.keys(titles).length) {
+            statusEl.textContent = "Loading titles…";
+            return;
+        }
+        const q = query.toLowerCase();
+        const hits = [];
+        const boardsWithHits = new Set();
+        boxes.forEach((row) => {
+            const title = titles[row.stem] || "";
+            if (!title || title.toLowerCase().indexOf(q) === -1) return;
+            hits.push(row);
+            boardsWithHits.add(row.board);
+        });
+        document.querySelectorAll(".board-container").forEach((el) => {
+            const name = el.dataset.board || "";
+            if (name && !boardsWithHits.has(name)) el.classList.add("search-hide");
+        });
+        const hitIds = new Set(hits.map((row) => "pin-" + row.board + "-" + row.idx));
+        document.querySelectorAll(".board-container:not(.search-hide) .pin").forEach((el) => {
+            el.classList.add(hitIds.has(el.id) ? "pin-search-hit" : "pin-search-dim");
+        });
+        const boardNums = Array.from(boardsWithHits).map((name) => {
+            const at = manifestBoardNames.indexOf(name);
+            return at >= 0 ? at + 1 : 0;
+        }).filter((n) => n > 0).sort((a, b) => a - b);
+        statusEl.textContent = hits.length
+            ? hits.length + " matching pins on " + boardNums.length + " boards. Pink outline is a match. Tap the pin on the board to request it."
+            : "No titles match.";
+        const seenBoard = new Set();
+        hits.slice().sort((a, b) => a.boardNum - b.boardNum).forEach((row) => {
+            if (!row.boardNum || seenBoard.has(row.board)) return;
+            seenBoard.add(row.board);
+            const count = hits.filter((h) => h.board === row.board).length;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = "Board " + row.boardNum + " (" + count + ")";
+            btn.addEventListener("click", () => goToBoard(row.board));
+            hitsEl.appendChild(btn);
+        });
+    };
+
+    let timer = null;
+    input.addEventListener("input", () => {
+        query = input.value.trim();
+        clearTimeout(timer);
+        timer = setTimeout(() => window._ctcApplyPinSearch(), 120);
+    });
+    if (query) window._ctcApplyPinSearch();
+})();
+
 db.ref(`showConfig/${fbName}`).on("value", snap => {
     const v = snap.val() || {};
     if (v.startHour != null || v.endHour != null) {
@@ -1160,6 +1315,7 @@ db.ref(`showConfig/${fbName}`).on("value", snap => {
     }
     showPhaseOverride = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
     showEndedFullscreenActive = v.endedFullscreen === true || v.endedFullscreen === 1 || String(v.endedFullscreen) === "true";
+    if (typeof window._ctcSetSearchBarVisible === "function") window._ctcSetSearchBarVisible(v.searchBarVisible !== false);
     recomputeShowWindows();
     refreshAdminPhaseButtons();
     syncShowEndedOverlay();
@@ -1309,13 +1465,19 @@ async function loadAdminCropStemMap(boardNames) {
                 const pins = data.predictions || data.output?.predictions || [];
                 if (!Array.isArray(pins)) return;
                 pins.forEach((p, idx) => {
-                    if (p && p.crop_stem) adminCropStemByPinKey[`${name}-${idx}`] = p.crop_stem;
+                    if (p && p.crop_stem) {
+                        adminCropStemByPinKey[`${name}-${idx}`] = p.crop_stem;
+                        if (typeof window._ctcRememberSearchBox === "function") {
+                            window._ctcRememberSearchBox(name, idx, String(p.crop_stem));
+                        }
+                    }
                 });
             } catch (e) { /* ignore single-board fetch failures */ }
         }));
     }
     adminCropStemMapReady = true;
     calculateGlobals();
+    if (typeof window._ctcApplyPinSearch === "function") window._ctcApplyPinSearch();
 }
 
 fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store" })
@@ -1383,6 +1545,7 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
             const index = rank[name] ?? 0;
             const container = document.createElement("div");
             container.className = "board-container";
+            container.dataset.board = name;
             const leftoverLabel = isLeftoverBoardName(name) ? " · From Monday's show" : "";
             container.innerHTML = `
                 <div class="board-header">
@@ -1442,6 +1605,7 @@ async function setupBoard(name) {
         boardsState[name].totalPins = countAvailablePinsOnBoard(name);
         updateBoardDisplay(name);
         calculateGlobals();
+        if (typeof window._ctcApplyPinSearch === "function") window._ctcApplyPinSearch();
     };
     if (img.complete) render(); else img.onload = render;
 }
@@ -2833,6 +2997,8 @@ function _ingestFirebasePins(all, map, napSet, label) {
         if (!pin) continue;
         const stem = _stemFromFbPin(domKey, pin);
         if (!stem) continue;
+        const listingTitle = String(pin.listing_title || "").trim();
+        if (listingTitle && typeof window._ctcRememberTitle === "function") window._ctcRememberTitle(stem, listingTitle);
         const status = pin.match_status || '';
         if (status === 'not_a_pin') {
             napSet.add(stem);
@@ -2857,6 +3023,7 @@ function _ingestFirebasePins(all, map, napSet, label) {
     console.info(`[PriceOverlay] ${label}: match=${nMatch} priced=${nPriced} nap=${nNap}`);
     _applyAllPins();
     _applyMode(_priceMode);
+    if (typeof window._ctcApplyPinSearch === "function") window._ctcApplyPinSearch();
 }
 
 function _ingestSoldStems(val) {

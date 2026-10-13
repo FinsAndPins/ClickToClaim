@@ -136,6 +136,9 @@
                 <button type="button" class="reports-phase-btn" data-phase="live" title="Force During Show banner">During Show</button>
                 <button type="button" class="reports-phase-btn" data-phase="post" title="Force Post Show banner + full-screen ended">Post Show</button>
                 <button type="button" class="reports-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
+                <label class="reports-price-wrap" for="searchBarToggle" title="Shows or hides the title search on the boards page for everyone">
+                    <input type="checkbox" id="searchBarToggle" checked> Title search on boards
+                </label>
                 <span class="reports-price-wrap" title="Controls price badges on the boards page">
                     <label for="_po-sel-reports">Prices</label>
                     <select id="_po-sel-reports" aria-label="Price visibility on boards page">
@@ -361,8 +364,21 @@ async function loadData() {
     document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(btn => {
         btn.addEventListener("click", () => writeShowPhaseReports(btn.getAttribute("data-phase")));
     });
+    const searchToggle = document.getElementById("searchBarToggle");
+    if (searchToggle) {
+        searchToggle.addEventListener("change", () => {
+            if (phaseStatusEl) phaseStatusEl.textContent = "Saving search…";
+            db.ref(`showConfig/${fbName}`).update({
+                searchBarVisible: searchToggle.checked,
+                searchBarUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                if (phaseStatusEl) phaseStatusEl.textContent = searchToggle.checked ? "Title search is showing on the boards page." : "Title search is hidden on the boards page.";
+            }).catch((e) => { if (phaseStatusEl) phaseStatusEl.textContent = "Error: " + e.message; });
+        });
+    }
     db.ref(`showConfig/${fbName}`).on("value", snap => {
         const v = snap.val() || {};
+        if (searchToggle) searchToggle.checked = v.searchBarVisible !== false;
         const ph = ["auto", "pre", "live", "post"].includes(String(v.phase)) ? String(v.phase) : "auto";
         document.querySelectorAll("#reportsPhaseBar .reports-phase-btn").forEach(b => {
             b.classList.toggle("reports-phase-active", b.getAttribute("data-phase") === ph);
