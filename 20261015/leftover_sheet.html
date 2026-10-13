@@ -115,7 +115,7 @@
   const APPROACH_ID = "visual_baseline";
   const SOLD_PATH = "showConfig/20261015/soldStems";
   const MANIFEST_VER = "1";
-  const CROP_BASE = "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_UNSET_20261015/crops/";
+  const CROP_BASE = "https://raw.githubusercontent.com/FinsAndPins/PreparingInventory/main/PriceCollection_20261011_1612/crops/";
 
   firebase.initializeApp(FB_CFG);
   const db = firebase.database();
@@ -242,8 +242,8 @@
 
   async function boot() {
     const manifest = await (await fetch(`./boards/manifest.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
-    const leftover = manifest.filter((n) => String(n).startsWith("LO03_"));
-    let boardNum = manifest.findIndex((n) => String(n).startsWith("LO03_")) + 1;
+    const leftover = manifest.filter((n) => /^LO\d+_/.test(String(n)));
+    let boardNum = manifest.findIndex((n) => /^LO\d+_/.test(String(n))) + 1;
     const out = [];
     for (const name of leftover) {
       const data = await (await fetch(`./boards/${name}.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();

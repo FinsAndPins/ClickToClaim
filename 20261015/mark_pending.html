@@ -143,7 +143,7 @@
     appId: "1:31512845258:web:2124fae24cfee229084d33"
   };
   const RUN_PRIMARY = "test_CTR_20261015_pricing_unset";
-  const RUN_LEFTOVER = "test_CTR_20261015_pricing_unset";
+  const RUN_LEFTOVER = "test_PriceCollection_20261011_1612__build_20261012_fullres_visual_baseline";
   const APPROACH_ID = "visual_baseline";
   const PENDING_PATH = "showConfig/20261015/pendingStems";
   const SOLD_PATH = "showConfig/20261015/soldStems";
@@ -352,12 +352,12 @@
 
   function placeBoard(name, boardIndex, data) {
     const pins = data.predictions || data.output?.predictions || [];
-    const leftover = String(name).startsWith("LO03_");
+    const leftover = /^LO\d+_/.test(String(name));
     const card = document.createElement("div");
     card.className = "board-card";
     card.innerHTML = `
       <div class="board-head">
-        <span class="title">Board ${boardIndex}${leftover ? " · From Monday's show" : ""} · ${name.replace(/^LO03_/, "")}</span>
+        <span class="title">Board ${boardIndex}${leftover ? " · From Monday's show" : ""} · ${name.replace(/^LO\d+_/, "")}</span>
         <span class="stats" data-board-stats="${name}"><b>${pins.length}</b> pins</span>
       </div>
       <div class="board-wrap">

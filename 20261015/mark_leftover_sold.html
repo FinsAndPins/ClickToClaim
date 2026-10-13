@@ -285,7 +285,7 @@
     card.className = "board-card";
     card.innerHTML = `
       <div class="board-head">
-        <span class="title">Board ${boardIndex} · From Monday's show · ${name.replace(/^LO03_/, "")}</span>
+        <span class="title">Board ${boardIndex} · From Monday's show · ${name.replace(/^LO\d+_/, "")}</span>
         <span class="stats" data-board-stats="${name}"><b>${pins.length}</b> pins</span>
       </div>
       <div class="board-wrap">
@@ -372,8 +372,8 @@
 
   async function boot() {
     const manifest = await (await fetch(`./boards/manifest.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
-    const leftover = manifest.filter((n) => String(n).startsWith("LO03_"));
-    let boardNum = manifest.findIndex((n) => String(n).startsWith("LO03_")) + 1;
+    const leftover = manifest.filter((n) => /^LO\d+_/.test(String(n)));
+    let boardNum = manifest.findIndex((n) => /^LO\d+_/.test(String(n))) + 1;
     for (const name of leftover) {
       const data = await (await fetch(`./boards/${name}.json?v=${MANIFEST_VER}`, { cache: "no-store" })).json();
       placeBoard(name, boardNum, data);
