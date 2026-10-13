@@ -2627,8 +2627,9 @@ async function runVirtualBoardExport() {
     z-index: 101;
     line-height: 1.4;
 }
-/* not_a_pin only — unpriced / no_match pins stay claimable without a badge */
-.pin.pin-nap {
+/* not_a_pin only — unpriced / no_match pins stay claimable without a badge.
+   Excluded leftovers stay visible as Not For Sale (NaP used to hide that label). */
+.pin.pin-nap:not(.pin-excluded):not(.pin-sold) {
     visibility: hidden;
     pointer-events: none;
 }
