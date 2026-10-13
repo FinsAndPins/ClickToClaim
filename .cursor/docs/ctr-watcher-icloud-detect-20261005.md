@@ -21,3 +21,10 @@ ClickToRequest watcher / PrepareClickToClaim; App Support `CtrDetectWork/`; Noti
 - **Cause:** `CTR_TEMPLATE_ID` default in `click_to_request_watcher_launcher.sh` was pinned to `20260910`; bootstrap did not copy `ctr-bg-canva.jpg`.
 - **Rule:** When Lexi locks a new CTR look, update launcher `CTR_TEMPLATE_ID`, copy any new root assets (e.g. `ctr-bg-canva.jpg`) in `bootstrap_show`, then re-run `install_click_to_request_launchagent.sh` and verify the live Application Support launcher.
 - **Where:** PreparingInventory `prepare_click_to_claim.sh` + `launchd/click_to_request_watcher_launcher.sh`; live mirror under Application Support `ClickToRequestWatcherBin` / `click_to_request_watcher_launcher.sh`.
+
+## Template pin (20261012 search) — shipped production
+
+- **Symptom:** New shows kept the 20261008 page (no title search). Pinning 20261012 on the iCloud checkout would have failed because that folder is not there. Companion admin pages would still have pointed at Monday's pricing run, crop folder, and `showConfig/20260803_leftover/soldStems`. The copied page also carried 140 old sold-stem names.
+- **Cause:** The watcher read the template only from the iCloud ClickToClaim checkout, and `patch_ctr_show_slug.py` rewrote the main price id but not companion run ids, crop URLs, the shared leftover sold path, or `_SOLD_STEMS_BOOTSTRAP`.
+- **Rule:** `CTR_TEMPLATE_ID=20261012`. Read template HTML from ClickToClaimGit first, then iCloud. Every new show must leave the patch with that show's date, that show's pricing run (or `test_CTR_<date>_pricing_unset`), `showConfig/<date>/soldStems` and `pendingStems`, an empty sold-stem bootstrap, and the search bar. Do not copy Monday's Firebase paths forward. Re-run `install_click_to_request_launchagent.sh` after launcher or patch changes. CTRandPricing `template_id` is the same show. Its leftover keys stay show-specific and must be updated before the next combined run.
+- **Where:** PreparingInventory `patch_ctr_show_slug.py`, `prepare_click_to_claim.sh`, `launchd/click_to_request_watcher_launcher.sh`. CTRandPricing `show_config.json` (iCloud source and App Support bin).

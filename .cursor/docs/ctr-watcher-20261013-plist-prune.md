@@ -12,7 +12,7 @@
 ## Rule
 - If CTR drops are ignored: check plist size (`wc -c`) and `launchctl print gui/$UID/com.finsandpins.ClickToRequestWatcher`.
 - Never prune the local mirror on one miss; recheck iCloud after a short sleep.
-- Pin `CTR_TEMPLATE_ID=20261008` in App Support launcher; ensure that show exists under the iCloud `CTR_REPO` path prepare reads (or sync from `ClickToClaimGit`).
+- Pin `CTR_TEMPLATE_ID=20261012` in App Support launcher. Template HTML is read from ClickToClaimGit when that show is there, then from the iCloud checkout.
 - Pricing LaunchAgents stay untouched when only CTR is in scope.
 
 ## Where
