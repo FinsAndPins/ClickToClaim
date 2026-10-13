@@ -28,3 +28,10 @@ ClickToRequest watcher / PrepareClickToClaim; App Support `CtrDetectWork/`; Noti
 - **Cause:** The watcher read the template only from the iCloud ClickToClaim checkout, and `patch_ctr_show_slug.py` rewrote the main price id but not companion run ids, crop URLs, the shared leftover sold path, or `_SOLD_STEMS_BOOTSTRAP`.
 - **Rule:** `CTR_TEMPLATE_ID=20261012`. Read template HTML from ClickToClaimGit first, then iCloud. Every new show must leave the patch with that show's date, that show's pricing run (or `test_CTR_<date>_pricing_unset`), `showConfig/<date>/soldStems` and `pendingStems`, an empty sold-stem bootstrap, and the search bar. Do not copy Monday's Firebase paths forward. Re-run `install_click_to_request_launchagent.sh` after launcher or patch changes. CTRandPricing `template_id` is the same show. Its leftover keys stay show-specific and must be updated before the next combined run.
 - **Where:** PreparingInventory `patch_ctr_show_slug.py`, `prepare_click_to_claim.sh`, `launchd/click_to_request_watcher_launcher.sh`. CTRandPricing `show_config.json` (iCloud source and App Support bin).
+
+## Install must not blank the LaunchAgent (20261013)
+
+- **Symptom:** `com.finsandpins.ClickToRequestWatcher.plist` became 0 bytes during install. The already-running job kept going, but the next restart would not load.
+- **Cause:** `install_click_to_request_launchagent.sh` redirected `sed` onto the live plist while the template file was missing. The redirect emptied the destination before sed failed.
+- **Rule:** Render the launcher and plist to a temp file, and replace the live file only when the render is non-empty and `plutil -lint` passes. Keep `launchd/com.finsandpins.ClickToRequestWatcher.plist` in PreparingInventory.
+- **Where:** PreparingInventory `launchd/install_click_to_request_launchagent.sh`.
