@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v25-20261005-board-header-flush">
+    <meta name="ctr-countdown" content="closes-to-end-v26-20261012-search-dock">
     <style>
         :root {
             --fp-bg: #c9b8d8;
@@ -91,15 +91,44 @@
         .pin.selection-before { border: 4px solid rgba(0, 72, 180, 0.95); background: rgba(80, 140, 255, 0.32); }
         .pin.selection-now { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
         .pin.pin-mine { box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.45); z-index: 105; }
-        #pinSearchWrap { margin: 12px 0 14px; }
+        body.pin-search-docked { padding-top: 76px; }
+        #pinSearchWrap {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 2100;
+            width: min(270px, calc(100vw - 104px));
+            max-height: min(46vh, 320px);
+            overflow-y: auto;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 8px;
+            border-radius: 10px;
+            background: rgba(201, 184, 216, 0.94);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        }
+        @media (min-width: 540px) {
+            #pinSearchWrap { width: min(300px, calc(100vw - 128px)); }
+        }
         #pinSearchWrap[hidden] { display: none !important; }
-        #pinSearchLabel { display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
+        #pinSearchLabel {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
         #pinSearchInput {
-            width: 100%; box-sizing: border-box; font-size: 16px; padding: 10px 12px;
-            border-radius: 8px; border: 1px solid rgba(255,255,255,0.35);
-            background: rgba(0,0,0,0.28); color: var(--fp-text); font-family: inherit;
+            width: 100%; box-sizing: border-box; font-size: 16px; padding: 8px 10px;
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.55);
+            background: rgba(255,255,255,0.72); color: var(--fp-text); font-family: inherit;
         }
         #pinSearchStatus { font-size: 13px; margin-top: 6px; color: var(--fp-muted); }
+        #pinSearchHits:empty { display: none; }
         #pinSearchHits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
         #pinSearchHits button {
             font: inherit; font-size: 13px; font-weight: bold; color: var(--fp-text);
@@ -391,7 +420,7 @@
         }
     </style>
 </head>
-<body>
+<body class="pin-search-docked">
 
 <a id="collectionAppPromo" href="https://apple.co/4f8gaE8" target="_blank" rel="noopener noreferrer" title="Collection Detection App on the App Store" aria-label="Collection Detection App on the App Store"><img src="./collection-detection-app-square.png" width="96" height="96" alt="Collection Detection App"></a>
 
@@ -508,7 +537,7 @@
 <p id="introNote">We hope you enjoy clicking the pins you want, rather than typing the board number and description 🧜‍♀️</p>
 <div id="pinSearchWrap">
     <label id="pinSearchLabel" for="pinSearchInput">Search titles</label>
-    <input id="pinSearchInput" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" placeholder="Try a name from the listing, such as Ariel or Wall-E">
+    <input id="pinSearchInput" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" placeholder="Type a character, movie, or set" aria-label="Type a character, movie, or set">
     <div id="pinSearchStatus" aria-live="polite"></div>
     <div id="pinSearchHits"></div>
 </div>
@@ -1214,6 +1243,7 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     window._ctcSetSearchBarVisible = function (show) {
         visible = show !== false;
         wrap.hidden = !visible;
+        document.body.classList.toggle("pin-search-docked", visible);
         if (!visible) {
             query = "";
             input.value = "";
@@ -1224,6 +1254,7 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     function goToBoard(boardName) {
         const wrapper = document.getElementById("wrapper-" + boardName);
         if (wrapper) {
+            wrapper.style.scrollMarginTop = (wrap.offsetHeight + 18) + "px";
             wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
             return;
         }
