@@ -1259,6 +1259,7 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     });
     applyAllExcludedPins();
     if (typeof calculateGlobals === "function") calculateGlobals();
+    if (typeof window._ctcApplyPinSearch === "function") window._ctcApplyPinSearch();
 });
 
 
@@ -1350,6 +1351,12 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
         else next.delete("q");
         if (isAdmin) next.set("admin", ADMIN_KEY);
         window.location.href = window.location.pathname + "?" + next.toString() + "#wrapper-" + boardName;
+    }
+
+    function searchPinIsClickable(row) {
+        if (typeof window._ctcStemIsUnavailable !== "function") return true;
+        const leftover = typeof isLeftoverBoardName === "function" && isLeftoverBoardName(row.board);
+        return !window._ctcStemIsUnavailable(row.stem, leftover);
     }
 
     function boardOrder(name) {
@@ -1460,9 +1467,12 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
         const q = query.toLowerCase();
         const hits = [];
         const boardsWithHits = new Set();
+        let titleHits = 0;
         boxes.forEach((row) => {
             const title = titles[row.stem] || "";
             if (!title || title.toLowerCase().indexOf(q) === -1) return;
+            titleHits += 1;
+            if (!searchPinIsClickable(row)) return;
             hits.push(row);
             boardsWithHits.add(row.board);
         });
@@ -1492,7 +1502,7 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
             ? sortedHits.length + " matching pins on " + boardNums.length + " boards."
                 + (at >= 0 ? " Match " + (at + 1) + " of " + sortedHits.length + "." : "")
                 + " Pink outline is a match. Tap the pin on the board to request it."
-            : "No titles match.";
+            : (titleHits ? "No clickable pins match." : "No titles match.");
         syncNav(at);
         revealFocusedPin();
         const seenBoard = new Set();
@@ -1673,7 +1683,10 @@ function scheduleAvailablePinTotalsRefresh() {
         }
     }, 120);
 }
-window._ctcOnPinAvailabilityChanged = scheduleAvailablePinTotalsRefresh;
+window._ctcOnPinAvailabilityChanged = function () {
+    scheduleAvailablePinTotalsRefresh();
+    if (typeof window._ctcApplyPinSearch === "function") window._ctcApplyPinSearch();
+};
 
 /** Map every pin key → crop_stem so $ totals work for boards not yet rendered (lite). Read-only. */
 async function loadAdminCropStemMap(boardNames) {
