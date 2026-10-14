@@ -181,7 +181,7 @@
             white-space: nowrap;
         }
 
-        /* Admin Tap to Exclude: visible Not For Sale for everyone; Sold wins if both. */
+        /* Admin Tap to Exclude: visible Not Available for everyone; Sold wins if both. */
         .pin.pin-excluded:not(.pin-sold) {
             background: rgba(0, 0, 0, 0.42) !important;
             border: 2px solid rgba(255, 180, 60, 0.9) !important;
@@ -189,7 +189,7 @@
             cursor: default;
         }
         .pin.pin-excluded:not(.pin-sold)::after {
-            content: "Not For Sale";
+            content: "Not Available";
             position: absolute;
             left: 50%;
             top: 50%;
@@ -205,6 +205,10 @@
             white-space: nowrap;
             text-align: center;
             max-width: 96%;
+        }
+        /* Not A Pin leftovers that were never tap-excluded keep the other label. */
+        .pin.pin-excluded.pin-not-for-sale:not(.pin-sold)::after {
+            content: "Not For Sale";
         }
         body.exclude-pins-on .pin.pin-excluded:not(.pin-sold) {
             pointer-events: auto;
@@ -583,14 +587,14 @@
         <button type="button" class="admin-phase-btn" data-phase="auto" title="Follow start/end times (Eastern)">Schedule</button>
         <button type="button" id="boxCleanupToggle" title="Show all boxes; tap to hide non-pins for everyone">Fix boxes</button>
         <span id="boxCleanupCount"></span>
-        <button type="button" id="excludePinsToggle" title="Tap pins to mark Not For Sale for everyone">Tap to Exclude pins</button>
+        <button type="button" id="excludePinsToggle" title="Tap pins to mark Not Available for everyone">Tap to Exclude pins</button>
         <span id="excludePinsCount"></span>
     </div>
     <div id="boxCleanupBar" aria-label="Box cleanup help">
         <p><strong>Fix boxes (live for everyone):</strong> green outline = clickable pin. Tap a bad box to hide it for all visitors (red dashed). Tap again to restore. Saves to Firebase immediately, not just this browser.</p>
     </div>
     <div id="excludePinsBar" aria-label="Exclude pins help">
-        <p><strong>Tap to Exclude pins (live for everyone):</strong> tap a pin to mark it <em>Not For Sale</em> (visitors cannot click it). Tap again to restore. Sold pins stay Sold and stay non-clickable. Saves to Firebase immediately.</p>
+        <p><strong>Tap to Exclude pins (live for everyone):</strong> tap a pin to mark it <em>Not Available</em> (visitors cannot click it). Tap again to restore. Sold pins stay Sold and stay non-clickable. Saves to Firebase immediately.</p>
     </div>
     <div id="countdownArea"></div>
     <div id="liteModeControls">
@@ -1094,6 +1098,8 @@ const fbName = showDateSlug;
 
 let excludePinsMode = false;
 const excludedStems = new Set();
+/** Not A Pin leftovers that were not tap-excluded. Label stays Not For Sale. */
+const notForSaleStems = new Set();
 /** Unique Firebase excluded keys (not doubled by norm aliases). */
 let excludedStemUniqueCount = 0;
 
@@ -1112,11 +1118,18 @@ function _isExcludedStem(stem) {
     return excludedStems.has(stem) || excludedStems.has(_normExcludedStem(stem));
 }
 
+function _isNotForSaleStem(stem) {
+    if (!stem) return false;
+    return notForSaleStems.has(stem) || notForSaleStems.has(_normExcludedStem(stem));
+}
+
 function applyExcludedToPinEl(pinEl) {
     if (!pinEl) return;
     const sold = pinEl.classList.contains("pin-sold");
-    const excluded = _isExcludedStem(pinEl.dataset.cropStem);
+    const stem = pinEl.dataset.cropStem;
+    const excluded = _isExcludedStem(stem);
     pinEl.classList.toggle("pin-excluded", excluded && !sold);
+    pinEl.classList.toggle("pin-not-for-sale", !!(excluded && !sold && _isNotForSaleStem(stem)));
 }
 
 function applyAllExcludedPins() {
@@ -1200,6 +1213,7 @@ db.ref(`hiddenPins/${fbName}`).on("value", snap => {
 
 db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     excludedStems.clear();
+    notForSaleStems.clear();
     excludedStemUniqueCount = 0;
     const v = snap.val() || {};
     Object.keys(v).forEach(k => {
@@ -1211,6 +1225,14 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
             if (row && row.crop_stem) {
                 excludedStems.add(row.crop_stem);
                 excludedStems.add(_normExcludedStem(row.crop_stem));
+            }
+            if (row && row.source === "not_a_pin") {
+                notForSaleStems.add(k);
+                notForSaleStems.add(_normExcludedStem(k));
+                if (row.crop_stem) {
+                    notForSaleStems.add(row.crop_stem);
+                    notForSaleStems.add(_normExcludedStem(row.crop_stem));
+                }
             }
         }
     });
