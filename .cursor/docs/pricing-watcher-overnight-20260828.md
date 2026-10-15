@@ -108,3 +108,15 @@ Before editing or reinstalling production pricing paths, agents must:
 - Work: `~/Library/Application Support/FinsAndPins/PricingWork/`
 - Source scripts (iCloud git): `…/GitHub PreparingInventory/PreparingInventory/`
 - Builder often used: `Cursor Projects/PinPricingStudyMVP_RFDETR_TEST/`
+
+---
+
+## Shown-list title gate (2026-10-14)
+
+**Symptom:** Click to Match and Click to Price included multi-pin and choice listings in the carousel.
+
+**Cause:** `product_v1_for_crop` kept every FIXED row inside the visual gate.
+
+**Rule:** Future runs only. One gate in `run_visual_baseline_pipeline.py`, the file BoardsToPrice and CollectionsToPrice both execute. Keep the phrase list identical to the app: lot/lots of N, set/sets of, N pin lot, assortment(s), (N pins), u pick, your choice, choice of, your pick, pick one, multiple available, wholesale. Drop those titles from the shown list, backfill from the already-fetched pool, then price-sort and pHash. Leave `ebay_full_pool_candidates` unfiltered. Do not enable `title_scrubber.py` (that list also drops you choose, you pick, and bare lot language). Do not rebuild an existing PriceCollection to apply the gate. Copy this one file into App Support. Do not run `install_boards_inbox_launchagent.sh` just to sync it.
+
+**Where:** `Cursor Projects/PinPricingStudyMVP_RFDETR_TEST/run_visual_baseline_pipeline.py` and App Support `PinPricingStudyMVP_RFDETR_TEST/run_visual_baseline_pipeline.py`.
