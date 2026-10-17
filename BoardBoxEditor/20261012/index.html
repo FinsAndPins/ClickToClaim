@@ -342,13 +342,22 @@
 
   function renumber(preds, stem) {
     const num = boardNumericId(stem);
-    const sorted = [...preds].sort((a, b) => (a.y - b.y) || (a.x - b.x));
-    sorted.forEach((p, i) => {
-      p.crop_stem = `img${num}_pin${String(i + 1).padStart(2, "0")}`;
+    const used = new Set();
+    preds.forEach((p) => {
+      const m = /^img\d+_pin(\d+)$/i.exec(String(p.crop_stem || ""));
+      if (m) used.add(Number(m[1]));
+    });
+    let next = used.size ? Math.max(...used) + 1 : 1;
+    preds.forEach((p) => {
       if (!p.class) p.class = "pin";
       if (p.confidence == null) p.confidence = 1;
+      const existing = String(p.crop_stem || "");
+      if (/^img\d+_pin\d+$/i.test(existing)) return;
+      p.crop_stem = `img${num}_pin${String(next).padStart(2, "0")}`;
+      used.add(next);
+      next += 1;
     });
-    return sorted;
+    return preds;
   }
 
   function updateScale() {

@@ -660,6 +660,11 @@ let showPhaseOverride = "auto";
 let showEndedFullscreenActive = false;
 /** YYYYMMDD — must match the deploy folder name. Used when the URL path has no folder (e.g. local server run from inside this directory). */
 const SHOW_DATE_SLUG_FALLBACK = "20261012";
+/** "index" keeps clicks on IMG_####-<0-based box>. "crop_stem" stores clicks on the detect id.
+ *  This template stays "index". A newly bootstrapped show flips the constant to "crop_stem". */
+const CLAIM_ID_MODE = "index";
+const boardByClaimKey = Object.create(null);
+const claimKeyToPin = Object.create(null);
 
 /* ctrandpricing:isLeftoverBoardName */
 function isLeftoverBoardName(name) {
@@ -1147,7 +1152,7 @@ function applyAllExcludedPins() {
 }
 
 function toggleExcludedPin(boardName, idx) {
-    const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
+    const pinEl = pinElOf(boardName, idx);
     if (!pinEl) return;
     if (pinEl.classList.contains("pin-sold")) return;
     const stem = pinEl.dataset.cropStem;
@@ -1173,8 +1178,37 @@ function toggleExcludedPin(boardName, idx) {
 const hiddenPinKeys = new Set();
 let boxCleanupMode = false;
 
-function pinKeyOf(boardName, idx) {
+function pinKeyOf(boardName, idx, cropStem) {
+    if (CLAIM_ID_MODE === "crop_stem") {
+        const stem = String(cropStem || "").trim();
+        if (stem && stem !== "new") return stem;
+    }
     return `${boardName}-${idx}`;
+}
+
+function rememberClaimPin(boardName, idx, cropStem) {
+    const key = pinKeyOf(boardName, idx, cropStem);
+    boardByClaimKey[key] = boardName;
+    claimKeyToPin[key] = { board: boardName, idx: idx };
+    if (cropStem) adminCropStemByPinKey[key] = String(cropStem);
+    return key;
+}
+
+function pinElOf(boardName, idx, cropStem) {
+    const byIndex = document.getElementById(`pin-${boardName}-${idx}`);
+    if (byIndex) return byIndex;
+    if (CLAIM_ID_MODE !== "crop_stem") return null;
+    const key = pinKeyOf(boardName, idx, cropStem);
+    const byKey = key ? document.getElementById(`pin-${key}`) : null;
+    if (byKey) return byKey;
+    const wrapper = document.getElementById(`wrapper-${boardName}`);
+    if (!wrapper) return null;
+    return wrapper.querySelector(`.pin[data-pin-idx="${idx}"]`);
+}
+
+function claimKeyIsLeftover(pk) {
+    if (CLAIM_ID_MODE === "crop_stem") return isLeftoverBoardName(boardByClaimKey[pk] || "");
+    return isLeftoverBoardName(pk);
 }
 
 function refreshHiddenCount() {
@@ -1196,8 +1230,8 @@ function applyAllHiddenPins() {
     refreshHiddenCount();
 }
 
-function toggleHiddenPin(boardName, idx) {
-    const pinKey = pinKeyOf(boardName, idx);
+function toggleHiddenPin(boardName, idx, cropStem) {
+    const pinKey = pinKeyOf(boardName, idx, cropStem);
     const ref = db.ref(`hiddenPins/${fbName}/${pinKey}`);
     if (hiddenPinKeys.has(pinKey)) {
         ref.set(null);
@@ -1277,7 +1311,7 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
         if (boxKeys.has(key)) return;
         boxKeys.add(key);
         const boardNum = Array.isArray(manifestBoardNames) ? manifestBoardNames.indexOf(boardName) + 1 : 0;
-        boxes.push({ board: boardName, idx: idx, stem: normStem(stem), boardNum: boardNum > 0 ? boardNum : 0 });
+        boxes.push({ board: boardName, idx: idx, stem: normStem(stem), claimStem: String(stem || ""), boardNum: boardNum > 0 ? boardNum : 0 });
     };
 
     window._ctcRememberTitle = function (stem, title) {
@@ -1344,6 +1378,7 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     }
 
     function hitKey(row) {
+        if (CLAIM_ID_MODE === "crop_stem" && row.claimStem) return row.claimStem;
         return row.board + "-" + row.idx;
     }
 
@@ -1366,7 +1401,9 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
             scrollFocus = false;
             return;
         }
-        const boardName = focusKey.slice(0, focusKey.lastIndexOf("-"));
+        const boardName = CLAIM_ID_MODE === "crop_stem"
+            ? (((sortedHits[focusIndex()] || {}).board) || boardByClaimKey[focusKey] || "")
+            : focusKey.slice(0, focusKey.lastIndexOf("-"));
         const wrapper = document.getElementById("wrapper-" + boardName);
         if (wrapper) {
             if (scrolledWrapperFor !== focusKey) {
@@ -1607,7 +1644,7 @@ async function computeAllBoardPinTotals(boardNames) {
                     const leftover = isLeftoverBoardName(name);
                     let n = 0;
                     pins.forEach((pin, idx) => {
-                        if (hiddenPinKeys.has(pinKeyOf(name, idx))) return;
+                        if (hiddenPinKeys.has(pinKeyOf(name, idx, pin && pin.crop_stem))) return;
                         if (unavailable) {
                             const stem = pin && pin.crop_stem ? String(pin.crop_stem) : "";
                             if (unavailable(stem, leftover)) return;
@@ -1679,11 +1716,10 @@ async function loadAdminCropStemMap(boardNames) {
                 const pins = data.predictions || data.output?.predictions || [];
                 if (!Array.isArray(pins)) return;
                 pins.forEach((p, idx) => {
-                    if (p && p.crop_stem) {
-                        adminCropStemByPinKey[`${name}-${idx}`] = p.crop_stem;
-                        if (typeof window._ctcRememberSearchBox === "function") {
-                            window._ctcRememberSearchBox(name, idx, String(p.crop_stem));
-                        }
+                    const stem = p && p.crop_stem ? String(p.crop_stem) : "";
+                    rememberClaimPin(name, idx, stem);
+                    if (stem && typeof window._ctcRememberSearchBox === "function") {
+                        window._ctcRememberSearchBox(name, idx, stem);
                     }
                 });
             } catch (e) { /* ignore single-board fetch failures */ }
@@ -1794,23 +1830,25 @@ async function setupBoard(name) {
             div.style.top    = ((rotated ? pin.x : pin.y)             - (rotated ? pin.width  : pin.height) / 2) * scale + "px";
             div.style.width  = ((rotated ? pin.height : pin.width)  * scale) + "px";
             div.style.height = ((rotated ? pin.width  : pin.height) * scale) + "px";
-            div.id = `pin-${name}-${idx}`;
+            const pinKey = rememberClaimPin(name, idx, pin.crop_stem);
+            div.id = `pin-${pinKey}`;
+            div.dataset.pinIdx = String(idx);
             if (pin.crop_stem) div.dataset.cropStem = pin.crop_stem;
             if (isLeftoverBoardName(name)) div.dataset.leftover = "1";
             div.onclick = (e) => {
                 e.preventDefault();
                 if (isAdmin && boxCleanupMode) {
-                    toggleHiddenPin(name, idx);
+                    toggleHiddenPin(name, idx, pin.crop_stem);
                     return;
                 }
                 if (isAdmin && excludePinsMode) {
                     toggleExcludedPin(name, idx);
                     return;
                 }
-                handlePinClick(name, idx);
+                handlePinClick(name, idx, pin.crop_stem);
             };
             wrapper.appendChild(div);
-            applyHiddenToPinEl(div, pinKeyOf(name, idx));
+            applyHiddenToPinEl(div, pinKey);
             applyExcludedToPinEl(div);
             if (typeof window._ctcApplyPinPriceGate === "function") window._ctcApplyPinPriceGate(div);
             if (typeof window._ctcApplySoldGate === "function") window._ctcApplySoldGate(div);
@@ -1841,12 +1879,12 @@ function countClaimedPinsFromState() {
     return n;
 }
 
-function handlePinClick(boardName, idx) {
-    const pinEl = document.getElementById(`pin-${boardName}-${idx}`);
+function handlePinClick(boardName, idx, cropStem) {
+    const pinEl = pinElOf(boardName, idx, cropStem);
     // NaP / sold / Tap-to-Exclude pins are not requestable (labels stay visible). Pending remains clickable.
     if (pinEl && (pinEl.classList.contains("pin-nap") || pinEl.classList.contains("pin-sold") || pinEl.classList.contains("pin-excluded"))) return;
     if (pinEl && pinEl.classList.contains("pin-hidden") && !(isAdmin && boxCleanupMode)) return;
-    const pinKey = `${boardName}-${idx}`;
+    const pinKey = pinKeyOf(boardName, idx, cropStem || (pinEl && pinEl.dataset.cropStem));
     if (hiddenPinKeys.has(pinKey) && !(isAdmin && boxCleanupMode)) return;
     const userKey = sanitizeUserKey(identityKey);
     const alreadyClicked = boardsState[boardName].allClaims[pinKey]?.[userKey];
@@ -1911,13 +1949,18 @@ function listenForFirebase() {
             isAdmin && typeof CtrUserFilter !== "undefined" ? CtrUserFilter.getExcludedKeysSet(showDateSlug) : new Set();
         Object.keys(boardsState).forEach(b => {
             boardsState[b].allClaims = {}; boardsState[b].myClaims = 0; boardsState[b].globalBoardClaims = 0;
-            document.querySelectorAll(`[id^="pin-${b}-"]`).forEach(el => {
+            const pinNodes = CLAIM_ID_MODE === "crop_stem"
+                ? document.querySelectorAll(`#wrapper-${b} .pin`)
+                : document.querySelectorAll(`[id^="pin-${b}-"]`);
+            pinNodes.forEach(el => {
                 el.classList.remove("selection-green", "selection-yellow", "selection-before", "selection-now", "pin-mine", "flash-pin");
                 el.querySelectorAll(".tally-badge").forEach(n => n.remove());
             });
         });
         Object.entries(data).forEach(([pinKey, users]) => {
-            const [bName] = pinKey.split("-");
+            const bName = CLAIM_ID_MODE === "crop_stem"
+                ? (boardByClaimKey[pinKey] || "")
+                : pinKey.split("-")[0];
             if (boardsState[bName]) {
                 boardsState[bName].allClaims[pinKey] = users;
                 const usersOverlay =
@@ -2068,7 +2111,7 @@ function calculateGlobals() {
                     || (document.getElementById(`pin-${pk}`) && document.getElementById(`pin-${pk}`).dataset.cropStem)
                     || "";
                 if (!stem) return;
-                const leftover = isLeftoverBoardName(pk);
+                const leftover = claimKeyIsLeftover(pk);
                 adminValue += priceForStem(stem, leftover) || 0;
             };
             if (useGlobalClaims) {
@@ -2136,7 +2179,7 @@ function computeMyClickedRunningTotals(myCountHint) {
             if (!uMap || !uMap[userKey]) return;
             const stem = cropStemForPinKey(pk);
             if (!stem) return;
-            dollars += priceForStem(stem, isLeftoverBoardName(pk)) || 0;
+            dollars += priceForStem(stem, claimKeyIsLeftover(pk)) || 0;
         };
         const useGlobalClaims = isLiteMode && claimsSnapshotReceived;
         if (useGlobalClaims) {
@@ -2172,6 +2215,11 @@ function refreshVirtualBoardExportFab(myCount) {
 }
 
 function parseVbPinKey(pinKey) {
+    if (CLAIM_ID_MODE === "crop_stem") {
+        const hit = claimKeyToPin[pinKey];
+        if (!hit) return null;
+        return { board: hit.board, idx: hit.idx };
+    }
     const m = String(pinKey).match(/^(.+)-(\d+)$/);
     if (!m) return null;
     return { board: m[1], idx: Number(m[2]) };
@@ -2223,6 +2271,10 @@ async function collectMyClickedPinKeys() {
         const id = el.id || "";
         if (!id.startsWith("pin-")) return;
         const rest = id.slice(4);
+        if (CLAIM_ID_MODE === "crop_stem") {
+            if (rest) keySet.add(rest);
+            return;
+        }
         const m = rest.match(/^(.+)-(\d+)$/);
         if (m) keySet.add(`${m[1]}-${m[2]}`);
     });

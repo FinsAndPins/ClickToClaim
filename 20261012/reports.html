@@ -243,6 +243,8 @@
 <script src="js/user_filter.js?v=3"></script>
 <script>
 const SHOW_DATE_SLUG_FALLBACK = "20261012";
+/** "index" joins clicks as IMG_####-<box>. "crop_stem" joins the detect id. Template stays "index". */
+const CLAIM_ID_MODE = "index";
 let reportsShowSlug = SHOW_DATE_SLUG_FALLBACK;
 function parseShowDateSlugFromPathReports() {
     const pathClean = window.location.pathname.replace(/\/reports\.html$/, "").replace(/\/$/, "");
@@ -497,7 +499,10 @@ let boardsManifestVer = "1";
 function listPriceForPk(pk) {
     const stem = pinKeyToStem[pk];
     if (!stem) return 0;
-    const map = String(pk).startsWith("LO03_") ? stemToPriceLeftover : stemToPricePrimary;
+    const leftoverPk = CLAIM_ID_MODE === "crop_stem"
+        ? !!(pinKeyToGeom[pk] && /^LO\d+_/.test(String(pinKeyToGeom[pk].board || "")))
+        : String(pk).startsWith("LO03_");
+    const map = leftoverPk ? stemToPriceLeftover : stemToPricePrimary;
     const raw = map[stem];
     if (raw == null || !isFinite(raw) || raw <= 0) return 0;
     return raw < 10 ? 10 : Math.ceil(raw / 5) * 5;
@@ -693,7 +698,9 @@ async function loadDollarValues(manifest, ver) {
             const iw = Number((data.image && data.image.width) || 0);
             const ih = Number((data.image && data.image.height) || 0);
             (data.predictions || []).forEach((p, idx) => {
-                const pk = `${name}-${idx}`;
+                const pk = (CLAIM_ID_MODE === "crop_stem" && p.crop_stem)
+                    ? String(p.crop_stem)
+                    : `${name}-${idx}`;
                 if (p.crop_stem) {
                     pinKeyToStem[pk] = p.crop_stem;
                     if (!stemToPk[p.crop_stem]) stemToPk[p.crop_stem] = pk;
@@ -701,6 +708,7 @@ async function loadDollarValues(manifest, ver) {
                 if (p && p.width > 0 && p.height > 0) {
                     pinKeyToGeom[pk] = {
                         board: name,
+                        idx: idx,
                         x: Number(p.x),
                         y: Number(p.y),
                         width: Number(p.width),
@@ -876,9 +884,15 @@ function renderSoldPinsReport() {
         const pk = stemToPk[stem] || null;
         let display = stem;
         if (pk && globalData && globalData.boardList) {
-            const [bName, pIdx] = pk.split("-");
-            const bNum = globalData.boardList.indexOf(bName) + 1;
-            if (bNum > 0) display = `Board ${bNum} (Pin ${parseInt(pIdx, 10) + 1})`;
+            if (CLAIM_ID_MODE === "crop_stem") {
+                const g = pinKeyToGeom[pk];
+                const bNum = g ? globalData.boardList.indexOf(g.board) + 1 : 0;
+                if (g && bNum > 0) display = `Board ${bNum} (Pin ${Number(g.idx) + 1})`;
+            } else {
+                const [bName, pIdx] = pk.split("-");
+                const bNum = globalData.boardList.indexOf(bName) + 1;
+                if (bNum > 0) display = `Board ${bNum} (Pin ${parseInt(pIdx, 10) + 1})`;
+            }
         } else if (sale.board_num != null && sale.pin_n != null) {
             display = `Board ${sale.board_num} (Pin ${sale.pin_n})`;
         }
@@ -930,9 +944,16 @@ function renderReports() {
 
     const userStats = {}; const liveFeed = []; const popularity = [];
     Object.entries(aggRaw).forEach(([pk, users]) => {
-        const [bName, pIdx] = pk.split("-");
-        const bNum = globalData.boardList.indexOf(bName) + 1;
-        const cleanLoc = `Board ${bNum} (Pin ${parseInt(pIdx)+1})`;
+        let cleanLoc;
+        if (CLAIM_ID_MODE === "crop_stem") {
+            const g = pinKeyToGeom[pk];
+            const bNum = g ? globalData.boardList.indexOf(g.board) + 1 : 0;
+            cleanLoc = (g && bNum > 0) ? `Board ${bNum} (Pin ${Number(g.idx) + 1})` : String(pk);
+        } else {
+            const [bName, pIdx] = pk.split("-");
+            const bNum = globalData.boardList.indexOf(bName) + 1;
+            cleanLoc = `Board ${bNum} (Pin ${parseInt(pIdx)+1})`;
+        }
         const uList = Object.entries(users).sort((a,b) => rowTime(a[1]) - rowTime(b[1]));
         const isUnique = uList.length === 1;
 
