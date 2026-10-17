@@ -138,6 +138,18 @@
         }
         #pinSearchClear[hidden] { display: none !important; }
         #pinSearchStatus { font-size: 13px; margin-top: 6px; color: var(--fp-muted); }
+        #pinSearchNav {
+            display: flex; gap: 6px; margin-top: 8px;
+            position: sticky; top: 0; z-index: 2;
+            background: rgba(201, 184, 216, 0.98); padding-bottom: 2px;
+        }
+        #pinSearchNav[hidden] { display: none !important; }
+        #pinSearchNav button {
+            flex: 1; font: inherit; font-size: 14px; font-weight: bold; color: #1A1A40;
+            background: #FC97D4; border: 1px solid #1A1A40; border-radius: 8px;
+            padding: 7px 8px; cursor: pointer;
+        }
+        #pinSearchNav button:disabled { opacity: 0.4; cursor: default; }
         #pinSearchHits:empty { display: none; }
         #pinSearchHits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
         #pinSearchHits button {
@@ -154,6 +166,11 @@
             outline: 3px solid #FC97D4;
             box-shadow: 0 0 0 2px #1a1020;
             z-index: 4;
+        }
+        .pin.pin-search-current {
+            outline: 4px solid #fff;
+            box-shadow: 0 0 0 3px #FC97D4, 0 0 0 6px #1a1020;
+            z-index: 8;
         }
         .pin.selection-green { border: 4px solid rgba(0, 128, 0, 0.95); background: rgba(0, 255, 0, 0.28); }
         .pin.selection-yellow { border: 4px solid #ffd700; background: rgba(255, 215, 0, 0.45); }
@@ -555,6 +572,10 @@
         <button type="button" id="pinSearchClear" hidden aria-label="Clear search">×</button>
     </div>
     <div id="pinSearchStatus" aria-live="polite"></div>
+    <div id="pinSearchNav" hidden>
+        <button type="button" id="pinSearchPrev">Previous</button>
+        <button type="button" id="pinSearchNext">Next</button>
+    </div>
     <div id="pinSearchHits"></div>
 </div>
 <div id="socialBar" aria-label="Social links">
@@ -1216,6 +1237,7 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     });
     applyAllExcludedPins();
     if (typeof calculateGlobals === "function") calculateGlobals();
+    if (typeof window._ctcApplyPinSearch === "function") window._ctcApplyPinSearch();
 });
 
 
@@ -1225,13 +1247,20 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     const clearBtn = document.getElementById("pinSearchClear");
     const statusEl = document.getElementById("pinSearchStatus");
     const hitsEl = document.getElementById("pinSearchHits");
-    if (!wrap || !input || !clearBtn || !statusEl || !hitsEl) return;
+    const navEl = document.getElementById("pinSearchNav");
+    const prevBtn = document.getElementById("pinSearchPrev");
+    const nextBtn = document.getElementById("pinSearchNext");
+    if (!wrap || !input || !clearBtn || !statusEl || !hitsEl || !navEl || !prevBtn || !nextBtn) return;
 
     const boxes = [];
     const boxKeys = new Set();
     const titles = Object.create(null);
     let visible = true;
     let query = "";
+    let focusKey = "";
+    let scrollFocus = false;
+    let scrolledWrapperFor = "";
+    let sortedHits = [];
     const params = new URLSearchParams(window.location.search);
     const initialQ = params.get("q") || "";
     if (initialQ) {
@@ -1263,6 +1292,9 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
 
     function clearSearch() {
         query = "";
+        focusKey = "";
+        scrollFocus = false;
+        sortedHits = [];
         input.value = "";
         const next = new URLSearchParams(window.location.search);
         if (next.has("q")) {
@@ -1299,12 +1331,96 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
         window.location.href = window.location.pathname + "?" + next.toString() + "#wrapper-" + boardName;
     }
 
+    function searchPinIsClickable(row) {
+        if (typeof window._ctcStemIsUnavailable !== "function") return true;
+        const leftover = typeof isLeftoverBoardName === "function" && isLeftoverBoardName(row.board);
+        return !window._ctcStemIsUnavailable(row.stem, leftover);
+    }
+
+    function boardOrder(name) {
+        const names = Array.isArray(manifestBoardNames) ? manifestBoardNames : [];
+        const at = names.indexOf(name);
+        return at >= 0 ? at : 9999;
+    }
+
+    function hitKey(row) {
+        return row.board + "-" + row.idx;
+    }
+
+    function focusIndex() {
+        if (!focusKey) return -1;
+        return sortedHits.findIndex((row) => hitKey(row) === focusKey);
+    }
+
+    function scrollPinIntoView(pin) {
+        pin.style.scrollMarginTop = (wrap.offsetHeight + 24) + "px";
+        pin.style.scrollMarginBottom = "88px";
+        pin.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function revealFocusedPin() {
+        if (!focusKey || !scrollFocus) return;
+        const pin = document.getElementById("pin-" + focusKey);
+        if (pin) {
+            scrollPinIntoView(pin);
+            scrollFocus = false;
+            return;
+        }
+        const boardName = focusKey.slice(0, focusKey.lastIndexOf("-"));
+        const wrapper = document.getElementById("wrapper-" + boardName);
+        if (wrapper) {
+            if (scrolledWrapperFor !== focusKey) {
+                wrapper.style.scrollMarginTop = (wrap.offsetHeight + 18) + "px";
+                wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+                scrolledWrapperFor = focusKey;
+            }
+            return;
+        }
+        if (typeof isLiteMode !== "undefined" && isLiteMode) {
+            const row = sortedHits[focusIndex()];
+            if (!row) return;
+            const names = Array.isArray(manifestBoardNames) ? manifestBoardNames : [];
+            const at = names.indexOf(row.board);
+            const start = at >= 0 ? Math.floor(at / LITE_PAGE_SIZE) * LITE_PAGE_SIZE : 0;
+            const next = new URLSearchParams(window.location.search);
+            next.set("lite", "1");
+            next.set("start", String(start));
+            if (query) next.set("q", query);
+            else next.delete("q");
+            if (isAdmin) next.set("admin", ADMIN_KEY);
+            window.location.href = window.location.pathname + "?" + next.toString() + "#pin-" + hitKey(row);
+        }
+    }
+
+    function stepMatch(delta) {
+        if (!sortedHits.length) return;
+        let i = focusIndex();
+        if (i < 0) i = delta > 0 ? -1 : sortedHits.length;
+        const next = i + delta;
+        if (next < 0 || next >= sortedHits.length) return;
+        focusKey = hitKey(sortedHits[next]);
+        scrollFocus = true;
+        scrolledWrapperFor = "";
+        window._ctcApplyPinSearch();
+    }
+
+    function syncNav(at) {
+        const n = sortedHits.length;
+        navEl.hidden = n === 0;
+        prevBtn.disabled = n === 0 || at === 0;
+        nextBtn.disabled = n === 0 || (at >= 0 && at === n - 1);
+    }
+
     window._ctcApplyPinSearch = function () {
         document.querySelectorAll(".board-container").forEach((el) => el.classList.remove("search-hide"));
-        document.querySelectorAll(".pin").forEach((el) => el.classList.remove("pin-search-hit", "pin-search-dim"));
+        document.querySelectorAll(".pin").forEach((el) => el.classList.remove("pin-search-hit", "pin-search-dim", "pin-search-current"));
         hitsEl.replaceChildren();
         syncClearButton();
         if (!visible || !query) {
+            sortedHits = [];
+            focusKey = "";
+            scrollFocus = false;
+            navEl.hidden = true;
             statusEl.textContent = "";
             return;
         }
@@ -1315,39 +1431,60 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
         allBtn.addEventListener("click", clearSearch);
         hitsEl.appendChild(allBtn);
         if (!boxes.length) {
+            sortedHits = [];
+            navEl.hidden = true;
             statusEl.textContent = "Loading boards…";
             return;
         }
         if (!Object.keys(titles).length) {
+            sortedHits = [];
+            navEl.hidden = true;
             statusEl.textContent = "Loading titles…";
             return;
         }
         const q = query.toLowerCase();
         const hits = [];
         const boardsWithHits = new Set();
+        let titleHits = 0;
         boxes.forEach((row) => {
             const title = titles[row.stem] || "";
             if (!title || title.toLowerCase().indexOf(q) === -1) return;
+            titleHits += 1;
+            if (!searchPinIsClickable(row)) return;
             hits.push(row);
             boardsWithHits.add(row.board);
         });
+        sortedHits = hits.slice().sort((a, b) => (boardOrder(a.board) - boardOrder(b.board)) || (a.idx - b.idx));
+        if (focusKey && focusIndex() < 0) {
+            focusKey = "";
+            scrollFocus = false;
+        }
         document.querySelectorAll(".board-container").forEach((el) => {
             const name = el.dataset.board || "";
             if (name && !boardsWithHits.has(name)) el.classList.add("search-hide");
         });
-        const hitIds = new Set(hits.map((row) => "pin-" + row.board + "-" + row.idx));
+        const hitIds = new Set(sortedHits.map((row) => "pin-" + hitKey(row)));
         document.querySelectorAll(".board-container:not(.search-hide) .pin").forEach((el) => {
             el.classList.add(hitIds.has(el.id) ? "pin-search-hit" : "pin-search-dim");
         });
+        const at = focusIndex();
+        if (at >= 0) {
+            const current = document.getElementById("pin-" + focusKey);
+            if (current) current.classList.add("pin-search-current");
+        }
         const boardNums = Array.from(boardsWithHits).map((name) => {
-            const at = manifestBoardNames.indexOf(name);
-            return at >= 0 ? at + 1 : 0;
+            const atBoard = manifestBoardNames.indexOf(name);
+            return atBoard >= 0 ? atBoard + 1 : 0;
         }).filter((n) => n > 0).sort((a, b) => a - b);
-        statusEl.textContent = hits.length
-            ? hits.length + " matching pins on " + boardNums.length + " boards. Pink outline is a match. Tap the pin on the board to request it."
-            : "No titles match.";
+        statusEl.textContent = sortedHits.length
+            ? sortedHits.length + " matching pins on " + boardNums.length + " boards."
+                + (at >= 0 ? " Match " + (at + 1) + " of " + sortedHits.length + "." : "")
+                + " Pink outline is a match. Tap the pin on the board to request it."
+            : (titleHits ? "No clickable pins match." : "No titles match.");
+        syncNav(at);
+        revealFocusedPin();
         const seenBoard = new Set();
-        hits.slice().sort((a, b) => a.boardNum - b.boardNum).forEach((row) => {
+        sortedHits.forEach((row) => {
             if (!row.boardNum || seenBoard.has(row.board)) return;
             seenBoard.add(row.board);
             const count = hits.filter((h) => h.board === row.board).length;
@@ -1362,11 +1499,15 @@ db.ref(`showConfig/${fbName}/excludedStems`).on("value", snap => {
     let timer = null;
     input.addEventListener("input", () => {
         query = input.value.trim();
+        focusKey = "";
+        scrollFocus = false;
         syncClearButton();
         clearTimeout(timer);
         timer = setTimeout(() => window._ctcApplyPinSearch(), 120);
     });
     clearBtn.addEventListener("click", clearSearch);
+    prevBtn.addEventListener("click", () => stepMatch(-1));
+    nextBtn.addEventListener("click", () => stepMatch(1));
     syncClearButton();
     if (query) window._ctcApplyPinSearch();
 })();
@@ -1520,7 +1661,10 @@ function scheduleAvailablePinTotalsRefresh() {
         }
     }, 120);
 }
-window._ctcOnPinAvailabilityChanged = scheduleAvailablePinTotalsRefresh;
+window._ctcOnPinAvailabilityChanged = function () {
+    scheduleAvailablePinTotalsRefresh();
+    if (typeof window._ctcApplyPinSearch === "function") window._ctcApplyPinSearch();
+};
 
 /** Map every pin key → crop_stem so $ totals work for boards not yet rendered (lite). Read-only. */
 async function loadAdminCropStemMap(boardNames) {
