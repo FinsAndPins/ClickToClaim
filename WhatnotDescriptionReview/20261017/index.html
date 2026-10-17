@@ -186,14 +186,23 @@ function writeLocal(stem, row) {
 function money(n) {
   return "$" + Number(n).toLocaleString("en-US");
 }
+function cleanPiece(s) {
+  return String(s || "")
+    .replace(/[.,;:!?()[\]{}"“”«»]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 function buyerLine(card, ids) {
-  const parts = [card.character];
-  if (card.movies && card.movies.length) parts.push(card.movies.join(", "));
-  const labels = [];
-  (card.keeps || []).forEach(function (row) { if (ids.has(row.id)) labels.push(row.label); });
-  (card.holds || []).forEach(function (row) { if (ids.has(row.id)) labels.push(row.label); });
-  if (labels.length) parts.push(labels.join(", "));
-  return parts.join(". ") + ".";
+  const parts = [];
+  function add(s) {
+    const cleaned = cleanPiece(s);
+    if (cleaned) parts.push(cleaned);
+  }
+  add(card.character);
+  (card.movies || []).forEach(add);
+  (card.keeps || []).forEach(function (row) { if (ids.has(row.id)) add(row.label); });
+  (card.holds || []).forEach(function (row) { if (ids.has(row.id)) add(row.label); });
+  return parts.join(" ");
 }
 function defaultIds(card) {
   return new Set((card.keeps || []).map(function (row) { return row.id; }));
