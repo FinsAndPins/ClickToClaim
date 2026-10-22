@@ -37,6 +37,18 @@ ClickToMatch **Match** writes `display_price` + `selected_candidate` from the on
 - `PreparingInventoryWatcherBin/scripts/` (what inbox launchd actually runs)
 - `Cursor Projects/CtrFullresPricing/generate_review_pages_enhanced.py` (CTR full-res runner)
 
+## Overlay page (standard reports template)
+
+The Lexi share text includes `testing_ui_visual_baseline/index.html`. A full-res run can still 404 that URL.
+
+Cause (2026-10-22, `PriceCollection_20261021_1444`): `ui_data.json` was written with `image_rel` empty, and `generate_review_pages_enhanced.py` only patches an `index.html` that already exists. Enhanced CTM, CTP, and the contact sheet published. The Overlay did not. `build_ui_data_by_crop_stem.py` is the writer that leaves `image_rel` blank on purpose so pin numbers stay tied to `crop_stem` (do not rebuild that file with `build_testing_ui.py`; reading-order slots slide boxes onto the wrong pins).
+
+When publishing a full-res harness, also ship:
+
+- Board JPGs at the detection size (CTR `boards/IMG_####.JPG`, same pixels as `thumb_w` / `thumb_h`) under `testing_ui_visual_baseline/assets/boards/`
+- `image_rel` set to `./assets/boards/IMG_####.JPG` on each board
+- `index.html` that embeds that same `ui_data` (hamburger, and a pin tap opens `new_ctp.html?filter=all&pin=`)
+
 ## Normal inbox pricing
 
 `BoardsToPrice` / inbox watcher already crops from inbox photos — unchanged for crop source. It still uses the enhanced generator above for CTM/CTP pages.
