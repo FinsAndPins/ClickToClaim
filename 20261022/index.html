@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v27-20261022-search-clear">
+    <meta name="ctr-countdown" content="closes-to-end-v28-20261022-shop-notice">
     <style>
         :root {
             --fp-bg: #c9b8d8;
@@ -40,6 +40,60 @@
         #introNote { text-align: center; font-size: 14px; color: var(--fp-muted); margin: 0 auto 14px; line-height: 1.4; max-width: 520px; }
         h1 { text-align: center; margin-bottom: 6px; margin-top: 0; font-size: 22px; line-height: 1.2; }
         h2 { text-align: center; margin-top: 0; margin-bottom: 12px; font-size: 15px; color: var(--fp-muted); font-weight: normal; }
+        /* 20261022 shop notice: same chrome as 20261019, link is this show only. */
+        #shopUploadedBanner {
+            max-width: 520px;
+            margin: 0 auto 14px;
+            background: #1A1A40;
+            color: #fff;
+            border-radius: 12px;
+            padding: 14px 14px 12px;
+            text-align: center;
+        }
+        #shopUploadedBanner p {
+            margin: 0 0 12px;
+            font-size: 16px;
+            line-height: 1.35;
+            font-weight: bold;
+            color: #fff;
+        }
+        .shop-actions { display: flex; flex-direction: column; gap: 8px; }
+        .shop-actions a, .shop-actions button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: inherit;
+            text-decoration: none;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .shop-actions .shop-go { background: #1877f2; color: #fff; border: none; }
+        .shop-actions .shop-stay { background: #fff; color: #1A1A40; border: none; }
+        #shopUploadedOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            z-index: 3400;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #shopUploadedOverlay .modal-box { max-width: 380px; }
+        #shopUploadedOverlay .shop-notice-copy {
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1.35;
+            color: var(--fp-muted);
+            margin: 0 0 14px;
+        }
         .login-welcome { display: flex; flex-direction: column; gap: 6px; text-align: center; margin: 0 0 14px; font-weight: normal; font-size: 15px; line-height: 1.25; color: var(--fp-text); }
         .login-welcome-pre, .login-welcome-sub { font-weight: normal; font-size: 0.95em; color: var(--fp-muted); }
         .login-welcome-main { font-size: 1.45em; font-weight: bold; color: var(--fp-text); line-height: 1.15; }
@@ -454,6 +508,16 @@
 
 <a id="collectionAppPromo" href="https://apple.co/4f8gaE8" target="_blank" rel="noopener noreferrer" title="Collection Detection App on the App Store" aria-label="Collection Detection App on the App Store"><img src="./collection-detection-app-square.png" width="96" height="96" alt="Collection Detection App"></a>
 
+<div id="shopUploadedOverlay" role="dialog" aria-modal="true" aria-labelledby="shopUploadedTitle">
+    <div class="modal-box">
+        <p id="shopUploadedTitle" class="shop-notice-copy">All these pins will be uploaded to the Shop for our 2:20pm Whatnot Show. If you clicked before 1:05pm, you can search for your username in the Shop on Whatnot to see all the pins you clicked.</p>
+        <div class="shop-actions">
+            <a class="shop-go" href="https://www.whatnot.com/s/0cEIe6AJ">Go To Whatnot Show</a>
+            <button type="button" class="shop-stay" onclick="dismissShopNotice(false)">Continue to ClickToRequest</button>
+        </div>
+    </div>
+</div>
+
 <div id="loginOverlay" style="display: flex;">
     <div class="login-box modal-box">
         <h3 class="login-welcome">
@@ -564,6 +628,12 @@
 
 <h1>Fins and Pins Click To Request!</h1>
 <h2 id="showTitle">Show Date</h2>
+<div id="shopUploadedBanner">
+    <p>All these pins will be uploaded to the Shop for our 2:20pm Whatnot Show. If you clicked before 1:05pm, you can search for your username in the Shop on Whatnot to see all the pins you clicked.</p>
+    <div class="shop-actions">
+        <a class="shop-go" href="https://www.whatnot.com/s/0cEIe6AJ">Go To Whatnot Show</a>
+    </div>
+</div>
 <p id="introNote">We hope you enjoy clicking the pins you want, rather than typing the board number and description 🧜‍♀️</p>
 <div id="pinSearchWrap">
     <label id="pinSearchLabel" for="pinSearchInput">Search titles</label>
@@ -1020,6 +1090,7 @@ function writeShowPhase(phase) {
 if (displayName) {
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('userDisplay').textContent = displayName;
+    openShopNotice();
 }
 
 document.querySelectorAll(".whatnot-invite-link").forEach(a => { a.href = WHATNOT_REFERRAL_URL; });
@@ -1090,6 +1161,25 @@ function closeFaq() {
     document.body.style.overflow = "";
 }
 
+function shopNoticeDismissed() {
+    try { return sessionStorage.getItem("fp_shop_notice_20261022") === "1"; }
+    catch (e) { return false; }
+}
+function openShopNotice() {
+    if (shopNoticeDismissed()) return;
+    const el = document.getElementById("shopUploadedOverlay");
+    if (el) el.style.display = "flex";
+}
+function dismissShopNotice(scrollToPins) {
+    const el = document.getElementById("shopUploadedOverlay");
+    if (el) el.style.display = "none";
+    try { sessionStorage.setItem("fp_shop_notice_20261022", "1"); } catch (e) {}
+    if (scrollToPins) {
+        const target = document.getElementById("boardsList") || document.getElementById("pinSearchWrap");
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+}
+
 function saveUsername() {
     const raw = document.getElementById("usernameInput").value.trim();
     if (!raw) {
@@ -1104,6 +1194,7 @@ function saveUsername() {
     document.getElementById("loginOverlay").style.display = "none";
     document.getElementById("userDisplay").textContent = displayName;
     listenForFirebase();
+    openShopNotice();
 }
 
 function parseShowDateSlugFromPath() {
