@@ -39,3 +39,13 @@
 **Rule:** Do not disable the contact fieldset (visual lock + `pointer-events` is enough). Listen for `change`/`blur`/`focusin` and `:-webkit-autofill` animation; commit/re-read values before `formValid` and on unlock/pageshow.
 
 **Where:** `intake/public/seller-home.js`, `intake/public/styles.css`, `intake/src/app.ts`
+
+## 2026-10-28 — Large finish died; empty handoff; one text for two uploads
+
+**Symptom:** Lexi submitted Melyssa (21 boards) + Tinkandgoldie. Only one pricing text. Melyssa drop folder had markers only (0 JPEGs).
+
+**Cause:** Background finish (`waitUntil`) created the collection row then died before all `photos` rows / auto-handoff. Mac helper still marked handoff **delivered** with 0 photos. Named Collections ignores empty folders (no text).
+
+**Rule:** Single-pass moderate+store; hand off only when stored == expected. Mac helper and Worker `complete` refuse 0 / count mismatch. Cron emails staff on incomplete collections. Seller must re-submit if photos never landed.
+
+**Where:** `intake/src/app.ts`, `intake/src/email.ts`, `Cursor Projects/IntakeToCollectionsToPrice/run_handoff_once.py` (+ App Support mirror)

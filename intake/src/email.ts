@@ -7,7 +7,7 @@ export type OutboundEmail = {
 };
 
 const NO_REPLY_LINE =
-  "Please don’t reply to this email — this inbox isn’t monitored. Use the link in the message if we sent one.";
+  "Please don’t reply to this email. This inbox isn’t monitored. Use the link in the message if we sent one.";
 
 export async function sendEmail(
   env: Bindings,
@@ -15,7 +15,7 @@ export async function sendEmail(
 ): Promise<{ sent: boolean; error?: string }> {
   const key = env.RESEND_API_KEY;
   if (!key) {
-    return { sent: false, error: "RESEND_API_KEY missing — logged only" };
+    return { sent: false, error: "RESEND_API_KEY missing (logged only)" };
   }
   const replyTo = (env.NOREPLY_EMAIL || "noreply@finsandpins.shop").trim();
   const res = await fetch("https://api.resend.com/emails", {
@@ -62,20 +62,17 @@ export function offerEmail(opts: {
     text: [
       `Hi ${opts.sellerName},`,
       "",
-      "Thank you for sending photos of your collection.",
+      "Thank you for uploading photos of your collection.",
       "",
-      `Our offer for everything in the photos you uploaded is ${opts.offerLabel}.`,
+      `Our best offer for everything in the photos you uploaded is ${opts.offerLabel}.`,
       "",
-      "This is our best offer — it takes real work to price a collection, and we send the number we'd pay.",
-      "",
-      `View the offer and accept or decline here (link works for ${opts.days} days):`,
+      `Click the link to view the offer, and accept or decline it (link works for ${opts.days} days). There’s no pressure either way.`,
       opts.link,
       "",
-      "No pressure either way. If you decline, you can optionally tell us why — we won't use that to haggle.",
+      "Please don’t reply to this email. This inbox isn’t monitored.",
       "",
-      NO_REPLY_LINE,
-      "",
-      "— Fins & Pins",
+      "Thank you,",
+      "Fins & Pins",
     ].join("\n"),
   };
 }
@@ -90,7 +87,7 @@ export function readyToPayEmail(opts: {
 }): OutboundEmail {
   return {
     to: [],
-    subject: `Ready to pay — ${opts.sellerName} accepted ${opts.offerLabel}`,
+    subject: `Ready to pay: ${opts.sellerName} accepted ${opts.offerLabel}`,
     text: [
       `${opts.sellerName} accepted the offer.`,
       "",
@@ -135,14 +132,42 @@ export function sellerPhotosRejectedEmail(sellerName: string): OutboundEmail {
     text: [
       `Hi ${sellerName},`,
       "",
-      "One or more photos didn't pass our automated safety checks, so we could not accept this submission.",
-      "Those files were not saved.",
+      "Thanks for submitting. One or more photos didn't pass our automated safety checks, so we could not keep this submission.",
+      "Those files were not saved, and nothing was sent on for pricing.",
       "",
-      "Please try again with photos of pin boards only — a clear picture of the pins, without people or other content. Use the same invite link you were given; don’t reply to this email.",
+      "Please try again with photos of pin boards only: a clear picture of the pins, without people or other content. Use the same invite link you were given; don’t reply to this email.",
       "",
       NO_REPLY_LINE,
       "",
-      "— Fins & Pins",
+      "- Fins & Pins",
+    ].join("\n"),
+  };
+}
+
+/** Staff: finish background died or stored fewer photos than expected (no auto text to Lexi). */
+export function finishIncompleteStaffEmail(opts: {
+  sellerName: string;
+  sellerEmail: string;
+  collectionId: string;
+  expected: number;
+  stored: number;
+  adminLink: string;
+  detail: string;
+}): OutboundEmail {
+  return {
+    to: [],
+    subject: `Intake finish incomplete: ${opts.sellerName} (${opts.stored}/${opts.expected} photos)`,
+    text: [
+      "A seller submission did not finish storing all photos. It was NOT sent to CollectionsToPrice.",
+      "Ask the seller to submit again if photos are missing. Do not rely on the empty drop folder.",
+      "",
+      `Name: ${opts.sellerName}`,
+      `Email: ${opts.sellerEmail}`,
+      `Collection: ${opts.collectionId}`,
+      `Photos stored: ${opts.stored} of ${opts.expected}`,
+      `Detail: ${opts.detail}`,
+      "",
+      opts.adminLink,
     ].join("\n"),
   };
 }

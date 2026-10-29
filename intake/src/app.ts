@@ -10,6 +10,7 @@ import {
   readyToPayEmail,
   moderationAlertEmail,
   sellerPhotosRejectedEmail,
+  finishIncompleteStaffEmail,
 } from "./email";
 import { centsToDollars, declinedWantedMore, offerHelpers, parseDollarsToCents, percentOfValue } from "./money";
 import { addDaysIso, canStaffMove, KANBAN_COLUMNS, offerDueLabel, offerExpired, staffNextStatuses } from "./workflow";
@@ -109,34 +110,58 @@ async function rejectModerationAndNotify(
   await logEvent(env.DB, null, "system", "moderation_emails", { staff: s1, seller: s2 });
 }
 
-/** Runs after the seller already saw Thanks. Never queues Mac handoff until moderation passes. */
+async function alertFinishIncomplete(
+  env: Bindings,
+  opts: {
+    collectionId: string | null;
+    sellerName: string;
+    sellerEmail: string;
+    expected: number;
+    stored: number;
+    detail: string;
+  }
+): Promise<void> {
+  await logEvent(env.DB, opts.collectionId, "system", "finish_incomplete", {
+    expected: opts.expected,
+    stored: opts.stored,
+    detail: opts.detail.slice(0, 300),
+    seller_email: opts.sellerEmail,
+  });
+  if (!opts.collectionId) return;
+  const already = await env.DB.prepare(
+    `SELECT id FROM events WHERE collection_id = ? AND type = 'finish_incomplete_alerted' LIMIT 1`
+  )
+    .bind(opts.collectionId)
+    .first();
+  if (already) return;
+  const mail = finishIncompleteStaffEmail({
+    sellerName: opts.sellerName,
+    sellerEmail: opts.sellerEmail,
+    collectionId: opts.collectionId,
+    expected: opts.expected,
+    stored: opts.stored,
+    adminLink: adminUrl(env, opts.collectionId),
+    detail: opts.detail,
+  });
+  mail.to = staffEmails(env);
+  const sent = await sendEmail(env, mail);
+  await logEvent(env.DB, opts.collectionId, "system", "finish_incomplete_alerted", { sent });
+}
+
+/**
+ * Runs after the seller already saw Thanks.
+ * Single pass: moderate → reencode → store each photo (no double R2 read).
+ * Never queues Mac handoff unless every photo is stored.
+ */
 async function processSubmissionBackground(
   env: Bindings,
   session: UploadSessionSnap,
   photos: TempPhotoSnap[]
 ): Promise<void> {
+  let collectionId: string | null = null;
+  let stored = 0;
   try {
-    const failedCodes: string[] = [];
-    for (const p of photos) {
-      const obj = await env.BUCKET.get(p.r2_key);
-      if (!obj) {
-        failedCodes.push("missing_temp_object");
-        break;
-      }
-      const buf = await obj.arrayBuffer();
-      const result = await moderateImage(env, buf, p.content_type || "image/jpeg");
-      if (!result.ok) {
-        failedCodes.push(...result.codes);
-        break;
-      }
-    }
-
-    if (failedCodes.length) {
-      await rejectModerationAndNotify(env, session, photos, failedCodes);
-      return;
-    }
-
-    const collectionId = id();
+    const collectionIdNew = id();
     const created = nowIso();
     await env.DB.prepare(
       `INSERT INTO collections (
@@ -145,7 +170,7 @@ async function processSubmissionBackground(
       ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
-        collectionId,
+        collectionIdNew,
         session.seller_name,
         session.seller_email,
         session.paypal_gs_email,
@@ -159,12 +184,47 @@ async function processSubmissionBackground(
         created
       )
       .run();
+    collectionId = collectionIdNew;
 
     let cover: string | null = null;
     for (const p of photos) {
       const obj = await env.BUCKET.get(p.r2_key);
-      if (!obj) continue;
+      if (!obj) {
+        await env.DB.prepare(
+          `UPDATE collections SET status = 'withdrawn', photo_count = ?, internal_note = ?, updated_at = ? WHERE id = ?`
+        )
+          .bind(
+            stored,
+            `Auto-withdrawn: missing temp photo during finish (${stored}/${photos.length} stored). Seller should re-submit.`,
+            nowIso(),
+            collectionId
+          )
+          .run();
+        await alertFinishIncomplete(env, {
+          collectionId,
+          sellerName: session.seller_name,
+          sellerEmail: session.seller_email,
+          expected: photos.length,
+          stored,
+          detail: `missing_temp_object at photo ${p.id} after ${stored} stored`,
+        });
+        return;
+      }
       const buf = await obj.arrayBuffer();
+      const result = await moderateImage(env, buf, p.content_type || "image/jpeg");
+      if (!result.ok) {
+        await rejectModerationAndNotify(env, session, photos, result.codes);
+        await env.DB.prepare(
+          `UPDATE collections SET status = 'withdrawn', internal_note = ?, updated_at = ? WHERE id = ?`
+        )
+          .bind(
+            `Auto-withdrawn: moderation reject (${result.codes.join(",")}). ${stored}/${photos.length} stored before reject.`,
+            nowIso(),
+            collectionId
+          )
+          .run();
+        return;
+      }
       const re = await reencodeToJpeg(buf, p.content_type || "image/jpeg", p.original_filename);
       const storeBytes = re.ok ? re.bytes : new Uint8Array(buf);
       const storeType = re.ok ? re.contentType : p.content_type || "image/jpeg";
@@ -201,8 +261,38 @@ async function processSubmissionBackground(
           created
         )
         .run();
+      stored += 1;
       if (!cover) cover = p.id;
+      // Keep photo_count honest if we die mid-run (cron / admin see real progress).
+      await env.DB.prepare(
+        `UPDATE collections SET cover_photo_id = COALESCE(cover_photo_id, ?), updated_at = ? WHERE id = ?`
+      )
+        .bind(cover, nowIso(), collectionId)
+        .run();
     }
+
+    if (stored !== photos.length || stored < 1) {
+      await env.DB.prepare(
+        `UPDATE collections SET photo_count = ?, internal_note = ?, updated_at = ? WHERE id = ?`
+      )
+        .bind(
+          stored,
+          `Finish incomplete: stored ${stored}/${photos.length}. Not handed off. Seller should re-submit.`,
+          nowIso(),
+          collectionId
+        )
+        .run();
+      await alertFinishIncomplete(env, {
+        collectionId,
+        sellerName: session.seller_name,
+        sellerEmail: session.seller_email,
+        expected: photos.length,
+        stored,
+        detail: "stored count mismatch after photo loop",
+      });
+      return;
+    }
+
     if (cover) {
       await env.DB.prepare(`UPDATE collections SET cover_photo_id = ? WHERE id = ?`)
         .bind(cover, collectionId)
@@ -222,11 +312,38 @@ async function processSubmissionBackground(
       { auto: true }
     );
   } catch (e) {
-    await logEvent(env.DB, null, "system", "async_finish_error", {
+    const detail = String(e).slice(0, 300);
+    await logEvent(env.DB, collectionId, "system", "async_finish_error", {
       session_id: session.id,
       seller_email: session.seller_email,
-      error: String(e).slice(0, 300),
+      stored,
+      expected: photos.length,
+      error: detail,
     });
+    if (collectionId) {
+      try {
+        await env.DB.prepare(
+          `UPDATE collections SET photo_count = ?, internal_note = ?, updated_at = ? WHERE id = ?`
+        )
+          .bind(
+            stored,
+            `Finish error after ${stored}/${photos.length} photos: ${detail}`.slice(0, 500),
+            nowIso(),
+            collectionId
+          )
+          .run();
+      } catch {
+        /* ignore */
+      }
+      await alertFinishIncomplete(env, {
+        collectionId,
+        sellerName: session.seller_name,
+        sellerEmail: session.seller_email,
+        expected: photos.length,
+        stored,
+        detail,
+      });
+    }
   }
 }
 
@@ -943,12 +1060,14 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
       return c.json({ ok: true, accepted: true });
     }
     const claimedAt = nowIso();
+    // Large finishes (20+ boards) need headroom; do not let the 40m session TTL wipe temps mid-job.
+    const finishExpires = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
     try {
       const claim = await c.env.DB.prepare(
         `UPDATE upload_sessions SET
           seller_name = ?, seller_email = ?, paypal_gs_email = ?, instagram = ?,
           asking_cents = ?, seller_notes = ?, delivery_method = ?, accepted_terms_at = ?,
-          finish_started_at = ?
+          finish_started_at = ?, expires_at = ?
          WHERE id = ? AND finish_started_at IS NULL`
       )
         .bind(
@@ -961,6 +1080,7 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
           snap.delivery_method,
           snap.accepted_terms_at,
           claimedAt,
+          finishExpires,
           sessionId
         )
         .run();
@@ -1771,24 +1891,61 @@ app.get("/api/mac/handoff/:id/photos/:photoId", async (c) => {
 app.post("/api/mac/handoff/:id/complete", async (c) => {
   const auth = await requireMacOrStaff(c.env, c.req.raw);
   if (auth instanceof Response) return auth;
-  const body = (await c.req.json().catch(() => ({}))) as { folder?: string; error?: string };
+  const body = (await c.req.json().catch(() => ({}))) as {
+    folder?: string;
+    error?: string;
+    photo_count?: number;
+  };
   const updated = nowIso();
+  const collectionId = c.req.param("id");
   if (body.error) {
     await c.env.DB.prepare(
       `UPDATE collections SET mac_handoff_status = 'failed', mac_handoff_at = ?, updated_at = ? WHERE id = ?`
     )
-      .bind(updated, updated, c.req.param("id"))
+      .bind(updated, updated, collectionId)
       .run();
-    await logEvent(c.env.DB, c.req.param("id"), auth.email, "mac_handoff_failed", { error: body.error });
+    await logEvent(c.env.DB, collectionId, auth.email, "mac_handoff_failed", { error: body.error });
     return c.json({ ok: false });
+  }
+  const row = await c.env.DB.prepare(
+    `SELECT id, photo_count, seller_name, seller_email FROM collections WHERE id = ?`
+  )
+    .bind(collectionId)
+    .first<{ id: string; photo_count: number; seller_name: string; seller_email: string }>();
+  if (!row) return c.json({ error: "not found" }, 404);
+  const dbPhotos = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM photos WHERE collection_id = ?`
+  )
+    .bind(collectionId)
+    .first<{ n: number }>();
+  const stored = Number(dbPhotos?.n || 0);
+  const reported = body.photo_count != null ? Number(body.photo_count) : stored;
+  if (stored < 1 || reported < 1 || stored !== row.photo_count || reported !== stored) {
+    const err = `Refuse deliver: db_photos=${stored} collection.photo_count=${row.photo_count} reported=${reported}`;
+    await c.env.DB.prepare(
+      `UPDATE collections SET mac_handoff_status = 'failed', mac_handoff_at = ?, updated_at = ? WHERE id = ?`
+    )
+      .bind(updated, updated, collectionId)
+      .run();
+    await logEvent(c.env.DB, collectionId, auth.email, "mac_handoff_failed", { error: err });
+    await alertFinishIncomplete(c.env, {
+      collectionId,
+      sellerName: row.seller_name,
+      sellerEmail: row.seller_email,
+      expected: row.photo_count,
+      stored,
+      detail: err,
+    });
+    return c.json({ ok: false, error: err }, 409);
   }
   await c.env.DB.prepare(
     `UPDATE collections SET mac_handoff_status = 'delivered', mac_handoff_folder = COALESCE(?, mac_handoff_folder), mac_handoff_at = ?, updated_at = ? WHERE id = ?`
   )
-    .bind(body.folder || null, updated, updated, c.req.param("id"))
+    .bind(body.folder || null, updated, updated, collectionId)
     .run();
-  await logEvent(c.env.DB, c.req.param("id"), auth.email, "mac_handoff_delivered", {
+  await logEvent(c.env.DB, collectionId, auth.email, "mac_handoff_delivered", {
     folder: body.folder || null,
+    photo_count: stored,
   });
   return c.json({ ok: true });
 });
@@ -1885,10 +2042,60 @@ echo "Folder: $DIR"
   });
 });
 
-/* cleanup abandoned temp uploads */
+/** Alert staff once for collections that never got a full photo set (e.g. waitUntil killed mid-finish). */
+async function scanIncompleteCollections(env: Bindings): Promise<void> {
+  const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const rows = await env.DB.prepare(
+    `SELECT c.id, c.seller_name, c.seller_email, c.photo_count, c.status, c.mac_handoff_status,
+            (SELECT COUNT(*) FROM photos p WHERE p.collection_id = c.id) AS stored
+     FROM collections c
+     WHERE c.created_at < ?
+       AND c.status IN ('submitted', 'pricing')
+       AND (
+         c.photo_count < 1
+         OR (SELECT COUNT(*) FROM photos p WHERE p.collection_id = c.id) < c.photo_count
+         OR (c.mac_handoff_status = 'delivered' AND (SELECT COUNT(*) FROM photos p WHERE p.collection_id = c.id) < 1)
+       )
+     ORDER BY c.created_at DESC
+     LIMIT 20`
+  )
+    .bind(cutoff)
+    .all<{
+      id: string;
+      seller_name: string;
+      seller_email: string;
+      photo_count: number;
+      status: string;
+      mac_handoff_status: string | null;
+      stored: number;
+    }>();
+  for (const row of rows.results || []) {
+    const stored = Number(row.stored || 0);
+    if (row.mac_handoff_status === "delivered" && stored < 1) {
+      await env.DB.prepare(
+        `UPDATE collections SET mac_handoff_status = 'failed', updated_at = ? WHERE id = ?`
+      )
+        .bind(nowIso(), row.id)
+        .run();
+    }
+    await alertFinishIncomplete(env, {
+      collectionId: row.id,
+      sellerName: row.seller_name,
+      sellerEmail: row.seller_email,
+      expected: row.photo_count,
+      stored,
+      detail: `cron scan: status=${row.status} handoff=${row.mac_handoff_status || "null"}`,
+    });
+  }
+}
+
+/* cleanup abandoned temp uploads + alert incomplete finishes */
 export async function cleanupExpired(env: Bindings) {
   const cutoff = nowIso();
-  const sessions = await env.DB.prepare(`SELECT id FROM upload_sessions WHERE expires_at < ?`)
+  // Do not wipe in-flight finishes (finish_started_at set) until expires_at (bumped to +3h on claim).
+  const sessions = await env.DB.prepare(
+    `SELECT id FROM upload_sessions WHERE expires_at < ?`
+  )
     .bind(cutoff)
     .all<{ id: string }>();
   for (const s of sessions.results || []) {
@@ -1917,5 +2124,10 @@ export async function cleanupExpired(env: Bindings) {
       /* ignore */
     }
     await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ?`).bind(p.id).run();
+  }
+  try {
+    await scanIncompleteCollections(env);
+  } catch (e) {
+    console.error("scan_incomplete_collections_failed", e);
   }
 }
