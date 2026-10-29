@@ -42,10 +42,10 @@
 
 ## 2026-10-28 — Large finish died; empty handoff; one text for two uploads
 
-**Symptom:** Lexi submitted Melyssa (21 boards) + Tinkandgoldie. Only one pricing text. Melyssa drop folder had markers only (0 JPEGs).
+**Symptom:** Lexi submitted Melyssa (21 boards) + Tinkandgoldie. Only one pricing text. Melyssa drop folder had markers only (0 JPEGs). Lexi had to press Send to CollectionsToPrice; Tink was missing a photo.
 
-**Cause:** Background finish (`waitUntil`) created the collection row then died before all `photos` rows / auto-handoff. Mac helper still marked handoff **delivered** with 0 photos. Named Collections ignores empty folders (no text).
+**Cause:** Background finish (`waitUntil`) hit Worker CPU limits mid-job: collection row created, not all photos stored, **auto handoff never ran** (`submitted` / `mac_handoff_queued auto:true` missing). Manual re-queue then delivered whatever photos existed. Helper also marked 0-photo Melyssa delivered.
 
-**Rule:** Single-pass moderate+store; hand off only when stored == expected. Mac helper and Worker `complete` refuse 0 / count mismatch. Cron emails staff on incomplete collections. Seller must re-submit if photos never landed.
+**Rule:** Finish is resumable in ticks of 4 photos; cron every 2 minutes resumes claimed sessions and auto-queues handoff when complete. Refuse deliver on count mismatch. Seller must re-submit boards that never landed in `photos`.
 
-**Where:** `intake/src/app.ts`, `intake/src/email.ts`, `Cursor Projects/IntakeToCollectionsToPrice/run_handoff_once.py` (+ App Support mirror)
+**Where:** `intake/src/app.ts`, cron `*/2`, `schema_finish_collection_id.sql`, Mac handoff helper

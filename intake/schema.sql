@@ -19,8 +19,14 @@ CREATE TABLE IF NOT EXISTS collections (
   decline_reason TEXT,
   decline_wanted_cents INTEGER,
   decline_detail TEXT,
+  asking_cents INTEGER,
+  seller_notes TEXT,
+  delivery_method TEXT,
   tracking TEXT,
   photo_count INTEGER NOT NULL DEFAULT 0,
+  mac_handoff_status TEXT,
+  mac_handoff_at TEXT,
+  mac_handoff_folder TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -74,9 +80,14 @@ CREATE TABLE IF NOT EXISTS upload_sessions (
   seller_email TEXT NOT NULL,
   paypal_gs_email TEXT NOT NULL,
   instagram TEXT,
+  asking_cents INTEGER,
+  seller_notes TEXT,
+  delivery_method TEXT,
   accepted_terms_at TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  expires_at TEXT NOT NULL
+  expires_at TEXT NOT NULL,
+  finish_started_at TEXT,
+  collection_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS upload_temp_photos (

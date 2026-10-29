@@ -50,7 +50,11 @@ type UploadSessionSnap = {
   delivery_method: string | null;
   accepted_terms_at: string;
   finish_started_at?: string | null;
+  collection_id?: string | null;
 };
+
+/** Max photos to moderate+store per waitUntil/cron tick (avoids Worker CPU kill mid-finish). */
+const FINISH_PHOTOS_PER_TICK = 4;
 
 type TempPhotoSnap = {
   id: string;
@@ -149,66 +153,87 @@ async function alertFinishIncomplete(
 }
 
 /**
- * Runs after the seller already saw Thanks.
- * Single pass: moderate → reencode → store each photo (no double R2 read).
- * Never queues Mac handoff unless every photo is stored.
+ * Idempotent finish: moderate → store remaining photos in small ticks.
+ * Cron resumes if waitUntil is killed. Auto-queues CollectionsToPrice only when complete.
  */
 async function processSubmissionBackground(
   env: Bindings,
   session: UploadSessionSnap,
   photos: TempPhotoSnap[]
 ): Promise<void> {
-  let collectionId: string | null = null;
+  let collectionId: string | null = session.collection_id || null;
   let stored = 0;
   try {
-    const collectionIdNew = id();
+    if (!photos.length) {
+      await logEvent(env.DB, collectionId, "system", "async_finish_error", {
+        session_id: session.id,
+        error: "no_temp_photos",
+      });
+      return;
+    }
+
     const created = nowIso();
-    await env.DB.prepare(
-      `INSERT INTO collections (
-        id, status, seller_name, seller_email, paypal_gs_email, instagram, accepted_terms_at,
-        asking_cents, seller_notes, delivery_method, photo_count, created_at, updated_at
-      ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(
-        collectionIdNew,
-        session.seller_name,
-        session.seller_email,
-        session.paypal_gs_email,
-        session.instagram,
-        session.accepted_terms_at,
-        session.asking_cents,
-        session.seller_notes ?? null,
-        session.delivery_method,
-        photos.length,
-        created,
-        created
+    if (!collectionId) {
+      collectionId = id();
+      await env.DB.prepare(
+        `INSERT INTO collections (
+          id, status, seller_name, seller_email, paypal_gs_email, instagram, accepted_terms_at,
+          asking_cents, seller_notes, delivery_method, photo_count, created_at, updated_at
+        ) VALUES (?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run();
-    collectionId = collectionIdNew;
+        .bind(
+          collectionId,
+          session.seller_name,
+          session.seller_email,
+          session.paypal_gs_email,
+          session.instagram,
+          session.accepted_terms_at,
+          session.asking_cents,
+          session.seller_notes ?? null,
+          session.delivery_method,
+          photos.length,
+          created,
+          created
+        )
+        .run();
+      await env.DB.prepare(`UPDATE upload_sessions SET collection_id = ? WHERE id = ?`)
+        .bind(collectionId, session.id)
+        .run();
+      session.collection_id = collectionId;
+    }
+
+    const already = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM photos WHERE collection_id = ?`
+    )
+      .bind(collectionId)
+      .first<{ n: number }>();
+    stored = Number(already?.n || 0);
 
     let cover: string | null = null;
+    let workedThisTick = 0;
+    let missingTemps = 0;
+
     for (const p of photos) {
+      const exists = await env.DB.prepare(`SELECT id FROM photos WHERE id = ?`).bind(p.id).first();
+      if (exists) {
+        if (!cover) cover = p.id;
+        continue;
+      }
+
+      if (workedThisTick >= FINISH_PHOTOS_PER_TICK) {
+        await logEvent(env.DB, collectionId, "system", "finish_tick_yield", {
+          stored,
+          expected: photos.length,
+          tick: FINISH_PHOTOS_PER_TICK,
+        });
+        // Leave session for cron / next waitUntil tick. Do not hand off yet.
+        return;
+      }
+
       const obj = await env.BUCKET.get(p.r2_key);
       if (!obj) {
-        await env.DB.prepare(
-          `UPDATE collections SET status = 'withdrawn', photo_count = ?, internal_note = ?, updated_at = ? WHERE id = ?`
-        )
-          .bind(
-            stored,
-            `Auto-withdrawn: missing temp photo during finish (${stored}/${photos.length} stored). Seller should re-submit.`,
-            nowIso(),
-            collectionId
-          )
-          .run();
-        await alertFinishIncomplete(env, {
-          collectionId,
-          sellerName: session.seller_name,
-          sellerEmail: session.seller_email,
-          expected: photos.length,
-          stored,
-          detail: `missing_temp_object at photo ${p.id} after ${stored} stored`,
-        });
-        return;
+        missingTemps += 1;
+        continue;
       }
       const buf = await obj.arrayBuffer();
       const result = await moderateImage(env, buf, p.content_type || "image/jpeg");
@@ -262,8 +287,8 @@ async function processSubmissionBackground(
         )
         .run();
       stored += 1;
+      workedThisTick += 1;
       if (!cover) cover = p.id;
-      // Keep photo_count honest if we die mid-run (cron / admin see real progress).
       await env.DB.prepare(
         `UPDATE collections SET cover_photo_id = COALESCE(cover_photo_id, ?), updated_at = ? WHERE id = ?`
       )
@@ -271,13 +296,66 @@ async function processSubmissionBackground(
         .run();
     }
 
-    if (stored !== photos.length || stored < 1) {
+    const recount = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM photos WHERE collection_id = ?`
+    )
+      .bind(collectionId)
+      .first<{ n: number }>();
+    stored = Number(recount?.n || 0);
+
+    if (stored === photos.length && stored >= 1) {
+      if (cover) {
+        await env.DB.prepare(`UPDATE collections SET cover_photo_id = COALESCE(cover_photo_id, ?), photo_count = ? WHERE id = ?`)
+          .bind(cover, stored, collectionId)
+          .run();
+      } else {
+        await env.DB.prepare(`UPDATE collections SET photo_count = ? WHERE id = ?`)
+          .bind(stored, collectionId)
+          .run();
+      }
+      const alreadySubmitted = await env.DB.prepare(
+        `SELECT id FROM events WHERE collection_id = ? AND type = 'submitted' LIMIT 1`
+      )
+        .bind(collectionId)
+        .first();
+      if (!alreadySubmitted) {
+        await logEvent(env.DB, collectionId, session.seller_email, "submitted", {
+          photo_count: photos.length,
+          async_moderation: true,
+          has_seller_notes: Boolean(session.seller_notes),
+        });
+      }
+      const row = await env.DB.prepare(
+        `SELECT id, seller_name, status, mac_handoff_status FROM collections WHERE id = ?`
+      )
+        .bind(collectionId)
+        .first<{ id: string; seller_name: string; status: string; mac_handoff_status: string | null }>();
+      if (row && row.mac_handoff_status !== "queued" && row.mac_handoff_status !== "delivered") {
+        await queueMacHandoff(
+          env.DB,
+          { id: row.id, seller_name: row.seller_name, status: row.status },
+          session.seller_email,
+          { auto: true }
+        );
+      }
+      await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(session.id).run();
+      await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
+      return;
+    }
+
+    // Still incomplete: keep session for cron. Alert only when temps are gone and we cannot progress.
+    await env.DB.prepare(
+      `UPDATE collections SET photo_count = ?, updated_at = ? WHERE id = ?`
+    )
+      .bind(photos.length, nowIso(), collectionId)
+      .run();
+
+    if (missingTemps > 0 && stored + missingTemps >= photos.length && stored < photos.length) {
       await env.DB.prepare(
-        `UPDATE collections SET photo_count = ?, internal_note = ?, updated_at = ? WHERE id = ?`
+        `UPDATE collections SET internal_note = ?, updated_at = ? WHERE id = ?`
       )
         .bind(
-          stored,
-          `Finish incomplete: stored ${stored}/${photos.length}. Not handed off. Seller should re-submit.`,
+          `Finish stuck: ${stored}/${photos.length} stored; ${missingTemps} temp object(s) missing. Seller should re-submit missing boards.`,
           nowIso(),
           collectionId
         )
@@ -288,29 +366,9 @@ async function processSubmissionBackground(
         sellerEmail: session.seller_email,
         expected: photos.length,
         stored,
-        detail: "stored count mismatch after photo loop",
+        detail: `${missingTemps} missing temp object(s); cannot auto-complete`,
       });
-      return;
     }
-
-    if (cover) {
-      await env.DB.prepare(`UPDATE collections SET cover_photo_id = ? WHERE id = ?`)
-        .bind(cover, collectionId)
-        .run();
-    }
-    await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(session.id).run();
-    await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
-    await logEvent(env.DB, collectionId, session.seller_email, "submitted", {
-      photo_count: photos.length,
-      async_moderation: true,
-      has_seller_notes: Boolean(session.seller_notes),
-    });
-    await queueMacHandoff(
-      env.DB,
-      { id: collectionId, seller_name: session.seller_name, status: "submitted" },
-      session.seller_email,
-      { auto: true }
-    );
   } catch (e) {
     const detail = String(e).slice(0, 300);
     await logEvent(env.DB, collectionId, "system", "async_finish_error", {
@@ -320,30 +378,48 @@ async function processSubmissionBackground(
       expected: photos.length,
       error: detail,
     });
-    if (collectionId) {
-      try {
-        await env.DB.prepare(
-          `UPDATE collections SET photo_count = ?, internal_note = ?, updated_at = ? WHERE id = ?`
-        )
-          .bind(
-            stored,
-            `Finish error after ${stored}/${photos.length} photos: ${detail}`.slice(0, 500),
-            nowIso(),
-            collectionId
-          )
-          .run();
-      } catch {
-        /* ignore */
+    // Leave session for cron retry unless hard-withdrawn above.
+  }
+}
+
+/** Cron/waitUntil backup: resume any claimed finish that never reached auto handoff. */
+async function processPendingFinishes(env: Bindings): Promise<void> {
+  const rows = await env.DB.prepare(
+    `SELECT * FROM upload_sessions
+     WHERE finish_started_at IS NOT NULL
+     ORDER BY finish_started_at ASC
+     LIMIT 5`
+  ).all<UploadSessionSnap>();
+  for (const session of rows.results || []) {
+    const temps = await env.DB.prepare(
+      `SELECT id, r2_key, original_filename, content_type, size_bytes FROM upload_temp_photos WHERE session_id = ? ORDER BY created_at`
+    )
+      .bind(session.id)
+      .all<TempPhotoSnap>();
+    const photos = temps.results || [];
+    if (!photos.length) {
+      // Orphan claim with no temps: alert if a partial collection exists.
+      if (session.collection_id) {
+        const n = await env.DB.prepare(`SELECT COUNT(*) AS n FROM photos WHERE collection_id = ?`)
+          .bind(session.collection_id)
+          .first<{ n: number }>();
+        const expectedRow = await env.DB.prepare(`SELECT photo_count, seller_name, seller_email FROM collections WHERE id = ?`)
+          .bind(session.collection_id)
+          .first<{ photo_count: number; seller_name: string; seller_email: string }>();
+        if (expectedRow && Number(n?.n || 0) < expectedRow.photo_count) {
+          await alertFinishIncomplete(env, {
+            collectionId: session.collection_id,
+            sellerName: expectedRow.seller_name,
+            sellerEmail: expectedRow.seller_email,
+            expected: expectedRow.photo_count,
+            stored: Number(n?.n || 0),
+            detail: "finish session has no remaining temp photos",
+          });
+        }
       }
-      await alertFinishIncomplete(env, {
-        collectionId,
-        sellerName: session.seller_name,
-        sellerEmail: session.seller_email,
-        expected: photos.length,
-        stored,
-        detail,
-      });
+      continue;
     }
+    await processSubmissionBackground(env, session, photos);
   }
 }
 
@@ -1092,22 +1168,14 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
       return c.json({ error: "Could not finish. Please try again." }, 500);
     }
 
-    // Thanks must return before moderation. Never await processSubmissionBackground here.
+    // Thanks returns immediately. Finish runs under waitUntil when possible; cron resumes
+    // every 2 minutes until all photos are stored and Mac handoff is auto-queued.
     const background = processSubmissionBackground(c.env, snap, photos);
-    let scheduled = false;
     try {
-      // Accessing the getter can throw on some Hono/Workers paths; keep it inside try.
-      const ctx = (c as { executionCtx?: ExecutionContext }).executionCtx;
-      if (ctx && typeof ctx.waitUntil === "function") {
-        ctx.waitUntil(background);
-        scheduled = true;
-      }
+      c.executionCtx.waitUntil(background);
     } catch (err) {
       console.error("waitUntil_failed", err);
-    }
-    if (!scheduled) {
-      // Isolate may freeze after the response without waitUntil; still attempt best-effort.
-      background.catch((err) => console.error("async_finish_unawaited", err));
+      // Session stays claimed; processPendingFinishes on cron will resume.
     }
 
     return c.json({ ok: true, accepted: true });
@@ -2089,10 +2157,16 @@ async function scanIncompleteCollections(env: Bindings): Promise<void> {
   }
 }
 
-/* cleanup abandoned temp uploads + alert incomplete finishes */
+/* Resume unfinished finishes first, then clean abandoned temps, then alert stuck collections. */
 export async function cleanupExpired(env: Bindings) {
+  try {
+    await processPendingFinishes(env);
+  } catch (e) {
+    console.error("process_pending_finishes_failed", e);
+  }
+
   const cutoff = nowIso();
-  // Do not wipe in-flight finishes (finish_started_at set) until expires_at (bumped to +3h on claim).
+  // Do not wipe in-flight finishes until expires_at (bumped to +3h on claim).
   const sessions = await env.DB.prepare(
     `SELECT id FROM upload_sessions WHERE expires_at < ?`
   )
@@ -2108,7 +2182,7 @@ export async function cleanupExpired(env: Bindings) {
     await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE session_id = ?`).bind(s.id).run();
     await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(s.id).run();
   }
-  // Finish claims the session before background moderation. Orphans = temps with no session left.
+  // Orphans = temps with no session left.
   const orphanCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const orphans = await env.DB.prepare(
     `SELECT t.id, t.r2_key FROM upload_temp_photos t
