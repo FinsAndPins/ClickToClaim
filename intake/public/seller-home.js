@@ -254,15 +254,44 @@
     updateSubmit();
   }
 
-  function formValid() {
-    if (!form) return false;
+  function parseAskingDollars(raw) {
+    const cleaned = String(raw || "")
+      .trim()
+      .replace(/[$,\s]/g, "");
+    if (!cleaned) return null;
+    const n = Number(cleaned);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n;
+  }
+
+  function formProblem() {
+    if (!form) return "Form is missing. Refresh and try again.";
     commitAutofillValues();
     const name = (form.seller_name.value || "").trim();
     const email = (form.seller_email.value || "").trim();
-    const asking = (form.asking.value || "").trim();
-    const delivery = (form.delivery.value || "").trim();
+    const askingRaw = (form.asking.value || "").trim();
+    const askingOk = parseAskingDollars(askingRaw) != null;
+    const delivery = (form.delivery && form.delivery.value ? form.delivery.value : "").trim();
     const agree = form.agree && form.agree.checked;
-    return Boolean(name && email && asking && delivery && agree);
+    if (!name) return "Please enter your name.";
+    if (!email) return "Please enter your email address.";
+    if (!askingRaw) return "Please enter the price you have in mind.";
+    if (!askingOk) return "Price must be greater than $0 (for example 1000, not 0).";
+    if (!delivery) return "Please choose how you’ll get the pins to us.";
+    if (!agree) return "Please check the privacy and terms box.";
+    return "";
+  }
+
+  function restoreUploadStatus() {
+    const ok = items.filter((it) => it.status === "ok").length;
+    const total = items.length;
+    const pending = items.filter((it) => it.status === "up").length;
+    if (pending) setStatus("Uploading…");
+    else if (ok === total && total)
+      setStatus(ok + " photo" + (ok === 1 ? "" : "s") + " uploaded. You're almost done.");
+    else if (ok)
+      setStatus(ok + " uploaded. You can remove a failed photo and add another.");
+    else setStatus("Choose board photos to get started.");
   }
 
   async function submitCollection() {
@@ -282,8 +311,10 @@
       showErr("Remove failed photos, or add replacements, then submit.");
       return;
     }
-    if (!formValid()) {
-      showErr("Please fill name, email, your price, how you'll get the pins to us, and the privacy box.");
+    const problem = formProblem();
+    if (problem) {
+      showErr(problem);
+      restoreUploadStatus();
       return;
     }
     submitted = true;
@@ -292,10 +323,12 @@
     try {
       const body = new FormData(form);
       body.set("agree", "yes");
-      // Prefer live field values in case FormData missed a painted autofill.
+      // Prefer live field values in case FormData missed a painted autofill / radio.
       body.set("seller_name", (form.seller_name.value || "").trim());
       body.set("seller_email", (form.seller_email.value || "").trim());
       body.set("asking", (form.asking.value || "").trim());
+      const delivery = form.delivery && form.delivery.value ? String(form.delivery.value) : "";
+      if (delivery) body.set("delivery", delivery);
       const res = await fetch("/api/submissions/" + sessionId + "/finish", { method: "POST", body });
       const data = await readJson(res);
       if (!res.ok) throw new Error(data.error || "Could not finish");
@@ -309,6 +342,7 @@
     } catch (e) {
       submitted = false;
       updateSubmit();
+      restoreUploadStatus();
       showErr(e && e.message ? e.message : "Could not submit. Please try again.");
     }
   }

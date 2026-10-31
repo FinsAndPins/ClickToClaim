@@ -1100,12 +1100,18 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
     const seller_notes = ident.seller_notes || session.seller_notes;
     const deliveryOk = delivery_method === "ship_us" || delivery_method === "dropoff_florida";
     const agree = ident.agree || Boolean(session.seller_email && session.accepted_terms_at);
-    if (!seller_name || !seller_email || asking_cents == null || !deliveryOk || !agree) {
+    if (!seller_name) return c.json({ error: "Please enter your name." }, 400);
+    if (!seller_email) return c.json({ error: "Please enter your email address." }, 400);
+    if (asking_cents == null) {
       return c.json(
-        { error: "Please fill name, email, your price, how you'll get the pins to us, and the privacy box." },
+        { error: "Price must be greater than $0 (for example 1000, not 0)." },
         400
       );
     }
+    if (!deliveryOk) {
+      return c.json({ error: "Please choose how you’ll get the pins to us." }, 400);
+    }
+    if (!agree) return c.json({ error: "Please check the privacy and terms box." }, 400);
 
     const temps = await c.env.DB.prepare(
       `SELECT * FROM upload_temp_photos WHERE session_id = ?`
@@ -2119,9 +2125,13 @@ async function scanIncompleteCollections(env: Bindings): Promise<void> {
      FROM collections c
      WHERE c.created_at < ?
        AND c.status IN ('submitted', 'pricing')
+       AND IFNULL(c.mac_handoff_status, '') NOT IN ('failed', 'held')
+       AND NOT EXISTS (
+         SELECT 1 FROM events e
+         WHERE e.collection_id = c.id AND e.type = 'finish_incomplete_alerted'
+       )
        AND (
-         c.photo_count < 1
-         OR (SELECT COUNT(*) FROM photos p WHERE p.collection_id = c.id) < c.photo_count
+         (c.photo_count >= 1 AND (SELECT COUNT(*) FROM photos p WHERE p.collection_id = c.id) < c.photo_count)
          OR (c.mac_handoff_status = 'delivered' AND (SELECT COUNT(*) FROM photos p WHERE p.collection_id = c.id) < 1)
        )
      ORDER BY c.created_at DESC

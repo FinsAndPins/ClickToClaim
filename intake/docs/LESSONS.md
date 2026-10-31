@@ -40,6 +40,16 @@
 
 **Where:** `intake/public/seller-home.js`, `intake/public/styles.css`, `intake/src/app.ts`
 
+## 2026-10-30 — Submit stuck on “Submitting…” with fields filled
+
+**Symptom:** Photos all said Uploaded; pink bar said Submitting; red error asked to fill name/email/price/delivery/privacy even when they looked filled.
+
+**Cause:** Asking price `0` (or other ≤0) passed the client “non-empty” check but `parseDollarsToCents` returns null (`n <= 0`). Finish 400 used the generic fill-all message. Catch did not reset the upload status bar, so it stayed on Submitting.
+
+**Rule:** Client and server both require price > $0 with a specific error. On finish failure, restore the uploaded-photos status. Cron must not re-alert failed/empty Melyssa-style orphans every 2 minutes.
+
+**Where:** `intake/public/seller-home.js`, `intake/src/app.ts` (`parseDollarsToCents`, finish errors, `scanIncompleteCollections`)
+
 ## 2026-10-28 — Large finish died; empty handoff; one text for two uploads
 
 **Symptom:** Lexi submitted Melyssa (21 boards) + Tinkandgoldie. Only one pricing text. Melyssa drop folder had markers only (0 JPEGs). Lexi had to press Send to CollectionsToPrice; Tink was missing a photo.
