@@ -746,7 +746,10 @@ app.get("/ctr-bg-canva.jpg", async (c) => {
 app.get("/seller-home.js", async (c) => {
   const res = await c.env.ASSETS.fetch(new URL("/seller-home.js", c.req.url));
   if (res.status === 404) return c.notFound();
-  return res;
+  const headers = new Headers(res.headers);
+  headers.set("content-type", "application/javascript; charset=utf-8");
+  headers.set("cache-control", "no-store, max-age=0");
+  return new Response(res.body, { status: res.status, headers });
 });
 
 app.get("/", (c) => {
@@ -825,7 +828,7 @@ app.get("/", (c) => {
       </form>
     </div>
     <script>window.INTAKE = ${JSON.stringify({ maxPhotos, maxBytes })};</script>
-    <script src="/seller-home.js"></script>`
+    <script src="/seller-home.js?v=20261030b"></script>`
   );
 });
 
@@ -1880,6 +1883,10 @@ app.get("/api/mac/handoff/awaiting-overlay", async (c) => {
      WHERE mac_handoff_folder IS NOT NULL
        AND mac_handoff_folder != ''
        AND (overlay_url IS NULL OR overlay_url = '')
+       AND status NOT IN ('withdrawn', 'declined', 'done')
+       AND IFNULL(mac_handoff_status, '') NOT IN ('failed', 'held')
+       AND photo_count >= 1
+       AND EXISTS (SELECT 1 FROM photos p WHERE p.collection_id = collections.id)
      ORDER BY mac_handoff_at DESC
      LIMIT 100`
   ).all();
