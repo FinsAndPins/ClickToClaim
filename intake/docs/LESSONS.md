@@ -1,5 +1,15 @@
 # Intake lessons
 
+## 2026-10-31 — Form “missing data” with photos on admin; pricing never ran
+
+**Symptom:** Lexi uploaded photos, saw a missing-data style error, saw photos on the admin page, but pricing never started for the new attempts. One Melyssa collection had worked earlier.
+
+**Cause:** Failed attempts never reached `finish` / `submitted` (only `photo_session_started`). Admin photos were the prior successful Melyssa/Tink cards, not the failed tries. Browser HTML5 `required` blocked submit with a vague native tooltip before our JS could name every blank field (delivery / privacy / price / autofill). Closing the tab and reopening the invite link starts a new attempt; it does not submit the abandoned session.
+
+**Rule:** Form uses `novalidate`; client + server errors list every missing field by label. Resume `intakeSession` + temp photos after refresh. Do not treat admin gallery photos as proof the latest upload finished.
+
+**Where:** `intake/public/seller-home.js`, `intake/src/app.ts` (`finishIdentityError`, temp photo list/preview)
+
 ## 2026-10-06 — Upload-first landing (photos then contact)
 
 **Symptom:** Two-page flow felt slow. Lexi stayed on upload during moderation (fixed separately). Sellers waited on photos with nothing to do.

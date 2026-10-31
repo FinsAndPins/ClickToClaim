@@ -125,12 +125,6 @@ async function alertFinishIncomplete(
     detail: string;
   }
 ): Promise<void> {
-  await logEvent(env.DB, opts.collectionId, "system", "finish_incomplete", {
-    expected: opts.expected,
-    stored: opts.stored,
-    detail: opts.detail.slice(0, 300),
-    seller_email: opts.sellerEmail,
-  });
   if (!opts.collectionId) return;
   const already = await env.DB.prepare(
     `SELECT id FROM events WHERE collection_id = ? AND type = 'finish_incomplete_alerted' LIMIT 1`
@@ -138,6 +132,12 @@ async function alertFinishIncomplete(
     .bind(opts.collectionId)
     .first();
   if (already) return;
+  await logEvent(env.DB, opts.collectionId, "system", "finish_incomplete", {
+    expected: opts.expected,
+    stored: opts.stored,
+    detail: opts.detail.slice(0, 300),
+    seller_email: opts.sellerEmail,
+  });
   const mail = finishIncompleteStaffEmail({
     sellerName: opts.sellerName,
     sellerEmail: opts.sellerEmail,
@@ -609,6 +609,7 @@ function strField(v: unknown): string {
 async function readFinishIdentity(c: Context<{ Bindings: Bindings }>): Promise<{
   seller_name: string;
   seller_email: string;
+  asking_raw: string;
   instagram: string | null;
   asking_cents: number | null;
   delivery_method: string;
@@ -635,15 +636,52 @@ async function readFinishIdentity(c: Context<{ Bindings: Bindings }>): Promise<{
     agreeRaw === true ||
     strField(agreeRaw) === "true" ||
     strField(agreeRaw) === "on";
+  const asking_raw = strField(raw.asking);
   return {
     seller_name: strField(raw.seller_name),
     seller_email: strField(raw.seller_email).toLowerCase(),
+    asking_raw,
     instagram: strField(raw.instagram) || null,
-    asking_cents: parseDollarsToCents(strField(raw.asking)),
+    asking_cents: parseDollarsToCents(asking_raw),
     delivery_method: strField(raw.delivery) || strField(raw.delivery_method),
     seller_notes: notes ? notes.slice(0, 2000) : null,
     agree,
   };
+}
+
+function looksLikeEmail(raw: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw.trim());
+}
+
+/** Build one error that names every blank / invalid required finish field. */
+function finishIdentityError(opts: {
+  seller_name: string;
+  seller_email: string;
+  asking_raw?: string;
+  asking_cents: number | null;
+  delivery_method: string;
+  agree: boolean;
+}): string | null {
+  const missing: string[] = [];
+  const other: string[] = [];
+  if (!opts.seller_name) missing.push("Name");
+  if (!opts.seller_email) missing.push("Email address");
+  else if (!looksLikeEmail(opts.seller_email)) other.push("Email address looks invalid.");
+  const askingBlank = !(opts.asking_raw || "").trim() && opts.asking_cents == null;
+  if (askingBlank) missing.push("Price you have in mind");
+  else if (opts.asking_cents == null) {
+    other.push("Price must be greater than $0 (for example 1000, not 0).");
+  }
+  const deliveryOk =
+    opts.delivery_method === "ship_us" || opts.delivery_method === "dropoff_florida";
+  if (!deliveryOk) missing.push("How you'll get the pins to us");
+  if (!opts.agree) missing.push("Privacy and terms checkbox");
+  if (!missing.length && !other.length) return null;
+  const parts: string[] = [];
+  if (missing.length === 1) parts.push(`Please fill in: ${missing[0]}.`);
+  else if (missing.length > 1) parts.push(`Please fill in: ${missing.join(", ")}.`);
+  parts.push(...other);
+  return parts.join(" ");
 }
 
 function inviteCookieOptions(env: Bindings) {
@@ -791,7 +829,7 @@ app.get("/", (c) => {
       <p class="step-kicker">Step 2 of 2</p>
       <h2>Contact information</h2>
       <p class="almost" id="almostDone" hidden>You’re almost done. Fill this in while your photos upload.</p>
-      <form id="contactForm">
+      <form id="contactForm" novalidate>
         <fieldset class="contact-fields" id="contactFields">
           <label>Name (required)<input required type="text" name="seller_name" autocomplete="name" /></label>
           <label>Email address (required)<input required type="email" name="seller_email" autocomplete="email" /></label>
@@ -828,7 +866,7 @@ app.get("/", (c) => {
       </form>
     </div>
     <script>window.INTAKE = ${JSON.stringify({ maxPhotos, maxBytes })};</script>
-    <script src="/seller-home.js?v=20261030b"></script>`
+    <script src="/seller-home.js?v=20261031a"></script>`
   );
 });
 
@@ -880,17 +918,20 @@ app.post("/api/submissions", async (c) => {
     const seller_name = String(form.seller_name || "").trim();
     const seller_email = String(form.seller_email || "").trim().toLowerCase();
     const instagram = String(form.instagram || "").trim() || null;
-    const asking_cents = parseDollarsToCents(String(form.asking || ""));
+    const asking_raw = String(form.asking || "");
+    const asking_cents = parseDollarsToCents(asking_raw);
     const delivery = String(form.delivery || "").trim();
     const agree = String(form.agree || "") === "yes";
-    const deliveryOk = delivery === "ship_us" || delivery === "dropoff_florida";
-    if (!agree || !seller_name || !seller_email || asking_cents == null || !deliveryOk) {
-      return c.redirect(
-        "/?err=" +
-          encodeURIComponent(
-            "Please fill name, email, your price, how you'll get the pins to us, and the privacy box."
-          )
-      );
+    const identityErr = finishIdentityError({
+      seller_name,
+      seller_email,
+      asking_raw,
+      asking_cents,
+      delivery_method: delivery,
+      agree,
+    });
+    if (identityErr) {
+      return c.redirect("/?err=" + encodeURIComponent(identityErr));
     }
     const paypal_gs_email = seller_email;
     const sessionId = id();
@@ -1003,6 +1044,74 @@ app.get("/upload/:sessionId", async (c) => {
   );
 });
 
+app.get("/api/submissions/:sessionId/photos", async (c) => {
+  try {
+    const sessionId = c.req.param("sessionId");
+    const session = await c.env.DB.prepare(
+      `SELECT id, finish_started_at, expires_at FROM upload_sessions WHERE id = ?`
+    )
+      .bind(sessionId)
+      .first<{ id: string; finish_started_at: string | null; expires_at: string }>();
+    if (!session) return c.json({ error: "Session not found" }, 404);
+    if (session.finish_started_at) {
+      return c.json({ error: "This upload was already submitted." }, 410);
+    }
+    if (new Date(session.expires_at).getTime() < Date.now()) {
+      return c.json({ error: "Session expired. Please start again." }, 410);
+    }
+    const temps = await c.env.DB.prepare(
+      `SELECT id, original_filename, content_type, size_bytes, created_at
+       FROM upload_temp_photos WHERE session_id = ? ORDER BY created_at`
+    )
+      .bind(sessionId)
+      .all<{
+        id: string;
+        original_filename: string;
+        content_type: string;
+        size_bytes: number;
+        created_at: string;
+      }>();
+    return c.json({
+      ok: true,
+      sessionId,
+      photos: (temps.results || []).map((p) => ({
+        photoId: p.id,
+        filename: p.original_filename,
+        contentType: p.content_type,
+        sizeBytes: p.size_bytes,
+        previewUrl: `/api/submissions/${sessionId}/photos/${p.id}`,
+      })),
+    });
+  } catch (e) {
+    console.error("photo_list_failed", e);
+    return c.json({ error: "Could not load photos." }, 500);
+  }
+});
+
+app.get("/api/submissions/:sessionId/photos/:photoId", async (c) => {
+  try {
+    const sessionId = c.req.param("sessionId");
+    const photoId = c.req.param("photoId");
+    const row = await c.env.DB.prepare(
+      `SELECT r2_key, content_type FROM upload_temp_photos WHERE id = ? AND session_id = ?`
+    )
+      .bind(photoId, sessionId)
+      .first<{ r2_key: string; content_type: string }>();
+    if (!row) return c.json({ error: "Photo not found" }, 404);
+    const obj = await c.env.BUCKET.get(row.r2_key);
+    if (!obj) return c.json({ error: "Photo not found" }, 404);
+    return new Response(obj.body, {
+      headers: {
+        "content-type": row.content_type || "image/jpeg",
+        "cache-control": "private, max-age=300",
+      },
+    });
+  } catch (e) {
+    console.error("temp_photo_get_failed", e);
+    return c.json({ error: "Could not load photo." }, 500);
+  }
+});
+
 app.post("/api/submissions/:sessionId/photos", async (c) => {
   try {
     const sessionId = c.req.param("sessionId");
@@ -1098,23 +1207,20 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
     const seller_name = ident.seller_name || session.seller_name;
     const seller_email = ident.seller_email || session.seller_email;
     const instagram = ident.instagram || session.instagram;
+    const asking_raw = ident.asking_raw || (session.asking_cents != null ? String(session.asking_cents / 100) : "");
     const asking_cents = ident.asking_cents ?? session.asking_cents;
     const delivery_method = ident.delivery_method || session.delivery_method;
     const seller_notes = ident.seller_notes || session.seller_notes;
-    const deliveryOk = delivery_method === "ship_us" || delivery_method === "dropoff_florida";
     const agree = ident.agree || Boolean(session.seller_email && session.accepted_terms_at);
-    if (!seller_name) return c.json({ error: "Please enter your name." }, 400);
-    if (!seller_email) return c.json({ error: "Please enter your email address." }, 400);
-    if (asking_cents == null) {
-      return c.json(
-        { error: "Price must be greater than $0 (for example 1000, not 0)." },
-        400
-      );
-    }
-    if (!deliveryOk) {
-      return c.json({ error: "Please choose how you’ll get the pins to us." }, 400);
-    }
-    if (!agree) return c.json({ error: "Please check the privacy and terms box." }, 400);
+    const identityErr = finishIdentityError({
+      seller_name,
+      seller_email,
+      asking_raw,
+      asking_cents,
+      delivery_method: delivery_method || "",
+      agree,
+    });
+    if (identityErr) return c.json({ error: identityErr }, 400);
 
     const temps = await c.env.DB.prepare(
       `SELECT * FROM upload_temp_photos WHERE session_id = ?`

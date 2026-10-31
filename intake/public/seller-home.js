@@ -148,6 +148,56 @@
     }
   }
 
+  /** Resume an in-progress upload after refresh / reopen (same tab sessionStorage). */
+  async function restoreSessionIfAny() {
+    let saved = "";
+    try {
+      saved = sessionStorage.getItem("intakeSession") || "";
+    } catch (_) {
+      saved = "";
+    }
+    if (!saved || sessionId) return;
+    try {
+      const res = await fetch("/api/submissions/" + saved + "/photos");
+      const data = await readJson(res);
+      if (!res.ok) {
+        try {
+          sessionStorage.removeItem("intakeSession");
+        } catch (_) {
+          /* ignore */
+        }
+        return;
+      }
+      sessionId = saved;
+      const photos = Array.isArray(data.photos) ? data.photos : [];
+      for (const p of photos) {
+        const it = {
+          localId: "restored-" + p.photoId,
+          file: null,
+          filename: p.filename || "photo",
+          status: "ok",
+          previewUrl: p.previewUrl || "",
+          photoId: p.photoId,
+          el: null,
+          error: "",
+        };
+        items.push(it);
+        renderItem(it);
+      }
+      if (photos.length) {
+        unlockStep2();
+        restoreUploadStatus();
+      }
+      updateSubmit();
+    } catch (_) {
+      try {
+        sessionStorage.removeItem("intakeSession");
+      } catch (__) {
+        /* ignore */
+      }
+    }
+  }
+
   async function uploadOne(it) {
     uploading += 1;
     updateSubmit();
@@ -264,6 +314,12 @@
     return n;
   }
 
+  function looksLikeEmail(raw) {
+    const s = String(raw || "").trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  }
+
+  /** List every blank / invalid required field so the seller knows exactly what to fix. */
   function formProblem() {
     if (!form) return "Form is missing. Refresh and try again.";
     commitAutofillValues();
@@ -273,13 +329,21 @@
     const askingOk = parseAskingDollars(askingRaw) != null;
     const delivery = (form.delivery && form.delivery.value ? form.delivery.value : "").trim();
     const agree = form.agree && form.agree.checked;
-    if (!name) return "Please enter your name.";
-    if (!email) return "Please enter your email address.";
-    if (!askingRaw) return "Please enter the price you have in mind.";
-    if (!askingOk) return "Price must be greater than $0 (for example 1000, not 0).";
-    if (!delivery) return "Please choose how you’ll get the pins to us.";
-    if (!agree) return "Please check the privacy and terms box.";
-    return "";
+    const missing = [];
+    const other = [];
+    if (!name) missing.push("Name");
+    if (!email) missing.push("Email address");
+    else if (!looksLikeEmail(email)) other.push("Email address looks invalid.");
+    if (!askingRaw) missing.push("Price you have in mind");
+    else if (!askingOk) other.push("Price must be greater than $0 (for example 1000, not 0).");
+    if (!delivery) missing.push("How you'll get the pins to us");
+    if (!agree) missing.push("Privacy and terms checkbox");
+    if (!missing.length && !other.length) return "";
+    const parts = [];
+    if (missing.length === 1) parts.push("Please fill in: " + missing[0] + ".");
+    else if (missing.length > 1) parts.push("Please fill in: " + missing.join(", ") + ".");
+    parts.push(...other);
+    return parts.join(" ");
   }
 
   function restoreUploadStatus() {
@@ -382,6 +446,8 @@
   }
   // Page may restore autofill after load / bfcache.
   window.addEventListener("pageshow", scheduleAutofillSync);
-  scheduleAutofillSync();
-  updateSubmit();
+  restoreSessionIfAny().finally(() => {
+    scheduleAutofillSync();
+    updateSubmit();
+  });
 })();
