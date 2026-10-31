@@ -41,12 +41,38 @@
     }
   }
 
+  /** Safari/iOS often paints autofill without firing input or syncing .value until touched. */
+  function commitAutofillValues() {
+    if (!form) return;
+    form.querySelectorAll("input, textarea").forEach((el) => {
+      try {
+        if (el.type === "checkbox" || el.type === "radio" || el.type === "file") return;
+        const v = el.value;
+        if (v) el.value = v;
+      } catch (_) {
+        /* ignore */
+      }
+    });
+  }
+
+  function scheduleAutofillSync() {
+    commitAutofillValues();
+    updateSubmit();
+    [50, 200, 500, 1000, 2000].forEach((ms) => {
+      setTimeout(() => {
+        commitAutofillValues();
+        updateSubmit();
+      }, ms);
+    });
+  }
+
   function unlockStep2() {
     if (!step2) return;
     step2.classList.remove("is-locked");
     step2.removeAttribute("aria-hidden");
     if (contactFields) contactFields.disabled = false;
     if (almost) almost.hidden = false;
+    scheduleAutofillSync();
   }
 
   function updateSubmit() {
@@ -119,6 +145,56 @@
     } catch (e) {
       sessionPromise = null;
       throw e;
+    }
+  }
+
+  /** Resume an in-progress upload after refresh / reopen (same tab sessionStorage). */
+  async function restoreSessionIfAny() {
+    let saved = "";
+    try {
+      saved = sessionStorage.getItem("intakeSession") || "";
+    } catch (_) {
+      saved = "";
+    }
+    if (!saved || sessionId) return;
+    try {
+      const res = await fetch("/api/submissions/" + saved + "/photos");
+      const data = await readJson(res);
+      if (!res.ok) {
+        try {
+          sessionStorage.removeItem("intakeSession");
+        } catch (_) {
+          /* ignore */
+        }
+        return;
+      }
+      sessionId = saved;
+      const photos = Array.isArray(data.photos) ? data.photos : [];
+      for (const p of photos) {
+        const it = {
+          localId: "restored-" + p.photoId,
+          file: null,
+          filename: p.filename || "photo",
+          status: "ok",
+          previewUrl: p.previewUrl || "",
+          photoId: p.photoId,
+          el: null,
+          error: "",
+        };
+        items.push(it);
+        renderItem(it);
+      }
+      if (photos.length) {
+        unlockStep2();
+        restoreUploadStatus();
+      }
+      updateSubmit();
+    } catch (_) {
+      try {
+        sessionStorage.removeItem("intakeSession");
+      } catch (__) {
+        /* ignore */
+      }
     }
   }
 
@@ -228,19 +304,64 @@
     updateSubmit();
   }
 
-  function formValid() {
-    if (!form) return false;
+  function parseAskingDollars(raw) {
+    const cleaned = String(raw || "")
+      .trim()
+      .replace(/[$,\s]/g, "");
+    if (!cleaned) return null;
+    const n = Number(cleaned);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n;
+  }
+
+  function looksLikeEmail(raw) {
+    const s = String(raw || "").trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  }
+
+  /** List every blank / invalid required field so the seller knows exactly what to fix. */
+  function formProblem() {
+    if (!form) return "Form is missing. Refresh and try again.";
+    commitAutofillValues();
     const name = (form.seller_name.value || "").trim();
     const email = (form.seller_email.value || "").trim();
-    const asking = (form.asking.value || "").trim();
-    const delivery = (form.delivery.value || "").trim();
+    const askingRaw = (form.asking.value || "").trim();
+    const askingOk = parseAskingDollars(askingRaw) != null;
+    const delivery = (form.delivery && form.delivery.value ? form.delivery.value : "").trim();
     const agree = form.agree && form.agree.checked;
-    return Boolean(name && email && asking && delivery && agree);
+    const missing = [];
+    const other = [];
+    if (!name) missing.push("Name");
+    if (!email) missing.push("Email address");
+    else if (!looksLikeEmail(email)) other.push("Email address looks invalid.");
+    if (!askingRaw) missing.push("Price you have in mind");
+    else if (!askingOk) other.push("Price must be greater than $0 (for example 1000, not 0).");
+    if (!delivery) missing.push("How you'll get the pins to us");
+    if (!agree) missing.push("Privacy and terms checkbox");
+    if (!missing.length && !other.length) return "";
+    const parts = [];
+    if (missing.length === 1) parts.push("Please fill in: " + missing[0] + ".");
+    else if (missing.length > 1) parts.push("Please fill in: " + missing.join(", ") + ".");
+    parts.push(...other);
+    return parts.join(" ");
+  }
+
+  function restoreUploadStatus() {
+    const ok = items.filter((it) => it.status === "ok").length;
+    const total = items.length;
+    const pending = items.filter((it) => it.status === "up").length;
+    if (pending) setStatus("Uploading…");
+    else if (ok === total && total)
+      setStatus(ok + " photo" + (ok === 1 ? "" : "s") + " uploaded. You're almost done.");
+    else if (ok)
+      setStatus(ok + " uploaded. You can remove a failed photo and add another.");
+    else setStatus("Choose board photos to get started.");
   }
 
   async function submitCollection() {
     if (submitted) return;
     showErr("");
+    commitAutofillValues();
     const okPhotos = items.filter((it) => it.status === "ok");
     if (!okPhotos.length) {
       showErr("Please upload at least one photo.");
@@ -254,8 +375,10 @@
       showErr("Remove failed photos, or add replacements, then submit.");
       return;
     }
-    if (!formValid()) {
-      showErr("Please fill name, email, your price, how you'll get the pins to us, and the privacy box.");
+    const problem = formProblem();
+    if (problem) {
+      showErr(problem);
+      restoreUploadStatus();
       return;
     }
     submitted = true;
@@ -264,6 +387,12 @@
     try {
       const body = new FormData(form);
       body.set("agree", "yes");
+      // Prefer live field values in case FormData missed a painted autofill / radio.
+      body.set("seller_name", (form.seller_name.value || "").trim());
+      body.set("seller_email", (form.seller_email.value || "").trim());
+      body.set("asking", (form.asking.value || "").trim());
+      const delivery = form.delivery && form.delivery.value ? String(form.delivery.value) : "";
+      if (delivery) body.set("delivery", delivery);
       const res = await fetch("/api/submissions/" + sessionId + "/finish", { method: "POST", body });
       const data = await readJson(res);
       if (!res.ok) throw new Error(data.error || "Could not finish");
@@ -277,6 +406,7 @@
     } catch (e) {
       submitted = false;
       updateSubmit();
+      restoreUploadStatus();
       showErr(e && e.message ? e.message : "Could not submit. Please try again.");
     }
   }
@@ -300,7 +430,24 @@
       ev.preventDefault();
       submitCollection();
     });
-    form.addEventListener("input", () => updateSubmit());
+    // Autofill often skips "input"; also listen for change/blur and WebKit autofill animation.
+    ["input", "change", "blur", "focusin"].forEach((evt) => {
+      form.addEventListener(evt, () => {
+        commitAutofillValues();
+        updateSubmit();
+      }, true);
+    });
+    form.addEventListener("animationstart", (ev) => {
+      if (ev.animationName === "intakeAutofill") {
+        commitAutofillValues();
+        updateSubmit();
+      }
+    });
   }
-  updateSubmit();
+  // Page may restore autofill after load / bfcache.
+  window.addEventListener("pageshow", scheduleAutofillSync);
+  restoreSessionIfAny().finally(() => {
+    scheduleAutofillSync();
+    updateSubmit();
+  });
 })();
