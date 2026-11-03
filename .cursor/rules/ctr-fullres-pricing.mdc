@@ -49,6 +49,15 @@ When publishing a full-res harness, also ship:
 - `image_rel` set to `./assets/boards/IMG_####.JPG` on each board
 - `index.html` that embeds that same `ui_data` (hamburger, and a pin tap opens `new_ctp.html?filter=all&pin=`)
 
+## Sideways board
+
+If one board's pins are rotated (2026-11-03, show 20261105 board 10, IMG_1927):
+
+- Rotate pixels and center-boxes together. PIL `ROTATE_90` is counterclockwise: new_x = old_y, new_y = old_width - old_x, swap width and height.
+- Update JSON `image.width` / `image.height` (and Overlay `thumb_w` / `thumb_h`) to the new size. Leaving the old landscape size makes the CTR page apply a second rotation and miss every pin.
+- Rotate the full-res original too, then recrop only that board's stems. Do not rewrite `pin_uid_map`. Do not rerun eBay or detection. `crop_stem`s and prices stay.
+- Rewrite the Overlay embed (the page generator only syncs `test_run_id`). Regenerate CTM/CTP/contact thumbs from the new crops. Bump `BOARDS_MANIFEST_VERSION` in `index.html` and `reports.html`.
+
 ## Normal inbox pricing
 
 `BoardsToPrice` / inbox watcher already crops from inbox photos — unchanged for crop source. It still uses the enhanced generator above for CTM/CTP pages.
