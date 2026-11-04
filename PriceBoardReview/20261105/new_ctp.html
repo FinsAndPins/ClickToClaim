@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ClickToPrice v2 · price boards</title>
+<link rel="stylesheet" href="review.css">
+</head>
+<body class="page-ctp" data-page="ctp">
+<div id="hdr">
+  <div class="hdr-row">
+    <div class="hdr-title">ClickToPrice v2</div>
+    <div class="hdr-sub" id="ctp-count"></div>
+    <button id="ham-btn" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+  <div id="pin-meta">
+    <div class="pm-title" id="pd-title">Loading</div>
+    <span class="pm-idx" id="pd-idx"></span>
+    <button id="undo-btn" type="button">&#8617; Undo</button>
+  </div>
+  <div class="filter-bar">
+    <span class="bar-label">Filter:</span>
+    <button class="fb filt-btn active" type="button" data-filter="nomatch" data-label="No Match">No Match</button>
+    <button class="fb filt-btn" type="button" data-filter="unrev" data-label="Unreviewed">Unreviewed</button>
+    <button class="fb filt-btn" type="button" data-filter="all" data-label="All">All</button>
+    <button class="fb filt-btn" type="button" data-filter="agree" data-label="Agree">Agree</button>
+    <button class="fb filt-btn" type="button" data-filter="split" data-label="Split">Split</button>
+  </div>
+</div>
+<div id="nav-menu">
+  <a href="new_ctm.html">ClickToMatch v2</a>
+  <a href="new_ctp.html" class="current">ClickToPrice v2</a>
+  <a href="contact_sheet.html">Contact Sheet</a>
+  <a href="index.html">Overlay</a>
+  <label class="nav-name">Name <input id="user-name" type="text" autocomplete="name" placeholder="you"></label>
+</div>
+<div id="tile-area">
+  <div id="tile-grid"></div>
+  <div id="empty" style="display:none">
+    <p></p>
+    <button class="fb" id="show-all" type="button">Show all</button>
+  </div>
+</div>
+<div id="bottom-nav">
+  <div class="nav-row">
+    <button class="nav-btn" id="back-btn" type="button">Back</button>
+    <button class="nav-btn" id="nap-btn" type="button">Not a Pin</button>
+    <button class="nav-btn" id="next-btn" type="button">Next</button>
+  </div>
+</div>
+<script src="data.js?v=20261104a"></script>
+<script src="review.js?v=20261104a"></script>
+</body>
+</html>

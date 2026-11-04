@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ClickToMatch · price boards</title>
+<link rel="stylesheet" href="review.css">
+</head>
+<body class="page-ctm" data-page="ctm">
+<div id="hdr">
+  <div class="hdr-row">
+    <div class="hdr-title">ClickToMatch</div>
+    <div id="progress">Loading</div>
+    <button id="ham-btn" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</div>
+<div id="nav-menu">
+  <a href="new_ctm.html" class="current">ClickToMatch v2</a>
+  <a href="new_ctp.html">ClickToPrice v2</a>
+  <a href="contact_sheet.html">Contact Sheet</a>
+  <a href="index.html">Overlay</a>
+  <label class="nav-name">Name <input id="user-name" type="text" autocomplete="name" placeholder="you"></label>
+</div>
+<div id="prog-wrap"><div id="prog-fill"></div></div>
+<div id="photos">
+  <div id="crop-wrap">
+    <img id="crop-img" alt="Our pin">
+    <div id="crop-label">Our Pin</div>
+  </div>
+  <div id="choice-col"></div>
+</div>
+<div id="btn-area">
+  <div id="btn-col-left">
+    <button class="rail-btn" id="btn-back" type="button">Back</button>
+    <button class="rail-btn" id="btn-nomatch" type="button">No Match</button>
+  </div>
+  <button class="rail-btn" id="btn-notpin" type="button">Not a<br>Pin</button>
+  <div id="btn-col-right">
+    <button class="rail-btn" id="btn-skip" type="button">Skip</button>
+    <button class="rail-btn" id="btn-match" type="button">Match ✓</button>
+  </div>
+</div>
+<div id="done-banner">
+  <div>ClickToMatch complete</div>
+  <a href="new_ctp.html?filter=no_match">Continue to ClickToPrice (no match)</a>
+  <a href="contact_sheet.html">Contact Sheet</a>
+</div>
+<script src="data.js?v=20261104a"></script>
+<script src="review.js?v=20261104a"></script>
+</body>
+</html>

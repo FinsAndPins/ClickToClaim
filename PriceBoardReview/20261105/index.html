@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Overlay · price boards</title>
+<link rel="stylesheet" href="review.css">
+</head>
+<body data-page="overlay">
+<div id="hdr">
+  <div class="hdr-row">
+    <div class="hdr-title">Overlay</div>
+    <button id="ham-btn" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+  <div class="ov-tools">
+    <button class="fb ov-filter active" type="button" data-mode="all">Prices: All</button>
+    <button class="fb ov-filter" type="button" data-mode="matched">Prices: Matched</button>
+    <button class="fb ov-filter" type="button" data-mode="unmatched">Prices: Unmatched</button>
+    <span class="hint">Tap a pin for ClickToPrice. Red boxes still need a match.</span>
+  </div>
+</div>
+<div id="nav-menu">
+  <a href="new_ctm.html">ClickToMatch v2</a>
+  <a href="new_ctp.html">ClickToPrice v2</a>
+  <a href="contact_sheet.html">Contact Sheet</a>
+  <a href="index.html" class="current">Overlay</a>
+  <label class="nav-name">Name <input id="user-name" type="text" autocomplete="name" placeholder="you"></label>
+</div>
+<div id="boards" style="padding:12px"></div>
+<script src="data.js?v=20261104a"></script>
+<script src="review.js?v=20261104a"></script>
+</body>
+</html>

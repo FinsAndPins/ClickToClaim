@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Contact Sheet · price boards</title>
+<link rel="stylesheet" href="review.css">
+</head>
+<body data-page="contact">
+<div id="hdr">
+  <div class="hdr-row">
+    <div class="hdr-title">Contact Sheet</div>
+    <div id="hdr-count"></div>
+    <button id="ham-btn" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+  <div id="summary-row">
+    <div class="sum-box"><div class="sum-vals">
+      <div class="sv"><span class="sv-n" id="cnt-match">—</span><span class="sv-l">Match</span></div>
+      <div class="sv"><span class="sv-n" id="cnt-nomatch">—</span><span class="sv-l">No Match</span></div>
+      <div class="sv"><span class="sv-n" id="cnt-notpin">—</span><span class="sv-l">Not a Pin</span></div>
+    </div></div>
+    <div class="sum-box"><div class="sum-vals">
+      <div class="sv"><span class="sv-n" id="cnt-unreviewed">—</span><span class="sv-l">Unreviewed</span></div>
+      <div class="sv"><span class="sv-n" id="cnt-total">—</span><span class="sv-l">Total</span></div>
+    </div></div>
+  </div>
+  <div class="filter-bar">
+    <button class="fb active" type="button" data-f="">All</button>
+    <button class="fb" type="button" data-f="needs_review">Needs Review</button>
+    <button class="fb" type="button" data-f="agree">Agree</button>
+    <button class="fb" type="button" data-f="split">Split</button>
+    <button class="fb" type="button" data-f="no_match">No Match</button>
+    <button class="fb" type="button" data-f="match">Matched</button>
+  </div>
+</div>
+<div id="nav-menu">
+  <a href="new_ctm.html">ClickToMatch v2</a>
+  <a href="new_ctp.html">ClickToPrice v2</a>
+  <a href="contact_sheet.html" class="current">Contact Sheet</a>
+  <a href="index.html">Overlay</a>
+  <label class="nav-name">Name <input id="user-name" type="text" autocomplete="name" placeholder="you"></label>
+</div>
+<div id="grid"></div>
+<script src="data.js?v=20261104a"></script>
+<script src="review.js?v=20261104a"></script>
+</body>
+</html>
