@@ -314,7 +314,8 @@
       empty.style.display = "none";
       const pin = list[sel];
       const decision = decisions[pin.id];
-      title.textContent = pin.board + " pin " + pin.pin_n + " · board " + money(pin.price_label) + (pin.agree ? " · agree" : " · two choices");
+      const passNote = pin.second_pass ? " · new suggestions" : (pin.agree ? " · agree" : " · two choices");
+      title.textContent = pin.board + " pin " + pin.pin_n + " · board " + money(pin.price_label) + passNote;
       idx.textContent = (sel + 1) + " / " + list.length;
       undoBtn.style.display = undo && undo.id === pin.id ? "inline" : "none";
 
@@ -322,6 +323,13 @@
       mine.className = "tile pin-tile";
       mine.innerHTML = '<img alt="Our pin" src="' + pin.our + '"><div class="tile-sn">My Pin</div><div class="tile-pbar"><span class="tile-price">' + money(pin.price_label) + '</span><span class="tile-note">ours</span></div>';
       grid.appendChild(mine);
+      if (pin.second_pass && !(pin.alts || []).length) {
+        const note = document.createElement("p");
+        note.style.padding = "16px";
+        note.style.color = "#aaa";
+        note.textContent = "No unused old pin is left at this price.";
+        grid.appendChild(note);
+      }
 
       pin.alts.forEach((choice) => {
         const chosen = decision && decision.match_status === "match" && decision.chosen_stem === choice.stem && decision.chosen_show === choice.show;
