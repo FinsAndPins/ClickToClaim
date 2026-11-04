@@ -325,7 +325,7 @@
       const pin = list[sel];
       const decision = decisions[pin.id];
       const passNote = pin.show_all
-        ? " · " + (pin.alts || []).length + " at this price, best first"
+        ? " · " + (pin.alts || []).length + " photos, best first"
         : (pin.second_pass ? " · new suggestions" : (pin.agree ? " · agree" : " · two choices"));
       title.textContent = pin.board + " pin " + pin.pin_n + " · board " + money(pin.price_label) + passNote;
       idx.textContent = (sel + 1) + " / " + list.length;
