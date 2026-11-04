@@ -272,6 +272,16 @@
 
     function apply(keepId) {
       list = pins.filter(passes);
+      if (filter === "nomatch") {
+        const priceNum = (pin) => pin.price_label === "200+" ? 200 : (parseInt(pin.price_label, 10) || 0);
+        list.sort((a, b) => {
+          const ah = priceNum(a) >= 100 ? 0 : 1;
+          const bh = priceNum(b) >= 100 ? 0 : 1;
+          if (ah !== bh) return ah - bh;
+          if (a.board !== b.board) return a.board < b.board ? -1 : 1;
+          return a.pin_n - b.pin_n;
+        });
+      }
       const wanted = keepId || params.get("pin");
       sel = 0;
       if (wanted) {
