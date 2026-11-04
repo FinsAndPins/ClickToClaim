@@ -273,11 +273,11 @@
     function apply(keepId) {
       list = pins.filter(passes);
       if (filter === "nomatch") {
-        const priceNum = (pin) => pin.price_label === "200+" ? 200 : (parseInt(pin.price_label, 10) || 0);
+        const priceNum = (pin) => pin.price_label === "200+" ? 100000 : (parseInt(pin.price_label, 10) || 0);
         list.sort((a, b) => {
-          const ah = priceNum(a) >= 100 ? 0 : 1;
-          const bh = priceNum(b) >= 100 ? 0 : 1;
-          if (ah !== bh) return ah - bh;
+          const ap = priceNum(a);
+          const bp = priceNum(b);
+          if (ap !== bp) return bp - ap;
           if (a.board !== b.board) return a.board < b.board ? -1 : 1;
           return a.pin_n - b.pin_n;
         });
@@ -325,7 +325,7 @@
       const pin = list[sel];
       const decision = decisions[pin.id];
       const passNote = pin.show_all
-        ? " · " + (pin.alts || []).length + " photos, best first"
+        ? " · " + (pin.alts || []).length + " at " + (pin.band_label || "this price") + ", best first"
         : (pin.second_pass ? " · new suggestions" : (pin.agree ? " · agree" : " · two choices"));
       title.textContent = pin.board + " pin " + pin.pin_n + " · board " + money(pin.price_label) + passNote;
       idx.textContent = (sel + 1) + " / " + list.length;
