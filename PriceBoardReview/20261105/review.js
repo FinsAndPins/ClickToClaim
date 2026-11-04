@@ -324,14 +324,16 @@
       empty.style.display = "none";
       const pin = list[sel];
       const decision = decisions[pin.id];
-      const passNote = pin.second_pass ? " · new suggestions" : (pin.agree ? " · agree" : " · two choices");
+      const passNote = pin.show_all
+        ? " · " + (pin.alts || []).length + " at this price, best first"
+        : (pin.second_pass ? " · new suggestions" : (pin.agree ? " · agree" : " · two choices"));
       title.textContent = pin.board + " pin " + pin.pin_n + " · board " + money(pin.price_label) + passNote;
       idx.textContent = (sel + 1) + " / " + list.length;
       undoBtn.style.display = undo && undo.id === pin.id ? "inline" : "none";
 
       const mine = document.createElement("div");
       mine.className = "tile pin-tile";
-      mine.innerHTML = '<img alt="Our pin" src="' + pin.our + '"><div class="tile-sn">My Pin</div><div class="tile-pbar"><span class="tile-price">' + money(pin.price_label) + '</span><span class="tile-note">ours</span></div>';
+      mine.innerHTML = '<img alt="Our pin" loading="lazy" src="' + pin.our + '"><div class="tile-sn">My Pin</div><div class="tile-pbar"><span class="tile-price">' + money(pin.price_label) + '</span><span class="tile-note">ours</span></div>';
       grid.appendChild(mine);
       if (pin.second_pass && !(pin.alts || []).length) {
         const note = document.createElement("p");
@@ -347,7 +349,7 @@
         tile.type = "button";
         tile.className = "tile" + (chosen ? " chosen" : "") + (choice.by === "both" ? " both" : "");
         tile.innerHTML =
-          '<img alt="Old pin" src="' + choiceFile(choice) + '">' +
+          '<img alt="Old pin" loading="lazy" src="' + choiceFile(choice) + '">' +
           '<div class="tile-sn">' + (choice.by === "both" ? "Both" : choice.by === "dino" ? "Dino" : "Clip") + "</div>" +
           '<div class="tile-pbar"><span class="tile-price">' + (choice.ctr != null ? money(choice.ctr) : "") + '</span><span class="tile-note">' + (choice.show || "") + "</span></div>";
         tile.addEventListener("click", async () => {
