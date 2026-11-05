@@ -413,14 +413,24 @@
   }
 
   function startContact(data, decisions) {
-    function contactPrice(pin) {
+    // CSV price: photographed board price, except Not a Pin is $0,
+    // the two pins moved onto IMG_1967 are $25, and $200+ uses the matched pin.
+    const movedTo25 = { img1982_pin12: true, img1982_pin13: true };
+
+    function csvPrice(pin) {
       if (statusOf(decisions, pin) === "not_a_pin") return 0;
-      return pin.price_label === "200+" ? 100000 : (parseInt(pin.price_label, 10) || 0);
+      if (movedTo25[pin.id]) return 25;
+      if (pin.price_label === "200+") {
+        const row = decisions[pin.id] || {};
+        const n = parseInt(row.chosen_price, 10);
+        return n > 0 ? n : 200;
+      }
+      return parseInt(pin.price_label, 10) || 0;
     }
 
     const pins = data.pins.slice().sort((a, b) => {
-      const pa = contactPrice(a);
-      const pb = contactPrice(b);
+      const pa = csvPrice(a);
+      const pb = csvPrice(b);
       if (pa !== pb) return pb - pa;
       if (a.board !== b.board) return a.board < b.board ? -1 : 1;
       return a.pin_n - b.pin_n;
@@ -451,8 +461,7 @@
         const a = document.createElement("a");
         a.className = "cell " + st;
         a.href = "new_ctp.html?pin=" + encodeURIComponent(pin.id);
-        const priceLabel = st === "not_a_pin" ? "0" : pin.price_label;
-        a.innerHTML = '<img alt="" src="' + pin.our + '"><span class="cap">' + pin.board.replace("IMG_", "") + " · " + pin.pin_n + " · " + money(priceLabel) + "</span>";
+        a.innerHTML = '<img alt="" src="' + pin.our + '"><span class="cap">' + pin.board.replace("IMG_", "") + " · " + pin.pin_n + " · " + money(csvPrice(pin)) + "</span>";
         grid.appendChild(a);
       });
       counts();
