@@ -57,6 +57,7 @@ If one board's pins are rotated (2026-11-03, show 20261105 board 10, IMG_1927):
 - Update JSON `image.width` / `image.height` (and Overlay `thumb_w` / `thumb_h`) to the new size. Leaving the old landscape size makes the CTR page apply a second rotation and miss every pin.
 - Rotate the full-res original too, then recrop only that board's stems. Do not rewrite `pin_uid_map`. Do not rerun eBay or detection. `crop_stem`s and prices stay.
 - Rewrite the Overlay embed (the page generator only syncs `test_run_id`). Regenerate CTM/CTP/contact thumbs from the new crops. Bump `BOARDS_MANIFEST_VERSION` in `index.html` and `reports.html`.
+- Re-run `CTRandPricing/tools/inject_script_a_button.py` on that show's harness after the page rebuild. The generator does not include Whatnot Script A, so a CTM/CTP refresh removes the button.
 
 ## Normal inbox pricing
 
