@@ -412,15 +412,16 @@
     apply();
   }
 
-  function contactPrice(pin) {
-    return pin.price_label === "200+" ? 100000 : (parseInt(pin.price_label, 10) || 0);
-  }
-
   function startContact(data, decisions) {
+    function contactPrice(pin) {
+      if (statusOf(decisions, pin) === "not_a_pin") return 0;
+      return pin.price_label === "200+" ? 100000 : (parseInt(pin.price_label, 10) || 0);
+    }
+
     const pins = data.pins.slice().sort((a, b) => {
       const pa = contactPrice(a);
       const pb = contactPrice(b);
-      if (pa !== pb) return pa - pb;
+      if (pa !== pb) return pb - pa;
       if (a.board !== b.board) return a.board < b.board ? -1 : 1;
       return a.pin_n - b.pin_n;
     });
@@ -450,7 +451,8 @@
         const a = document.createElement("a");
         a.className = "cell " + st;
         a.href = "new_ctp.html?pin=" + encodeURIComponent(pin.id);
-        a.innerHTML = '<img alt="" src="' + pin.our + '"><span class="cap">' + pin.board.replace("IMG_", "") + " · " + pin.pin_n + " · " + money(pin.price_label) + "</span>";
+        const priceLabel = st === "not_a_pin" ? "0" : pin.price_label;
+        a.innerHTML = '<img alt="" src="' + pin.our + '"><span class="cap">' + pin.board.replace("IMG_", "") + " · " + pin.pin_n + " · " + money(priceLabel) + "</span>";
         grid.appendChild(a);
       });
       counts();
