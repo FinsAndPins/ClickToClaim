@@ -412,8 +412,18 @@
     apply();
   }
 
+  function contactPrice(pin) {
+    return pin.price_label === "200+" ? 100000 : (parseInt(pin.price_label, 10) || 0);
+  }
+
   function startContact(data, decisions) {
-    const pins = sortedPins(data);
+    const pins = data.pins.slice().sort((a, b) => {
+      const pa = contactPrice(a);
+      const pb = contactPrice(b);
+      if (pa !== pb) return pa - pb;
+      if (a.board !== b.board) return a.board < b.board ? -1 : 1;
+      return a.pin_n - b.pin_n;
+    });
     let filter = "";
 
     function counts() {
