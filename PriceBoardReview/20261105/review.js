@@ -414,12 +414,12 @@
 
   function startContact(data, decisions) {
     // CSV price: photographed board price, except Not a Pin is $0,
-    // the two pins moved onto IMG_1967 are $25, and $200+ uses the matched pin.
-    const movedTo25 = { img1982_pin12: true, img1982_pin13: true };
+    // pins Steve moved after the photo use the new board price, and $200+ uses the matched pin.
+    const csvPriceOverride = { img1982_pin12: 25, img1982_pin13: 25, img1947_pin36: 50 };
 
     function csvPrice(pin) {
       if (statusOf(decisions, pin) === "not_a_pin") return 0;
-      if (movedTo25[pin.id]) return 25;
+      if (csvPriceOverride[pin.id] != null) return csvPriceOverride[pin.id];
       if (pin.price_label === "200+") {
         const row = decisions[pin.id] || {};
         const n = parseInt(row.chosen_price, 10);
