@@ -324,8 +324,11 @@
       empty.style.display = "none";
       const pin = list[sel];
       const decision = decisions[pin.id];
+      const first = (pin.alts || [])[0];
       const passNote = pin.show_all
-        ? " · " + (pin.alts || []).length + " at " + (pin.band_label || "this price") + ", best first"
+        ? (first && first.promoted
+          ? " · next price first, then " + ((pin.alts.length - 1)) + " at " + (pin.band_label || "this price")
+          : " · " + (pin.alts || []).length + " at " + (pin.band_label || "this price") + ", best first")
         : (pin.second_pass ? " · new suggestions" : (pin.agree ? " · agree" : " · two choices"));
       title.textContent = pin.board + " pin " + pin.pin_n + " · board " + money(pin.price_label) + passNote;
       idx.textContent = (sel + 1) + " / " + list.length;
@@ -347,10 +350,11 @@
         const chosen = decision && decision.match_status === "match" && decision.chosen_stem === choice.stem && decision.chosen_show === choice.show;
         const tile = document.createElement("button");
         tile.type = "button";
-        tile.className = "tile" + (chosen ? " chosen" : "") + (choice.by === "both" ? " both" : "");
+        tile.className = "tile" + (chosen ? " chosen" : "") + (choice.promoted ? " promoted" : "") + (choice.by === "both" ? " both" : "");
+        const sn = choice.promoted ? "Next price" : (choice.by === "both" ? "Both" : choice.by === "dino" ? "Dino" : "Clip");
         tile.innerHTML =
           '<img alt="Old pin" loading="lazy" src="' + choiceFile(choice) + '">' +
-          '<div class="tile-sn">' + (choice.by === "both" ? "Both" : choice.by === "dino" ? "Dino" : "Clip") + "</div>" +
+          '<div class="tile-sn">' + sn + "</div>" +
           '<div class="tile-pbar"><span class="tile-price">' + (choice.ctr != null ? money(choice.ctr) : "") + '</span><span class="tile-note">' + (choice.show || "") + "</span></div>";
         tile.addEventListener("click", async () => {
           const nextId = list[sel + 1] ? list[sel + 1].id : null;
