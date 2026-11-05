@@ -62,3 +62,9 @@ If one board's pins are rotated (2026-11-03, show 20261105 board 10, IMG_1927):
 ## Normal inbox pricing
 
 `BoardsToPrice` / inbox watcher already crops from inbox photos — unchanged for crop source. It still uses the enhanced generator above for CTM/CTP pages.
+
+## Best crop we have (2026-11-05)
+
+Steve's standing preference: any pin photo we publish or upload uses the best crop available. That includes Whatnot CSVs, review pages, and contact sheets, not only a pricing run.
+
+The 20261105 price-board CSV used `PriceBoardReview` crops. Those were cut from 960×1280 boards and saved at 480px max, so a typical pin was about 150px. The camera originals were still 4284×5712 in the iCloud drop folder. Do not point an upload at the review thumbnail when the full-resolution original is on disk. Crop from that original. Review-page thumbs are for the review page.
