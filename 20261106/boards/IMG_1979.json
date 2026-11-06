@@ -1,0 +1,17 @@
+{
+  "predictions": [
+    {
+      "x": 453.4375,
+      "y": 380.3125,
+      "width": 272.34375,
+      "height": 398.125,
+      "confidence": 0.9481545686721802,
+      "class": "pin",
+      "crop_stem": "img1979_pin01"
+    }
+  ],
+  "image": {
+    "width": 960,
+    "height": 1280
+  }
+}

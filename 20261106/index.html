@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>20261106 inventory</title>
+<style>
+  :root {
+    --bg: #111; --panel: #1a1a1a; --line: #2a2a2a; --text: #f2f2f2;
+    --muted: #9a9a9a; --accent: #4a9eff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  body { padding-bottom: 48px; }
+  header {
+    position: sticky; top: 0; z-index: 50;
+    padding: 10px 12px 8px; background: #0d0d0d; border-bottom: 1px solid var(--line);
+  }
+  header h1 { margin: 0 0 4px; font-size: 17px; font-weight: 750; }
+  header .sub { margin: 0 0 8px; font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button, .name {
+    height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #333;
+    background: #222; color: var(--text); font-size: 13px; font-weight: 650;
+  }
+  button.on { background: #1e4fa0; border-color: #2a6eff; }
+  button.sold-on { background: #8b1e1e; border-color: #ff5a5a; }
+  .name { width: 110px; }
+  #totals {
+    margin: 10px 12px 0; padding: 8px 12px; border-radius: 12px;
+    background: #152238; border: 1px solid #2a4a73;
+    display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; font-weight: 700;
+  }
+  #totals span { color: #9ec8ff; font-weight: 600; font-size: 11px; display: block; }
+  #hint { margin: 8px 12px 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  #boards { padding: 12px; display: flex; flex-direction: column; gap: 18px; }
+  .board-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; content-visibility: auto; contain-intrinsic-size: 800px; }
+  .board-card.hide { display: none; }
+  .board-head { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .board-head .title { font-weight: 750; font-size: 15px; }
+  .board-head .meta { color: var(--muted); font-size: 12px; margin-top: 2px; line-height: 1.35; }
+  .board-wrap { position: relative; width: 100%; background: #000; }
+  .board-wrap img { display: block; width: 100%; height: auto; }
+  .pin {
+    position: absolute; border: 2px solid rgba(255,255,255,0.35);
+    border-radius: 4px; cursor: pointer; touch-action: manipulation;
+  }
+  body:not(.sold-mode) .pin { cursor: default; }
+  .pin.pin-nap { visibility: hidden; pointer-events: none; }
+  .pin.pin-sold {
+    background: rgba(0, 0, 0, 0.42);
+    border: 2px solid rgba(255, 80, 80, 0.85);
+  }
+  .pin.pin-sold::after {
+    content: "SOLD";
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%) rotate(-28deg);
+    font-size: clamp(11px, 2.8vw, 18px); font-weight: 900; letter-spacing: 0.06em;
+    color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85);
+    pointer-events: none; z-index: 5; line-height: 1; white-space: nowrap;
+  }
+  .pin-pb, .pin-note {
+    position: absolute; right: 2px;
+    background: rgba(0,0,0,0.78); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 1px 5px;
+    border-radius: 4px; pointer-events: none; white-space: nowrap; z-index: 2;
+  }
+  .pin-pb { top: 2px; }
+  .pin-note { bottom: 2px; max-width: 96%; overflow: hidden; text-overflow: ellipsis; }
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: #1a5e1a; color: #fff; padding: 8px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 650; opacity: 0; transition: opacity .25s;
+    pointer-events: none; z-index: 10000;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>20261106 inventory</h1>
+  <p class="sub">Show boards 01-17 and price boards 26-85. Prices are today's list prices. Turn Sold mode on, then tap a pin to stamp SOLD. Tap it again to undo.</p>
+  <div class="row">
+    <button type="button" id="soldModeBtn">Sold mode off</button>
+    <button type="button" id="f-auction" class="on">Boards 26-54</button>
+    <button type="button" id="f-all">All boards</button>
+    <button type="button" id="f-show">Show 01-17</button>
+    <button type="button" id="f-high">Boards 55+</button>
+    <input class="name" id="who" aria-label="Your name" value="Steve">
+  </div>
+</header>
+<div id="totals">
+  <div><span>Sold</span><b id="tot-sold">0</b></div>
+  <div><span>Still here</span><b id="tot-avail">0</b></div>
+  <div><span>List $ left</span><b id="tot-dollars">$0</b></div>
+</div>
+<p id="hint">Loading boards…</p>
+<div id="boards"></div>
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+(function () {
+  const VER = "1";
+  const SOLD_PATH = "showConfig/20261106/soldStems";
+  const FB_CFG = {
+    apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+    authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+    databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/",
+    projectId: "fins-and-pins-click-to-claim",
+    storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+    messagingSenderId: "31512845258",
+    appId: "1:31512845258:web:2124fae24cfee229084d33"
+  };
+
+  firebase.initializeApp(FB_CFG);
+  const db = firebase.database();
+
+  const boardsEl = document.getElementById("boards");
+  const toast = document.getElementById("toast");
+  const hint = document.getElementById("hint");
+  const soldModeBtn = document.getElementById("soldModeBtn");
+  const whoInput = document.getElementById("who");
+
+  const soldStems = new Set();
+  const bootstrap = new Set();
+  const pinEls = Object.create(null);
+  const prices = Object.create(null);
+  const notes = Object.create(null);
+  const boardMeta = Object.create(null);
+  const boardRenders = [];
+  let firebaseSold = {};
+  let soldMode = localStorage.getItem("fpins_20261106_soldmode") === "1";
+  let filter = sessionStorage.getItem("fpins_20261106_filter") || "auction";
+
+  whoInput.value = localStorage.getItem("fpins_20261106_who") || "Steve";
+  whoInput.addEventListener("change", () => {
+    localStorage.setItem("fpins_20261106_who", whoInput.value.trim().slice(0, 30) || "Steve");
+  });
+
+  function toastMsg(msg, ok) {
+    toast.textContent = msg;
+    toast.style.background = ok === false ? "#8b0000" : "#1a5e1a";
+    toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.remove("show"), 1400);
+  }
+
+  function money(n) { return "$" + Number(n || 0).toLocaleString(); }
+
+  function isSold(stem) { return soldStems.has(stem); }
+
+  function paintSoldMode() {
+    document.body.classList.toggle("sold-mode", soldMode);
+    soldModeBtn.textContent = soldMode ? "Sold mode on" : "Sold mode off";
+    soldModeBtn.classList.toggle("sold-on", soldMode);
+  }
+
+  soldModeBtn.addEventListener("click", () => {
+    soldMode = !soldMode;
+    localStorage.setItem("fpins_20261106_soldmode", soldMode ? "1" : "0");
+    paintSoldMode();
+    toastMsg(soldMode ? "Tap a pin to mark SOLD" : "Sold mode off");
+  });
+
+  function applyFilter(name) {
+    filter = name;
+    sessionStorage.setItem("fpins_20261106_filter", name);
+    document.querySelectorAll("header button[id^='f-']").forEach((btn) => {
+      btn.classList.toggle("on", btn.id === "f-" + name);
+    });
+    let shown = 0;
+    document.querySelectorAll(".board-card").forEach((card) => {
+      const n = Number(card.dataset.n);
+      const group = card.dataset.group;
+      let show = true;
+      if (name === "auction") show = n >= 26 && n <= 54;
+      else if (name === "show") show = group === "show";
+      else if (name === "high") show = n >= 55;
+      card.classList.toggle("hide", !show);
+      if (show) {
+        shown++;
+        const img = card.querySelector("img");
+        if (img && img.dataset.src && !img.getAttribute("src")) img.src = img.dataset.src;
+      }
+    });
+    const labels = {
+      auction: "Boards 26-54, the $10 to $35 shelves.",
+      all: "All 77 boards.",
+      show: "Show boards 01-17.",
+      high: "Boards 55 and up."
+    };
+    hint.textContent = (labels[name] || "") + " " + shown + " boards on screen. Sales already named in today's file are stamped. Sold mode " + (soldMode ? "is on." : "is off, so a tap will not change anything.");
+  }
+
+  document.getElementById("f-auction").onclick = () => applyFilter("auction");
+  document.getElementById("f-all").onclick = () => applyFilter("all");
+  document.getElementById("f-show").onclick = () => applyFilter("show");
+  document.getElementById("f-high").onclick = () => applyFilter("high");
+
+  function applyPin(pinEl) {
+    const stem = pinEl.dataset.cropStem;
+    if (!prices[stem]) {
+      pinEl.classList.add("pin-nap");
+      return;
+    }
+    const sold = isSold(stem);
+    pinEl.classList.toggle("pin-sold", sold);
+    let badge = pinEl.querySelector(".pin-pb");
+    let noteEl = pinEl.querySelector(".pin-note");
+    if (sold) {
+      if (badge) badge.remove();
+      if (noteEl) noteEl.remove();
+      return;
+    }
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "pin-pb";
+      pinEl.appendChild(badge);
+    }
+    badge.textContent = "$" + prices[stem];
+    if (notes[stem]) {
+      if (!noteEl) {
+        noteEl = document.createElement("span");
+        noteEl.className = "pin-note";
+        pinEl.appendChild(noteEl);
+      }
+      noteEl.textContent = notes[stem];
+    }
+  }
+
+  function refreshTotals() {
+    let soldN = 0, availN = 0, availD = 0;
+    Object.keys(prices).forEach((stem) => {
+      if (isSold(stem)) soldN++;
+      else { availN++; availD += prices[stem]; }
+    });
+    document.getElementById("tot-sold").textContent = String(soldN);
+    document.getElementById("tot-avail").textContent = String(availN);
+    document.getElementById("tot-dollars").textContent = money(availD);
+    Object.keys(boardMeta).forEach((name) => {
+      const meta = boardMeta[name];
+      let sold = 0, avail = 0;
+      meta.stems.forEach((stem) => {
+        if (!prices[stem]) return;
+        if (isSold(stem)) sold++;
+        else avail++;
+      });
+      meta.countEl.textContent = sold + " sold · " + avail + " still here";
+    });
+  }
+
+  function refreshAll() {
+    Object.values(pinEls).forEach(applyPin);
+    refreshTotals();
+  }
+
+  function rebuildSold() {
+    soldStems.clear();
+    bootstrap.forEach((stem) => soldStems.add(stem));
+    Object.entries(firebaseSold || {}).forEach(([k, v]) => {
+      const stem = (v && v.crop_stem) || k;
+      if (v && v.sold === false) {
+        soldStems.delete(k);
+        soldStems.delete(stem);
+      } else if (v === true || (v && v.sold !== false)) {
+        soldStems.add(k);
+        soldStems.add(stem);
+      }
+    });
+    refreshAll();
+  }
+
+  async function toggleSold(pinEl) {
+    const stem = pinEl.dataset.cropStem;
+    if (!stem || !prices[stem]) return;
+    if (!soldMode) {
+      toastMsg("Turn Sold mode on first");
+      return;
+    }
+    const who = (whoInput.value || "Steve").trim().slice(0, 30) || "Steve";
+    const nextSold = !isSold(stem);
+    const payload = {
+      sold: nextSold,
+      crop_stem: stem,
+      at: new Date().toISOString(),
+      by: who
+    };
+    try {
+      await db.ref(SOLD_PATH + "/" + stem).set(payload);
+      firebaseSold[stem] = payload;
+      rebuildSold();
+      toastMsg(nextSold ? "Marked SOLD" : "Cleared SOLD");
+    } catch (e) {
+      console.warn(e);
+      toastMsg("Save failed", false);
+    }
+  }
+
+  function placeBoard(name, info, data) {
+    const pins = data.predictions || [];
+    const card = document.createElement("div");
+    card.className = "board-card";
+    card.id = "board-" + info.n;
+    card.dataset.n = String(info.n);
+    card.dataset.group = info.group;
+    const priceBit = info.list ? " · $" + info.list : "";
+    const kind = info.group === "show" ? "show" : "price board";
+    const noteLines = [];
+    pins.forEach((pin) => {
+      if (notes[pin.crop_stem]) noteLines.push("Photo " + pin.crop_stem.replace(/^img\d+_pin/, "pin ") + " is " + notes[pin.crop_stem]);
+    });
+    card.innerHTML =
+      '<div class="board-head"><div class="title">Board ' + info.label + priceBit + '</div>' +
+      '<div class="meta">' + kind + ' · ' + name + '<br><span data-count></span>' +
+      (noteLines.length ? '<br>' + noteLines.join('<br>') : '') +
+      '</div></div>' +
+      '<div class="board-wrap"><img alt="' + name + '" data-src="./boards/' + name + '.JPG?v=' + VER + '"></div>';
+    boardsEl.appendChild(card);
+    const img = card.querySelector("img");
+    const wrap = card.querySelector(".board-wrap");
+    boardMeta[name] = {
+      stems: pins.map((pin) => pin.crop_stem),
+      countEl: card.querySelector("[data-count]")
+    };
+    const render = () => {
+      if (!img.getAttribute("src") || !img.clientWidth) return;
+      wrap.querySelectorAll(".pin").forEach((el) => el.remove());
+      const origW = data.image?.width || img.naturalWidth;
+      const origH = data.image?.height || img.naturalHeight;
+      const scale = img.clientWidth / origW;
+      pins.forEach((pin) => {
+        const div = document.createElement("div");
+        div.className = "pin";
+        div.style.left = (pin.x - pin.width / 2) * scale + "px";
+        div.style.top = (pin.y - pin.height / 2) * scale + "px";
+        div.style.width = pin.width * scale + "px";
+        div.style.height = pin.height * scale + "px";
+        div.dataset.cropStem = pin.crop_stem;
+        div.dataset.board = info.label;
+        pinEls[pin.crop_stem] = div;
+        div.addEventListener("click", (e) => {
+          e.preventDefault();
+          toggleSold(div);
+        });
+        wrap.appendChild(div);
+        applyPin(div);
+      });
+      refreshTotals();
+    };
+    boardRenders.push(render);
+    img.addEventListener("load", render);
+  }
+
+  async function boot() {
+    const [manifest, labels, priceMap, noteMap, soldBoot] = await Promise.all([
+      fetch("./boards/manifest.json?v=" + VER, { cache: "no-store" }).then((r) => r.json()),
+      fetch("./board_labels.json?v=" + VER, { cache: "no-store" }).then((r) => r.json()),
+      fetch("./prices.json?v=" + VER, { cache: "no-store" }).then((r) => r.json()),
+      fetch("./pin_notes.json?v=" + VER, { cache: "no-store" }).then((r) => r.json()),
+      fetch("./sold_bootstrap.json?v=" + VER, { cache: "no-store" }).then((r) => r.json())
+    ]);
+    Object.assign(prices, priceMap);
+    Object.assign(notes, noteMap);
+    Object.keys(soldBoot).forEach((stem) => bootstrap.add(stem));
+    rebuildSold();
+    const datas = new Array(manifest.length);
+    let cursor = 0;
+    async function worker() {
+      while (cursor < manifest.length) {
+        const i = cursor++;
+        const name = manifest[i];
+        datas[i] = await (await fetch("./boards/" + name + ".json?v=" + VER, { cache: "no-store" })).json();
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    manifest.forEach((name, i) => placeBoard(name, labels[name], datas[i]));
+    refreshTotals();
+    paintSoldMode();
+    applyFilter(filter);
+    let resizeT = 0;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(() => boardRenders.forEach((fn) => fn()), 150);
+    });
+    db.ref(SOLD_PATH).on("value", (snap) => {
+      firebaseSold = snap.val() || {};
+      rebuildSold();
+    }, (err) => {
+      console.warn(err);
+      toastMsg("Sold list did not sync", false);
+    });
+  }
+
+  paintSoldMode();
+  boot().catch((e) => {
+    console.error(e);
+    hint.textContent = "The page did not load. " + (e && e.message ? e.message : e);
+    toastMsg("Load failed", false);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "predictions": [
+    {
+      "x": 264.6875,
+      "y": 172.1875,
+      "width": 167.5,
+      "height": 177.5,
+      "confidence": 0.929951012134552,
+      "class": "pin",
+      "crop_stem": "img1988_pin01"
+    },
+    {
+      "x": 480.625,
+      "y": 389.375,
+      "width": 327.1875,
+      "height": 506.875,
+      "confidence": 0.9339146018028259,
+      "class": "pin",
+      "crop_stem": "img1988_pin02"
+    }
+  ],
+  "image": {
+    "width": 960,
+    "height": 1280
+  }
+}
