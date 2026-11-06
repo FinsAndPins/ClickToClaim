@@ -37,7 +37,7 @@ python3 build_whatnot_csv.py
 
 Output: `training_exports/whatnot_upload_PriceCollection_20260825_1328.csv` (98 accepted pins).
 
-- **Title:** accepted cleaned title + `PLEASE RELY ON THE PHOTO`
+- **Title:** accepted cleaned title + `You'll receive the pin in the photo`
 - **Description:** photo disclaimer, full synonym group keywords (from `Disney Synonyms Keywords.txt`), movie/show, Limited Edition when title has LE, IMG board-pin
 - **Price:** `display_price` from pricing Firebase, **rounded up to nearest $5** (51→55, 56→60, 50→50)
 

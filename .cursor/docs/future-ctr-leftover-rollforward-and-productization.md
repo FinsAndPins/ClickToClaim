@@ -186,7 +186,7 @@ So `fpclone` marks “this listing is on its **CTR leftover / second-chance** pa
 - Put **`fpclone`** in **Description**, as its **own token**, immediately after `ShowYYYYMMDD` (spaces around it), e.g. `… Show20261001 fpclone …`.  
 - That position should survive long text before it.  
 - **Drop** unused `Board##Character` (e.g. `Board01KermittheFrogAndFozzieBear`); Steve has not used it.  
-- Title stays clean: `Board NN Pin N RELY ON PHOTO`.  
+- Title stays clean: `Board NN Pin N You'll receive the pin in the photo`.  
 - Inactive search matches Description (verified). SKU not reliable. BoardNN works in Buy Now, not Sold.
 
 ### Whatnot tokenization (ops warning)

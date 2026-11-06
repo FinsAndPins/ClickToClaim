@@ -30,7 +30,7 @@ CROP_PAGES_BASE = (
     "https://finsandpins.github.io/ClickToClaim/TitleWordReview/"
     f"{COLLECTION}/crops/"
 )
-TITLE_PHOTO_SUFFIX = "PLEASE RELY ON THE PHOTO"
+TITLE_PHOTO_SUFFIX = "You'll receive the pin in the photo"
 SYNONYMS_FILENAME = "Disney Synonyms Keywords.txt"
 
 HEADERS = [
@@ -219,8 +219,26 @@ def img_ref(board_num, pin_n) -> str:
     return f"IMG {board}-{int(pin):02d}"
 
 
-def with_photo_title_suffix(title: str) -> str:
+_OLD_PHOTO_SUFFIXES = (
+    "please rely on the photo, not the description.",
+    "please rely on the photo, rather than the description.",
+    "please rely on the photo",
+    "please rely on photo",
+    "rely on photo",
+)
+
+
+def _strip_old_photo_suffix(title: str) -> str:
     t = (title or "").strip()
+    lowered = t.lower()
+    for old in _OLD_PHOTO_SUFFIXES:
+        if lowered.endswith(old):
+            return t[: -len(old)].strip()
+    return t
+
+
+def with_photo_title_suffix(title: str) -> str:
+    t = _strip_old_photo_suffix(title)
     if not t:
         return t
     if re.search(rf"\b{re.escape(TITLE_PHOTO_SUFFIX)}\b", t, re.I):
