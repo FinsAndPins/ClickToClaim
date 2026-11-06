@@ -412,6 +412,8 @@
     apply();
   }
 
+  const soldToday = { img1946_pin45: true, img1947_pin05: true, img1947_pin35: true, img1948_pin02: true, img1949_pin08: true, img1949_pin15: true, img1949_pin19: true, img1949_pin29: true, img1951_pin13: true, img1951_pin14: true, img1953_pin08: true, img1954_pin24: true, img1956_pin23: true, img1958_pin07: true, img1963_pin03: true, img1963_pin06: true, img1963_pin09: true, img1963_pin19: true, img1963_pin25: true, img1963_pin26: true, img1965_pin08: true, img1965_pin10: true, img1966_pin16: true, img1967_pin02: true, img1968_pin13: true, img1969_pin17: true, img1976_pin05: true, img1977_pin05: true, img1978_pin06: true, img1988_pin01: true, img1998_pin03: true };
+
   function startContact(data, decisions) {
     // CSV price: photographed board price, except Not a Pin is $0,
     // pins Steve moved after the photo use the new board price, and $200+ uses the matched pin.
@@ -459,7 +461,7 @@
         if (filter === "no_match" && st !== "no_match") return;
         if (filter === "match" && st !== "match") return;
         const a = document.createElement("a");
-        a.className = "cell " + st;
+        a.className = "cell " + st + (soldToday[pin.id] ? " sold" : "");
         a.href = "new_ctp.html?pin=" + encodeURIComponent(pin.id);
         a.innerHTML = '<img alt="" src="' + pin.our + '"><span class="cap">' + pin.board.replace("IMG_", "") + " · " + pin.pin_n + " · " + money(csvPrice(pin)) + "</span>";
         grid.appendChild(a);
@@ -493,7 +495,7 @@
           const st = statusOf(decisions, pin);
           const showPrice = mode === "all" || (mode === "matched" && st === "match") || (mode === "unmatched" && st !== "match" && st !== "not_a_pin");
           const a = document.createElement("a");
-          a.className = "pin " + st + (showPrice ? "" : " price-hide");
+          a.className = "pin " + st + (showPrice ? "" : " price-hide") + (soldToday[pin.id] ? " sold" : "");
           a.href = "new_ctp.html?pin=" + encodeURIComponent(pin.id);
           a.style.left = box.x + "%";
           a.style.top = box.y + "%";

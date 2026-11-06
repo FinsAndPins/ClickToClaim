@@ -2854,7 +2854,7 @@ const _stemToPricePrimary = {};
 const _stemToPriceLeftover = {};
 const _napPrimary = new Set();
 const _napLeftover = new Set();
-const _SOLD_STEMS_BOOTSTRAP = {};
+const _SOLD_STEMS_BOOTSTRAP = {"img1918_pin02": true, "img1918_pin05": true, "img1919_pin11": true, "img1920_pin03": true, "img1920_pin07": true, "img1920_pin08": true, "img1920_pin10": true, "img1921_pin01": true, "img1921_pin04": true, "img1921_pin18": true, "img1922_pin01": true, "img1922_pin06": true, "img1922_pin07": true, "img1922_pin08": true, "img1922_pin09": true, "img1922_pin11": true, "img1922_pin14": true, "img1922_pin21": true, "img1922_pin27": true, "img1923_pin01": true, "img1923_pin03": true, "img1923_pin08": true, "img1923_pin10": true, "img1923_pin14": true, "img1923_pin15": true, "img1923_pin17": true, "img1923_pin20": true, "img1924_pin05": true, "img1924_pin06": true, "img1924_pin11": true, "img1924_pin14": true, "img1925_pin03": true, "img1925_pin06": true, "img1925_pin09": true, "img1925_pin12": true, "img1926_pin06": true, "img1926_pin16": true, "img1926_pin17": true, "img1926_pin18": true, "img1926_pin24": true, "img1926_pin26": true, "img1926_pin31": true, "img1928_pin07": true, "img1928_pin17": true, "img1928_pin19": true, "img1928_pin33": true, "img1928_pin34": true, "img1929_pin09": true, "img1930_pin03": true, "img1933_pin07": true, "img1935_pin05": true, "img1935_pin06": true};
 const _soldStems = new Set();
 const _pendingStems = new Set();
 
@@ -2950,11 +2950,6 @@ function _refreshAllBadges() {
 
 function _applySoldGate(pinEl) {
     if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
-    if (!_isLeftoverPin(pinEl)) {
-        pinEl.classList.remove('pin-sold');
-        if (typeof applyExcludedToPinEl === 'function') applyExcludedToPinEl(pinEl);
-        return;
-    }
     const sold = _isSoldStem(pinEl.dataset.cropStem);
     pinEl.classList.toggle('pin-sold', sold);
     if (sold) {
@@ -3040,7 +3035,7 @@ window._ctcApplyPendingGate = _applyPendingGate;
 window._ctcStemIsUnavailable = function(stem, leftover) {
     if (!stem) return false;
     // Pending is labeled but still requestable (excluded only from Whatnot CSV).
-    if (leftover && _isSoldStem(stem)) return true;
+    if (_isSoldStem(stem)) return true;
     try {
         if (typeof _isExcludedStem === "function" && _isExcludedStem(stem)) return true;
     } catch (e) {}

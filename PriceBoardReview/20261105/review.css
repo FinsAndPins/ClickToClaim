@@ -91,6 +91,8 @@ body.page-ctp{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 .cell.no_match{border-color:#6a2d2d}
 .cell.not_a_pin{border-color:#555;opacity:.55}
 .cell.unreviewed{border-color:#6a5a2d}
+.cell{position:relative}
+.cell.sold::after,.pin.sold::after{content:"SOLD";position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) rotate(-28deg);font-size:13px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000;pointer-events:none;z-index:3}
 
 /* Overlay */
 .ov-tools{display:flex;gap:8px;align-items:center;padding:8px 10px;flex-wrap:wrap}
