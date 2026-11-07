@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fins and Pins · Shop &amp; Request</title>
+  <style>
+    :root {
+      --fp-bg: #c9b8d8;
+      --fp-chunk: rgba(255, 255, 255, 0.35);
+      --fp-text: #A32F83;
+      --fp-muted: #1A1A40;
+      --accent: #FC97D4;
+      --danger: #ff3b30;
+    }
+    html {
+      margin: 0;
+      background-color: var(--fp-bg);
+      background-image: url("ctr-bg-canva.jpg");
+      background-size: 100% auto;
+      background-position: top center;
+      background-repeat: repeat-y;
+    }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 0;
+      padding: 10px 10px 110px;
+      color: var(--fp-text);
+      background: transparent;
+      min-height: 100vh;
+    }
+    body.pin-search-docked { padding-top: 76px; }
+    body.split-mode #splitBanner { display: block; }
+    a { color: var(--fp-text); }
+
+    #socialBar { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+    #socialBar a {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; background: var(--fp-chunk); border-radius: 10px; text-decoration: none;
+    }
+    #socialBar a .social-icon { width: 24px; height: 24px; display: block; object-fit: contain; }
+    #socialBar a .social-icon.inv { filter: brightness(0) invert(1); }
+
+    h1 { text-align: center; margin: 0 0 6px; font-size: 22px; line-height: 1.2; color: var(--fp-text); }
+    #introNote {
+      text-align: center; font-size: 14px; color: var(--fp-muted);
+      margin: 0 auto 14px; line-height: 1.4; max-width: 520px;
+    }
+
+    #globalCounts {
+      text-align: center; font-size: 13px; margin-bottom: 16px; font-weight: 600;
+      background: var(--fp-chunk); padding: 8px 10px; border-radius: 10px; color: var(--fp-text);
+    }
+    #globalCountsStick { position: sticky; top: 0; z-index: 2000; background: var(--fp-chunk); padding: 2px 0 4px; margin: 0 -2px; }
+    .global-counts-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; line-height: 1.3; }
+    .gc-item { font-size: 13px; }
+    .gc-dot { color: var(--fp-muted); font-weight: normal; user-select: none; }
+    #syncStatus { font-size: 11px; color: var(--fp-muted); font-weight: normal; }
+    #syncStatus.sync-connected { color: var(--accent); }
+    .global-admin-row { font-size: 11px; color: var(--fp-muted); text-align: center; margin-top: 4px; font-weight: normal; line-height: 1.35; }
+
+    #passwordHelp, #splitBanner {
+      max-width: 640px; margin: 0 auto 14px; padding: 10px 12px; border-radius: 10px;
+      background: var(--fp-chunk); color: var(--fp-muted); font-size: 13px; line-height: 1.4; text-align: left;
+    }
+    #splitBanner {
+      display: none;
+      border: 2px solid #FC97D4;
+      color: var(--fp-text);
+      font-weight: 600;
+    }
+
+    #pinSearchWrap {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 2100;
+      width: min(270px, calc(100vw - 104px));
+      max-height: min(46vh, 320px);
+      overflow-y: auto;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 8px;
+      border-radius: 10px;
+      background: rgba(201, 184, 216, 0.94);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+    @media (min-width: 540px) {
+      #pinSearchWrap { width: min(300px, calc(100vw - 128px)); }
+    }
+    #pinSearchLabel {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    #pinSearchField { position: relative; }
+    #pinSearchInput {
+      width: 100%; box-sizing: border-box; font-size: 16px; padding: 8px 36px 8px 10px;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.72); color: var(--fp-text); font-family: inherit;
+    }
+    #pinSearchInput::-webkit-search-cancel-button,
+    #pinSearchInput::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+    #pinSearchClear {
+      position: absolute; top: 50%; right: 2px; transform: translateY(-50%);
+      width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
+      background: transparent; color: var(--fp-muted); font-size: 22px; font-weight: bold;
+      line-height: 1; cursor: pointer; font-family: inherit;
+    }
+    #pinSearchClear[hidden] { display: none !important; }
+    #pinSearchStatus { font-size: 13px; margin-top: 6px; color: var(--fp-muted); }
+    #pinSearchNav {
+      display: flex; gap: 6px; margin-top: 8px;
+      position: sticky; top: 0; z-index: 2;
+      background: rgba(201, 184, 216, 0.98); padding-bottom: 2px;
+    }
+    #pinSearchNav[hidden] { display: none !important; }
+    #pinSearchNav button {
+      flex: 1; font: inherit; font-size: 14px; font-weight: bold; color: #1A1A40;
+      background: #FC97D4; border: 1px solid #1A1A40; border-radius: 8px;
+      padding: 7px 8px; cursor: pointer;
+    }
+    #pinSearchNav button:disabled { opacity: 0.4; cursor: default; }
+
+    #catalogRoot { max-width: none; margin: 0 auto; }
+    .show-section { margin-bottom: 32px; }
+    .show-section.search-hide { display: none; }
+    .show-header {
+      background: var(--fp-chunk);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 8px 0 16px;
+      display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px;
+    }
+    .show-header h2 {
+      margin: 0; font-size: 18px; font-weight: bold; color: var(--fp-text); text-align: left;
+    }
+    .show-header .show-meta { color: var(--fp-muted); font-size: 13px; font-weight: normal; }
+
+    .board-container { margin-bottom: 28px; background: transparent; padding: 0; border-radius: 0; }
+    .board-container.search-hide { display: none; }
+    .board-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 0; padding: 10px 12px 0; background: var(--fp-chunk); border-radius: 10px 10px 0 0;
+    }
+    .board-title { font-size: 18px; font-weight: bold; color: var(--fp-text); }
+    .board-count { font-size: 14px; margin: 0; padding: 0 12px 8px; color: var(--fp-muted); background: var(--fp-chunk); }
+    .board-wrapper {
+      position: relative; width: 100%; margin: 0; min-height: 200px;
+      background: rgba(0,0,0,0.15); border-radius: 0 0 10px 10px; overflow: hidden;
+    }
+    .board-img { width: 100%; display: block; }
+    .pin {
+      position: absolute; border-radius: 6px; border: none; background: transparent;
+      box-sizing: border-box; cursor: pointer; z-index: 100;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pin:hover { border: 2px solid rgba(252,151,212,0.85); background: rgba(252,151,212,0.15); }
+    .pin.in-tray {
+      border: 4px solid rgba(0, 128, 0, 0.95);
+      background: rgba(0, 255, 0, 0.28);
+    }
+    .pin.mark-buy {
+      border: 4px solid #1877f2;
+      background: rgba(80, 140, 255, 0.32);
+    }
+    .pin.pin-search-dim { opacity: 0.28; }
+    .pin.pin-search-hit {
+      outline: 3px solid #FC97D4;
+      box-shadow: 0 0 0 2px #1a1020;
+      z-index: 4;
+    }
+    .pin.pin-search-current {
+      outline: 4px solid #fff;
+      box-shadow: 0 0 0 3px #FC97D4, 0 0 0 6px #1a1020;
+      z-index: 8;
+    }
+    .price-badge {
+      position: absolute; right: 2px; top: 2px;
+      background: rgba(26, 26, 64, 0.82); color: #fff;
+      font-size: 11px; font-weight: 700; padding: 2px 5px; border-radius: 6px;
+      pointer-events: none; line-height: 1.1;
+    }
+    .pin.sold {
+      cursor: default;
+      pointer-events: none;
+      opacity: 0.72;
+      background: rgba(40, 40, 40, 0.35);
+    }
+    .pin.sold:hover { border: none; background: rgba(40, 40, 40, 0.35); }
+    .sold-stamp {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; z-index: 3;
+      font-size: clamp(10px, 28%, 18px);
+      font-weight: 900; letter-spacing: 0.06em;
+      color: #fff; text-transform: uppercase;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+      background: rgba(120, 20, 40, 0.45);
+      border-radius: 6px;
+      transform: rotate(-18deg);
+    }
+    .pin.sold .price-badge { display: none; }
+
+    #footerControls {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--fp-chunk); border-top: 1px solid rgba(255,255,255,0.15);
+      padding: 10px 12px; display: flex; flex-wrap: wrap;
+      justify-content: space-between; align-items: center; gap: 8px; z-index: 2000;
+    }
+    #footerControls .footer-links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button {
+      font-family: inherit; cursor: pointer;
+    }
+    #btnOpenTray {
+      background: #FC97D4; color: #1A1A40; border: 1px solid #1A1A40;
+      border-radius: 8px; padding: 8px 12px; font-weight: bold; font-size: 13px;
+    }
+    button.secondary {
+      background: rgba(0,0,0,0.15); color: var(--fp-text);
+      border: 1px solid rgba(255,255,255,0.35); border-radius: 8px;
+      padding: 8px 12px; font-weight: bold; font-size: 13px;
+    }
+    button.primary-action {
+      background: #1877f2; color: #fff; border: none; border-radius: 8px;
+      padding: 12px 14px; font-size: 15px; font-weight: bold; width: 100%;
+    }
+    button.buy-action {
+      background: #FC97D4; color: #1A1A40; border: 1px solid #1A1A40; border-radius: 8px;
+      padding: 12px 14px; font-size: 15px; font-weight: bold; width: 100%;
+    }
+    button:disabled { opacity: 0.45; cursor: default; }
+    button.text-link {
+      background: transparent; border: none; color: var(--danger);
+      text-decoration: underline; font-weight: bold; font-size: 13px;
+      padding: 6px; width: 100%;
+    }
+
+    #trayDrawer {
+      position: fixed; top: 0; right: 0; width: min(420px, 100%); height: 100%;
+      background: rgba(201, 184, 216, 0.98); color: var(--fp-text);
+      transform: translateX(100%); transition: transform 0.2s ease;
+      z-index: 2200; padding: 16px; overflow: auto; box-shadow: -8px 0 30px rgba(0,0,0,0.35);
+    }
+    #trayDrawer.open { transform: translateX(0); }
+    .tray-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .tray-actions[hidden] { display: none !important; }
+    .tray-row {
+      display: flex; gap: 10px; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid rgba(26,26,64,0.15);
+    }
+    .tray-row.mark-buy { background: rgba(80, 140, 255, 0.18); border-radius: 8px; padding: 10px 6px; }
+    .tray-row img,
+    .tray-row .tray-thumb-missing {
+      width: 64px; height: 64px; object-fit: cover; border-radius: 8px;
+      background: rgba(0,0,0,0.15); flex: 0 0 64px;
+    }
+    .tray-row .tray-meta { flex: 1; min-width: 0; }
+    .tray-row .tray-meta strong { display: block; font-size: 13px; line-height: 1.3; }
+    .tray-row button.remove {
+      background: transparent; color: var(--danger); border: none;
+      padding: 4px 8px; font-weight: bold; flex: 0 0 auto; text-decoration: underline;
+    }
+    .tray-row .buy-tag {
+      display: inline-block; margin-top: 4px; font-size: 11px; font-weight: bold;
+      color: #1877f2;
+    }
+    .muted { color: var(--fp-muted); font-size: 13px; font-weight: normal; }
+    #toast {
+      position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%) translateY(20px);
+      background: #1A1A40; color: #fff; padding: 10px 14px; border-radius: 10px;
+      opacity: 0; pointer-events: none; transition: 0.2s; z-index: 2400; max-width: 90%;
+      font-size: 14px;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body class="pin-search-docked">
+  <div id="pinSearchWrap">
+    <label id="pinSearchLabel" for="pinSearchInput">Search titles</label>
+    <div id="pinSearchField">
+      <input id="pinSearchInput" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off"
+        placeholder="Type a character, movie, or set" aria-label="Type a character, movie, or set">
+      <button type="button" id="pinSearchClear" hidden aria-label="Clear search">×</button>
+    </div>
+    <div id="pinSearchStatus" aria-live="polite"></div>
+    <div id="pinSearchNav" hidden>
+      <button type="button" id="pinSearchPrev">Previous</button>
+      <button type="button" id="pinSearchNext">Next</button>
+    </div>
+  </div>
+
+  <div id="socialBar" aria-label="Social links">
+    <a href="https://www.instagram.com/fins.and.pins/" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram">
+      <img class="social-icon inv" src="./icons/instagram.svg" width="24" height="24" alt="">
+    </a>
+    <a href="https://whatnot.com/invite/finsandpins" target="_blank" rel="noopener noreferrer" title="whatnot" aria-label="whatnot">
+      <img class="social-icon" src="./icons/whatnot.svg" width="26" height="26" alt="">
+    </a>
+    <a href="https://linktr.ee/finsandpins" target="_blank" rel="noopener noreferrer" title="Linktree" aria-label="Linktree">
+      <img class="social-icon inv" src="./icons/linktree.svg" width="24" height="24" alt="">
+    </a>
+  </div>
+
+  <h1>Fins and Pins</h1>
+  <p id="introNote">
+    Tap pins to select them (same as Click To Request). Open your tray to
+    <strong>Buy all now</strong>, <strong>Request all for Whatnot</strong>,
+    or <strong>Buy some and request the rest</strong>.
+  </p>
+
+  <div id="globalCounts">
+    <div id="globalCountsStick">
+      <div class="global-counts-row">
+        <span class="gc-item">In tray: <span id="statTray">0</span></span>
+        <span class="gc-dot" aria-hidden="true">·</span>
+        <span class="gc-item">Requested: <span id="statRequests">0</span></span>
+        <span class="gc-dot" aria-hidden="true">·</span>
+        <span id="syncStatus">Starting…</span>
+      </div>
+      <div class="global-admin-row">
+        Shows <span id="statShows">0</span> · Pins <span id="statMapped">0</span> · Shopify <span id="statVariants">0</span> · <span id="statMode">…</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="splitBanner">
+    Split mode: tap pins in the tray (or on the boards) to mark <strong>Buy Now</strong> (blue).
+    Unmarked pins stay <strong>Request for Whatnot</strong>. Then use the buttons in the tray.
+  </div>
+
+  <div id="passwordHelp">
+    <strong>Checkout tip:</strong> If Shopify shows “Opening soon,” turn off the storefront password
+    (Online Store → Preferences). That is not your admin login.
+  </div>
+
+  <div id="catalogRoot"></div>
+
+  <div id="trayDrawer" aria-live="polite">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <strong>Your tray</strong>
+      <button type="button" class="secondary" id="btnCloseTray">Close</button>
+    </div>
+    <p class="muted" id="trayHint">You’ll receive the pin in the photo for anything you buy.</p>
+    <div id="trayList"></div>
+    <div class="tray-actions" id="trayActionsNormal">
+      <button type="button" class="buy-action" id="btnBuyAll">Buy all now</button>
+      <button type="button" class="primary-action" id="btnRequestAll">Request all for Whatnot</button>
+      <button type="button" class="secondary" id="btnSplitMode" style="width:100%;">Buy some, request the rest…</button>
+      <button type="button" class="text-link" id="btnClearTray">Clear tray</button>
+    </div>
+    <div class="tray-actions" id="trayActionsSplit" hidden>
+      <p class="muted" id="splitTrayNote" style="margin:0 0 4px;">
+        Tap pins to mark <strong>Buy Now</strong> (blue). Unmarked will be requested.
+      </p>
+      <button type="button" class="buy-action" id="btnCheckoutMarked">Checkout Buy Now pins</button>
+      <button type="button" class="primary-action" id="btnFinishSplit">Request the rest for Whatnot</button>
+      <button type="button" class="text-link" id="btnCancelSplit">Cancel</button>
+    </div>
+  </div>
+
+  <div id="footerControls">
+    <div id="guestLabel" style="font-weight:bold;">guest</div>
+    <div class="footer-links">
+      <button type="button" id="btnOpenTray">Tray (<span id="statTrayBar">0</span>)</button>
+    </div>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    window.FP_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+      authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+      databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+      projectId: "fins-and-pins-click-to-claim",
+      storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+      messagingSenderId: "31512845258",
+      appId: "1:31512845258:web:2124fae24cfee229084d33"
+    };
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="./js/shopify-config.js"></script>
+  <script src="./js/app.js?v=20261106-sold"></script>
+</body>
+</html>

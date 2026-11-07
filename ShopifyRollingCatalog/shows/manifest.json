@@ -1,0 +1,37 @@
+{
+  "catalogVersion": 1,
+  "title": "Fins & Pins Inventory (Shopify test)",
+  "model": "rolling-blog",
+  "rules": [
+    "Newest show first. Prior shows stay below forever.",
+    "Sandbox test page for Lexi/Steve. Not the live Whatnot CTR show folder.",
+    "SKU = crop_stem."
+  ],
+  "shows": [
+    {
+      "showId": "20261106",
+      "label": "Show 20261106",
+      "status": "live",
+      "boardsBase": "./sandbox_20261106/boards",
+      "mappingPath": "./sandbox_20261106/mapping/pin_to_shopify.json",
+      "actions": [
+        "request",
+        "buy"
+      ],
+      "notes": "Shopify-linked pins buyable; Sold stamp on pins without inventory."
+    },
+    {
+      "showId": "20261019",
+      "label": "Show 20261019",
+      "status": "live",
+      "boardsBase": "./sandbox_20261019/boards",
+      "mappingPath": "./sandbox_20261019/mapping/pin_to_shopify.json",
+      "boardLimit": 3,
+      "actions": [
+        "request",
+        "buy"
+      ],
+      "notes": "Earlier sandbox layer."
+    }
+  ]
+}
