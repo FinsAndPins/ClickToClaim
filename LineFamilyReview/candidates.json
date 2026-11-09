@@ -1120,119 +1120,20 @@
   ],
   "dec_carded": [
     {
-      "id": "ffb4a55a94dcf9ba",
-      "source_id": "test_PriceCollection_20260730_1154__build_28208_visual_baseline::img5_pin10_jpg__ed1f9f52f688",
-      "pin_key": "img5_pin10_jpg__ed1f9f52f688",
-      "crop_filename": "img5_pin10.jpg",
-      "title": "Disney TWDCS DEC Store License Plate Mystery Pin Mickey Mouse 2025 G6",
-      "price": 32,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/01_ffb4a55a94dcf9ba.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/h4YAAeSw--9p9RL7/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.056069254875183105
-    },
-    {
-      "id": "6e36fbb88e18bb55",
-      "source_id": "test_PriceCollection_20260716_1203__build_20311_visual_baseline::img6_pin20_jpg__8c6b1ece5b0f",
-      "pin_key": "img6_pin20_jpg__8c6b1ece5b0f",
-      "crop_filename": "img6_pin20.jpg",
-      "title": "Grumpy DEC TWDC The Walt Disney Company Store Logo Mystery Pin Series 2",
-      "price": 40,
-      "match_status": "match",
-      "hits": [
-        "dec",
-        "walt disney company store"
-      ],
-      "img": "crops/dec_carded/02_6e36fbb88e18bb55.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/n60AAeSwKzZqWQRq/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.05393621325492859
-    },
-    {
-      "id": "1e0271ae5fad0e08",
-      "source_id": "test_PriceCollection_20260716_1203__build_20311_visual_baseline::img22_pin13_jpg__67c871195704",
-      "pin_key": "img22_pin13_jpg__67c871195704",
-      "crop_filename": "img22_pin13.jpg",
-      "title": "BAYMAX WDCS LOGO PIN -Disney Company Store DEC Cast Exclusive PP186881 FREE SHIP",
-      "price": 30,
-      "match_status": "match",
-      "hits": [
-        "dec",
-        "wdcs"
-      ],
-      "img": "crops/dec_carded/03_1e0271ae5fad0e08.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/0soAAeSwKuRqAXgX/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.05164027214050293
-    },
-    {
-      "id": "dc3b6277a0fbb2ba",
-      "source_id": "test_PriceCollection_20260904_1527__build_26156_visual_baseline::img16_pin15_jpg__43f652abc641",
-      "pin_key": "img16_pin15_jpg__43f652abc641",
-      "crop_filename": "img16_pin15.jpg",
-      "title": "A5 Disney TWDC Walt Company Store DEC Pin Mystery Logo Series 2 Aladdin",
-      "price": 25,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/04_dc3b6277a0fbb2ba.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/bu0AAeSwKzZqbiK6/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.04185488820075989
-    },
-    {
-      "id": "e990df0c2d236f2a",
-      "source_id": "test_PriceCollection_20260801_1508__build_1278_visual_baseline::img1_pin15_jpg__4aaa0d482b2f",
-      "pin_key": "img1_pin15_jpg__4aaa0d482b2f",
-      "crop_filename": "img1_pin15.jpg",
-      "title": "TWDC DEC Mystery box License Plate Minnie Mouse Pin",
-      "price": 23,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/05_e990df0c2d236f2a.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/pm4AAeSwE0xpd8UP/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03960034251213074
-    },
-    {
-      "id": "1f3a1c0dc9bd210a",
-      "source_id": "test_PriceCollection_20260803_0955__build_23549_visual_baseline::img8659_pin01_jpg__e8f4ec43ee4a",
-      "pin_key": "img8659_pin01_jpg__e8f4ec43ee4a",
-      "crop_filename": "img8659_pin01.jpg",
-      "title": "DEC TWDC Cast Walt Disney Company Store Logo Pascal Tangled Mystery Pin Series 2",
-      "price": 36,
-      "match_status": "match",
-      "hits": [
-        "dec",
-        "walt disney company store"
-      ],
-      "img": "crops/dec_carded/06_1f3a1c0dc9bd210a.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/-vUAAeSwt4FqbiN2/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03913190960884094
-    },
-    {
       "id": "18673cb09bef4af1",
       "source_id": "test_PriceCollection_20260709_1757__build_32131_visual_baseline::img5_pin05_jpg__7a5fff8d3927",
       "pin_key": "img5_pin05_jpg__7a5fff8d3927",
       "crop_filename": "img5_pin05.jpg",
       "title": "Disney DEC TWDC Commemorative Animal Stamps Bianca LE 300 Pin",
-      "price": 180,
+      "price": 180.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/07_18673cb09bef4af1.jpg",
+      "img": "crops/dec_carded/01_18673cb09bef4af1.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/RskAAeSwcWdp~l~0/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.037499308586120605
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "72a14d503c3e13cc",
@@ -1240,129 +1141,15 @@
       "pin_key": "img6_pin02_jpg__b8b11382737c",
       "crop_filename": "img6_pin02.jpg",
       "title": "Disney DEC Employee Center Postage Stamp Pin LE 250 Mowgli Jungle Book",
-      "price": 85,
+      "price": 85.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/08_72a14d503c3e13cc.jpg",
+      "img": "crops/dec_carded/02_72a14d503c3e13cc.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/ZUoAAeSwwlRqPeQR/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03424057364463806
-    },
-    {
-      "id": "3456580879d54314",
-      "source_id": "test_PriceCollection_20260904_1527__build_26156_visual_baseline::img16_pin12_jpg__12d1243abe71",
-      "pin_key": "img16_pin12_jpg__12d1243abe71",
-      "crop_filename": "img16_pin12.jpg",
-      "title": "TWDC DEC Mystery box License plate Pin Goofy",
-      "price": 23,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/09_3456580879d54314.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/OQsAAeSwBk1pd8MZ/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03318852186203003
-    },
-    {
-      "id": "67f0f51d552613a9",
-      "source_id": "test_PriceCollection_20260801_1508__build_1278_visual_baseline::img1_pin18_jpg__f120735823ed",
-      "pin_key": "img1_pin18_jpg__f120735823ed",
-      "crop_filename": "img1_pin18.jpg",
-      "title": "Walt Disney Company Store DEC Mystery Pin Series 1 Pluto",
-      "price": 40,
-      "match_status": "match",
-      "hits": [
-        "dec",
-        "walt disney company store"
-      ],
-      "img": "crops/dec_carded/10_67f0f51d552613a9.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/nMkAAeSwU0pp6h2F/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03289085626602173
-    },
-    {
-      "id": "5cb43eb590018d08",
-      "source_id": "test_PriceCollection_20260904_1527__build_26156_visual_baseline::img16_pin14_jpg__ae5b7f830bb8",
-      "pin_key": "img16_pin14_jpg__ae5b7f830bb8",
-      "crop_filename": "img16_pin14.jpg",
-      "title": "TWDC DEC Mystery Box License Plate Pin Donald Duck Pin",
-      "price": null,
-      "match_status": "no_match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/11_5cb43eb590018d08.jpg",
-      "ebay_thumb": "",
-      "card_label": "on_card",
-      "card_margin": 0.03278917074203491
-    },
-    {
-      "id": "3a10cfe499c27ef8",
-      "source_id": "test_PriceCollection_20260716_1203__build_20311_visual_baseline::img26_pin02_jpg__ec861d193231",
-      "pin_key": "img26_pin02_jpg__ec861d193231",
-      "crop_filename": "img26_pin02.jpg",
-      "title": "Peter Pan DEC TWDC The Walt Disney Company Store Logo Mystery Pin Series 2",
-      "price": 40,
-      "match_status": "match",
-      "hits": [
-        "dec",
-        "walt disney company store"
-      ],
-      "img": "crops/dec_carded/12_3a10cfe499c27ef8.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/yeQAAeSwhQNqWQNY/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03258556127548218
-    },
-    {
-      "id": "36bf458930ecea9d",
-      "source_id": "test_PriceCollection_20260828_1900__build_14396_visual_baseline::img30_pin14_jpg__19af0e0b5526",
-      "pin_key": "img30_pin14_jpg__19af0e0b5526",
-      "crop_filename": "img30_pin14.jpg",
-      "title": "DEC Walt Disney Company Studio Lot Water Tower Sleeping Beauty 3 Fairies",
-      "price": 41,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/13_36bf458930ecea9d.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/HjAAAeSw3uFp8N14/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.032197654247283936
-    },
-    {
-      "id": "e14b03c63bc3b70a",
-      "source_id": "test_PriceCollection_20260828_1900__build_14396_visual_baseline::img41_pin20_jpg__52c21975f211",
-      "pin_key": "img41_pin20_jpg__52c21975f211",
-      "crop_filename": "img41_pin20.jpg",
-      "title": "Disney DEC Lilo Stitch Ohana Means Family Vacation LE250 Pin 20th Anniversary",
-      "price": 75,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/14_e14b03c63bc3b70a.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/EgoAAeSwBy9pFltO/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.031011343002319336
-    },
-    {
-      "id": "b09faf2b4244a6d9",
-      "source_id": "test_PriceCollection_20260803_0955__build_23549_visual_baseline::img8659_pin16_jpg__26135543cbcd",
-      "pin_key": "img8659_pin16_jpg__26135543cbcd",
-      "crop_filename": "img8659_pin16.jpg",
-      "title": "Disney TWDC Walt Company Store DEC Logo Mystery Pin Series 1 Stitch G4",
-      "price": 34,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/15_b09faf2b4244a6d9.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/M7YAAeSw8n5qNEOF/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.030783772468566895
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "b6e302d84f975c9a",
@@ -1370,15 +1157,15 @@
       "pin_key": "img8631_pin14_jpg__02ca83411cd3",
       "crop_filename": "img8631_pin14.jpg",
       "title": "DEC TWDC Commemorative Animal Stamps Basil Phil From Hercules LE 300 Pin",
-      "price": 165,
+      "price": 165.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/16_b6e302d84f975c9a.jpg",
+      "img": "crops/dec_carded/03_b6e302d84f975c9a.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/vQoAAeSw24RqUEHG/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.0272996723651886
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "3995a9a953213830",
@@ -1386,48 +1173,15 @@
       "pin_key": "img10_pin06_jpg__436a11486098",
       "crop_filename": "img10_pin06.jpg",
       "title": "Disney D23 DEC Postage Hiro Stamp 2014 Pin LE 250! Hero Profile Big Hero 6",
-      "price": 240,
+      "price": 240.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/17_3995a9a953213830.jpg",
+      "img": "crops/dec_carded/04_3995a9a953213830.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/SZUAAeSwrsFqWX6y/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02699124813079834
-    },
-    {
-      "id": "a077344e4cd36e42",
-      "source_id": "test_PriceCollection_20260904_1527__build_26156_visual_baseline::img16_pin02_jpg__4d09cfbd57e2",
-      "pin_key": "img16_pin02_jpg__4d09cfbd57e2",
-      "crop_filename": "img16_pin02.jpg",
-      "title": "Disney TWDC Walt Company Store DEC Pin Mystery Logo Series 2 Cinderella",
-      "price": null,
-      "match_status": "no_match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/18_a077344e4cd36e42.jpg",
-      "ebay_thumb": "",
-      "card_label": "on_card",
-      "card_margin": 0.026944458484649658
-    },
-    {
-      "id": "fd8499821edeeed4",
-      "source_id": "test_PriceCollection_20260801_1508__build_1278_visual_baseline::img1_pin05_jpg__9a583bb218bc",
-      "pin_key": "img1_pin05_jpg__9a583bb218bc",
-      "crop_filename": "img1_pin05.jpg",
-      "title": "Vanellope DEC TWDC The Walt Disney Company Store Logo Mystery Pin Series 2",
-      "price": 36,
-      "match_status": "match",
-      "hits": [
-        "dec",
-        "walt disney company store"
-      ],
-      "img": "crops/dec_carded/19_fd8499821edeeed4.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/7h8AAeSwAzZqbiMb/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.026762187480926514
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "f192d26ebd89962a",
@@ -1435,15 +1189,15 @@
       "pin_key": "img6_pin03_jpg__38ee3a51241b",
       "crop_filename": "img6_pin03.jpg",
       "title": "DEC - Clayton 1999 - Commemorative Stamp - Series 3 - Tarzan Disney Pin B7",
-      "price": 83,
+      "price": 83.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/20_f192d26ebd89962a.jpg",
+      "img": "crops/dec_carded/05_f192d26ebd89962a.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/5-wAAeSweDNp3AGO/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.026584595441818237
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "433ef3bdd111b98f",
@@ -1451,15 +1205,15 @@
       "pin_key": "img2_pin11_jpg__bc420c2fc90f",
       "crop_filename": "img2_pin11.jpg",
       "title": "Disney D23 Expo 2026 WDCS Pins: Welcome Home - Robinsons Family Lab LE 400",
-      "price": 108,
+      "price": 108.0,
       "match_status": "match",
       "hits": [
         "wdcs"
       ],
-      "img": "crops/dec_carded/21_433ef3bdd111b98f.jpg",
+      "img": "crops/dec_carded/06_433ef3bdd111b98f.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/0DIAAeSwvFJqhTl1/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02651214599609375
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "4dccff64b169f5aa",
@@ -1467,16 +1221,16 @@
       "pin_key": "img3_pin02_jpg__be3dc53dc93e",
       "crop_filename": "img3_pin02.jpg",
       "title": "DEC WDCS D23 2026 Elements of Nature Earth Gaetan Mole Atlantis LE Disney Pin",
-      "price": 80,
+      "price": 80.0,
       "match_status": "match",
       "hits": [
         "dec",
         "wdcs"
       ],
-      "img": "crops/dec_carded/22_4dccff64b169f5aa.jpg",
+      "img": "crops/dec_carded/07_4dccff64b169f5aa.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/1IIAAeSwIDhqgjdS/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02584931254386902
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "3e925f5393c90981",
@@ -1484,15 +1238,15 @@
       "pin_key": "img8630_pin05_jpg__a0c854fecabe",
       "crop_filename": "img8630_pin05.jpg",
       "title": "TWDC DEC Star Wars Commemorative Stamp Darth Maul LE 250 Disney Pin",
-      "price": 315,
+      "price": 315.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/23_3e925f5393c90981.jpg",
+      "img": "crops/dec_carded/08_3e925f5393c90981.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/xyQAAeSwSwhqUAbb/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.025845587253570557
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "ba1f3371a3385e75",
@@ -1500,32 +1254,15 @@
       "pin_key": "img13_pin01_jpg__aed59d2c0032",
       "crop_filename": "img13_pin01.jpg",
       "title": "Disney Employee TWDC DEC Commemorative Animal Stamps Maximus 2010 Tangled Pin",
-      "price": 355,
+      "price": 355.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/24_ba1f3371a3385e75.jpg",
+      "img": "crops/dec_carded/09_ba1f3371a3385e75.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/9tAAAeSwLTxqYZkL/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02551060914993286
-    },
-    {
-      "id": "681b33fdec18610d",
-      "source_id": "test_PriceCollection_20260904_1527__build_26156_visual_baseline::img8_pin01_jpg__c46d353b20a5",
-      "pin_key": "img8_pin01_jpg__c46d353b20a5",
-      "crop_filename": "img8_pin01.jpg",
-      "title": "Disney DEC WDCS D23 2026 Epic Rivals Gaston Belle Mystery Pin",
-      "price": null,
-      "match_status": "no_match",
-      "hits": [
-        "dec",
-        "wdcs"
-      ],
-      "img": "crops/dec_carded/25_681b33fdec18610d.jpg",
-      "ebay_thumb": "",
-      "card_label": "on_card",
-      "card_margin": 0.025473296642303467
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "07cf946d44c34078",
@@ -1533,15 +1270,15 @@
       "pin_key": "img8630_pin03_jpg__fe4ffbd7ad47",
       "crop_filename": "img8630_pin03.jpg",
       "title": "DEC Star Wars Queen Amidala Stamp Pin",
-      "price": 270,
+      "price": 270.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/26_07cf946d44c34078.jpg",
+      "img": "crops/dec_carded/10_07cf946d44c34078.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/rScAAeSwbpVopOTI/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.024794965982437134
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "4b0f255757369385",
@@ -1549,15 +1286,16 @@
       "pin_key": "img1_pin30_jpg__305e76cb7beb",
       "crop_filename": "img1_pin30.jpg",
       "title": "DEC TWDCS Animal Stamps Jose Carioca 1945 LE 300 Disney Pin",
-      "price": 250,
+      "price": 250.0,
       "match_status": "match",
       "hits": [
-        "dec"
+        "dec",
+        "twdcs"
       ],
-      "img": "crops/dec_carded/27_4b0f255757369385.jpg",
+      "img": "crops/dec_carded/11_4b0f255757369385.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/GUcAAeSw2ZtqhQCv/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02460181713104248
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "0384cc4498fd3a3c",
@@ -1565,31 +1303,16 @@
       "pin_key": "img6_pin15_jpg__bc1b77c8293d",
       "crop_filename": "img6_pin15.jpg",
       "title": "2024 D23 TWDCS/DEC Color Shades Of Magic Jar Pin Series-Blue Stitch LE400 *flaw",
-      "price": 800,
+      "price": 800.0,
       "match_status": "match",
       "hits": [
-        "dec"
+        "dec",
+        "twdcs"
       ],
-      "img": "crops/dec_carded/28_0384cc4498fd3a3c.jpg",
+      "img": "crops/dec_carded/12_0384cc4498fd3a3c.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/EWEAAeSw46lpOXFH/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.024449467658996582
-    },
-    {
-      "id": "7c02e2a511b4845f",
-      "source_id": "test_PriceCollection_20260916_1256__build_8117_visual_baseline::img25_pin12_jpg__e72b944797f4",
-      "pin_key": "img25_pin12_jpg__e72b944797f4",
-      "crop_filename": "img25_pin12.jpg",
-      "title": "2026 Disney TWDC DEC D23 Walt\u2019s Office Mystery Box Pin Donald Duck Award ONLY",
-      "price": 40,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/29_7c02e2a511b4845f.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/r2kAAeSwTgpqiM1M/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.023835331201553345
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "f5a96b883fa9f99e",
@@ -1602,10 +1325,10 @@
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/30_f5a96b883fa9f99e.jpg",
+      "img": "crops/dec_carded/13_f5a96b883fa9f99e.jpg",
       "ebay_thumb": "",
-      "card_label": "on_card",
-      "card_margin": 0.023637384176254272
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "d65e9ca0895487c0",
@@ -1613,65 +1336,15 @@
       "pin_key": "img6_pin06_jpg__7a30043a7498",
       "crop_filename": "img6_pin06.jpg",
       "title": "Disney D23 Expo 2026 WDCS Exclusive Sorcerer Mickey And Yen Sid Stamp Pin LE 500",
-      "price": 599,
+      "price": 599.0,
       "match_status": "match",
       "hits": [
         "wdcs"
       ],
-      "img": "crops/dec_carded/31_d65e9ca0895487c0.jpg",
+      "img": "crops/dec_carded/14_d65e9ca0895487c0.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/w0sAAeSwTgpqgqld/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02289000153541565
-    },
-    {
-      "id": "de3c3d5f81d64718",
-      "source_id": "test_PriceCollection_20260913_1356__build_6567_visual_baseline::img14_pin05_jpg__851281ff55ed",
-      "pin_key": "img14_pin05_jpg__851281ff55ed",
-      "crop_filename": "img14_pin05.jpg",
-      "title": "DEC WDCS D23 2026 Winnie the Pooh Mystery pajamas LE 400 Disney Pin",
-      "price": 30,
-      "match_status": "match",
-      "hits": [
-        "dec",
-        "wdcs"
-      ],
-      "img": "crops/dec_carded/32_de3c3d5f81d64718.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/XrwAAeSwF5Bqhbnd/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.022594332695007324
-    },
-    {
-      "id": "2b164327ad388831",
-      "source_id": "test_PriceCollection_20260716_1203__build_20311_visual_baseline::img20_pin08_jpg__48a07ae25a04",
-      "pin_key": "img20_pin08_jpg__48a07ae25a04",
-      "crop_filename": "img20_pin08.jpg",
-      "title": "Disney WDCS DEC Name Tag Series Miguel from COCO Fall 2022 LE 400 Pin",
-      "price": 38,
-      "match_status": "match",
-      "hits": [
-        "dec",
-        "wdcs"
-      ],
-      "img": "crops/dec_carded/33_2b164327ad388831.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/ge4AAeSwR3ppM2Zv/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02246195077896118
-    },
-    {
-      "id": "092799bef61adffb",
-      "source_id": "test_PriceCollection_20260728_1220__build_514_visual_baseline::img8_pin04_jpg__dd2d91103c8c",
-      "pin_key": "img8_pin04_jpg__dd2d91103c8c",
-      "crop_filename": "img8_pin04.jpg",
-      "title": "TWDC DEC Disney Legends Plaques Mystery Pin Princess Series 1 - Snow White",
-      "price": 45,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/34_092799bef61adffb.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/NU8AAeSwdbtqYs7b/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02237573266029358
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "c3e8f5a691ca07c7",
@@ -1679,16 +1352,16 @@
       "pin_key": "img1_pin34_jpg__1a3d3f444371",
       "crop_filename": "img1_pin34.jpg",
       "title": "DEC WDCS D23 2026 Ultimate Stamp Valentino Star Wish 2023 LE 500 Disney Pin",
-      "price": 105,
+      "price": 105.0,
       "match_status": "match",
       "hits": [
         "dec",
         "wdcs"
       ],
-      "img": "crops/dec_carded/35_c3e8f5a691ca07c7.jpg",
+      "img": "crops/dec_carded/15_c3e8f5a691ca07c7.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/RAQAAeSw~7pqhpNW/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02228417992591858
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "058d258ed972db11",
@@ -1696,15 +1369,15 @@
       "pin_key": "img12_pin07_jpg__776adf727125",
       "crop_filename": "img12_pin07.jpg",
       "title": "Disney D23 Expo 2026 DEC Young Boy & Papa Ultimate Pixar Stamp Pin LE500",
-      "price": 60,
+      "price": 60.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/36_058d258ed972db11.jpg",
+      "img": "crops/dec_carded/16_058d258ed972db11.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/EEUAAeSwWhdqmbGI/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.021697402000427246
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "9ef09a6928e8e833",
@@ -1712,15 +1385,15 @@
       "pin_key": "img8629_pin11_jpg__45af24ceff5b",
       "crop_filename": "img8629_pin11.jpg",
       "title": "Disney Pin DEC Star Wars Stamps LE 250 - Chewbacca 1977",
-      "price": 240,
+      "price": 240.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/37_9ef09a6928e8e833.jpg",
+      "img": "crops/dec_carded/17_9ef09a6928e8e833.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/D7wAAeSwWtpo5z86/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.0207863450050354
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "eb878f8cc0198a2f",
@@ -1728,15 +1401,15 @@
       "pin_key": "img7_pin04_jpg__ea4637650b6a",
       "crop_filename": "img7_pin04.jpg",
       "title": "Disney DEC 2022 85th Anniversary Snow White Evil Queen LE Pin",
-      "price": 156,
+      "price": 156.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/38_eb878f8cc0198a2f.jpg",
+      "img": "crops/dec_carded/18_eb878f8cc0198a2f.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/VTcAAeSw3bJqgOY3/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.020665407180786133
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "b5c9bf1ce215c95c",
@@ -1744,15 +1417,15 @@
       "pin_key": "img8627_pin06_jpg__720fbe794c56",
       "crop_filename": "img8627_pin06.jpg",
       "title": "Disney DEC 2025 Postage Stamp Series Star Wars Grogu LE 250 pin",
-      "price": 315,
+      "price": 315.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/39_b5c9bf1ce215c95c.jpg",
+      "img": "crops/dec_carded/19_b5c9bf1ce215c95c.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/EWUAAeSwTgFpwdVL/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.020373821258544922
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "232c8b2d954b434a",
@@ -1760,15 +1433,15 @@
       "pin_key": "img3_pin06_jpg__90f7201a5503",
       "crop_filename": "img3_pin06.jpg",
       "title": "Walt Disney Company Store Table for One TWDC Pin D23 Hades Hercules 2026 LE 400",
-      "price": 125,
+      "price": 125.0,
       "match_status": "match",
       "hits": [
         "walt disney company store"
       ],
-      "img": "crops/dec_carded/40_232c8b2d954b434a.jpg",
+      "img": "crops/dec_carded/20_232c8b2d954b434a.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/IugAAeSwHO1qg9K3/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.020151138305664062
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "7c4d3b7536020d68",
@@ -1776,16 +1449,16 @@
       "pin_key": "img13_pin10_jpg__34c8f89d1728",
       "crop_filename": "img13_pin10.jpg",
       "title": "The Walt Disney Company Store Nick Wilde Stamp Pin Limited Edition 300 TWDC DEC",
-      "price": 390,
+      "price": 390.0,
       "match_status": "match",
       "hits": [
         "dec",
         "walt disney company store"
       ],
-      "img": "crops/dec_carded/41_7c4d3b7536020d68.jpg",
+      "img": "crops/dec_carded/21_7c4d3b7536020d68.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/lWsAAeSwFJVqYuvu/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.020029425621032715
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "b3460d62761b855c",
@@ -1793,15 +1466,15 @@
       "pin_key": "img8630_pin02_jpg__e35b3c49c311",
       "crop_filename": "img8630_pin02.jpg",
       "title": "Disney DEC TWDC Store Star Wars Stamp Pin LE 250 Darth Sidious Emperor Palpatine",
-      "price": 300,
+      "price": 300.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/42_b3460d62761b855c.jpg",
+      "img": "crops/dec_carded/22_b3460d62761b855c.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/LUwAAeSwKuRqBfY3/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.019837379455566406
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "89848c22b83b405a",
@@ -1809,15 +1482,16 @@
       "pin_key": "img11_pin01_jpg__00c05ef88a14",
       "crop_filename": "img11_pin01.jpg",
       "title": "Disney DEC TWDCS D23 Expo 2026 Elements of Nature Fire Pins set LE400",
-      "price": 85,
+      "price": 85.0,
       "match_status": "match",
       "hits": [
-        "dec"
+        "dec",
+        "twdcs"
       ],
-      "img": "crops/dec_carded/43_89848c22b83b405a.jpg",
+      "img": "crops/dec_carded/23_89848c22b83b405a.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/2N0AAeSw9OVqjSst/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.01966872811317444
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "c5d2efa3c7255619",
@@ -1825,15 +1499,15 @@
       "pin_key": "img13_pin04_jpg__ce962e3b165e",
       "crop_filename": "img13_pin04.jpg",
       "title": "Disney Employee TWDC DEC Commemorative Animal Stamps Clawhauser Zootopia Pin",
-      "price": 400,
+      "price": 400.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/44_c5d2efa3c7255619.jpg",
+      "img": "crops/dec_carded/24_c5d2efa3c7255619.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/jNcAAeSwIDZqRxqO/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.019343137741088867
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "cc4a7e354c0225be",
@@ -1841,15 +1515,16 @@
       "pin_key": "img6_pin08_jpg__f2c63a0ebfce",
       "crop_filename": "img6_pin08.jpg",
       "title": "NEW D23 Expo 2026 TWDCS DEC Ultimate Stamp Donald Aracuan Bird LE 400 Disney Pin",
-      "price": 155,
+      "price": 155.0,
       "match_status": "match",
       "hits": [
-        "dec"
+        "dec",
+        "twdcs"
       ],
-      "img": "crops/dec_carded/45_cc4a7e354c0225be.jpg",
+      "img": "crops/dec_carded/25_cc4a7e354c0225be.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/u3YAAeSwG9Fqg13G/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.019296973943710327
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "3e0304fe06284429",
@@ -1857,16 +1532,16 @@
       "pin_key": "img4_pin12_jpg__05be72e486f0",
       "crop_filename": "img4_pin12.jpg",
       "title": "Disney D23 Expo 2026 DEC WDCS Alice & White Rabbit Stamp Pin LE 500 Alice In Won",
-      "price": 215,
+      "price": 215.0,
       "match_status": "match",
       "hits": [
         "dec",
         "wdcs"
       ],
-      "img": "crops/dec_carded/46_3e0304fe06284429.jpg",
+      "img": "crops/dec_carded/26_3e0304fe06284429.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/eqAAAeSw~uRqghh6/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.01886102557182312
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "cb3300b5ebbc7440",
@@ -1874,15 +1549,15 @@
       "pin_key": "img8632_pin03_jpg__02583fe1d468",
       "crop_filename": "img8632_pin03.jpg",
       "title": "Disney DEC TWDC  Animal Stamps Elliott from Pete's Dragon LE 300 Pin Elliot",
-      "price": 360,
+      "price": 360.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/47_cb3300b5ebbc7440.jpg",
+      "img": "crops/dec_carded/27_cb3300b5ebbc7440.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/m8cAAeSwZZBqEXgq/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.018671512603759766
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "44671c3d9f43f02a",
@@ -1890,31 +1565,15 @@
       "pin_key": "img8629_pin10_jpg__6558f42db0af",
       "crop_filename": "img8629_pin10.jpg",
       "title": "Disney DEC 2024 Pixar Postage Stamp Lightyear Sox LE 250 pin",
-      "price": 130,
+      "price": 130.0,
       "match_status": "match",
       "hits": [
         "dec"
       ],
-      "img": "crops/dec_carded/48_44671c3d9f43f02a.jpg",
+      "img": "crops/dec_carded/28_44671c3d9f43f02a.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/YWYAAeSwSqVpQsS2/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.018474191427230835
-    },
-    {
-      "id": "73459a4176f98b07",
-      "source_id": "test_PriceCollection_20260710_2203__build_31244_visual_baseline::img4_pin10_jpg__3d1e70f800d6",
-      "pin_key": "img4_pin10_jpg__3d1e70f800d6",
-      "crop_filename": "img4_pin10.jpg",
-      "title": "\ud83c\udf1fDEC Disney Legends Character Plaques Mystery Pin Princess Cinderella TWDC -NEW",
-      "price": 44,
-      "match_status": "match",
-      "hits": [
-        "dec"
-      ],
-      "img": "crops/dec_carded/49_73459a4176f98b07.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/OiAAAeSw0DZqPocI/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.018331378698349
+      "card_label": "on_card_dec",
+      "pick": "kept"
     },
     {
       "id": "309049d9c2dc02fc",
@@ -1928,10 +1587,347 @@
         "dec",
         "wdcs"
       ],
-      "img": "crops/dec_carded/50_309049d9c2dc02fc.jpg",
+      "img": "crops/dec_carded/29_309049d9c2dc02fc.jpg",
       "ebay_thumb": "",
-      "card_label": "on_card",
-      "card_margin": 0.01796475052833557
+      "card_label": "on_card_dec",
+      "pick": "kept"
+    },
+    {
+      "id": "cf79451e50f8083e",
+      "source_id": "test_PriceCollection_20260915_1208__build_27765_visual_baseline::img8_pin05_jpg__06957d25d191",
+      "pin_key": "img8_pin05_jpg__06957d25d191",
+      "crop_filename": "img8_pin05.jpg",
+      "title": "Disney DEC TWDC Store Star Wars Stamp Pin Mon Mothma LE 250 Pin",
+      "price": 90.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/30_cf79451e50f8083e.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/6sAAAeSwzzNpF867/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "a0a238b3facf0269",
+      "source_id": "test_PriceCollection_20260915_1208__build_27765_visual_baseline::img5_pin05_jpg__3074dba2e085",
+      "pin_key": "img5_pin05_jpg__3074dba2e085",
+      "crop_filename": "img5_pin05.jpg",
+      "title": "DEC TWDC Store Star Wars Commemorative Stamp Pin LE 250 Jabba SMALL FLAW SEE PIC",
+      "price": 190.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/31_a0a238b3facf0269.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/sS0AAeSwvphoqOol/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "74eb531707450879",
+      "source_id": "test_PriceCollection_20260914_2110__build_28599_visual_baseline::img1_pin22_jpg__15e89e93b295",
+      "pin_key": "img1_pin22_jpg__15e89e93b295",
+      "crop_filename": "img1_pin22.jpg",
+      "title": "Walt Disney Employee TWDC DEC Commemorative Animal Stamps Jiminy Cricket Pin",
+      "price": 210.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/32_74eb531707450879.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/czUAAeSwNz9qdoDw/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "acc36c912cfd63b8",
+      "source_id": "test_PriceCollection_20260721_2320__build_4960_visual_baseline::img1_pin03_jpg__4140c03d96c2",
+      "pin_key": "img1_pin03_jpg__4140c03d96c2",
+      "crop_filename": "img1_pin03.jpg",
+      "title": "TWDC DEC Disney Stamp Pin - Basil",
+      "price": 175.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/33_acc36c912cfd63b8.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/P-AAAeSw9fxqPZbh/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "945f29bf33a498c8",
+      "source_id": "test_PriceCollection_20260904_2202__build_2240_visual_baseline::img1_pin32_jpg__2a19630fce9b",
+      "pin_key": "img1_pin32_jpg__2a19630fce9b",
+      "crop_filename": "img1_pin32.jpg",
+      "title": "DEC TWDC Commemorative Animal Stamps Basil The Great Mouse Detective LE 300 Pin",
+      "price": 200.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/34_945f29bf33a498c8.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/YYAAAeSwFatqM00m/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "b7f2aed64cc51684",
+      "source_id": "test_PriceCollection_20260802_1354__build_23549_visual_baseline::img8632_pin06_jpg__a155740440bc",
+      "pin_key": "img8632_pin06_jpg__a155740440bc",
+      "crop_filename": "img8632_pin06.jpg",
+      "title": "DEC Commemorative Animal Zootopia Clawhauser Stamp Pin",
+      "price": 500.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/35_b7f2aed64cc51684.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/BoAAAeSwDDdqaYrX/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "9fc162cd3769e818",
+      "source_id": "test_PriceCollection_20260904_2202__build_2240_visual_baseline::img1_pin27_jpg__985a60c6091d",
+      "pin_key": "img1_pin27_jpg__985a60c6091d",
+      "crop_filename": "img1_pin27.jpg",
+      "title": "TWDC DEC Disney Stamp Pin - Phil, Hercules",
+      "price": 195.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/36_9fc162cd3769e818.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/ezEAAeSwENVqciUf/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "efebe53cbb4c951d",
+      "source_id": "test_PriceCollection_20260825_1328__build_18953_visual_baseline::img6_pin07_jpg__bc078490084a",
+      "pin_key": "img6_pin07_jpg__bc078490084a",
+      "crop_filename": "img6_pin07.jpg",
+      "title": "DEC Disney Star Wars 2008 Ahsoka Tano Stamp Pin LE 250",
+      "price": 307.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/37_efebe53cbb4c951d.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/UZUAAeSwripqPb0-/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "84a7d2381f33087f",
+      "source_id": "test_PriceCollection_20260904_2202__build_2240_visual_baseline::img1_pin26_jpg__2fd93c3e9f05",
+      "pin_key": "img1_pin26_jpg__2fd93c3e9f05",
+      "crop_filename": "img1_pin26.jpg",
+      "title": "Disney DEC TWDC Commemorative Stamps Valentino from Wish Pin LE 300",
+      "price": 150.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/38_84a7d2381f33087f.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/VaEAAeSwZy5qgUCl/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "de4300423b3d2c8b",
+      "source_id": "test_PriceCollection_20260716_1203__build_20311_visual_baseline::img47_pin03_jpg__357fe2438188",
+      "pin_key": "img47_pin03_jpg__357fe2438188",
+      "crop_filename": "img47_pin03.jpg",
+      "title": "Disney DEC TWDC Commemorative Animal Stamps LE 300 Pins Tuk Tuk from Raya",
+      "price": 200.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/39_de4300423b3d2c8b.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/vjwAAeSwN~dqSGSI/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "554eba876c95165b",
+      "source_id": "test_PriceCollection_20260915_1208__build_27765_visual_baseline::img8_pin04_jpg__82cd12768dfc",
+      "pin_key": "img8_pin04_jpg__82cd12768dfc",
+      "crop_filename": "img8_pin04.jpg",
+      "title": "DEC TWDC Commemorative Animal Stamp Rafiki LE Pin from The Lion King \ud83e\udd81",
+      "price": 250.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/40_554eba876c95165b.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/NNwAAeSw~DVqM00A/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "1143a4acd8ab2d65",
+      "source_id": "test_PriceCollection_20260825_1328__build_18953_visual_baseline::img4_pin05_jpg__8b6a641578d8",
+      "pin_key": "img4_pin05_jpg__8b6a641578d8",
+      "crop_filename": "img4_pin05.jpg",
+      "title": "TWDC Store Disney DEC Pin - Stamp 1951 White Rabbit - LE 300 Alice in Wonderland",
+      "price": 500.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/41_1143a4acd8ab2d65.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/SNkAAeSw69Jp873p/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "142e469038a23d5b",
+      "source_id": "test_PriceCollection_20260801_1255__build_7476_visual_baseline::img6_pin03_jpg__73f7f28d054b",
+      "pin_key": "img6_pin03_jpg__73f7f28d054b",
+      "crop_filename": "img6_pin03.jpg",
+      "title": "Disney DEC TWDC Store Star Wars Stamp Pin Obi-wan Kenobi LE 250",
+      "price": 135.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/42_142e469038a23d5b.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/RasAAeSweM5qOwf1/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "e566d60ccaa6a7f5",
+      "source_id": "test_PriceCollection_20260801_1255__build_7476_visual_baseline::img2_pin03_jpg__aceb2bef91c0",
+      "pin_key": "img2_pin03_jpg__aceb2bef91c0",
+      "crop_filename": "img2_pin03.jpg",
+      "title": "Disney TWDC Store DEC Pin - Stamp 1980 Boba Fett - LE 250 Star Wars",
+      "price": 630.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/43_e566d60ccaa6a7f5.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/3OUAAeSw6-lqUAQt/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "54fe59ece64b08f4",
+      "source_id": "test_PriceCollection_20260709_2136__build_11421_visual_baseline::img1_pin07_jpg__9570084826f2",
+      "pin_key": "img1_pin07_jpg__9570084826f2",
+      "crop_filename": "img1_pin07.jpg",
+      "title": "DEC TWDC Star Wars Jar Jar Binks Commemorative Stamp LE250 Pin",
+      "price": 175.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/44_54fe59ece64b08f4.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/J74AAeSweAVo8XKT/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "b410df78723ce947",
+      "source_id": "test_PriceCollection_20260914_2128__build_15215_visual_baseline::img1_pin04_jpg__b63072c44ba1",
+      "pin_key": "img1_pin04_jpg__b63072c44ba1",
+      "crop_filename": "img1_pin04.jpg",
+      "title": "Disney DEC Cruella de Vil 1961 Commemorative Stamp 101 Dalmatians Pin LE 250",
+      "price": 360.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/45_b410df78723ce947.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/8PUAAeSwkN9qVtt-/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "e793f6a6a43c265c",
+      "source_id": "test_PriceCollection_20260801_1255__build_7476_visual_baseline::img6_pin04_jpg__bc60830525e1",
+      "pin_key": "img6_pin04_jpg__bc60830525e1",
+      "crop_filename": "img6_pin04.jpg",
+      "title": "Disney Pin DEC Star Wars Stamps LE 250 - Admiral Ackbar 1983",
+      "price": 130.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/46_e793f6a6a43c265c.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/d6MAAeSwHM1o5z9~/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "50d7d3c839f05791",
+      "source_id": "test_PriceCollection_20260801_1255__build_7476_visual_baseline::img3_pin04_jpg__ea6c1488f882",
+      "pin_key": "img3_pin04_jpg__ea6c1488f882",
+      "crop_filename": "img3_pin04.jpg",
+      "title": "Disney DEC 2025 Commemorative Stamp Star Wars Yoda LE 250 Pin",
+      "price": 350.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/47_50d7d3c839f05791.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/IFkAAeSwkEFqOcL4/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "f9320c2a276ffa93",
+      "source_id": "test_PriceCollection_20260818_1607__build_30824_visual_baseline::img4_pin26_jpg__b1e5f5dd294b",
+      "pin_key": "img4_pin26_jpg__b1e5f5dd294b",
+      "crop_filename": "img4_pin26.jpg",
+      "title": "Disney D23 2026 Valentino And Star Wish Stamp Pin LE 500 TWDC DEC In Hand!!",
+      "price": 120.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/48_f9320c2a276ffa93.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/DdsAAeSwyedqgflm/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "ba57c73d64191ca4",
+      "source_id": "test_PriceCollection_20260801_1255__build_7476_visual_baseline::img4_pin03_jpg__4d2737dd1ea3",
+      "pin_key": "img4_pin03_jpg__4d2737dd1ea3",
+      "crop_filename": "img4_pin03.jpg",
+      "title": "DEC Star Wars General Grievous Stamp Pin",
+      "price": 240.0,
+      "match_status": "match",
+      "hits": [
+        "dec"
+      ],
+      "img": "crops/dec_carded/49_ba57c73d64191ca4.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/n9cAAeSwLi5opOSx/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
+    },
+    {
+      "id": "b702d803ed2ab76c",
+      "source_id": "test_PriceCollection_20260824_2201__build_25889_visual_baseline::img2_pin06_jpg__68fca86c854a",
+      "pin_key": "img2_pin06_jpg__68fca86c854a",
+      "crop_filename": "img2_pin06.jpg",
+      "title": "Disney D23 DEC WDCS Ultimate Pixar Stamp Sadness Anxiety Inside Out 2 LE 500 Pin",
+      "price": 160.0,
+      "match_status": "match",
+      "hits": [
+        "dec",
+        "wdcs"
+      ],
+      "img": "crops/dec_carded/50_b702d803ed2ab76c.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/cWkAAeSwjFZqim-3/s-l225.jpg",
+      "card_label": "on_card_dec",
+      "pick": "new"
     }
   ],
   "dssh_carded": [
