@@ -1937,7 +1937,7 @@
       "pin_key": "img7_pin03_jpg__123ce7e99a23",
       "crop_filename": "img7_pin03.jpg",
       "title": "Disney D23 Expo 2024 Event DSSH DSF Big Hero 6 Cuties Armored Hiro Hamada LE400",
-      "price": 100,
+      "price": 100.0,
       "match_status": "match",
       "hits": [
         "dssh",
@@ -1945,8 +1945,9 @@
       ],
       "img": "crops/dssh_carded/01_166664b88ce88e8f.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/x4AAAOSwhdhnUCZ4/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.04804292321205139
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "5a597e0fe3c69fb8",
@@ -1954,7 +1955,7 @@
       "pin_key": "img6_pin17_jpg__c2362446fd9d",
       "crop_filename": "img6_pin17.jpg",
       "title": "Disney D23 Expo 2024 Fan Event DSSH DSF Magazine Cover Stitch LE 500 Pin",
-      "price": 55,
+      "price": 55.0,
       "match_status": "match",
       "hits": [
         "dssh",
@@ -1962,8 +1963,9 @@
       ],
       "img": "crops/dssh_carded/02_5a597e0fe3c69fb8.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/5~4AAOSw19Nmu9z7/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.04596590995788574
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "54cf0c38d002704a",
@@ -1971,16 +1973,19 @@
       "pin_key": "img1_pin02_jpg__0e0179699fe5",
       "crop_filename": "img1_pin02.jpg",
       "title": "El Capitan DSSH \u201cLuca\u201d Marquee Pin LE400 Pixar Disney Studio Store Hollywood",
-      "price": 130,
+      "price": 130.0,
       "match_status": "match",
       "hits": [
         "dssh",
-        "disney studio store hollywood"
+        "disney studio store hollywood",
+        "studio store hollywood",
+        "el capitan"
       ],
       "img": "crops/dssh_carded/03_54cf0c38d002704a.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/ICYAAeSwVuhqU9mh/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.04256999492645264
+      "card_label": "el_capitan_ok",
+      "pick": "kept",
+      "el_capitan": true
     },
     {
       "id": "39162e8a846953c4",
@@ -1988,15 +1993,16 @@
       "pin_key": "img8641_pin11_jpg__ac51b1a144fa",
       "crop_filename": "img8641_pin11.jpg",
       "title": "Disney Pixar DSSH Coco Cutie Tia Rosita LE 300 Pin",
-      "price": 60,
+      "price": 60.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
       "img": "crops/dssh_carded/04_39162e8a846953c4.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/npoAAeSwQBhqS1Sj/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.041812121868133545
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "ed3d39d68b524bac",
@@ -2004,33 +2010,18 @@
       "pin_key": "img2_pin09_jpg__961d8face71d",
       "crop_filename": "img2_pin09.jpg",
       "title": "Disney Studio Store Hollywood DSSH Cuties Pin - Mama Imelda Coco Pixar ",
-      "price": 60,
+      "price": 60.0,
       "match_status": "match",
       "hits": [
         "dssh",
-        "disney studio store hollywood"
+        "disney studio store hollywood",
+        "studio store hollywood"
       ],
       "img": "crops/dssh_carded/05_ed3d39d68b524bac.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/4QgAAeSw5vBp7VUa/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.04177853465080261
-    },
-    {
-      "id": "f9db1aa43938bb4d",
-      "source_id": "test_PriceCollection_20260716_1203__build_20311_visual_baseline::img42_pin07_jpg__4440f741280f",
-      "pin_key": "img42_pin07_jpg__4440f741280f",
-      "crop_filename": "img42_pin07.jpg",
-      "title": "DSF DSSH The Little Mermaid PTD Sebastian LE 300 Disney Pin",
-      "price": 60,
-      "match_status": "match",
-      "hits": [
-        "dssh",
-        "dsf"
-      ],
-      "img": "crops/dssh_carded/06_f9db1aa43938bb4d.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/W~8AAOSw6yloU7Rb/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.041043490171432495
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "504a73b8144d6723",
@@ -2038,15 +2029,16 @@
       "pin_key": "img7_pin01_jpg__087ebff77b6f",
       "crop_filename": "img7_pin01.jpg",
       "title": "Disney DSSH Nightmare Before Christmas 30th Anniversary Marquee Pin LE 400",
-      "price": 150,
+      "price": 150.0,
       "match_status": "not_a_pin",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/07_504a73b8144d6723.jpg",
+      "img": "crops/dssh_carded/06_504a73b8144d6723.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/6AkAAeSw6xxoLS6z/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.04021960496902466
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "d2d8f157c1ea0912",
@@ -2054,16 +2046,18 @@
       "pin_key": "img6_pin08_jpg__5bbe451da31b",
       "crop_filename": "img6_pin08.jpg",
       "title": "Disney Studio Store Hollywood DSSH Cuties Pin - Honey Lemon",
-      "price": 75,
+      "price": 75.0,
       "match_status": "match",
       "hits": [
         "dssh",
-        "disney studio store hollywood"
+        "disney studio store hollywood",
+        "studio store hollywood"
       ],
-      "img": "crops/dssh_carded/08_d2d8f157c1ea0912.jpg",
+      "img": "crops/dssh_carded/07_d2d8f157c1ea0912.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/0tMAAeSwzNppuu0j/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03737327456474304
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "dbde2560351a3520",
@@ -2071,15 +2065,16 @@
       "pin_key": "img6_pin04_jpg__0674f06e46fd",
       "crop_filename": "img6_pin04.jpg",
       "title": "Disney D23 Expo 2024 DSSH Lilo & Stitch Cutie Series Lilo LE 300 Pin",
-      "price": 149,
+      "price": 149.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/09_dbde2560351a3520.jpg",
+      "img": "crops/dssh_carded/08_dbde2560351a3520.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/s44AAeSwO0hqTUpk/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.036598533391952515
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "ac6e9dddef003abc",
@@ -2087,16 +2082,17 @@
       "pin_key": "img2_pin06_jpg__103c42a0b0ac",
       "crop_filename": "img2_pin06.jpg",
       "title": "Disney Pin D23 Expo DSSH DSF Fairytale Series Simba & Scar LE 400 150861",
-      "price": 25,
+      "price": 25.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/10_ac6e9dddef003abc.jpg",
+      "img": "crops/dssh_carded/09_ac6e9dddef003abc.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/1lYAAeSwQMdqFvG9/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.036342084407806396
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "9258f719b91c98f7",
@@ -2104,15 +2100,16 @@
       "pin_key": "img6_pin09_jpg__7150b3f5c0ef",
       "crop_filename": "img6_pin09.jpg",
       "title": "Disney Pin DSSH Cuties LE 300 - Honey Lemon, Big Hero Six 6",
-      "price": 98,
+      "price": 98.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/11_9258f719b91c98f7.jpg",
+      "img": "crops/dssh_carded/10_9258f719b91c98f7.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/psAAAeSwcCJp6t~G/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03590252995491028
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "ae4f768f79e29019",
@@ -2120,15 +2117,16 @@
       "pin_key": "img1_pin11_jpg__ac7a6ec7761b",
       "crop_filename": "img1_pin11.jpg",
       "title": "D23 2026 DSSH Disney Alice In Wonderland Storybook OE Pin New",
-      "price": 35,
+      "price": 35.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/12_ae4f768f79e29019.jpg",
+      "img": "crops/dssh_carded/11_ae4f768f79e29019.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/ZI8AAeSwaHVqhPBD/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03499811887741089
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "8745aa774558cb20",
@@ -2136,16 +2134,18 @@
       "pin_key": "img27_pin04_jpg__d10652fa52d6",
       "crop_filename": "img27_pin04.jpg",
       "title": "Disney Pin DSF DSSH - Winnie the Pooh Ice Cream Train - Studio Store Hollywood",
-      "price": 34,
+      "price": 34.0,
       "match_status": "match",
       "hits": [
         "dssh",
-        "dsf"
+        "dsf",
+        "studio store hollywood"
       ],
-      "img": "crops/dssh_carded/13_8745aa774558cb20.jpg",
+      "img": "crops/dssh_carded/12_8745aa774558cb20.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/UzUAAeSwXBNp5mWS/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03380453586578369
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "fa81863a2d356c8e",
@@ -2153,16 +2153,17 @@
       "pin_key": "img41_pin05_jpg__5378b08e6079",
       "crop_filename": "img41_pin05.jpg",
       "title": "DSF Wreck it Ralph 2 Breaks the Internet Diecast Marquee LE 150 Pin Disney DSSH",
-      "price": 45,
+      "price": 45.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/14_fa81863a2d356c8e.jpg",
+      "img": "crops/dssh_carded/13_fa81863a2d356c8e.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/jhYAAOSwEstlsPGP/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.033583641052246094
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "83b463a0412c53e4",
@@ -2170,16 +2171,18 @@
       "pin_key": "img22_pin04_jpg__ece9c6a717b7",
       "crop_filename": "img22_pin04.jpg",
       "title": "D23 2026 Disney Dsf DSSH PIN El Capitan Theatre 100th Nick Wilde Zootopia LE 400",
-      "price": 87,
+      "price": 87.0,
       "match_status": "match",
       "hits": [
         "dssh",
-        "dsf"
+        "dsf",
+        "el capitan"
       ],
-      "img": "crops/dssh_carded/15_83b463a0412c53e4.jpg",
+      "img": "crops/dssh_carded/14_83b463a0412c53e4.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/zawAAeSwN55qqCJ3/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03285175561904907
+      "card_label": "el_capitan_ok",
+      "pick": "kept",
+      "el_capitan": true
     },
     {
       "id": "f1fa6c33a1e0a067",
@@ -2187,15 +2190,16 @@
       "pin_key": "img1_pin07_jpg__ae3a760849ce",
       "crop_filename": "img1_pin07.jpg",
       "title": "D23 2026 DSSH Disney The Aristocats Marie Storybook Pin  New",
-      "price": 45,
+      "price": 45.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/16_f1fa6c33a1e0a067.jpg",
+      "img": "crops/dssh_carded/15_f1fa6c33a1e0a067.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/56YAAeSwiTNqg-YZ/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.032782912254333496
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "1c3384cddd12168a",
@@ -2203,16 +2207,17 @@
       "pin_key": "img1_pin10_jpg__d00515b4ae72",
       "crop_filename": "img1_pin10.jpg",
       "title": "Disney Luca Pixar Cuties LE 300 Pin DSF DSSH D23 Expo 2022 Mermen Htf Alberto",
-      "price": 150,
+      "price": 150.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/17_1c3384cddd12168a.jpg",
+      "img": "crops/dssh_carded/16_1c3384cddd12168a.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/5h0AAeSw9gVqLM1i/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03203868865966797
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "2cf57a372e2b74a2",
@@ -2220,48 +2225,16 @@
       "pin_key": "img6_pin01_jpg__f0af80122f80",
       "crop_filename": "img6_pin01.jpg",
       "title": "DSSH Disney Open Edition OE Limited Pin UChoose Stitch Pooh",
-      "price": 30,
+      "price": 30.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/18_2cf57a372e2b74a2.jpg",
+      "img": "crops/dssh_carded/17_2cf57a372e2b74a2.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/IxgAAeSwv3FpDnjg/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.031878918409347534
-    },
-    {
-      "id": "b586bb704e2e76b1",
-      "source_id": "test_PriceCollection_20260716_1203__build_20311_visual_baseline::img2_pin01_jpg__b84ceb0c15fd",
-      "pin_key": "img2_pin01_jpg__b84ceb0c15fd",
-      "crop_filename": "img2_pin01.jpg",
-      "title": "2025 Disney Destination D23 DSSH Pin Beloved Tales Strange World LE 300",
-      "price": 48,
-      "match_status": "match",
-      "hits": [
-        "dssh"
-      ],
-      "img": "crops/dssh_carded/19_b586bb704e2e76b1.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/OpgAAeSwYudp-3mx/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03171807527542114
-    },
-    {
-      "id": "9eb0c9f928ea59cf",
-      "source_id": "test_PriceCollection_20260722_2046__build_9662_visual_baseline::img20_pin02_jpg__21bbc3d271c5",
-      "pin_key": "img20_pin02_jpg__21bbc3d271c5",
-      "crop_filename": "img20_pin02.jpg",
-      "title": "DSSH DSF Disney Maleficent Diablo Sleeping Beauty Villain Pumpkin Pin LE 400",
-      "price": 43,
-      "match_status": "match",
-      "hits": [
-        "dssh",
-        "dsf"
-      ],
-      "img": "crops/dssh_carded/20_9eb0c9f928ea59cf.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/qmYAAOSwq~ZjdVVI/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03166252374649048
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "1e805e12ffd80bba",
@@ -2269,15 +2242,16 @@
       "pin_key": "img23_pin15_jpg__e17e6e0f5903",
       "crop_filename": "img23_pin15.jpg",
       "title": "D23 2026 DSSH Eeyore Winnie the Pooh Storybook ",
-      "price": 40,
+      "price": 40.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/21_1e805e12ffd80bba.jpg",
+      "img": "crops/dssh_carded/18_1e805e12ffd80bba.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/HvIAAeSw6Rlqhm97/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03163260221481323
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "fa69628bb43e5393",
@@ -2285,15 +2259,16 @@
       "pin_key": "img2_pin05_jpg__256bcf8e6753",
       "crop_filename": "img2_pin05.jpg",
       "title": "D23 2024 DSSH Disney Pin Mickey and Friends Cuties Series Mickey Mouse LE 300",
-      "price": 225,
+      "price": 225.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/22_fa69628bb43e5393.jpg",
+      "img": "crops/dssh_carded/19_fa69628bb43e5393.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/yLsAAeSwC1VqQuhj/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.030369848012924194
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "9ec1a149829ce423",
@@ -2301,15 +2276,16 @@
       "pin_key": "img7_pin10_jpg__82e3d9208e22",
       "crop_filename": "img7_pin10.jpg",
       "title": "Queen Narissa Dragon DSSH D23 2026 Pin",
-      "price": 140,
+      "price": 140.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/23_9ec1a149829ce423.jpg",
+      "img": "crops/dssh_carded/20_9ec1a149829ce423.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/0PwAAeSwJ9tqljnj/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.03017297387123108
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "d2d700d90f15b9b1",
@@ -2317,16 +2293,17 @@
       "pin_key": "img12_pin02_jpg__104554c026ab",
       "crop_filename": "img12_pin02.jpg",
       "title": "Disney pin DSSH D23 Nani Cutie Lilo and Stitch DSF LE 300",
-      "price": 85,
+      "price": 85.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/24_d2d700d90f15b9b1.jpg",
+      "img": "crops/dssh_carded/21_d2d700d90f15b9b1.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/9PMAAeSwTF5qgSU1/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.029956161975860596
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "649a614495a93646",
@@ -2334,16 +2311,17 @@
       "pin_key": "img6_pin03_jpg__18844c400794",
       "crop_filename": "img6_pin03.jpg",
       "title": "Disney DSF DSSH D23 Expo 2019 Evil Queen Organ LE 300 Pin",
-      "price": 38,
+      "price": 38.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/25_649a614495a93646.jpg",
+      "img": "crops/dssh_carded/22_649a614495a93646.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/4yAAAOSwGrtm27TJ/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.029499948024749756
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "34482a4c8055df6c",
@@ -2351,15 +2329,16 @@
       "pin_key": "img23_pin02_jpg__9588eededfac",
       "crop_filename": "img23_pin02.jpg",
       "title": "Disney D23 Expo DSSH 2026 Best in Show Fifi the Peke LE400 Pin",
-      "price": 45,
+      "price": 45.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/26_34482a4c8055df6c.jpg",
+      "img": "crops/dssh_carded/23_34482a4c8055df6c.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/UzwAAeSwrd5qh7mj/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02903437614440918
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "d067bfcd8d772c8b",
@@ -2367,16 +2346,18 @@
       "pin_key": "img8625_pin07_jpg__a3607bdf512a",
       "crop_filename": "img8625_pin07.jpg",
       "title": "Moana 2 Pin El Capitan Marquee Disney Studio Store DSSH DSF Pua Simea LE 400",
-      "price": 75,
+      "price": 75.0,
       "match_status": "match",
       "hits": [
         "dssh",
-        "dsf"
+        "dsf",
+        "el capitan"
       ],
-      "img": "crops/dssh_carded/27_d067bfcd8d772c8b.jpg",
+      "img": "crops/dssh_carded/24_d067bfcd8d772c8b.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/5oAAAOSwrzhnVTD-/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.028169989585876465
+      "card_label": "el_capitan_ok",
+      "pick": "kept",
+      "el_capitan": true
     },
     {
       "id": "c2201024678f3d69",
@@ -2389,10 +2370,11 @@
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/28_c2201024678f3d69.jpg",
+      "img": "crops/dssh_carded/25_c2201024678f3d69.jpg",
       "ebay_thumb": "",
-      "card_label": "on_card",
-      "card_margin": 0.027029037475585938
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "cfb03a3f1c9f040d",
@@ -2400,15 +2382,17 @@
       "pin_key": "img22_pin06_jpg__e84aeb0265bf",
       "crop_filename": "img22_pin06.jpg",
       "title": "Disney Studio Store Hollywood Zootopia Cars Finnick LE 300 D23 Exclusive",
-      "price": 42,
+      "price": 42.0,
       "match_status": "match",
       "hits": [
-        "disney studio store hollywood"
+        "disney studio store hollywood",
+        "studio store hollywood"
       ],
-      "img": "crops/dssh_carded/29_cfb03a3f1c9f040d.jpg",
+      "img": "crops/dssh_carded/26_cfb03a3f1c9f040d.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/9a8AAeSw2C9qo20S/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02622121572494507
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "923d01e5d937e2d2",
@@ -2416,16 +2400,17 @@
       "pin_key": "img5_pin11_jpg__c23932a6f805",
       "crop_filename": "img5_pin11.jpg",
       "title": "DSSH  DSF 97969 - Hooray for Hollywood Jessica Rabbit pin",
-      "price": 60,
+      "price": 60.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/30_923d01e5d937e2d2.jpg",
+      "img": "crops/dssh_carded/27_923d01e5d937e2d2.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/DFEAAeSwU0pp48hE/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.026071250438690186
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "db6492f7f8de1bb3",
@@ -2433,16 +2418,18 @@
       "pin_key": "img6_pin05_jpg__4d106bda4864",
       "crop_filename": "img6_pin05.jpg",
       "title": "Disney Studio Store Hollywood DSSH Cuties Pin - Wasabi",
-      "price": 75,
+      "price": 75.0,
       "match_status": "match",
       "hits": [
         "dssh",
-        "disney studio store hollywood"
+        "disney studio store hollywood",
+        "studio store hollywood"
       ],
-      "img": "crops/dssh_carded/31_db6492f7f8de1bb3.jpg",
+      "img": "crops/dssh_carded/28_db6492f7f8de1bb3.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/rWcAAeSwRxtqEL~s/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.026057124137878418
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "009b7b4327ddbc79",
@@ -2450,16 +2437,17 @@
       "pin_key": "img7_pin04_jpg__fc4701a2adc3",
       "crop_filename": "img7_pin04.jpg",
       "title": "Disney D23 Expo 2024 Ultimate Fan Event DSSH DSF Lilo & Stitch Angel Cuties Pin",
-      "price": 144,
+      "price": 144.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/32_009b7b4327ddbc79.jpg",
+      "img": "crops/dssh_carded/29_009b7b4327ddbc79.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/6jMAAeSwpAlqdRp1/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02605491876602173
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "2e49857618449998",
@@ -2472,10 +2460,11 @@
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/33_2e49857618449998.jpg",
+      "img": "crops/dssh_carded/30_2e49857618449998.jpg",
       "ebay_thumb": "",
-      "card_label": "on_card",
-      "card_margin": 0.025782078504562378
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "cec2e821532bc7fb",
@@ -2483,16 +2472,17 @@
       "pin_key": "img13_pin05_jpg__4907c5b9fdbe",
       "crop_filename": "img13_pin05.jpg",
       "title": "Disney DSSH DSF Cuties Pin Big Hero 6 Armored Wasabi D23 2024 Baymax Friend",
-      "price": 70,
+      "price": 70.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/34_cec2e821532bc7fb.jpg",
+      "img": "crops/dssh_carded/31_cec2e821532bc7fb.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/CJoAAeSwyIRoUMas/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02560088038444519
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "3fb3c0c250088d32",
@@ -2500,15 +2490,16 @@
       "pin_key": "img1_pin09_jpg__bacaa20d92c8",
       "crop_filename": "img1_pin09.jpg",
       "title": "2022 Disney D23 Expo DSSH Pixar Cuties Series Luca Pin LE 300",
-      "price": 125,
+      "price": 125.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/35_3fb3c0c250088d32.jpg",
+      "img": "crops/dssh_carded/32_3fb3c0c250088d32.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/aDoAAeSwenJo7BmJ/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.025594115257263184
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "9718d6d81f491081",
@@ -2516,31 +2507,17 @@
       "pin_key": "img22_pin07_jpg__7a63f1dbbe15",
       "crop_filename": "img22_pin07.jpg",
       "title": "Disney Studio Store Hollywood Zootopia Cars Chief Bogo LE 300 D23 Excl.",
-      "price": 45,
+      "price": 45.0,
       "match_status": "match",
       "hits": [
-        "disney studio store hollywood"
+        "disney studio store hollywood",
+        "studio store hollywood"
       ],
-      "img": "crops/dssh_carded/36_9718d6d81f491081.jpg",
+      "img": "crops/dssh_carded/33_9718d6d81f491081.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/FcUAAeSwx0Vqo2-u/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.025492936372756958
-    },
-    {
-      "id": "0c314a6ab6ad68d5",
-      "source_id": "test_PriceCollection_20260716_1203__build_20311_visual_baseline::img25_pin10_jpg__1670a0daf52d",
-      "pin_key": "img25_pin10_jpg__1670a0daf52d",
-      "crop_filename": "img25_pin10.jpg",
-      "title": "Disney DSSH PTD Molly Cunningham Pin LE300",
-      "price": 35,
-      "match_status": "match",
-      "hits": [
-        "dssh"
-      ],
-      "img": "crops/dssh_carded/37_0c314a6ab6ad68d5.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/hNgAAeSwSY9pRai7/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.025488555431365967
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "d2510e0e670b11aa",
@@ -2548,15 +2525,16 @@
       "pin_key": "img23_pin13_jpg__3fa60a0322b9",
       "crop_filename": "img23_pin13.jpg",
       "title": "DSSH Disney D23 Expo 2026 Lilo and Stitch Storybook Pin",
-      "price": 37,
+      "price": 37.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/38_d2510e0e670b11aa.jpg",
+      "img": "crops/dssh_carded/34_d2510e0e670b11aa.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/upMAAeSw-9FqiPB~/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.0252382755279541
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "daaa0aba4eab024b",
@@ -2564,16 +2542,17 @@
       "pin_key": "img7_pin09_jpg__813f694dfcbc",
       "crop_filename": "img7_pin09.jpg",
       "title": "DISNEY DSF DSSH CUTIES PIXAR UP CARL FREDRICKSEN PIN LE 300",
-      "price": 300,
+      "price": 300.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/39_daaa0aba4eab024b.jpg",
+      "img": "crops/dssh_carded/35_daaa0aba4eab024b.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/VGoAAeSw4BZqNCqn/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.025141000747680664
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "a3107ae14a121d32",
@@ -2581,15 +2560,16 @@
       "pin_key": "img22_pin09_jpg__72ed29e1c740",
       "crop_filename": "img22_pin09.jpg",
       "title": "Disney D23 Expo 2026 DSSH Zootopia 10th Anniversary Car LE 300 - Nick Wilde",
-      "price": 90,
+      "price": 90.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/40_a3107ae14a121d32.jpg",
+      "img": "crops/dssh_carded/36_a3107ae14a121d32.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/-YsAAeSwSrhqo2ik/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02474689483642578
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "f2140e8ee6fbe7af",
@@ -2597,15 +2577,16 @@
       "pin_key": "img6_pin10_jpg__f02cb770bac3",
       "crop_filename": "img6_pin10.jpg",
       "title": "Disney Pin 2019 DSSH Judy Hopps Zootopia Eating Popcorn New",
-      "price": 15,
+      "price": 15.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/41_f2140e8ee6fbe7af.jpg",
+      "img": "crops/dssh_carded/37_f2140e8ee6fbe7af.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/raUAAeSwwilp9ktH/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.0237920880317688
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "6de38b2be09ff601",
@@ -2613,15 +2594,17 @@
       "pin_key": "img22_pin03_jpg__cd614ce137a2",
       "crop_filename": "img22_pin03.jpg",
       "title": "D23 2026 Exclusive DSSH El Capitan Theater 100th Donald Duck LE Pin",
-      "price": 55,
+      "price": 55.0,
       "match_status": "match",
       "hits": [
-        "dssh"
+        "dssh",
+        "el capitan"
       ],
-      "img": "crops/dssh_carded/42_6de38b2be09ff601.jpg",
+      "img": "crops/dssh_carded/38_6de38b2be09ff601.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/FBcAAeSwNXNqh3Dn/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02306920289993286
+      "card_label": "el_capitan_ok",
+      "pick": "kept",
+      "el_capitan": true
     },
     {
       "id": "ea7436a84fc91c86",
@@ -2629,15 +2612,16 @@
       "pin_key": "img7_pin07_jpg__c5f3c11724c1",
       "crop_filename": "img7_pin07.jpg",
       "title": "Disney DSSH D23 2024 Circle of Books Old Hag Snow White LE 400 Pin",
-      "price": 45,
+      "price": 45.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/43_ea7436a84fc91c86.jpg",
+      "img": "crops/dssh_carded/39_ea7436a84fc91c86.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/W1EAAOSwGsJm0L2f/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.022969335317611694
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "43bd97b45531706c",
@@ -2645,15 +2629,16 @@
       "pin_key": "img12_pin08_jpg__9d79b9d349a7",
       "crop_filename": "img12_pin08.jpg",
       "title": "Disney DSSH Lilo & Stitch Cuties David LE 300 Pin D23",
-      "price": 70,
+      "price": 70.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/44_43bd97b45531706c.jpg",
+      "img": "crops/dssh_carded/40_43bd97b45531706c.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/wRIAAeSwr-1qgScH/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.022897660732269287
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "2a1b44978dd2fb2e",
@@ -2661,15 +2646,16 @@
       "pin_key": "img9_pin01_jpg__12c6d0f2a200",
       "crop_filename": "img9_pin01.jpg",
       "title": "Disney DSSH 2024 Selfie Series Lizzie McGuire Disney Channel LE 400 pin",
-      "price": 75,
+      "price": 75.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/45_2a1b44978dd2fb2e.jpg",
+      "img": "crops/dssh_carded/41_2a1b44978dd2fb2e.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/CmgAAeSw0lZp5lL6/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02287229895591736
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "f634b1a7b1499731",
@@ -2677,50 +2663,16 @@
       "pin_key": "img1_pin13_jpg__572e8e2ab926",
       "crop_filename": "img1_pin13.jpg",
       "title": "Disney DSSH D23 Expo Jessie and Bullseye Toy Story Mane and Friends Pin LE 400",
-      "price": 62,
+      "price": 62.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/46_f634b1a7b1499731.jpg",
+      "img": "crops/dssh_carded/42_f634b1a7b1499731.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/yPQAAeSwnXZpxYTM/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.022579699754714966
-    },
-    {
-      "id": "73b7666de8f3eb39",
-      "source_id": "test_PriceCollection_20260904_1527__build_26156_visual_baseline::img10_pin01_jpg__c0cf17386b60",
-      "pin_key": "img10_pin01_jpg__c0cf17386b60",
-      "crop_filename": "img10_pin01.jpg",
-      "title": "Disney Studio Store Hollywood Soda Fountain DSSH DSF Ursula Little Mermaid Pin",
-      "price": null,
-      "match_status": "no_match",
-      "hits": [
-        "dssh",
-        "dsf",
-        "disney studio store hollywood"
-      ],
-      "img": "crops/dssh_carded/47_73b7666de8f3eb39.jpg",
-      "ebay_thumb": "",
-      "card_label": "on_card",
-      "card_margin": 0.02203354239463806
-    },
-    {
-      "id": "46af8e91473eb585",
-      "source_id": "test_PriceCollection_20260826_1938__build_22706_visual_baseline::img4_pin18_jpg__039b0f3c7693",
-      "pin_key": "img4_pin18_jpg__039b0f3c7693",
-      "crop_filename": "img4_pin18.jpg",
-      "title": "Le 300 Villains Cuties Pin Evil Queen DSF DSSH  Snow White ",
-      "price": 500,
-      "match_status": "match",
-      "hits": [
-        "dssh",
-        "dsf"
-      ],
-      "img": "crops/dssh_carded/48_46af8e91473eb585.jpg",
-      "ebay_thumb": "https://i.ebayimg.com/images/g/EFcAAeSwPAdoJYh6/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.021097511053085327
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "454ceeac53775d70",
@@ -2728,16 +2680,17 @@
       "pin_key": "img6_pin16_jpg__70fff572134c",
       "crop_filename": "img6_pin16.jpg",
       "title": "Disney D23 Expo 2024 Ultimate Fan Event DSSH DSF Berry Cute Stitch Pin",
-      "price": 59,
+      "price": 59.0,
       "match_status": "match",
       "hits": [
         "dssh",
         "dsf"
       ],
-      "img": "crops/dssh_carded/49_454ceeac53775d70.jpg",
+      "img": "crops/dssh_carded/43_454ceeac53775d70.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/SUsAAOSwRD9mu9~X/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.020954102277755737
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
     },
     {
       "id": "bac908f96f8afde1",
@@ -2745,15 +2698,126 @@
       "pin_key": "img3_pin09_jpg__2570b55bf53b",
       "crop_filename": "img3_pin09.jpg",
       "title": "DSSH Bo Peep Toy Story 30th Anniversary Disney Pin LE 400 Disney Studio Store",
-      "price": 50,
+      "price": 50.0,
       "match_status": "match",
       "hits": [
         "dssh"
       ],
-      "img": "crops/dssh_carded/50_bac908f96f8afde1.jpg",
+      "img": "crops/dssh_carded/44_bac908f96f8afde1.jpg",
       "ebay_thumb": "https://i.ebayimg.com/images/g/RpEAAeSwI-5p-i-8/s-l225.jpg",
-      "card_label": "on_card",
-      "card_margin": 0.02086925506591797
+      "card_label": "dssh_set_card",
+      "pick": "kept",
+      "el_capitan": false
+    },
+    {
+      "id": "bbb791c04a5eb735",
+      "source_id": "test_PriceCollection_20260728_1305__build_16109_visual_baseline::img8_pin16_jpg__1fbb19058f8a",
+      "pin_key": "img8_pin16_jpg__1fbb19058f8a",
+      "crop_filename": "img8_pin16.jpg",
+      "title": "Disney DSF El Capitan Theatre 12 Days Of Nightmare Lock Shock Barrel LE 500 Pin",
+      "price": 35.0,
+      "match_status": "match",
+      "hits": [
+        "dsf",
+        "el capitan"
+      ],
+      "img": "crops/dssh_carded/45_bbb791c04a5eb735.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/nsUAAeSw5rpppJ5R/s-l225.jpg",
+      "card_label": "el_capitan_ok",
+      "pick": "new",
+      "el_capitan": true
+    },
+    {
+      "id": "e87fc9477e84aa3c",
+      "source_id": "test_PriceCollection_20260916_1343__build_9744_visual_baseline::img12_pin11_jpg__99ab41e5fd3f",
+      "pin_key": "img12_pin11_jpg__99ab41e5fd3f",
+      "crop_filename": "img12_pin11.jpg",
+      "title": "Disney DSF Studio Store El Capitan Greatest Game Ever Played LE 300 Single Pin",
+      "price": 20.0,
+      "match_status": "match",
+      "hits": [
+        "dsf",
+        "el capitan"
+      ],
+      "img": "crops/dssh_carded/46_e87fc9477e84aa3c.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/Vm4AAeSwi0RqRxbG/s-l225.jpg",
+      "card_label": "el_capitan_ok",
+      "pick": "new",
+      "el_capitan": true
+    },
+    {
+      "id": "12b009930840dabe",
+      "source_id": "test_PriceCollection_20260710_2203__build_31244_visual_baseline::img6_pin13_jpg__cf7acd64e694",
+      "pin_key": "img6_pin13_jpg__cf7acd64e694",
+      "crop_filename": "img6_pin13.jpg",
+      "title": "DSSH - El Capitan Marquee - Incredibles 2 DSF 2018 LE 400 Disney Pin",
+      "price": 140.0,
+      "match_status": "match",
+      "hits": [
+        "dssh",
+        "dsf",
+        "el capitan"
+      ],
+      "img": "crops/dssh_carded/47_12b009930840dabe.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/ABgAAeSwDgxqFnhy/s-l225.jpg",
+      "card_label": "el_capitan_ok",
+      "pick": "new",
+      "el_capitan": true
+    },
+    {
+      "id": "87e3b2f9ce4bbefd",
+      "source_id": "test_PriceCollection_20260727_1304__build_7307_visual_baseline::img2_pin12_jpg__bd607c97f4b7",
+      "pin_key": "img2_pin12_jpg__bd607c97f4b7",
+      "crop_filename": "img2_pin12.jpg",
+      "title": "Disney DSSH DSF El Capitan Marquee Nightmare Before Christmas Pin Scary Teddy ",
+      "price": 120.0,
+      "match_status": "match",
+      "hits": [
+        "dssh",
+        "dsf",
+        "el capitan"
+      ],
+      "img": "crops/dssh_carded/48_87e3b2f9ce4bbefd.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/K2MAAeSweQNqFm1f/s-l225.jpg",
+      "card_label": "el_capitan_ok",
+      "pick": "new",
+      "el_capitan": true
+    },
+    {
+      "id": "fd05f155ddd7cc14",
+      "source_id": "test_PriceCollection_20260709_1757__build_32131_visual_baseline::img2_pin02_jpg__5afb03dfe2c4",
+      "pin_key": "img2_pin02_jpg__5afb03dfe2c4",
+      "crop_filename": "img2_pin02.jpg",
+      "title": "Disney DSSH 2025 El Capitan Live Action Lilo and Stitch Marquee Pin LE 400",
+      "price": 110.0,
+      "match_status": "match",
+      "hits": [
+        "dssh",
+        "el capitan"
+      ],
+      "img": "crops/dssh_carded/49_fd05f155ddd7cc14.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/8~8AAeSwGgJqDk0n/s-l225.jpg",
+      "card_label": "el_capitan_ok",
+      "pick": "new",
+      "el_capitan": true
+    },
+    {
+      "id": "07daf2f7046c0cac",
+      "source_id": "test_PriceCollection_20260915_1208__build_27765_visual_baseline::img22_pin13_jpg__59cc76c4c4ab",
+      "pin_key": "img22_pin13_jpg__59cc76c4c4ab",
+      "crop_filename": "img22_pin13.jpg",
+      "title": "D23 2026 Studio Store Hollywood El Capitan Hinged Sign Pin /400",
+      "price": 30.0,
+      "match_status": "match",
+      "hits": [
+        "studio store hollywood",
+        "el capitan"
+      ],
+      "img": "crops/dssh_carded/50_07daf2f7046c0cac.jpg",
+      "ebay_thumb": "https://i.ebayimg.com/images/g/wjsAAeSwFh9qjKIO/s-l225.jpg",
+      "card_label": "el_capitan_ok",
+      "pick": "new",
+      "el_capitan": true
     }
   ]
 }
