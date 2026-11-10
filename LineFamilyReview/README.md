@@ -1,2 +1,2 @@
-# LineFamilyReview v2 (CLIP on-card filter)
-Gemini 402; used open_clip zero-shot for card vs loose vs box.
+# LineFamilyReview
+Adorbs: full local-crop pool (517) as 320px review thumbs for tap-exclude. WDI/DEC/DSSH unchanged. Exclusions: Firebase lineFamilyReview/exclusions/*.
