@@ -5,7 +5,7 @@
     <title>Fins and Pins Click To Request!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Pages publish marker: banner uses “Request window closes in” (countdown to Reports End time). Bump to force CDN refresh. -->
-    <meta name="ctr-countdown" content="closes-to-end-v27-20261112-search-clear">
+    <meta name="ctr-countdown" content="closes-to-end-v28-20261112-welcome">
     <style>
         :root {
             --fp-bg: #c9b8d8;
@@ -242,6 +242,11 @@
         #shareToIgBtn { background: #1877f2; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-weight: bold; font-size: 13px; cursor: pointer; font-family: inherit; }
         #adminReportBtn { display:none; padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--fp-text); background: transparent; color: var(--fp-text); text-decoration: none; font-weight: bold; }
         #loginOverlay, #reportIssueOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        #welcomeShowOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 4200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        #welcomeShowOverlay .modal-box { max-width: 520px; max-height: min(86vh, 680px); overflow: auto; text-align: left; }
+        #welcomeShowOverlay h3 { text-align: center; margin: 0 0 12px; font-size: 20px; line-height: 1.25; }
+        #welcomeShowOverlay p { font-size: 15px; line-height: 1.45; color: var(--fp-text); margin: 0 0 12px; font-weight: normal; }
+        #welcomeShowOverlay button.primary { margin-top: 4px; }
         .modal-box { background: var(--fp-chunk); color: var(--fp-text); padding: 22px; border-radius: 12px; width: 100%; max-width: 340px; text-align: center; border: 1px solid rgba(255,255,255,0.2); }
         .modal-box input { background: #fff; color: #222; }
         .modal-box textarea { width: 100%; padding: 12px; margin: 12px 0; border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; box-sizing: border-box; font-size: 16px; background: #fff; color: #222; }
@@ -451,6 +456,32 @@
     </style>
 </head>
 <body class="pin-search-docked">
+
+<div id="welcomeShowOverlay" role="dialog" aria-modal="true" aria-labelledby="welcomeShowTitle">
+    <div class="modal-box">
+        <h3 id="welcomeShowTitle">Welcome to our 20% off show!</h3>
+        <p>Pins you click will have your ClickToRequest username on them in the Auction section in the Shop in our Whatnot show at least 1 hour before the show starts at the 20% discounted price. You can enter your bid anytime before the show or during the show. You can improve your likelihood of winning by entering a maximum bid.</p>
+        <p>When you click a pin you’ll see its list price and its 20% off price.</p>
+        <p>Use the search bar at the top left to search for any word (Adorbs, WDI, chaser, etc), not just character and movie.</p>
+        <button type="button" class="primary" id="welcomeShowOk">OK</button>
+    </div>
+</div>
+<script>
+(function() {
+    var KEY = "ctr_welcome_ok_20261112";
+    var el = document.getElementById("welcomeShowOverlay");
+    var btn = document.getElementById("welcomeShowOk");
+    function hideWelcome() {
+        el.style.display = "none";
+        try { localStorage.setItem(KEY, "1"); } catch (e) {}
+    }
+    try {
+        if (localStorage.getItem(KEY) === "1") el.style.display = "none";
+    } catch (e) {}
+    btn.addEventListener("click", hideWelcome);
+    if (el.style.display !== "none") btn.focus();
+})();
+</script>
 
 <a id="collectionAppPromo" href="https://apple.co/4f8gaE8" target="_blank" rel="noopener noreferrer" title="Collection Detection App on the App Store" aria-label="Collection Detection App on the App Store"><img src="./collection-detection-app-square.png" width="96" height="96" alt="Collection Detection App"></a>
 
