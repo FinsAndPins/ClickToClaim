@@ -181,6 +181,10 @@
             pointer-events: none;
             cursor: default;
         }
+        body.sold-pins-on .pin.pin-sold {
+            pointer-events: auto;
+            cursor: pointer;
+        }
         .pin.pin-sold::after {
             content: "SOLD";
             position: absolute;
@@ -233,6 +237,23 @@
         #excludePinsToggle { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; }
         #excludePinsToggle.is-active { background: #c65900; border-color: rgba(255,255,255,0.5); }
         #excludePinsCount { font-size: 11px; color: var(--fp-muted); margin-left: 8px; }
+        #soldPinsBar { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+        body.sold-pins-on #soldPinsBar { display: block; }
+        #soldPinsBar p { font-size: 12px; color: var(--fp-muted); margin: 0 0 8px; line-height: 1.35; font-weight: normal; }
+        #soldPinsToggle { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.15); color: var(--fp-text); cursor: pointer; font-family: inherit; }
+        #soldPinsToggle.is-active { background: #8b1e1e; border-color: rgba(255,255,255,0.5); }
+        #soldPinsCount { font-size: 11px; color: var(--fp-muted); margin-left: 8px; }
+        .board-auction-warn {
+            display: block;
+            margin-top: 6px;
+            padding: 8px 10px;
+            background: #7a1f1f;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            line-height: 1.35;
+        }
 
         .tally-badge { position: absolute; top: -10px; right: -10px; background: #ff3b30; color: white; border-radius: 11px; min-width: 22px; height: 22px; padding: 0 6px; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 112; pointer-events: none; border: 2px solid white; white-space: nowrap; }
         .tally-badge.offset-left { left: -10px; right: auto; }
@@ -606,12 +627,17 @@
         <span id="boxCleanupCount"></span>
         <button type="button" id="excludePinsToggle" title="Tap pins to mark Not For Sale for everyone">Tap to Exclude pins</button>
         <span id="excludePinsCount"></span>
+        <button type="button" id="soldPinsToggle" title="Tap pins to mark Sold for everyone">Tap to mark Sold</button>
+        <span id="soldPinsCount"></span>
     </div>
     <div id="boxCleanupBar" aria-label="Box cleanup help">
         <p><strong>Fix boxes (live for everyone):</strong> green outline = clickable pin. Tap a bad box to hide it for all visitors (red dashed). Tap again to restore. Saves to Firebase immediately, not just this browser.</p>
     </div>
     <div id="excludePinsBar" aria-label="Exclude pins help">
         <p><strong>Tap to Exclude pins (live for everyone):</strong> tap a pin to mark it <em>Not For Sale</em> (visitors cannot click it). Tap again to restore. Sold pins stay Sold and stay non-clickable. Saves to Firebase immediately.</p>
+    </div>
+    <div id="soldPinsBar" aria-label="Sold pins help">
+        <p><strong>Tap to mark Sold (live for everyone):</strong> Whatnot sales are already stamped Sold. Tap a pin as you pull it to mark Sold. Tap again to undo. Saves to Firebase immediately.</p>
     </div>
     <div id="countdownArea"></div>
     <div id="liteModeControls">
@@ -807,9 +833,13 @@ if (isAdmin) {
             boxCleanupMode = !boxCleanupMode;
             if (boxCleanupMode) {
                 excludePinsMode = false;
+                soldPinsMode = false;
                 document.body.classList.remove('exclude-pins-on');
+                document.body.classList.remove('sold-pins-on');
                 const ex = document.getElementById('excludePinsToggle');
                 if (ex) ex.classList.remove('is-active');
+                const soldBtn = document.getElementById('soldPinsToggle');
+                if (soldBtn) soldBtn.classList.remove('is-active');
             }
             document.body.classList.toggle('box-cleanup-on', boxCleanupMode);
             cleanupBtn.classList.toggle('is-active', boxCleanupMode);
@@ -822,12 +852,32 @@ if (isAdmin) {
             excludePinsMode = !excludePinsMode;
             if (excludePinsMode) {
                 boxCleanupMode = false;
+                soldPinsMode = false;
                 document.body.classList.remove('box-cleanup-on');
+                document.body.classList.remove('sold-pins-on');
                 if (cleanupBtn) cleanupBtn.classList.remove('is-active');
+                const soldBtn = document.getElementById('soldPinsToggle');
+                if (soldBtn) soldBtn.classList.remove('is-active');
             }
             document.body.classList.toggle('exclude-pins-on', excludePinsMode);
             excludeBtn.classList.toggle('is-active', excludePinsMode);
             applyAllExcludedPins();
+        });
+    }
+    const soldBtn = document.getElementById('soldPinsToggle');
+    if (soldBtn) {
+        soldBtn.addEventListener('click', () => {
+            soldPinsMode = !soldPinsMode;
+            if (soldPinsMode) {
+                boxCleanupMode = false;
+                excludePinsMode = false;
+                document.body.classList.remove('box-cleanup-on');
+                document.body.classList.remove('exclude-pins-on');
+                if (cleanupBtn) cleanupBtn.classList.remove('is-active');
+                if (excludeBtn) excludeBtn.classList.remove('is-active');
+            }
+            document.body.classList.toggle('sold-pins-on', soldPinsMode);
+            soldBtn.classList.toggle('is-active', soldPinsMode);
         });
     }
 } else {
@@ -835,6 +885,10 @@ if (isAdmin) {
     if (cleanupBar) cleanupBar.style.display = 'none';
     const excludeBar = document.getElementById('excludePinsBar');
     if (excludeBar) excludeBar.style.display = 'none';
+    const soldBar = document.getElementById('soldPinsBar');
+    if (soldBar) soldBar.style.display = 'none';
+    const soldToggle = document.getElementById('soldPinsToggle');
+    if (soldToggle) soldToggle.style.display = 'none';
 }
 
 function sanitizeUserKey(id) {
@@ -1119,6 +1173,7 @@ const fbName = showDateSlug;
 /** Firebase `hiddenPins/<slug>/<board>-<idx>` — removed for EVERY visitor, not local-only. */
 
 let excludePinsMode = false;
+let soldPinsMode = false;
 const excludedStems = new Set();
 /** Unique Firebase excluded keys (not doubled by norm aliases). */
 let excludedStemUniqueCount = 0;
@@ -1149,6 +1204,31 @@ function applyAllExcludedPins() {
     document.querySelectorAll(".pin").forEach(applyExcludedToPinEl);
     refreshExcludedCount();
     scheduleAvailablePinTotalsRefresh();
+}
+
+function toggleSoldPin(boardName, idx) {
+    const pinEl = pinElOf(boardName, idx);
+    if (!pinEl) return;
+    const stem = pinEl.dataset.cropStem;
+    if (!stem) {
+        alert("This pin has no crop id, so it cannot be marked sold yet.");
+        return;
+    }
+    const key = _normExcludedStem(stem);
+    const ref = db.ref(`showConfig/${fbName}/soldStems/${key}`);
+    const already = pinEl.classList.contains("pin-sold");
+    if (already) {
+        ref.set(null);
+    } else {
+        ref.set({
+            sold: true,
+            crop_stem: stem,
+            board: boardName,
+            idx: idx,
+            source: "pull_tap",
+            time: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
 }
 
 function toggleExcludedPin(boardName, idx) {
@@ -1797,9 +1877,13 @@ fetch(`./boards/manifest.json?v=${BOARDS_MANIFEST_VERSION}`, { cache: "no-store"
             container.className = "board-container";
             container.dataset.board = name;
             const leftoverLabel = isLeftoverBoardName(name) ? " · From Monday's show" : "";
+            const auctionWarn = (name === "IMG_2338" || name === "IMG_2339")
+                ? `<div class="board-auction-warn">Check this board. Many pins here sold as auctions and are not stamped Sold.</div>`
+                : "";
             container.innerHTML = `
                 <div class="board-header">
                     <span class="board-title">Board ${index + 1}${leftoverLabel}</span>
+                    ${auctionWarn}
                     <span class="admin-board-total" id="admin-count-${name}" style="display:${isAdmin?'block':'none'}">-</span>
                 </div>
                 <div class="board-count" id="count-${name}" style="display:${isAdmin ? "block" : "none"}">${isAdmin ? "Loading…" : ""}</div>
@@ -1839,6 +1923,10 @@ async function setupBoard(name) {
                 e.preventDefault();
                 if (isAdmin && boxCleanupMode) {
                     toggleHiddenPin(name, idx, pin.crop_stem);
+                    return;
+                }
+                if (isAdmin && soldPinsMode) {
+                    toggleSoldPin(name, idx);
                     return;
                 }
                 if (isAdmin && excludePinsMode) {
@@ -2950,11 +3038,6 @@ function _refreshAllBadges() {
 
 function _applySoldGate(pinEl) {
     if (!pinEl || !pinEl.classList || !pinEl.classList.contains('pin')) return;
-    if (!_isLeftoverPin(pinEl)) {
-        pinEl.classList.remove('pin-sold');
-        if (typeof applyExcludedToPinEl === 'function') applyExcludedToPinEl(pinEl);
-        return;
-    }
     const sold = _isSoldStem(pinEl.dataset.cropStem);
     pinEl.classList.toggle('pin-sold', sold);
     if (sold) {
@@ -3160,7 +3243,9 @@ function _ingestSoldStems(val) {
             _soldStems.add(_normStem(k));
         }
     }
-    console.info(`[PriceOverlay] leftover sold stems: ${_soldStems.size}`);
+    console.info(`[PriceOverlay] sold stems: ${_soldStems.size}`);
+    const soldCountEl = document.getElementById('soldPinsCount');
+    if (soldCountEl) soldCountEl.textContent = _soldStems.size ? `${_soldStems.size} sold` : '';
     _applyAllPins();
     _applyMode(_priceMode);
 }
