@@ -517,7 +517,7 @@
             </details>
             <details>
                 <summary>How do I purchase my selected pins?</summary>
-                <p>All pins will be run individually over on whatnot in an auction format at <strong>20% off</strong> list price. List price is the match rounded up to the nearest $5, plus 10%. Show date, time, and link are listed at the top of the Click To Request page. Don’t have a whatnot account yet? <a class="whatnot-invite-link" href="https://www.whatnot.com/" target="_blank" rel="noopener">Click here to sign up now and get $15 off your first purchase!</a></p>
+                <p>All pins will be run individually over on whatnot in an auction format at <strong>20% off</strong> list price. List price is the match rounded up to the nearest $5, plus 10%. The list price and the 20% off price on this page are shown in whole dollars: 49 cents or less rounds down, 50 cents or more rounds up. Show date, time, and link are listed at the top of the Click To Request page. Don’t have a whatnot account yet? <a class="whatnot-invite-link" href="https://www.whatnot.com/" target="_blank" rel="noopener">Click here to sign up now and get $15 off your first purchase!</a></p>
             </details>
             <details>
                 <summary>Do I have to purchase the pins through whatnot?</summary>
@@ -2862,22 +2862,29 @@ const _pendingStems = new Set();
 
 const _PO_LIST_MARKUP = 0.1;
 const _PO_DISCOUNT = 0.8;
-function _moneyText(n) {
+function _wholeDollar(n) {
     const cents = Math.round(Number(n) * 100);
-    if (!isFinite(cents)) return "";
-    if (cents % 100 === 0) return "$" + (cents / 100);
-    return "$" + (cents / 100).toFixed(2);
+    if (!isFinite(cents) || cents <= 0) return 0;
+    const dollars = Math.floor(cents / 100);
+    return (cents % 100) >= 50 ? dollars + 1 : dollars;
 }
-function _roundForShow(raw) {
+function _moneyText(n) {
+    const dollars = _wholeDollar(n);
+    return dollars ? "$" + dollars : "";
+}
+function _listExact(raw) {
     if (raw == null || !isFinite(raw) || raw <= 0) return 0;
     const stepped = Math.ceil((raw / 5) - 1e-9) * 5;
     return Math.round(stepped * (1 + _PO_LIST_MARKUP) * 100) / 100;
 }
+function _roundForShow(raw) {
+    return _wholeDollar(_listExact(raw));
+}
 
 function _saleForShow(raw) {
-    const list = _roundForShow(raw);
+    const list = _listExact(raw);
     if (!list) return 0;
-    return Math.round(list * _PO_DISCOUNT * 100) / 100;
+    return _wholeDollar(Math.round(list * _PO_DISCOUNT * 100) / 100);
 }
 
 function _normStem(stem) {

@@ -506,16 +506,33 @@ function listPriceForPk(pk) {
     const raw = map[stem];
     if (raw == null || !isFinite(raw) || raw <= 0) return 0;
     const stepped = Math.ceil((raw / 5) - 1e-9) * 5;
-    return Math.round(stepped * (1 + _REPORT_LIST_MARKUP) * 100) / 100;
+    const list = Math.round(stepped * (1 + _REPORT_LIST_MARKUP) * 100) / 100;
+    return _reportWholeDollar(list);
 }
 const _REPORT_LIST_MARKUP = 0.1;
 
-/** Same as list for 20260910 (list-only badges / user tally). */
+function _reportWholeDollar(n) {
+    const cents = Math.round(Number(n) * 100);
+    if (!isFinite(cents) || cents <= 0) return 0;
+    const dollars = Math.floor(cents / 100);
+    return (cents % 100) >= 50 ? dollars + 1 : dollars;
+}
+
+/** 20% off the cent list, then nearest whole dollar (.50 rounds up). */
 const _REPORT_DISCOUNT = 0.8;
 function dollarValueForPk(pk) {
-    const list = listPriceForPk(pk);
+    const stem = pinKeyToStem[pk];
+    if (!stem) return 0;
+    const leftoverPk = CLAIM_ID_MODE === "crop_stem"
+        ? !!(pinKeyToGeom[pk] && /^LO\d+_/.test(String(pinKeyToGeom[pk].board || "")))
+        : String(pk).startsWith("LO03_");
+    const map = leftoverPk ? stemToPriceLeftover : stemToPricePrimary;
+    const raw = map[stem];
+    if (raw == null || !isFinite(raw) || raw <= 0) return 0;
+    const stepped = Math.ceil((raw / 5) - 1e-9) * 5;
+    const list = Math.round(stepped * (1 + _REPORT_LIST_MARKUP) * 100) / 100;
     if (!list) return 0;
-    return Math.round(list * _REPORT_DISCOUNT * 100) / 100;
+    return _reportWholeDollar(Math.round(list * _REPORT_DISCOUNT * 100) / 100);
 }
 
 function loadBoardImage(name) {
