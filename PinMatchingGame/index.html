@@ -114,6 +114,8 @@ let prefetching = false;
 let openIdCache = {pricing: null, control: null, backlog: null, at: 0};
 const OPEN_ID_TTL_MS = 15000;
 const PREFETCH_TARGET = 3;
+let availableCropCollections = null; // null = unknown; []/list after meta load
+let skippingBroken = false;
 
 const userIn = document.getElementById("userIn");
 const hdrMeta = document.getElementById("hdrMeta");
@@ -124,6 +126,16 @@ const toastEl = document.getElementById("toast");
 const lbEl = document.getElementById("lb");
 const lbBody = document.getElementById("lbBody");
 if (username) userIn.value = username;
+
+cropImg.addEventListener("error", function() {
+  if (!current || skippingBroken) return;
+  const bad = current;
+  skippingBroken = true;
+  sessionSeen.add(bad.id);
+  prefetchQueue = prefetchQueue.filter(function(x) { return x.id !== bad.id; });
+  toast("Missing pin photo. Skipping.");
+  nextCard().finally(function() { skippingBroken = false; });
+});
 
 function toast(msg) {
   toastEl.textContent = msg;
@@ -200,11 +212,33 @@ function shuffle(arr) {
   }
   return arr;
 }
+async function ensureCropAllowlist() {
+  if (availableCropCollections !== null) return availableCropCollections;
+  const meta = (await fbGet(ROOT + "/meta")) || {};
+  const list = meta.available_crop_collections;
+  availableCropCollections = Array.isArray(list) ? list.slice() : [];
+  return availableCropCollections;
+}
+function collectionHasPublicCrops(collection) {
+  if (!collection) return false;
+  if (availableCropCollections === null) return true; // until meta loads
+  if (!availableCropCollections.length) return true; // no allowlist yet
+  return availableCropCollections.some(function(c) {
+    return c === collection || c.indexOf(collection) === 0 || collection.indexOf(c) === 0;
+  });
+}
+function cropUrlLooksUsable(item) {
+  const url = (item && item.crop_url) || "";
+  if (!url) return false;
+  if (url.indexOf("raw.githubusercontent.com/FinsAndPins/PreparingInventory/") < 0) return !!url;
+  return collectionHasPublicCrops(item.collection || "");
+}
 async function listOpenIds(kind) {
   const now = Date.now();
   if (openIdCache[kind] && (now - openIdCache.at) < OPEN_ID_TTL_MS) {
     return openIdCache[kind].slice();
   }
+  await ensureCropAllowlist();
   let ids = [];
   if (kind === "control") {
     ids = Object.keys((await fbGet(ROOT + "/open_control")) || {});
@@ -213,7 +247,7 @@ async function listOpenIds(kind) {
   } else {
     const meta = (await fbGet(ROOT + "/meta")) || {};
     const batch = meta.active_batch;
-    if (!batch) ids = [];
+    if (!batch || !collectionHasPublicCrops(batch)) ids = [];
     else ids = Object.keys((await fbGet(ROOT + "/open_pricing/" + batch)) || {});
   }
   openIdCache[kind] = ids.slice();
@@ -243,6 +277,8 @@ function acceptItem(item, preferControlAnswer) {
   if (prefetchQueue.some(function(x) { return x.id === item.id; })) return false;
   if (preferControlAnswer && item.control_answer !== preferControlAnswer) return false;
   if ((item.votes || {})[safeUser]) return false;
+  if (!cropUrlLooksUsable(item)) return false;
+  if (!(item.cand_thumb || item.cand_url)) return false;
   return true;
 }
 async function pickFromIds(ids, preferControlAnswer) {

@@ -23,7 +23,13 @@ python3 PinMatchingGame/tools/seed_queue.py --seed-backlog-from-firebase
 
 Optional: `--limit N`, `--run-limit N` (newest N pricing runs only).
 
-Writes only under Firebase `pin_matching_game/v1` (`items`, `open_backlog`, `meta`, `batches/backlog`). Does not touch pricing watcher scripts or CTR show folders.
+Only collections that still have public crops on `PreparingInventory` main are seeded. If left-pin images go blank after pruning old collections:
+
+```bash
+python3 PinMatchingGame/tools/repair_crop_urls.py
+```
+
+Writes only under Firebase `pin_matching_game/v1`. Does not touch pricing watcher scripts or CTR show folders.
 
 ## Seed priority batch (unchanged)
 

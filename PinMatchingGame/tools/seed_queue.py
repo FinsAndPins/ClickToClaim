@@ -182,13 +182,48 @@ def guess_crop(pin_key: str, row: dict) -> str:
 
 
 def collection_from_run_id(test_run_id: str) -> str:
+    # Named publish folders: PriceCollection_YYYYMMDD_HHMMSS__Name_hash
+    m = re.match(
+        r"test_(PriceCollection_\d{8}_\d+__[A-Za-z0-9._-]+)",
+        test_run_id,
+    )
+    if m:
+        return m.group(1)
     m = re.match(r"test_(PriceCollection_\d{8}_\d+)", test_run_id)
     if m:
         return m.group(1)
-    m = re.match(r"test_((?:PriceCollection|PC)_[A-Za-z0-9]+)", test_run_id)
+    m = re.match(r"test_((?:PriceCollection|PC)_[A-Za-z0-9_]+)", test_run_id)
     if m:
         return m.group(1)
     return ""
+
+
+def github_live_collections() -> list[str]:
+    url = "https://api.github.com/repos/FinsAndPins/PreparingInventory/contents/"
+    req = urllib.request.Request(
+        url, headers={"Accept": "application/vnd.github+json", "User-Agent": "pmg-seed"}
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        root = json.loads(resp.read().decode())
+    return [
+        x["name"]
+        for x in root
+        if x.get("type") == "dir" and str(x.get("name") or "").startswith("PriceCollection_")
+    ]
+
+
+def resolve_public_collection(coll: str, live: list[str] | None = None) -> str:
+    """Map a collection id to a folder that still has public crops on GitHub."""
+    if not coll:
+        return ""
+    live = live if live is not None else github_live_collections()
+    if coll in live:
+        return coll
+    matches = [c for c in live if c.startswith(coll)]
+    if not matches:
+        return ""
+    matches.sort(key=lambda s: (0 if s == coll else 1, len(s), s))
+    return matches[0]
 
 
 def cand_identity(cand: dict) -> str:
@@ -431,10 +466,14 @@ def seed_backlog(args: argparse.Namespace) -> int:
         "skipped_no_answer": 0,
         "skipped_no_cand": 0,
         "skipped_no_collection": 0,
+        "skipped_no_public_crops": 0,
         "skipped_dup": 0,
         "match": 0,
         "no_match": 0,
     }
+
+    live_cols = github_live_collections()
+    print(f"Public crop collections on GitHub: {len(live_cols)}", flush=True)
 
     already: set[str] = set()
     if not args.dry_run:
@@ -452,6 +491,11 @@ def seed_backlog(args: argparse.Namespace) -> int:
         if not collection:
             stats["skipped_no_collection"] += 1
             continue
+        public_coll = resolve_public_collection(collection, live_cols)
+        if not public_coll:
+            stats["skipped_no_public_crops"] += 1
+            continue
+        collection = public_coll
         try:
             apps = fb_get(f"pin_pricing_tests/{rid}", shallow=True) or {}
         except Exception as exc:
