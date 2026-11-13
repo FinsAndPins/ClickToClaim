@@ -28,12 +28,28 @@ BACKLOG_LOW_WATER = 5000
 BACKLOG_HARD_FLOOR = 1000
 
 
+def _fb_call(req: urllib.request.Request, attempts: int = 6) -> Any:
+    last: Exception | None = None
+    for i in range(attempts):
+        try:
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                return json.loads(resp.read().decode("utf-8") or "null")
+        except Exception as exc:  # noqa: BLE001 - network retries
+            last = exc
+            wait = min(2 ** i, 30)
+            print(f"WARN: Firebase retry {i + 1}/{attempts} after {exc}; sleep {wait}s", flush=True)
+            import time
+
+            time.sleep(wait)
+    assert last is not None
+    raise last
+
+
 def fb_get(path: str, shallow: bool = False) -> Any:
     url = f"{DB}/{path.lstrip('/')}.json"
     if shallow:
         url += "?shallow=true"
-    with urllib.request.urlopen(url, timeout=300) as resp:
-        return json.loads(resp.read().decode("utf-8") or "null")
+    return _fb_call(urllib.request.Request(url, method="GET"))
 
 
 def fb_put(path: str, data: Any) -> None:
@@ -42,8 +58,7 @@ def fb_put(path: str, data: Any) -> None:
     req = urllib.request.Request(
         url, data=body, method="PUT", headers={"Content-Type": "application/json"}
     )
-    with urllib.request.urlopen(req, timeout=300) as resp:
-        resp.read()
+    _fb_call(req)
 
 
 def fb_patch(path: str, data: dict) -> None:
@@ -52,8 +67,7 @@ def fb_patch(path: str, data: dict) -> None:
     req = urllib.request.Request(
         url, data=body, method="PATCH", headers={"Content-Type": "application/json"}
     )
-    with urllib.request.urlopen(req, timeout=300) as resp:
-        resp.read()
+    _fb_call(req)
 
 
 def safe_key(s: str) -> str:
@@ -422,9 +436,15 @@ def seed_backlog(args: argparse.Namespace) -> int:
         "no_match": 0,
     }
 
+    already: set[str] = set()
     if not args.dry_run:
-        # Clear prior durable index so re-seeds do not leave stale ids.
-        fb_put(f"{ROOT}/open_backlog", {})
+        if args.replace_open_index:
+            fb_put(f"{ROOT}/open_backlog", {})
+        else:
+            existing = fb_get(f"{ROOT}/open_backlog", shallow=True) or {}
+            if isinstance(existing, dict):
+                already = set(existing.keys())
+                print(f"Resuming with {len(already)} existing open_backlog ids", flush=True)
 
     for rid in run_ids:
         stats["runs_scanned"] += 1
@@ -485,6 +505,9 @@ def seed_backlog(args: argparse.Namespace) -> int:
             if not item["crop_url"] or not item["cand_thumb"]:
                 stats["skipped_no_cand"] += 1
                 continue
+            if item["id"] in already:
+                stats["skipped_dup"] += 1
+                continue
             stats["eligible"] += 1
             stats[answer] = int(stats.get(answer, 0)) + 1
             if args.dry_run:
@@ -520,7 +543,8 @@ def seed_backlog(args: argparse.Namespace) -> int:
         stats["written"] += len(pending)
         pending = []
 
-    n = stats["written"]
+    open_now = fb_get(f"{ROOT}/open_backlog", shallow=True) or {}
+    n = len(open_now) if isinstance(open_now, dict) else stats["written"]
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     alert = None
     if n < BACKLOG_HARD_FLOOR:
@@ -555,8 +579,8 @@ def seed_backlog(args: argparse.Namespace) -> int:
             "seed_stats": stats,
         },
     )
-    print(json.dumps({"stats": stats}, indent=2), flush=True)
-    print(f"Seeded durable backlog={n} alert={alert}", flush=True)
+    print(json.dumps({"stats": stats, "open_backlog_count": n}, indent=2), flush=True)
+    print(f"Seeded durable backlog open={n} wrote_this_run={stats['written']} alert={alert}", flush=True)
     return 0
 
 
@@ -649,6 +673,11 @@ def main() -> int:
         help="Seed durable backlog from all decided CTM/CTP pairs in Firebase",
     )
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--replace-open-index",
+        action="store_true",
+        help="Clear open_backlog before seeding (default resumes and skips existing ids)",
+    )
     args = ap.parse_args()
 
     if args.seed_backlog_from_firebase:
