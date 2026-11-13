@@ -386,23 +386,33 @@ def ranked_run_ids(run_ids: list[str]) -> list[str]:
     return sorted(run_ids, key=sort_key)
 
 
-def iter_backlog_items(
-    *,
-    approach_id: str,
-    limit: int = 0,
-    run_limit: int = 0,
-) -> tuple[list[dict], dict]:
+def flush_backlog_chunk(chunk: list[dict], open_ids: list[str]) -> None:
+    if not chunk:
+        return
+    multi: dict[str, Any] = {}
+    for it in chunk:
+        multi[f"items/{it['id']}"] = it
+        multi[f"open_backlog/{it['id']}"] = True
+        open_ids.append(it["id"])
+    fb_patch(ROOT, multi)
+
+
+def seed_backlog(args: argparse.Namespace) -> int:
+    """Stream-scan Firebase history and write durable backlog in small batches."""
     runs = fb_get("pin_pricing_tests", shallow=True) or {}
     run_ids = ranked_run_ids(list(runs.keys()))
-    if run_limit:
-        run_ids = run_ids[:run_limit]
+    if args.run_limit:
+        run_ids = run_ids[: args.run_limit]
 
     seen: set[str] = set()
-    items: list[dict] = []
+    pending: list[dict] = []
+    open_ids: list[str] = []
+    batch_size = 40
     stats = {
         "runs_scanned": 0,
         "pins_seen": 0,
         "eligible": 0,
+        "written": 0,
         "skipped_manual": 0,
         "skipped_no_answer": 0,
         "skipped_no_cand": 0,
@@ -411,6 +421,10 @@ def iter_backlog_items(
         "match": 0,
         "no_match": 0,
     }
+
+    if not args.dry_run:
+        # Clear prior durable index so re-seeds do not leave stale ids.
+        fb_put(f"{ROOT}/open_backlog", {})
 
     for rid in run_ids:
         stats["runs_scanned"] += 1
@@ -423,7 +437,11 @@ def iter_backlog_items(
         except Exception as exc:
             print(f"WARN: skip run {rid}: {exc}", file=sys.stderr)
             continue
-        app = approach_id if approach_id in apps else (next(iter(apps), "") if apps else "")
+        app = (
+            args.controls_approach
+            if args.controls_approach in apps
+            else (next(iter(apps), "") if apps else "")
+        )
         if not app:
             continue
         try:
@@ -467,53 +485,44 @@ def iter_backlog_items(
             if not item["crop_url"] or not item["cand_thumb"]:
                 stats["skipped_no_cand"] += 1
                 continue
-            items.append(item)
             stats["eligible"] += 1
             stats[answer] = int(stats.get(answer, 0)) + 1
-            if limit and len(items) >= limit:
-                return items, stats
+            if args.dry_run:
+                if args.limit and stats["eligible"] >= args.limit:
+                    break
+                continue
+            pending.append(item)
+            if len(pending) >= batch_size:
+                flush_backlog_chunk(pending, open_ids)
+                stats["written"] += len(pending)
+                pending = []
+                if stats["written"] % 200 == 0:
+                    print(f"  backlog put {stats['written']}", flush=True)
+            if args.limit and stats["eligible"] >= args.limit:
+                break
 
         if stats["runs_scanned"] % 25 == 0:
             print(
                 f"  scanned {stats['runs_scanned']}/{len(run_ids)} runs; "
-                f"eligible={stats['eligible']}",
-                file=sys.stderr,
+                f"eligible={stats['eligible']} written={stats['written']}",
+                flush=True,
             )
+        if args.limit and stats["eligible"] >= args.limit:
+            break
 
-    return items, stats
-
-
-def seed_backlog(args: argparse.Namespace) -> int:
-    items, stats = iter_backlog_items(
-        approach_id=args.controls_approach,
-        limit=args.limit,
-        run_limit=args.run_limit,
-    )
-    print(json.dumps({"stats": stats, "to_write": len(items)}, indent=2))
     if args.dry_run:
+        print(json.dumps({"stats": stats, "to_write": stats["eligible"]}, indent=2))
         print("Dry run only; no Firebase writes.")
         return 0
 
-    open_map: dict[str, bool] = {}
-    batch_size = 40
-    for i in range(0, len(items), batch_size):
-        chunk = items[i : i + batch_size]
-        multi: dict[str, Any] = {}
-        for it in chunk:
-            multi[f"items/{it['id']}"] = it
-            open_map[it["id"]] = True
-        # Multi-path update under pin_matching_game/v1
-        fb_patch(ROOT, multi)
-        done = min(i + batch_size, len(items))
-        if done % 200 == 0 or done == len(items):
-            print(f"  backlog put {done}/{len(items)}")
+    if pending:
+        flush_backlog_chunk(pending, open_ids)
+        stats["written"] += len(pending)
+        pending = []
 
-    # Durable index: replace whole map so re-seeds stay consistent.
-    fb_put(f"{ROOT}/open_backlog", open_map)
-
+    n = stats["written"]
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     alert = None
-    n = len(items)
     if n < BACKLOG_HARD_FLOOR:
         alert = "hard_floor"
     elif n < BACKLOG_LOW_WATER:
@@ -546,7 +555,8 @@ def seed_backlog(args: argparse.Namespace) -> int:
             "seed_stats": stats,
         },
     )
-    print(f"Seeded durable backlog={n} alert={alert}")
+    print(json.dumps({"stats": stats}, indent=2), flush=True)
+    print(f"Seeded durable backlog={n} alert={alert}", flush=True)
     return 0
 
 
