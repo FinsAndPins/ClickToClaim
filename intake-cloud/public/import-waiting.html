@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Finding pins…</title>
+  <style>
+    :root {
+      --bg: #0a0c12;
+      --text: #f4f6fb;
+      --muted: #9aa3b5;
+      --accent: #44b4ea;
+      --box: #3db8f5;
+      --bar: #2a3148;
+      --ok: #3ddc97;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; height: 100%;
+      background: var(--bg); color: var(--text);
+      font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+      overflow: hidden;
+    }
+    #stage {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #05060a;
+    }
+    #boardWrap {
+      position: relative;
+      max-width: 100vw; max-height: calc(100dvh - 120px);
+      width: min(100vw, 720px);
+    }
+    #boardImg {
+      display: block; width: 100%; height: auto;
+      max-height: calc(100dvh - 120px);
+      object-fit: contain;
+      border-radius: 4px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+      opacity: 0; transition: opacity 0.45s ease;
+    }
+    #boardImg.on { opacity: 1; }
+    #overlay {
+      position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .trace-box {
+      position: absolute;
+      border: 2.5px solid var(--box);
+      box-shadow: 0 0 12px rgba(61, 184, 245, 0.35);
+      background: rgba(61, 184, 245, 0.08);
+      opacity: 0;
+      animation: boxIn 0.55s ease forwards;
+    }
+    @keyframes boxIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    #swirl {
+      position: absolute; inset: -20%;
+      background: conic-gradient(
+        from var(--ang, 0deg),
+        rgba(68, 180, 234, 0.07),
+        transparent 30%,
+        rgba(61, 184, 245, 0.05),
+        transparent 70%,
+        rgba(68, 180, 234, 0.07)
+      );
+      animation: spin 78s linear infinite;
+      pointer-events: none; mix-blend-mode: screen;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      #swirl { animation: none; }
+      .trace-box { animation: none; opacity: 1; }
+    }
+    #footer {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      padding: 14px 16px calc(18px + env(safe-area-inset-bottom));
+      background: linear-gradient(transparent, rgba(5,6,10,0.92) 28%);
+      text-align: center;
+    }
+    #title {
+      font-size: 15px; font-weight: 800; letter-spacing: 0.02em; margin: 0 0 4px;
+    }
+    #subtitle {
+      font-size: 13px; color: var(--muted); margin: 0 0 12px; min-height: 1.2em;
+    }
+    #bar {
+      height: 8px; border-radius: 999px; background: var(--bar);
+      overflow: hidden; max-width: 420px; margin: 0 auto;
+    }
+    #bar > i {
+      display: block; height: 100%; width: 8%;
+      background: linear-gradient(90deg, #2a8fd4, var(--accent));
+      border-radius: inherit;
+      transition: width 0.4s ease;
+    }
+    #err {
+      display: none; position: fixed; inset: 0;
+      align-items: center; justify-content: center;
+      padding: 24px; background: var(--bg); text-align: center;
+    }
+    #err.open { display: flex; flex-direction: column; gap: 12px; }
+    #err a {
+      color: var(--accent); font-weight: 700; text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div id="boardWrap">
+      <div id="swirl" aria-hidden="true"></div>
+      <img id="boardImg" alt="" />
+      <div id="overlay"></div>
+    </div>
+  </div>
+  <div id="footer">
+    <p id="title">Finding pins on your boards…</p>
+    <p id="subtitle">Same step as in the app</p>
+    <div id="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8"><i id="barFill"></i></div>
+  </div>
+  <div id="err">
+    <p id="errText">Something stalled.</p>
+    <a id="errRetry" href="#">Try again</a>
+  </div>
+<script>
+(function () {
+  const token = (window.__BOX_TOKEN__ || new URLSearchParams(location.search).get("token") || "").trim();
+  const title = document.getElementById("title");
+  const subtitle = document.getElementById("subtitle");
+  const barFill = document.getElementById("barFill");
+  const bar = document.getElementById("bar");
+  const img = document.getElementById("boardImg");
+  const overlay = document.getElementById("overlay");
+  const err = document.getElementById("err");
+  const errText = document.getElementById("errText");
+  const errRetry = document.getElementById("errRetry");
+
+  if (!token) {
+    err.classList.add("open");
+    errText.textContent = "Missing review link.";
+    return;
+  }
+  errRetry.href = "/boxes/" + encodeURIComponent(token);
+
+  let photos = [];
+  let photoIndex = 0;
+  let fakeBoxes = 0;
+  let progress = 8;
+  let started = Date.now();
+  let ready = false;
+
+  function setProgress(p, label, sub) {
+    progress = Math.max(progress, Math.min(96, p));
+    barFill.style.width = progress + "%";
+    bar.setAttribute("aria-valuenow", String(Math.round(progress)));
+    if (label) title.textContent = label;
+    if (sub != null) subtitle.textContent = sub;
+  }
+
+  function randomBoxes(n) {
+    overlay.innerHTML = "";
+    const count = Math.max(4, Math.min(18, n || 8));
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement("div");
+      el.className = "trace-box";
+      const w = 10 + Math.random() * 16;
+      const h = 10 + Math.random() * 16;
+      const x = 4 + Math.random() * (92 - w);
+      const y = 4 + Math.random() * (92 - h);
+      el.style.left = x + "%";
+      el.style.top = y + "%";
+      el.style.width = w + "%";
+      el.style.height = h + "%";
+      el.style.animationDelay = (i * 0.08) + "s";
+      overlay.appendChild(el);
+    }
+    fakeBoxes = count;
+  }
+
+  function showPhoto(i) {
+    if (!photos.length) return;
+    photoIndex = ((i % photos.length) + photos.length) % photos.length;
+    const p = photos[photoIndex];
+    img.classList.remove("on");
+    img.onload = () => {
+      img.classList.add("on");
+      randomBoxes(10 + Math.floor(Math.random() * 8));
+    };
+    img.src = p.url + (p.url.includes("?") ? "&" : "?") + "v=" + Date.now();
+  }
+
+  async function loadPhotosOnce() {
+    const res = await fetch("/api/boxes/" + encodeURIComponent(token) + "/photos", { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) return { ok: false, photos: [], error: data.error || "Could not load photos" };
+    return { ok: true, photos: data.photos || [] };
+  }
+
+  async function ensurePhotos() {
+    // Finish stores photos in the background after redirect; wait instead of hard-failing.
+    setProgress(10, "Saving your photos…", "Uploaded boards are being stored");
+    const deadline = Date.now() + 3 * 60 * 1000;
+    while (Date.now() < deadline) {
+      const got = await loadPhotosOnce();
+      if (got.ok && got.photos.length) {
+        photos = got.photos;
+        showPhoto(0);
+        setProgress(18, "Importing " + photos.length + " board" + (photos.length === 1 ? "" : "s"), "Finding pins…");
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    throw new Error("Photos are still saving. Tap Try again in a moment.");
+  }
+
+  async function poll() {
+    if (ready) return;
+    try {
+      if (!photos.length) {
+        const got = await loadPhotosOnce();
+        if (got.ok && got.photos.length) {
+          photos = got.photos;
+          showPhoto(0);
+        }
+      }
+      const res = await fetch("/api/boxes/" + encodeURIComponent(token) + "/status", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "status " + res.status);
+
+      if (data.ready) {
+        ready = true;
+        const pins = data.pin_count != null ? data.pin_count : null;
+        setProgress(100, pins != null ? (pins + " pins found") : "Boxes ready", "Opening editor…");
+        barFill.style.width = "100%";
+        setTimeout(() => {
+          location.replace("/boxes/" + encodeURIComponent(token) + "/editor");
+        }, 450);
+        return;
+      }
+
+      if (data.failed) {
+        setProgress(progress, "Still working…", "Retrying detect…");
+      } else {
+        const phase = data.phase || data.status || "";
+        const pins = data.pin_count;
+        if (!photos.length) {
+          setProgress(12 + Math.min(15, (Date.now() - started) / 2000), "Saving your photos…", data.label || "Hang tight");
+        } else if (phase === "detecting" || phase === "cloud_running") {
+          setProgress(35 + Math.min(40, (Date.now() - started) / 800), "Finding pins…", data.label || "Detecting on your boards");
+        } else if (phase === "prefetching") {
+          setProgress(78, pins != null ? (pins + " pins · starting prices") : "Pins found", "Almost ready…");
+        } else if (phase === "detect_ready" || phase === "awaiting_box_confirm") {
+          setProgress(92, pins != null ? (pins + " pins found") : "Boxes ready", "Opening editor…");
+        } else {
+          setProgress(18 + Math.min(20, (Date.now() - started) / 1500), data.label || "Saving your photos…", "Hang tight");
+        }
+        if (pins != null && pins > 0) {
+          subtitle.textContent = pins + " pin" + (pins === 1 ? "" : "s") + " found";
+        }
+      }
+    } catch (e) {
+      /* keep movie going; next poll */
+    }
+    setTimeout(poll, 1500);
+  }
+
+  // Cycle boards like the app movie (every ~2.8s for small batches)
+  setInterval(() => {
+    if (ready || photos.length < 2) return;
+    showPhoto(photoIndex + 1);
+  }, 2800);
+
+  ensurePhotos()
+    .then(() => poll())
+    .catch((e) => {
+      err.classList.add("open");
+      errText.textContent = e && e.message ? e.message : String(e);
+    });
+  // Also start status polling immediately so detect progress is not blocked on first photo.
+  poll();
+})();
+</script>
+</body>
+</html>

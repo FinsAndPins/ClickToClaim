@@ -93,6 +93,9 @@ async function loadResolved() {
   const wrap = document.getElementById("tableWrap");
   const summary = document.getElementById("summary");
   try {
+    const meta = (await fbGet(ROOT + "/meta")) || {};
+    const openBacklog = (await fbGet(ROOT + "/open_backlog")) || {};
+    const backlogN = Object.keys(openBacklog).length;
     const resolved = (await fbGet(ROOT + "/resolved")) || {};
     const rows = Object.keys(resolved)
       .map(function(id) {
@@ -101,6 +104,7 @@ async function loadResolved() {
           id: id,
           at: r.at || "",
           kind: r.kind || "",
+          lane: r.lane || "",
           action: r.action || "",
           reason: r.reason || "",
           collection: r.collection || "",
@@ -114,7 +118,16 @@ async function loadResolved() {
         return String(b.at).localeCompare(String(a.at));
       });
 
-    summary.textContent = rows.length + " resolved item(s). Newest first.";
+    const alert = meta.backlog_alert ? (" alert=" + meta.backlog_alert) : "";
+    summary.textContent =
+      rows.length +
+      " resolved priority/control item(s). Durable backlog open=" +
+      backlogN +
+      " (meta.count=" +
+      (meta.backlog_count || 0) +
+      ")" +
+      alert +
+      ". Newest first.";
 
     if (!rows.length) {
       wrap.innerHTML = '<p class="empty">No resolved items yet.</p>';

@@ -69,3 +69,7 @@ firebase-rtdb-backup*.json
 /Show 20260204 Final/
 /Template Local/
 /Template Multi-User not perfect/
+
+# Cloud lab invoke key (never commit)
+**/.cloud_invoke_key
+intake-cloud/.dev.vars

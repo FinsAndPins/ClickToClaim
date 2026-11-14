@@ -111,7 +111,7 @@ let voting = false;
 let itemCache = new Map();
 let prefetchQueue = [];
 let prefetching = false;
-let openIdCache = {pricing: null, control: null, at: 0};
+let openIdCache = {pricing: null, control: null, backlog: null, at: 0};
 const OPEN_ID_TTL_MS = 15000;
 const PREFETCH_TARGET = 3;
 
@@ -208,15 +208,23 @@ async function listOpenIds(kind) {
   let ids = [];
   if (kind === "control") {
     ids = Object.keys((await fbGet(ROOT + "/open_control")) || {});
+  } else if (kind === "backlog") {
+    ids = Object.keys((await fbGet(ROOT + "/open_backlog")) || {});
   } else {
     const meta = (await fbGet(ROOT + "/meta")) || {};
     const batch = meta.active_batch;
-    if (!batch) return [];
-    ids = Object.keys((await fbGet(ROOT + "/open_pricing/" + batch)) || {});
+    if (!batch) ids = [];
+    else ids = Object.keys((await fbGet(ROOT + "/open_pricing/" + batch)) || {});
   }
   openIdCache[kind] = ids.slice();
   openIdCache.at = now;
   return ids;
+}
+function isBacklogItem(item) {
+  return !!(item && (item.kind === "backlog" || item.lane === "backlog" || item.durable));
+}
+function isPricingLike(item) {
+  return !!(item && (item.kind === "pricing" || item.kind === "backlog"));
 }
 function warmImages(item) {
   if (!item) return;
@@ -237,9 +245,7 @@ function acceptItem(item, preferControlAnswer) {
   if ((item.votes || {})[safeUser]) return false;
   return true;
 }
-async function pickItem(preferControlAnswer) {
-  const kind = preferControlAnswer ? "control" : "pricing";
-  let ids = shuffle(await listOpenIds(kind));
+async function pickFromIds(ids, preferControlAnswer) {
   for (const id of ids) {
     if (sessionSeen.has(id)) continue;
     if (prefetchQueue.some(function(x) { return x.id === id; })) continue;
@@ -248,17 +254,18 @@ async function pickItem(preferControlAnswer) {
     itemCache.set(item.id, item);
     return item;
   }
-  if (preferControlAnswer) return null;
-  ids = shuffle(await listOpenIds("control"));
-  for (const id of ids) {
-    if (sessionSeen.has(id)) continue;
-    if (prefetchQueue.some(function(x) { return x.id === id; })) continue;
-    const item = await fbGet(ROOT + "/items/" + id);
-    if (!acceptItem(item, null)) continue;
-    itemCache.set(item.id, item);
-    return item;
-  }
   return null;
+}
+async function pickItem(preferControlAnswer) {
+  // Serve order: injected controls -> priority pricing -> durable backlog.
+  if (preferControlAnswer) {
+    return pickFromIds(shuffle(await listOpenIds("control")), preferControlAnswer);
+  }
+  let item = await pickFromIds(shuffle(await listOpenIds("pricing")), null);
+  if (item) return item;
+  item = await pickFromIds(shuffle(await listOpenIds("backlog")), null);
+  if (item) return item;
+  return pickFromIds(shuffle(await listOpenIds("control")), null);
 }
 async function refillPrefetch() {
   if (prefetching) return;
@@ -266,7 +273,7 @@ async function refillPrefetch() {
   try {
     while (prefetchQueue.length < PREFETCH_TARGET) {
       let item = null;
-      if (pricingSinceControl + prefetchQueue.filter(function(x) { return x.kind === "pricing"; }).length >= CONTROL_EVERY) {
+      if (pricingSinceControl + prefetchQueue.filter(function(x) { return isPricingLike(x); }).length >= CONTROL_EVERY) {
         if (needMatchControl) {
           item = await pickItem("match");
           if (item) needMatchControl = false;
@@ -397,6 +404,7 @@ async function writeHarness(item, action) {
   });
 }
 async function enqueueNextCandidate(item) {
+  if (isBacklogItem(item)) return;
   const slot = Number(item.cand_slot || 0) + 1;
   const all = item.all_candidates || [];
   if (slot >= all.length) return;
@@ -405,6 +413,7 @@ async function enqueueNextCandidate(item) {
   const next = {
     id: id,
     kind: "pricing",
+    lane: "priority",
     batch_id: item.batch_id || item.collection,
     collection: item.collection,
     pin_key: item.pin_key,
@@ -415,6 +424,7 @@ async function enqueueNextCandidate(item) {
     candidate_count: item.candidate_count || all.length,
     all_candidates: all,
     control_answer: null,
+    known_answer: null,
     status: "open",
     tallies: {match: 0, no_match: 0, not_a_pin: 0},
     participant_count: 0,
@@ -430,6 +440,18 @@ async function enqueueNextCandidate(item) {
   await fbPatch(ROOT + "/open_pricing/" + item.collection, {[id]: true});
 }
 async function closeItem(item, action, reason) {
+  // Durable backlog stays open forever for other users; never write harness.
+  if (isBacklogItem(item)) {
+    await fbPatch(ROOT + "/items/" + item.id, {
+      last_research: {
+        action: action,
+        at: new Date().toISOString(),
+        reason: reason,
+        source: "pin_matching_game"
+      }
+    });
+    return;
+  }
   await fbPatch(ROOT + "/items/" + item.id, {
     status: reason === "escape" ? "escalated" : "resolved",
     consensus: {action: action, at: new Date().toISOString(), reason: reason, source: "pin_matching_game"}
@@ -446,6 +468,7 @@ async function closeItem(item, action, reason) {
   await fbPatch(ROOT + "/resolved/" + item.id, {
     id: item.id,
     kind: item.kind,
+    lane: item.lane || (item.kind === "pricing" ? "priority" : "control"),
     action: action,
     reason: reason,
     pin_key: item.pin_key,
@@ -472,6 +495,8 @@ async function recomputeAndMaybeClose(itemId) {
     }
   });
   await fbPatch(ROOT + "/items/" + itemId, {tallies: tallies, participant_count: participants});
+  // Backlog: keep tallies for research, but never resolve or remove from open_backlog.
+  if (isBacklogItem(item)) return fbGet(ROOT + "/items/" + itemId);
   const actions = ["match", "no_match", "not_a_pin"];
   for (let i = 0; i < actions.length; i++) {
     if (tallies[actions[i]] >= 3) {
@@ -493,6 +518,16 @@ async function updatePlayerStats(item, action) {
     player.control_correct = patch.control_correct;
     patch.trusted = isTrusted(player);
     player.trusted = patch.trusted;
+  } else if (isBacklogItem(item) && action !== "skip") {
+    const answer = item.known_answer || item.control_answer;
+    patch.backlog_votes = Number(player.backlog_votes || 0) + 1;
+    player.backlog_votes = patch.backlog_votes;
+    if (answer === "match" || answer === "no_match") {
+      patch.backlog_total = Number(player.backlog_total || 0) + 1;
+      patch.backlog_correct = Number(player.backlog_correct || 0) + (action === answer ? 1 : 0);
+      player.backlog_total = patch.backlog_total;
+      player.backlog_correct = patch.backlog_correct;
+    }
   } else if (item.kind === "pricing" && action !== "skip") {
     patch.pricing_votes = Number(player.pricing_votes || 0) + 1;
     player.pricing_votes = patch.pricing_votes;
@@ -509,14 +544,14 @@ async function persistVote(item, action) {
   });
   await updatePlayerStats(item, action);
   await recomputeAndMaybeClose(item.id);
-  if (item.kind === "control") refreshLeaderboardButtons();
+  if (item.kind === "control" || isBacklogItem(item)) refreshLeaderboardButtons();
 }
 async function cast(action) {
   if (voting || !current) return;
   const item = current;
   voting = true;
   try {
-    if (item.kind === "pricing" && action !== "skip") pricingSinceControl += 1;
+    if (isPricingLike(item) && action !== "skip") pricingSinceControl += 1;
     // Advance UI immediately (CTM-style). Persist in background.
     const advance = nextCard();
     persistVote(item, action).catch(function(e) {
