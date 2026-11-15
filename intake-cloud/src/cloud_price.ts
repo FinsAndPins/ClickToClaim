@@ -213,7 +213,7 @@ export async function runCloudDetectAndPrefetch(
     status: String(body.status || "awaiting_box_confirm"),
     pin_count: Number(body.pin_count || 0),
     priced_count: Number(body.prefetch_priced || 0),
-    prefetch_n: Number(body.prefetch_n || CLOUD_PREFETCH_N),
+    prefetch_n: Number(body.prefetch_n != null ? body.prefetch_n : CLOUD_PREFETCH_N),
     prefetch_priced: Number(body.prefetch_priced || 0),
     elapsed_sec: Number(body.elapsed_sec || 0),
     boards: Array.isArray(body.boards) ? body.boards : [],
@@ -428,9 +428,39 @@ export async function convertImageViaCloudRun(
 }
 
 /**
- * Re-kick deferred eBay when Confirm's Cloud Run BackgroundTask died
- * (CPU throttle after response, instance recycle, etc.).
+ * After detect-only (prefetch_n=0), queue Match-window eBay on the existing job.
+ * Cloud Run 0.9.6+ POST /jobs/{id}/start-prefetch.
  */
+export async function kickStartPrefetch(
+  env: Bindings,
+  jobId: string,
+  prefetchN: number = CLOUD_PREFETCH_N
+): Promise<{ ok: boolean; error?: string; queued?: boolean }> {
+  const base = priceBase(env);
+  const key = invokeKey(env);
+  if (!base || !key) {
+    return { ok: false, error: "CLOUD_PRICE_URL / CLOUD_PRICE_INVOKE_KEY not configured" };
+  }
+  try {
+    const res = await fetch(`${base}/jobs/${encodeURIComponent(jobId)}/start-prefetch`, {
+      method: "POST",
+      headers: {
+        "X-Intake-Cloud-Key": key,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ prefetch_n: Math.max(1, Math.round(prefetchN)) }),
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      return { ok: false, error: `start-prefetch HTTP ${res.status}: ${text.slice(0, 300)}` };
+    }
+    return { ok: true, queued: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Re-kick deferred eBay when Confirm's Cloud Run BackgroundTask died. */
 export async function kickFinishRemaining(
   env: Bindings,
   jobId: string

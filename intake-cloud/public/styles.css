@@ -319,6 +319,58 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   background: rgba(255, 255, 255, 0.72);
   outline: none;
 }
+.consent-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 12, 24, 0.55);
+}
+.consent-modal.open {
+  display: flex;
+}
+.consent-dialog {
+  width: min(520px, 100%);
+  max-height: min(90dvh, 640px);
+  overflow: auto;
+  padding: 22px 20px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--fp-muted);
+  box-shadow: 0 18px 40px rgba(26, 26, 64, 0.28);
+}
+.consent-dialog h2 {
+  margin: 0 0 10px;
+  color: var(--fp-text);
+  font-size: 1.25rem;
+}
+.consent-dialog p {
+  margin: 0 0 12px;
+}
+.consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.consent-actions .btn-secondary {
+  flex: 1 1 120px;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(26, 26, 64, 0.25);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--fp-muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+.consent-actions .consent-agree {
+  flex: 2 1 200px;
+  min-height: 48px;
+  font-size: 1.05rem;
+}
 .choose-input:focus-visible + .choose-btn,
 .choose-btn:focus-visible {
   outline: 3px solid var(--fp-muted);

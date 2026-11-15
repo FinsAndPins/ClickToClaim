@@ -1,5 +1,11 @@
 # Intake lessons
 
+## 2026-11-15 — Processing consent before Choose; detect-only until Submit
+
+- **Goal:** Start RF-DETR as soon as boards upload, without eBay on abandoners.
+- **Rule:** Agree-and-choose modal → `processing_consent_at` on the upload session → photos allowed. Progressive promote + `prefetch_n=0` detect. On Submit, `start-prefetch` (Cloud Run 0.9.6+) or full detect+prefetch if no job yet. Submit checkbox stays commercial/privacy for the offer.
+- **Where:** `seller-home.js` / `app.ts`; `IntakeCloudPricing` `detect_and_prefetch` + `/jobs/{id}/start-prefetch`
+
 ## 2026-11-15 — Match “Opening Match…” forever while still awaiting boxes
 
 - **Symptom:** Seller Match spun on Opening Match; CTM 404; poll never exited.

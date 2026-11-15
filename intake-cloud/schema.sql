@@ -86,10 +86,12 @@ CREATE TABLE IF NOT EXISTS upload_sessions (
   seller_notes TEXT,
   delivery_method TEXT,
   accepted_terms_at TEXT NOT NULL,
+  processing_consent_at TEXT,
   created_at TEXT NOT NULL,
   expires_at TEXT NOT NULL,
   finish_started_at TEXT,
-  collection_id TEXT
+  collection_id TEXT,
+  early_detect_due_ms INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS upload_temp_photos (
