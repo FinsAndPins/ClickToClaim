@@ -1,0 +1,50 @@
+# SEPARATE cloud-lab Worker. Does NOT replace finsandpins-intake / sellmycollection.finsandpins.shop.
+name = "finsandpins-intake-cloud"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+workers_dev = true
+
+# No custom_domain on sellmycollection — production intake stays untouched.
+# Optional later: cloud-lab.finsandpins.shop after DNS is ready.
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[vars]
+APP_NAME = "Fins & Pins: Sell My Collection (Cloud lab)"
+PUBLIC_BASE_URL = "https://finsandpins-intake-cloud.finsandpins.workers.dev"
+FROM_EMAIL = "offer@finsandpins.shop"
+NOREPLY_EMAIL = "noreply@finsandpins.shop"
+STAFF_ALERT_EMAILS = "finsandpins@gmail.com"
+STAFF_EMAILS = "steve.fierstein@gmail.com,finsandpins@gmail.com"
+SHIP_TO_NAME = "Fins and Pins, LLC"
+SHIP_TO_ADDRESS = "15049 Canopy Cover Dr, Winter Garden, FL 34787"
+OFFER_TTL_DAYS = "7"
+MAX_PHOTOS = "100"
+MAX_PHOTO_BYTES = "15728640"
+# development = DEV_ADMIN_EMAIL staff bypass (no CF Access on workers.dev yet)
+ENVIRONMENT = "development"
+DEV_ADMIN_EMAIL = "steve.fierstein@gmail.com"
+CLOUD_LAB = "1"
+# Cloud Run parallel pricing (eBay + RF-DETR stay on GCP; never on this Worker)
+CLOUD_PRICE_URL = "https://intake-cloud-detect-parallel-orissdd4dq-uc.a.run.app"
+# CLOUD_PRICE_INVOKE_KEY is a wrangler secret (never commit)
+NOTIFY_LEXI = "0"
+
+# Create with: npx wrangler d1 create intake-cloud
+[[d1_databases]]
+binding = "DB"
+database_name = "intake-cloud"
+database_id = "74f612eb-3f27-46d0-ad39-3e619cf692d9"
+
+# Create with: npx wrangler r2 bucket create finsandpins-intake-cloud
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "finsandpins-intake-cloud"
+
+[triggers]
+crons = ["*/10 * * * *"]
