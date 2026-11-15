@@ -2,7 +2,8 @@
  * Decode uploaded image bytes and write a fresh JPEG we control.
  * Applies JPEG EXIF Orientation (same idea as Mac watcher ImageOps.exif_transpose)
  * then strips EXIF so pixels are upright for browsers + Cloud Run.
- * HEIC is not decoded here (Workers); callers should fall back or convert on the Mac with sips.
+ * HEIC is not decoded here (Workers). Callers should convert in-browser before upload,
+ * or fall back to Cloud Run `/convert-to-jpeg` (Mac production intake still uses sips).
  */
 
 export type ReencodeResult =
@@ -18,10 +19,15 @@ function baseName(name: string | null | undefined): string {
   return stem.replace(/[^\w.\-]+/g, "_").slice(0, 80) || "photo";
 }
 
-function looksHeic(contentType: string, filename: string | null | undefined): boolean {
+export function looksHeic(contentType: string, filename: string | null | undefined): boolean {
   const t = (contentType || "").toLowerCase();
   const n = (filename || "").toLowerCase();
   return t.includes("heic") || t.includes("heif") || /\.heic$|\.heif$/.test(n);
+}
+
+/** JPEG filename when promoting a converted HEIC. */
+export function jpegNameFromOriginal(originalFilename: string | null | undefined): string {
+  return `${baseName(originalFilename)}.jpg`;
 }
 
 /** Read JPEG EXIF Orientation (1–8). Returns 1 if missing/unreadable. */

@@ -5,6 +5,7 @@
  */
 
 import type { Bindings } from "./types";
+import { jpegNameFromOriginal, looksHeic, reencodeToJpeg, type ReencodeResult } from "./reencode";
 
 export type CloudPriceResult = {
   ok: boolean;
@@ -323,6 +324,75 @@ export async function fetchCloudJobJson(
     return { ok: true, body: JSON.parse(text) as Record<string, unknown> };
   } catch {
     return { ok: false, error: `Invalid JSON at ${filePath}` };
+  }
+}
+
+/**
+ * Local reencode, then Cloud Run HEIC convert (lab stand-in for Mac sips).
+ * Never returns raw HEIC bytes.
+ */
+export async function ensureJpegBytes(
+  env: Bindings,
+  bytes: ArrayBuffer,
+  contentType: string,
+  originalFilename: string | null | undefined
+): Promise<ReencodeResult> {
+  const local = await reencodeToJpeg(bytes, contentType, originalFilename);
+  if (local.ok) return local;
+  if (!looksHeic(contentType, originalFilename) && local.reason !== "heic_unsupported_on_worker") {
+    return local;
+  }
+  const converted = await convertImageViaCloudRun(env, bytes, originalFilename || "photo.heic");
+  if (!converted.ok) {
+    return {
+      ok: false,
+      reason: `heic_convert_failed:${converted.error.slice(0, 160)}`,
+    };
+  }
+  return {
+    ok: true,
+    bytes: converted.bytes,
+    contentType: "image/jpeg",
+    filename: jpegNameFromOriginal(originalFilename),
+  };
+}
+
+/**
+ * Convert HEIC/HEIF (or other Pillow-readable bytes) to JPEG via Cloud Run.
+ * Mirrors Mac intake handoff `sips` for the cloud lab (Workers cannot decode HEIC).
+ */
+export async function convertImageViaCloudRun(
+  env: Bindings,
+  bytes: ArrayBuffer | Uint8Array,
+  filename: string
+): Promise<{ ok: true; bytes: Uint8Array; contentType: "image/jpeg" } | { ok: false; error: string }> {
+  const base = priceBase(env);
+  const key = invokeKey(env);
+  if (!base || !key) {
+    return { ok: false, error: "CLOUD_PRICE_URL / CLOUD_PRICE_INVOKE_KEY not configured" };
+  }
+  const body = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  try {
+    const res = await fetch(`${base}/convert-to-jpeg`, {
+      method: "POST",
+      headers: {
+        "X-Intake-Cloud-Key": key,
+        "content-type": "application/octet-stream",
+        "x-filename": filename || "photo.heic",
+      },
+      body,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      return { ok: false, error: `convert-to-jpeg HTTP ${res.status}: ${text.slice(0, 300)}` };
+    }
+    const out = new Uint8Array(await res.arrayBuffer());
+    if (out.byteLength < 100) {
+      return { ok: false, error: "convert-to-jpeg returned empty body" };
+    }
+    return { ok: true, bytes: out, contentType: "image/jpeg" };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 

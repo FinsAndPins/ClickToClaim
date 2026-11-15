@@ -21,6 +21,7 @@ import { INVITE_COOKIE, inviteGateEnabled, presentedInviteMatches } from "./invi
 import {
   cloudPricingConfigured,
   confirmCloudBoxes,
+  ensureJpegBytes,
   fetchCloudHarnessHtml,
   fetchCloudJobFile,
   fetchCloudJobJson,
@@ -30,7 +31,7 @@ import {
   type PhotoSourceUrl,
 } from "./cloud_price";
 import { buildZip, safeZipBaseName } from "./zip";
-import { folderNameFromSeller, reencodeToJpeg } from "./reencode";
+import { folderNameFromSeller } from "./reencode";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
@@ -357,10 +358,19 @@ async function processSubmissionBackground(
           .run();
         return;
       }
-      const re = await reencodeToJpeg(buf, p.content_type || "image/jpeg", p.original_filename);
-      const storeBytes = re.ok ? re.bytes : new Uint8Array(buf);
-      const storeType = re.ok ? re.contentType : p.content_type || "image/jpeg";
-      const storeName = re.ok ? re.filename : p.original_filename;
+      const re = await ensureJpegBytes(env, buf, p.content_type || "image/jpeg", p.original_filename);
+      if (!re.ok) {
+        // Leave temp for retry after Cloud Run convert is healthy; do not store raw HEIC.
+        missingTemps += 1;
+        await logEvent(env.DB, collectionId, session.seller_email || "system", "heic_convert_failed", {
+          photo_id: p.id,
+          reason: re.reason,
+        });
+        continue;
+      }
+      const storeBytes = re.bytes;
+      const storeType = re.contentType;
+      const storeName = re.filename;
       const digest = await crypto.subtle.digest("SHA-256", storeBytes);
       const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
       const destKey = `o_${p.id}`;
@@ -373,8 +383,8 @@ async function processSubmissionBackground(
           kind: "original",
           timestamp: created,
           sha256: sha,
-          reencoded: re.ok ? "jpeg" : "passthrough",
-          reencode_reason: re.ok ? "" : asciiMeta(re.reason || "", 80),
+          reencoded: "jpeg",
+          reencode_reason: "",
         },
       });
       await env.BUCKET.delete(p.r2_key);
@@ -1213,7 +1223,7 @@ app.get("/", (c) => {
       </form>
     </div>
     <script>window.INTAKE = ${JSON.stringify({ maxPhotos, maxBytes })};</script>
-    <script src="/seller-home.js?v=20261031a"></script>`
+    <script src="/seller-home.js?v=20261114heic"></script>`
   );
 });
 

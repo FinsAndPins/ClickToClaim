@@ -198,12 +198,116 @@
     }
   }
 
+  function looksHeic(file) {
+    if (!file) return false;
+    const t = String(file.type || "").toLowerCase();
+    const n = String(file.name || "").toLowerCase();
+    return t.includes("heic") || t.includes("heif") || /\.heic$|\.heif$/.test(n);
+  }
+
+  /**
+   * Cloud Worker cannot decode HEIC (Mac intake uses sips). Convert in-browser
+   * before upload so iPhone Photos picks Just Work on cloud lab.
+   */
+  async function ensureJpegFile(file) {
+    if (!file || !looksHeic(file)) return file;
+    const stem = String(file.name || "photo").replace(/\.[^.]+$/, "") || "photo";
+    const jpegName = stem + ".jpg";
+
+    async function fromBitmap(bmp) {
+      const canvas = document.createElement("canvas");
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Could not convert HEIC (no canvas).");
+      ctx.drawImage(bmp, 0, 0);
+      if (typeof bmp.close === "function") {
+        try {
+          bmp.close();
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Could not convert HEIC to JPEG."))),
+          "image/jpeg",
+          0.92
+        );
+      });
+      return new File([blob], jpegName, { type: "image/jpeg", lastModified: Date.now() });
+    }
+
+    if (typeof createImageBitmap === "function") {
+      try {
+        const bmp = await createImageBitmap(file);
+        return await fromBitmap(bmp);
+      } catch (_) {
+        /* fall through */
+      }
+    }
+
+    // Safari sometimes decodes HEIC via <img> when createImageBitmap fails.
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const el = new Image();
+        el.onload = () => resolve(el);
+        el.onerror = () => reject(new Error("heic_img_failed"));
+        el.src = url;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      if (!canvas.width || !canvas.height) throw new Error("empty");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no ctx");
+      ctx.drawImage(img, 0, 0);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
+          "image/jpeg",
+          0.92
+        );
+      });
+      return new File([blob], jpegName, { type: "image/jpeg", lastModified: Date.now() });
+    } catch (_) {
+      throw new Error(
+        "This HEIC photo could not be converted. In Photos, export as JPEG and try again."
+      );
+    } finally {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
+
   async function uploadOne(it) {
     uploading += 1;
     updateSubmit();
     renderItem(it);
     try {
       const sid = await ensureSession();
+      if (it.file && looksHeic(it.file)) {
+        setStatus("Converting iPhone photo…");
+        it.file = await ensureJpegFile(it.file);
+        it.filename = it.file.name;
+        if (it.previewUrl) {
+          try {
+            URL.revokeObjectURL(it.previewUrl);
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        try {
+          it.previewUrl = URL.createObjectURL(it.file);
+        } catch (_) {
+          /* ignore */
+        }
+        renderItem(it);
+      }
       if (it.file.size > maxBytes) {
         throw new Error("Over the size limit.");
       }
