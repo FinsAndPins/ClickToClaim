@@ -360,9 +360,8 @@ async function processSubmissionBackground(
       }
       const re = await ensureJpegBytes(env, buf, p.content_type || "image/jpeg", p.original_filename);
       if (!re.ok) {
-        // Leave temp for retry after Cloud Run convert is healthy; do not store raw HEIC.
-        missingTemps += 1;
-        await logEvent(env.DB, collectionId, session.seller_email || "system", "heic_convert_failed", {
+        // Leave temp for cron retry. Do not count as "missing R2 object".
+        await logEvent(env.DB, collectionId, session.seller_email || "system", "photo_normalize_failed", {
           photo_id: p.id,
           reason: re.reason,
         });

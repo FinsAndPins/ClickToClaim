@@ -328,8 +328,12 @@ export async function fetchCloudJobJson(
 }
 
 /**
- * Local reencode, then Cloud Run HEIC convert (lab stand-in for Mac sips).
- * Never returns raw HEIC bytes.
+ * Normalize upload bytes to JPEG for storage.
+ * - Already JPEG: store as-is (fast). Full jsquash reencode of ~7MB iPhone boards
+ *   OOMs/slows Worker finish; Cloud Run `_downscale_jpeg_bytes` still does EXIF transpose.
+ * - HEIC: Cloud Run `/convert-to-jpeg` (Mac intake uses sips; Workers cannot decode HEIC).
+ * - PNG/WebP: local reencode, then Cloud Run if needed.
+ * Never returns raw HEIC.
  */
 export async function ensureJpegBytes(
   env: Bindings,
@@ -337,23 +341,45 @@ export async function ensureJpegBytes(
   contentType: string,
   originalFilename: string | null | undefined
 ): Promise<ReencodeResult> {
-  const local = await reencodeToJpeg(bytes, contentType, originalFilename);
-  if (local.ok) return local;
-  if (!looksHeic(contentType, originalFilename) && local.reason !== "heic_unsupported_on_worker") {
-    return local;
-  }
-  const converted = await convertImageViaCloudRun(env, bytes, originalFilename || "photo.heic");
-  if (!converted.ok) {
+  const type = (contentType || "").toLowerCase();
+  const name = originalFilename || "photo.jpg";
+  const buf = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : new Uint8Array(bytes);
+
+  if (looksHeic(type, name)) {
+    const converted = await convertImageViaCloudRun(env, buf, name);
+    if (!converted.ok) {
+      return { ok: false, reason: `heic_convert_failed:${converted.error.slice(0, 160)}` };
+    }
     return {
-      ok: false,
-      reason: `heic_convert_failed:${converted.error.slice(0, 160)}`,
+      ok: true,
+      bytes: converted.bytes,
+      contentType: "image/jpeg",
+      filename: jpegNameFromOriginal(name),
     };
+  }
+
+  // Skip Worker reencode for JPEG: finish stays fast; Cloud Run bakes orientation.
+  if (type.includes("jpeg") || type.includes("jpg") || /\.jpe?g$/i.test(name)) {
+    return {
+      ok: true,
+      bytes: buf,
+      contentType: "image/jpeg",
+      filename: jpegNameFromOriginal(name),
+    };
+  }
+
+  const local = await reencodeToJpeg(bytes, contentType, name);
+  if (local.ok) return local;
+
+  const converted = await convertImageViaCloudRun(env, buf, name);
+  if (!converted.ok) {
+    return { ok: false, reason: `reencode_failed:${local.reason};${converted.error.slice(0, 120)}` };
   }
   return {
     ok: true,
     bytes: converted.bytes,
     contentType: "image/jpeg",
-    filename: jpegNameFromOriginal(originalFilename),
+    filename: jpegNameFromOriginal(name),
   };
 }
 
