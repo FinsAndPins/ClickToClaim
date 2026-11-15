@@ -21,6 +21,7 @@ import { INVITE_COOKIE, inviteGateEnabled, presentedInviteMatches } from "./invi
 import {
   cloudPricingConfigured,
   confirmCloudBoxes,
+  ensureJpegBytes,
   fetchCloudHarnessHtml,
   fetchCloudJobFile,
   fetchCloudJobJson,
@@ -30,7 +31,7 @@ import {
   type PhotoSourceUrl,
 } from "./cloud_price";
 import { buildZip, safeZipBaseName } from "./zip";
-import { folderNameFromSeller, reencodeToJpeg } from "./reencode";
+import { folderNameFromSeller } from "./reencode";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
@@ -317,50 +318,76 @@ async function processSubmissionBackground(
     stored = Number(already?.n || 0);
 
     let cover: string | null = null;
-    let workedThisTick = 0;
     let missingTemps = 0;
 
+    // Collect up to FINISH_PHOTOS_PER_TICK unfinished temps, then normalize+Vision in parallel
+    // (serial Cloud Run downscales were the main "Saving your photos…" latency).
+    type FinishCandidate = { p: (typeof photos)[number]; buf: ArrayBuffer };
+    const batch: FinishCandidate[] = [];
     for (const p of photos) {
       const exists = await env.DB.prepare(`SELECT id FROM photos WHERE id = ?`).bind(p.id).first();
       if (exists) {
         if (!cover) cover = p.id;
         continue;
       }
-
-      if (workedThisTick >= FINISH_PHOTOS_PER_TICK) {
-        await logEvent(env.DB, collectionId, "system", "finish_tick_yield", {
-          stored,
-          expected: photos.length,
-          tick: FINISH_PHOTOS_PER_TICK,
-        });
-        // Leave session for cron / next waitUntil tick. Do not hand off yet.
-        return;
-      }
-
+      if (batch.length >= FINISH_PHOTOS_PER_TICK) break;
       const obj = await env.BUCKET.get(p.r2_key);
       if (!obj) {
         missingTemps += 1;
         continue;
       }
-      const buf = await obj.arrayBuffer();
-      const result = await moderateImage(env, buf, p.content_type || "image/jpeg");
-      if (!result.ok) {
-        await rejectModerationAndNotify(env, session, photos, result.codes);
+      batch.push({ p, buf: await obj.arrayBuffer() });
+    }
+
+    type NormOk = {
+      p: (typeof photos)[number];
+      storeBytes: Uint8Array;
+      storeType: string;
+      storeName: string;
+    };
+    const prepared = await Promise.all(
+      batch.map(async ({ p, buf }) => {
+        const re = await ensureJpegBytes(env, buf, p.content_type || "image/jpeg", p.original_filename);
+        if (!re.ok) {
+          return { kind: "normalize_fail" as const, p, reason: re.reason };
+        }
+        const storeBytes = re.bytes;
+        const storeType = re.contentType;
+        const storeName = re.filename;
+        const result = await moderateImage(
+          env,
+          storeBytes.buffer.slice(storeBytes.byteOffset, storeBytes.byteOffset + storeBytes.byteLength) as ArrayBuffer,
+          storeType
+        );
+        if (!result.ok) {
+          return { kind: "mod_fail" as const, p, codes: result.codes };
+        }
+        return { kind: "ok" as const, p, storeBytes, storeType, storeName } satisfies NormOk & { kind: "ok" };
+      })
+    );
+
+    for (const item of prepared) {
+      if (item.kind === "normalize_fail") {
+        await logEvent(env.DB, collectionId, session.seller_email || "system", "photo_normalize_failed", {
+          photo_id: item.p.id,
+          reason: item.reason,
+        });
+        continue;
+      }
+      if (item.kind === "mod_fail") {
+        await rejectModerationAndNotify(env, session, photos, item.codes);
         await env.DB.prepare(
           `UPDATE collections SET status = 'withdrawn', internal_note = ?, updated_at = ? WHERE id = ?`
         )
           .bind(
-            `Auto-withdrawn: moderation reject (${result.codes.join(",")}). ${stored}/${photos.length} stored before reject.`,
+            `Auto-withdrawn: moderation reject (${item.codes.join(",")}). ${stored}/${photos.length} stored before reject.`,
             nowIso(),
             collectionId
           )
           .run();
         return;
       }
-      const re = await reencodeToJpeg(buf, p.content_type || "image/jpeg", p.original_filename);
-      const storeBytes = re.ok ? re.bytes : new Uint8Array(buf);
-      const storeType = re.ok ? re.contentType : p.content_type || "image/jpeg";
-      const storeName = re.ok ? re.filename : p.original_filename;
+      const { p, storeBytes, storeType, storeName } = item;
       const digest = await crypto.subtle.digest("SHA-256", storeBytes);
       const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
       const destKey = `o_${p.id}`;
@@ -373,8 +400,8 @@ async function processSubmissionBackground(
           kind: "original",
           timestamp: created,
           sha256: sha,
-          reencoded: re.ok ? "jpeg" : "passthrough",
-          reencode_reason: re.ok ? "" : asciiMeta(re.reason || "", 80),
+          reencoded: "jpeg",
+          reencode_reason: "",
         },
       });
       await env.BUCKET.delete(p.r2_key);
@@ -393,18 +420,26 @@ async function processSubmissionBackground(
           created
         )
         .run();
-      // Drop temp row as soon as the photo is durable (R2 temp already deleted above).
       await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ? AND session_id = ?`)
         .bind(p.id, session.id)
         .run();
       stored += 1;
-      workedThisTick += 1;
       if (!cover) cover = p.id;
       await env.DB.prepare(
         `UPDATE collections SET cover_photo_id = COALESCE(cover_photo_id, ?), updated_at = ? WHERE id = ?`
       )
         .bind(cover, nowIso(), collectionId)
         .run();
+    }
+
+    if (batch.length >= FINISH_PHOTOS_PER_TICK && stored < photos.length) {
+      await logEvent(env.DB, collectionId, "system", "finish_tick_yield", {
+        stored,
+        expected: photos.length,
+        tick: FINISH_PHOTOS_PER_TICK,
+      });
+      // Leave session for cron / next waitUntil tick. Do not hand off yet.
+      return;
     }
 
     const recount = await env.DB.prepare(
@@ -1213,7 +1248,7 @@ app.get("/", (c) => {
       </form>
     </div>
     <script>window.INTAKE = ${JSON.stringify({ maxPhotos, maxBytes })};</script>
-    <script src="/seller-home.js?v=20261031a"></script>`
+    <script src="/seller-home.js?v=20261114heic"></script>`
   );
 });
 
@@ -1777,7 +1812,11 @@ app.get("/boxes/:token", async (c) => {
     return html(c.env, "Not found", `<div class="flash err">This review link isn’t valid.</div>`);
   }
   const status = row.mac_handoff_status || "";
-  const done = c.req.query("done") === "1" || status === "cloud_done" || status === "cloud_confirming";
+  // Confirm accepted: send sellers to Match (Opening Match polls). Do not show "Thanks" yet.
+  if (status === "cloud_confirming") {
+    return c.redirect(`/boxes/${encodeURIComponent(token)}/match`);
+  }
+  const done = c.req.query("done") === "1" || status === "cloud_done";
   if (done) {
     return html(
       c.env,
@@ -1841,7 +1880,10 @@ app.get("/boxes/:token/editor", async (c) => {
   const token = c.req.param("token");
   const row = await collectionByBoxToken(c.env.DB, token);
   if (!row) return c.text("Review link not found", 404);
-  if (row.mac_handoff_status === "cloud_done" || row.mac_handoff_status === "cloud_confirming") {
+  if (row.mac_handoff_status === "cloud_confirming") {
+    return c.redirect(`/boxes/${encodeURIComponent(token)}/match`);
+  }
+  if (row.mac_handoff_status === "cloud_done") {
     return c.redirect(`/boxes/${encodeURIComponent(token)}?done=1`);
   }
   if (row.mac_handoff_status !== "cloud_awaiting_boxes") {
@@ -1874,6 +1916,8 @@ app.get("/api/boxes/:token/status", async (c) => {
   let pinCount: number | null = null;
   let boardsDone: number | null = null;
   let boardsTotal: number | null = null;
+  const photoCount = Number(row.photo_count || 0);
+  // "submitted" exists while finish is still storing boards; do not say Finding pins yet.
   let label =
     status === "cloud_running" || status === "cloud_queued"
       ? "Finding pins…"
@@ -1883,7 +1927,7 @@ app.get("/api/boxes/:token/status", async (c) => {
           ? "Opening Match…"
           : status === "cloud_done"
             ? "Match ready"
-            : status === "submitted" || status === "pricing" || status === "uploading"
+            : photoCount > 0 && (status === "pricing" || status === "uploading")
               ? "Finding pins…"
               : "Saving your photos…";
 
@@ -1912,6 +1956,25 @@ app.get("/api/boxes/:token/status", async (c) => {
       else if (phase === "confirming") label = "Applying box edits…";
       else if (phase === "match_ready" || phase === "done" || phase === "done_partial") label = "Match ready";
       else if (phase === "finishing_remaining") label = "Match ready · more pins loading…";
+
+      // Detect callback / waitUntil died: Cloud Run already has boxes but D1 still cloud_running.
+      const boxReadyPhases = new Set([
+        "board_ready",
+        "detect_ready",
+        "awaiting_box_confirm",
+        "prefetch_ready",
+        "prefetching",
+      ]);
+      if (status === "cloud_running" && boxReadyPhases.has(phase)) {
+        await c.env.DB.prepare(
+          `UPDATE collections SET mac_handoff_status = 'cloud_awaiting_boxes', mac_handoff_at = ?, updated_at = ?, internal_note = COALESCE(internal_note, ?) WHERE id = ? AND mac_handoff_status = 'cloud_running'`
+        )
+          .bind(nowIso(), nowIso(), "Boxes ready (status heal).", row.id)
+          .run();
+        status = "cloud_awaiting_boxes";
+        label = "Boxes ready";
+        row = { ...row, mac_handoff_status: "cloud_awaiting_boxes" };
+      }
 
       // waitUntil after seller Confirm often dies before D1 flips to cloud_done.
       // If Cloud Run already has Match, heal so /boxes/:token/match stops spinning.
@@ -1951,7 +2014,7 @@ app.get("/api/boxes/:token/status", async (c) => {
     boards_done: boardsDone,
     boards_total: boardsTotal,
     collection_id: row.id,
-    photo_count: row.photo_count,
+    photo_count: photoCount,
   });
 });
 
@@ -2107,11 +2170,10 @@ app.post("/api/boxes/:token/confirm", async (c) => {
 });
 
 /**
- * Seller Match serves ClickToMatch v2 (new_ctm.html), then CTP v2 via relative
- * new_ctp.html?filter=no_match (same flow as PreparingInventory Mac harness).
- * Inject <base> so those relative links resolve through the token file proxy.
+ * Rewrite Cloud Run absolute file URLs + inject <base> so CTM/CTP assets load
+ * through the seller token proxy (not the invoke-key Cloud Run host).
  */
-function rewriteSellerCtmV2Html(htmlText: string, token: string): string {
+function rewriteSellerMatchFileHtml(htmlText: string, token: string): string {
   const matchFileBase = `/api/boxes/${encodeURIComponent(token)}/match-file/testing_ui_visual_baseline/`;
   let out = htmlText
     .replace(
@@ -2123,6 +2185,15 @@ function rewriteSellerCtmV2Html(htmlText: string, token: string): string {
   if (!/<base\s/i.test(out)) {
     out = out.replace(/<head([^>]*)>/i, `<head$1>\n<base href="${matchFileBase}">`);
   }
+  return out;
+}
+
+/**
+ * Seller Match serves ClickToMatch v2 (new_ctm.html), then CTP v2 via relative
+ * new_ctp.html?filter=no_match (same flow as PreparingInventory Mac harness).
+ */
+function rewriteSellerCtmV2Html(htmlText: string, token: string): string {
+  let out = rewriteSellerMatchFileHtml(htmlText, token);
   // Deferred eBay: skip pins with no listing thumb so CTM v2 is not a blank right pane.
   if (out.includes("const queue = PINS.filter(p => !SKIP_MS.includes(p.ms));")) {
     out = out.replace(
@@ -2139,7 +2210,8 @@ function rewriteSellerCtmV2Html(htmlText: string, token: string): string {
     );
   }
   // Soft-reload once when deferred eBay finishes so newly priced pins join the queue.
-  const reloadPoll = `<script>(function(){var t=${JSON.stringify(token)};var k="ctm_reloaded_"+t;if(sessionStorage.getItem(k))return;var n=0,saw=false;function tick(){n++;if(n>150)return;fetch("/api/boxes/"+encodeURIComponent(t)+"/status",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){var p=String(d.phase||"");if(p==="finishing_remaining"||p==="match_ready")saw=true;if(saw&&(p==="done"||p==="done_partial")){sessionStorage.setItem(k,"1");location.reload();return}setTimeout(tick,4000)}).catch(function(){setTimeout(tick,5000)})}setTimeout(tick,8000)})();</script>`;
+  // If the filtered queue is empty (all remaining pins still pricing), show a calm wait note.
+  const reloadPoll = `<script>(function(){var t=${JSON.stringify(token)};var k="ctm_reloaded_"+t;try{if(typeof queue!=="undefined"&&!queue.length){var n=document.createElement("div");n.setAttribute("style","position:sticky;top:48px;z-index:9998;background:#1e3a5f;color:#fff;padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif");n.textContent="More pins are still loading. This page refreshes when they are ready.";document.body.insertBefore(n,document.body.firstChild)}}catch(e){}if(sessionStorage.getItem(k))return;var n=0,saw=false;function tick(){n++;if(n>150)return;fetch("/api/boxes/"+encodeURIComponent(t)+"/status",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){var p=String(d.phase||"");if(p==="finishing_remaining"||p==="match_ready")saw=true;if(saw&&(p==="done"||p==="done_partial")){sessionStorage.setItem(k,"1");location.reload();return}setTimeout(tick,4000)}).catch(function(){setTimeout(tick,5000)})}setTimeout(tick,8000)})();</script>`;
   if (out.includes("</body>")) {
     out = out.replace(/<\/body>/i, `${reloadPoll}</body>`);
   } else {
@@ -2209,9 +2281,9 @@ async function healStuckCloudJobs(env: Bindings): Promise<void> {
   const rows = await env.DB.prepare(
     `SELECT id, mac_handoff_folder, mac_handoff_status, mac_handoff_at, seller_email
      FROM collections
-     WHERE mac_handoff_status IN ('cloud_confirming', 'cloud_done')
+     WHERE mac_handoff_status IN ('cloud_running', 'cloud_confirming', 'cloud_done')
      ORDER BY updated_at DESC
-     LIMIT 15`
+     LIMIT 20`
   ).all<{
     id: string;
     mac_handoff_folder: string | null;
@@ -2228,6 +2300,32 @@ async function healStuckCloudJobs(env: Bindings): Promise<void> {
     if (!st.ok) continue;
     const phase = String(st.body.phase || st.body.status || "");
     const remainingDeferred = Boolean(st.body.remaining_deferred);
+
+    // Detect finished on Cloud Run but D1 never flipped (callback / waitUntil died).
+    const boxReadyPhases = new Set([
+      "board_ready",
+      "detect_ready",
+      "awaiting_box_confirm",
+      "prefetch_ready",
+      "prefetching",
+    ]);
+    if (
+      row.mac_handoff_status === "cloud_running" &&
+      handoffAgeMs > 30_000 &&
+      boxReadyPhases.has(phase)
+    ) {
+      if (await recentlyLogged(env.DB, row.id, "awaiting_boxes_healed", 120_000)) continue;
+      await env.DB.prepare(
+        `UPDATE collections SET mac_handoff_status = 'cloud_awaiting_boxes', mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ? AND mac_handoff_status = 'cloud_running'`
+      )
+        .bind(nowIso(), nowIso(), "Boxes ready (cron heal).", row.id)
+        .run();
+      await logEvent(env.DB, row.id, row.seller_email || "system:cron", "awaiting_boxes_healed", {
+        job_id: jobId,
+        phase,
+      });
+      continue;
+    }
 
     // Confirm accepted in D1 but Cloud Run never got the POST (waitUntil died early).
     if (
@@ -2316,6 +2414,11 @@ app.get("/boxes/:token/match", async (c) => {
     );
   }
 
+  // Boxes not confirmed yet: never spin "Opening Match" (CTM 404 forever).
+  if (status === "cloud_awaiting_boxes") {
+    return c.redirect(`/boxes/${encodeURIComponent(token)}/editor`);
+  }
+
   // CTM v2 (new_ctm.html), not Overlay index.html. Done banner → new_ctp.html?filter=no_match.
   const ctmRes = await fetchCloudJobFile(c.env, jobId, "testing_ui_visual_baseline/new_ctm.html");
   let htmlText = await ctmRes.text();
@@ -2344,7 +2447,7 @@ app.get("/boxes/:token/match", async (c) => {
     });
   }
 
-  if (status === "cloud_confirming" || status === "cloud_awaiting_boxes") {
+  if (status === "cloud_confirming") {
     return html(
       c.env,
       "Opening Match",
@@ -2362,6 +2465,10 @@ app.get("/boxes/:token/match", async (c) => {
              const el = document.getElementById("wait");
              const phase = String(data.phase || "");
              const matchPhases = ["match_ready","finishing_remaining","done","done_partial"];
+             if (data.status === "cloud_awaiting_boxes") {
+               location.replace("/boxes/${encodeURIComponent(token)}/editor");
+               return;
+             }
              if (data.status === "cloud_done" || data.status === "cloud_failed" || matchPhases.indexOf(phase) >= 0) {
                location.replace("/boxes/${encodeURIComponent(token)}/match");
                return;
@@ -2388,7 +2495,8 @@ app.get("/api/boxes/:token/match-file/*", async (c) => {
   if (!row) return c.text("Not found", 404);
   const jobId = cloudJobIdFromFolder(row.mac_handoff_folder);
   if (!jobId) return c.text("No job", 404);
-  const prefix = `/api/boxes/${c.req.param("token")}/match-file/`;
+  const token = c.req.param("token");
+  const prefix = `/api/boxes/${token}/match-file/`;
   const filePath = c.req.path.slice(prefix.length);
   if (!filePath || filePath.includes("..")) return c.text("Invalid path", 400);
   if (
@@ -2401,7 +2509,16 @@ app.get("/api/boxes/:token/match-file/*", async (c) => {
   ) {
     return c.text("Forbidden", 403);
   }
-  return fetchCloudJobFile(c.env, jobId, filePath);
+  const upstream = await fetchCloudJobFile(c.env, jobId, filePath);
+  const lower = filePath.toLowerCase();
+  if (upstream.ok && (lower.endsWith(".html") || lower.endsWith(".htm"))) {
+    const rewritten = rewriteSellerMatchFileHtml(await upstream.text(), token);
+    return new Response(rewritten, {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
+  return upstream;
 });
 
 app.get("/o/:token", async (c) => {

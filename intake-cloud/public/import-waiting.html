@@ -313,14 +313,26 @@
       refreshMovieInBackground();
 
       if (data.failed) {
-        setProgress(progress, "Still working…", "Retrying detect…");
+        // Soft retry for brief Cloud Run blips; after ~90s show a real recovery path.
+        if (Date.now() - started > 90000) {
+          setProgress(progress, "Something stalled", "Tap below to try again");
+          err.classList.add("open");
+          errText.textContent = "Pin detect stalled. Your photos are saved.";
+          errRetry.href = "/boxes/" + encodeURIComponent(token);
+        } else {
+          setProgress(progress, "Still working…", "Retrying detect…");
+        }
       } else {
         const phase = data.phase || data.status || "";
         const pins = data.pin_count;
         const bd = data.boards_done;
         const bt = data.boards_total;
         if (!photos.length) {
-          setProgress(12 + Math.min(15, (Date.now() - started) / 2000), "Saving your photos…", data.label || "Hang tight");
+          const savingSub =
+            Date.now() - started > 45000
+              ? (data.label || "Still storing boards…") + " · keep this tab open"
+              : data.label || "Hang tight";
+          setProgress(12 + Math.min(15, (Date.now() - started) / 2000), "Saving your photos…", savingSub);
         } else if (phase === "detecting" || phase === "cloud_running" || phase === "cloud_queued" || !phase) {
           const boardSub =
             bd != null && bt != null

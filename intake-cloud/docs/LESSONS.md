@@ -1,5 +1,32 @@
 # Intake lessons
 
+## 2026-11-15 — Match “Opening Match…” forever while still awaiting boxes
+
+- **Symptom:** Seller Match spun on Opening Match; CTM 404; poll never exited.
+- **Cause:** `/boxes/:token/match` treated `cloud_awaiting_boxes` like `cloud_confirming`.
+- **Rule:** Awaiting boxes → redirect to Board Box Editor. Opening Match only after Confirm (`cloud_confirming`). Heal `cloud_running` → awaiting when Cloud Run phase already has boxes. Confirming visits to `/boxes/:token` go to Match, not Thanks.
+- **Where:** `intake-cloud/src/app.ts` Match + status + healStuckCloudJobs
+
+## 2026-11-15 — Finish: Vision on full-res + HEIC moderated before convert
+
+- **Symptom / risk:** After JPEG passthrough, finish still slow or dies: SafeSearch base64 of ~7MB boards. HEIC path moderated raw HEIC before convert.
+- **Rule:** `ensureJpegBytes` first, then `moderateImage`. If payload >1.5MB, Cloud Run `/convert-to-jpeg` with `x-max-edge: 1280` for Vision only; store full-res JPEG as before.
+- **Where:** `app.ts` / `progressive.ts` finish order; `moderation.ts`; Cloud Run 0.9.5
+
+## 2026-11-15 — “Saving your photos…” stuck: Worker reencode OOMs large JPEGs
+
+- **Symptom:** Waiting page stayed on “Saving your photos…”; D1 note `Finish stuck: 0/3 stored; 3 temp object(s) missing` while R2 temps still existed (~6–7MB JPEGs).
+- **Cause:** After HEIC harden, failed `ensureJpegBytes` refused passthrough for *all* types. Full jsquash decode/encode of iPhone JPEGs OOMs/fails on the Worker; failures were miscounted as missing temps.
+- **Rule:** Already-JPEG: store as-is (Cloud Run still EXIF-transposes + downscales). HEIC only: require Cloud Run convert. Do not count normalize failures as missing R2 objects.
+- **Where:** `intake-cloud/src/cloud_price.ts` `ensureJpegBytes`; finish loop in `app.ts`
+
+## 2026-11-14 — HEIC: Mac uses sips; cloud lab converts in browser + Cloud Run
+
+- **Symptom:** iPhone HEIC uploads accepted by allowlist, then Worker `reencodeToJpeg` returned `heic_unsupported_on_worker` and used to passthrough raw HEIC (or fail detect).
+- **Cause:** Production intake converts HEIC on the Mac with `sips` during handoff. Cloud lab never hits that path. Workers cannot decode HEIC.
+- **Rule:** Convert HEIC→JPEG in `seller-home.js` before upload (createImageBitmap / canvas). Worker `ensureJpegBytes` falls back to Cloud Run `POST /convert-to-jpeg` (pillow-heif). Never store raw HEIC in `photos`. Already-JPEG must not go through full Worker reencode.
+- **Where:** `intake-cloud/public/seller-home.js`; `cloud_price.ts` `ensureJpegBytes`; `IntakeCloudPricing` `/convert-to-jpeg` + `pillow-heif`
+
 ## 2026-11-14 — Anticipated: deferred eBay dies; Confirm waitUntil; stale CTM
 
 - **Symptom (would hit next upload):** Match opens with few pins; remaining eBay never finishes; Confirm stuck if waitUntil dies before Cloud Run; CTM stays stale after background pricing; Match heal could skip BBE.

@@ -4,7 +4,8 @@
  */
 import type { Bindings } from "./types";
 import { moderateImage } from "./moderation";
-import { reencodeToJpeg } from "./reencode";
+import { ensureJpegBytes } from "./cloud_price";
+import { jpegNameFromOriginal, looksHeic } from "./reencode";
 
 export type TempPhotoRow = {
   id: string;
@@ -103,7 +104,36 @@ export async function moderateAndPromoteTempPhoto(
     return { ok: false, codes: ["missing_object"] };
   }
   const buf = await obj.arrayBuffer();
-  const result = await moderateImage(env, buf, photo.content_type || "image/jpeg");
+
+  const { collectionId } = await ensureDraftCollection(env, sessionId);
+  const existing = await env.DB.prepare(`SELECT id FROM photos WHERE id = ?`).bind(photo.id).first();
+  if (existing) {
+    await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ? AND session_id = ?`)
+      .bind(photo.id, sessionId)
+      .run();
+    return { ok: true, collectionId };
+  }
+
+  const re = await ensureJpegBytes(
+    env,
+    buf,
+    photo.content_type || "image/jpeg",
+    photo.original_filename || "photo.jpg"
+  );
+  if (!re.ok) {
+    // Leave temp for retry (do not delete; seller can wait for Cloud Run heal).
+    const heic = looksHeic(photo.content_type || "", photo.original_filename);
+    return { ok: false, codes: [heic ? "heic_convert_failed" : `reencode_${re.reason}`] };
+  }
+  const storeBytes = re.bytes;
+  const storeType = re.contentType;
+  const storeName = re.filename || jpegNameFromOriginal(photo.original_filename);
+
+  const result = await moderateImage(
+    env,
+    storeBytes.buffer.slice(storeBytes.byteOffset, storeBytes.byteOffset + storeBytes.byteLength) as ArrayBuffer,
+    storeType
+  );
   if (!result.ok) {
     try {
       await env.BUCKET.delete(photo.r2_key);
@@ -115,20 +145,6 @@ export async function moderateAndPromoteTempPhoto(
       .run();
     return { ok: false, codes: result.codes };
   }
-
-  const { collectionId } = await ensureDraftCollection(env, sessionId);
-  const existing = await env.DB.prepare(`SELECT id FROM photos WHERE id = ?`).bind(photo.id).first();
-  if (existing) {
-    await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ? AND session_id = ?`)
-      .bind(photo.id, sessionId)
-      .run();
-    return { ok: true, collectionId };
-  }
-
-  const re = await reencodeToJpeg(buf, photo.content_type || "image/jpeg", photo.original_filename || "photo.jpg");
-  const storeBytes = re.ok ? re.bytes : new Uint8Array(buf);
-  const storeType = re.ok ? re.contentType : photo.content_type || "image/jpeg";
-  const storeName = re.ok ? re.filename : photo.original_filename || "photo.jpg";
   const digest = await crypto.subtle.digest("SHA-256", storeBytes);
   const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
   const destKey = `o_${photo.id}`;
@@ -142,8 +158,8 @@ export async function moderateAndPromoteTempPhoto(
       timestamp: created,
       sha256: sha,
       early: "1",
-      reencoded: re.ok ? "jpeg" : "passthrough",
-      reencode_reason: re.ok ? "" : asciiMeta(re.reason || "", 80),
+      reencoded: "jpeg",
+      reencode_reason: "",
     },
   });
   await env.DB.prepare(

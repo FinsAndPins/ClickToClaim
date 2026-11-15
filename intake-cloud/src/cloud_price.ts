@@ -5,6 +5,7 @@
  */
 
 import type { Bindings } from "./types";
+import { jpegNameFromOriginal, looksHeic, reencodeToJpeg, type ReencodeResult } from "./reencode";
 
 export type CloudPriceResult = {
   ok: boolean;
@@ -323,6 +324,106 @@ export async function fetchCloudJobJson(
     return { ok: true, body: JSON.parse(text) as Record<string, unknown> };
   } catch {
     return { ok: false, error: `Invalid JSON at ${filePath}` };
+  }
+}
+
+/**
+ * Normalize upload bytes to JPEG for storage.
+ * - Already JPEG: store as-is (fast). Full jsquash reencode of ~7MB iPhone boards
+ *   OOMs/slows Worker finish; Cloud Run `_downscale_jpeg_bytes` still does EXIF transpose.
+ * - HEIC: Cloud Run `/convert-to-jpeg` (Mac intake uses sips; Workers cannot decode HEIC).
+ * - PNG/WebP: local reencode, then Cloud Run if needed.
+ * Never returns raw HEIC.
+ */
+export async function ensureJpegBytes(
+  env: Bindings,
+  bytes: ArrayBuffer,
+  contentType: string,
+  originalFilename: string | null | undefined
+): Promise<ReencodeResult> {
+  const type = (contentType || "").toLowerCase();
+  const name = originalFilename || "photo.jpg";
+  const buf = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : new Uint8Array(bytes);
+
+  if (looksHeic(type, name)) {
+    const converted = await convertImageViaCloudRun(env, buf, name);
+    if (!converted.ok) {
+      return { ok: false, reason: `heic_convert_failed:${converted.error.slice(0, 160)}` };
+    }
+    return {
+      ok: true,
+      bytes: converted.bytes,
+      contentType: "image/jpeg",
+      filename: jpegNameFromOriginal(name),
+    };
+  }
+
+  // Skip Worker reencode for JPEG: finish stays fast; Cloud Run bakes orientation.
+  if (type.includes("jpeg") || type.includes("jpg") || /\.jpe?g$/i.test(name)) {
+    return {
+      ok: true,
+      bytes: buf,
+      contentType: "image/jpeg",
+      filename: jpegNameFromOriginal(name),
+    };
+  }
+
+  const local = await reencodeToJpeg(bytes, contentType, name);
+  if (local.ok) return local;
+
+  const converted = await convertImageViaCloudRun(env, buf, name);
+  if (!converted.ok) {
+    return { ok: false, reason: `reencode_failed:${local.reason};${converted.error.slice(0, 120)}` };
+  }
+  return {
+    ok: true,
+    bytes: converted.bytes,
+    contentType: "image/jpeg",
+    filename: jpegNameFromOriginal(name),
+  };
+}
+
+/**
+ * Convert HEIC/HEIF (or other Pillow-readable bytes) to JPEG via Cloud Run.
+ * Mirrors Mac intake handoff `sips` for the cloud lab (Workers cannot decode HEIC).
+ */
+export async function convertImageViaCloudRun(
+  env: Bindings,
+  bytes: ArrayBuffer | Uint8Array,
+  filename: string,
+  opts?: { maxEdge?: number }
+): Promise<{ ok: true; bytes: Uint8Array; contentType: "image/jpeg" } | { ok: false; error: string }> {
+  const base = priceBase(env);
+  const key = invokeKey(env);
+  if (!base || !key) {
+    return { ok: false, error: "CLOUD_PRICE_URL / CLOUD_PRICE_INVOKE_KEY not configured" };
+  }
+  const body = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const headers: Record<string, string> = {
+    "X-Intake-Cloud-Key": key,
+    "content-type": "application/octet-stream",
+    "x-filename": filename || "photo.heic",
+  };
+  if (opts?.maxEdge && opts.maxEdge > 0) {
+    headers["x-max-edge"] = String(Math.round(opts.maxEdge));
+  }
+  try {
+    const res = await fetch(`${base}/convert-to-jpeg`, {
+      method: "POST",
+      headers,
+      body,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      return { ok: false, error: `convert-to-jpeg HTTP ${res.status}: ${text.slice(0, 300)}` };
+    }
+    const out = new Uint8Array(await res.arrayBuffer());
+    if (out.byteLength < 100) {
+      return { ok: false, error: "convert-to-jpeg returned empty body" };
+    }
+    return { ok: true, bytes: out, contentType: "image/jpeg" };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
