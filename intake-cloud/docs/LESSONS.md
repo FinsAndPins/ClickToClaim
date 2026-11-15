@@ -1,5 +1,12 @@
 # Intake lessons
 
+## 2026-11-14 — Confirm stuck on cloud_confirming after Match is ready
+
+- **Symptom:** Seller Match page spun on “Opening Match…” while Cloud Run job was already `finishing_remaining` / harness 200.
+- **Cause:** `POST /api/boxes/:token/confirm` sets `cloud_confirming` then updates to `cloud_done` inside `waitUntil`; Worker CPU often dies before that write.
+- **Rule:** Status poll must heal: if D1 is `cloud_confirming` and Cloud Run phase is Match-ready (`match_ready` / `finishing_remaining` / `done`), flip to `cloud_done` + overlay URL.
+- **Where:** `intake-cloud/src/app.ts` `GET /api/boxes/:token/status`
+
 ## 2026-11-14 — Import movie must not gate editor open
 
 - **Symptom:** Box-overlay “movie” on the waiting page felt like it delayed Board Box Editor.
