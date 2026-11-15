@@ -2104,13 +2104,17 @@ function rewriteMatchHarnessHtml(htmlText: string, token: string): string {
   // Always use a same-origin relative base. Leaving the Cloud Run host + Worker path
   // (absolute rewrite) makes every crop/ui_data request 401 and Match looks empty.
   const matchFileBase = `/api/boxes/${encodeURIComponent(token)}/match-file/testing_ui_visual_baseline/`;
-  return htmlText
+  let out = htmlText
     .replace(
       /https?:\/\/[^"'/\s]+\/(?:jobs\/[^/"']+\/file\/|api\/cloud\/jobs\/[^/"']+\/file\/)testing_ui_visual_baseline\//g,
       matchFileBase
     )
     .replace(/\/api\/cloud\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase)
     .replace(/\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase);
+  // Seller Match must land on ClickToMatch, not the Overlay tab (staff default).
+  out = out.replace(/let lastPage = "overlay";/, 'let lastPage = "match";');
+  out = out.replace(/showPage\(lastPage \|\| "overlay"\)/g, 'showPage(lastPage || "match")');
+  return out;
 }
 
 /** Seller Match / CTM harness (token auth). Prefetched pins are ready; rest fill in behind the scenes. */
