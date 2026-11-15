@@ -2114,6 +2114,14 @@ function rewriteMatchHarnessHtml(htmlText: string, token: string): string {
   // Seller Match must land on ClickToMatch, not the Overlay tab (staff default).
   out = out.replace(/let lastPage = "overlay";/, 'let lastPage = "match";');
   out = out.replace(/showPage\(lastPage \|\| "overlay"\)/g, 'showPage(lastPage || "match")');
+  // Deferred eBay: only ~prefetch_n pins have candidates at open. Don't show empty
+  // "Selected listing" for unpriced pins — queue Match to pins that have eBay results.
+  out = out.replace(
+    /function getMatchQuickPins\(\) \{\s*return pins\.filter\(mqFilterStatus\);\s*\}/,
+    `function getMatchQuickPins() {
+      return pins.filter((p) => mqFilterStatus(p) && Array.isArray(p.candidates) && p.candidates.length > 0);
+    }`
+  );
   return out;
 }
 
