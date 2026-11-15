@@ -4,7 +4,7 @@
 
 - **Symptom:** Seller Match page spun on “Opening Match…” while Cloud Run job was already `finishing_remaining` / harness 200. After open, pins still missing.
 - **Cause:** (1) Confirm `waitUntil` dies before D1 → `cloud_done`. (2) Harness `<base href>` rewrite left the Cloud Run host in front of `/api/boxes/.../match-file/`, so crops/`ui_data` 401’d.
-- **Rule:** Serve Match whenever Cloud Run harness is 200 (don’t wait on D1). Rewrite base to a **same-origin relative** `/api/boxes/:token/match-file/...` path only. Status poll still heals `cloud_confirming` → `cloud_done`.
+- **Rule:** Serve Match whenever Cloud Run harness is 200 (don’t wait on D1). Rewrite base to a **same-origin relative** `/api/boxes/:token/match-file/...` path only. Status poll still heals `cloud_confirming` → `cloud_done`. Force harness `lastPage = "match"` so sellers land on ClickToMatch, not Overlay.
 - **Where:** `intake-cloud/src/app.ts` `GET /boxes/:token/match`, `GET /api/boxes/:token/status`
 
 ## 2026-11-14 — Import movie must not gate editor open
