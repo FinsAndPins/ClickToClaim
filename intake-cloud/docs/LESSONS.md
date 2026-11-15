@@ -1,5 +1,12 @@
 # Intake lessons
 
+## 2026-11-15 — Match “Opening Match…” forever while still awaiting boxes
+
+- **Symptom:** Seller Match spun on Opening Match; CTM 404; poll never exited.
+- **Cause:** `/boxes/:token/match` treated `cloud_awaiting_boxes` like `cloud_confirming`.
+- **Rule:** Awaiting boxes → redirect to Board Box Editor. Opening Match only after Confirm (`cloud_confirming`). Heal `cloud_running` → awaiting when Cloud Run phase already has boxes. Confirming visits to `/boxes/:token` go to Match, not Thanks.
+- **Where:** `intake-cloud/src/app.ts` Match + status + healStuckCloudJobs
+
 ## 2026-11-15 — Finish: Vision on full-res + HEIC moderated before convert
 
 - **Symptom / risk:** After JPEG passthrough, finish still slow or dies: SafeSearch base64 of ~7MB boards. HEIC path moderated raw HEIC before convert.
