@@ -2100,9 +2100,12 @@ app.post("/api/boxes/:token/confirm", async (c) => {
   });
 });
 
-function rewriteMatchHarnessHtml(htmlText: string, token: string): string {
-  // Always use a same-origin relative base. Leaving the Cloud Run host + Worker path
-  // (absolute rewrite) makes every crop/ui_data request 401 and Match looks empty.
+/**
+ * Seller Match serves ClickToMatch v2 (new_ctm.html), then CTP v2 via relative
+ * new_ctp.html?filter=no_match (same flow as PreparingInventory Mac harness).
+ * Inject <base> so those relative links resolve through the token file proxy.
+ */
+function rewriteSellerCtmV2Html(htmlText: string, token: string): string {
   const matchFileBase = `/api/boxes/${encodeURIComponent(token)}/match-file/testing_ui_visual_baseline/`;
   let out = htmlText
     .replace(
@@ -2111,16 +2114,13 @@ function rewriteMatchHarnessHtml(htmlText: string, token: string): string {
     )
     .replace(/\/api\/cloud\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase)
     .replace(/\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase);
-  // Seller Match must land on ClickToMatch, not the Overlay tab (staff default).
-  out = out.replace(/let lastPage = "overlay";/, 'let lastPage = "match";');
-  out = out.replace(/showPage\(lastPage \|\| "overlay"\)/g, 'showPage(lastPage || "match")');
-  // Deferred eBay: only ~prefetch_n pins have candidates at open. Don't show empty
-  // "Selected listing" for unpriced pins — queue Match to pins that have eBay results.
+  if (!/<base\s/i.test(out)) {
+    out = out.replace(/<head([^>]*)>/i, `<head$1>\n<base href="${matchFileBase}">`);
+  }
+  // Deferred eBay: skip pins with no listing thumb so CTM v2 is not a blank right pane.
   out = out.replace(
-    /function getMatchQuickPins\(\) \{\s*return pins\.filter\(mqFilterStatus\);\s*\}/,
-    `function getMatchQuickPins() {
-      return pins.filter((p) => mqFilterStatus(p) && Array.isArray(p.candidates) && p.candidates.length > 0);
-    }`
+    /const queue = PINS\.filter\(p => !SKIP_MS\.includes\(p\.ms\)\);/,
+    "const queue = PINS.filter(p => !SKIP_MS.includes(p.ms) && p.thumb);"
   );
   return out;
 }
@@ -2149,12 +2149,13 @@ app.get("/boxes/:token/match", async (c) => {
     );
   }
 
-  const harnessRes = await fetchCloudHarnessHtml(c.env, jobId);
-  let htmlText = await harnessRes.text();
-  if (harnessRes.ok) {
-    htmlText = rewriteMatchHarnessHtml(htmlText, token);
+  // CTM v2 (new_ctm.html), not Overlay index.html. Done banner → new_ctp.html?filter=no_match.
+  const ctmRes = await fetchCloudJobFile(c.env, jobId, "testing_ui_visual_baseline/new_ctm.html");
+  let htmlText = await ctmRes.text();
+  if (ctmRes.ok) {
+    htmlText = rewriteSellerCtmV2Html(htmlText, token);
     const banner = `<div style="position:sticky;top:0;z-index:9999;background:#0b6e4f;color:#fff;padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif">
-      Match ready for priced pins. More pins keep loading in the background (same idea as the app).
+      ClickToMatch v2 · priced pins first. After Match, continue to ClickToPrice (no match).
       <a href="/boxes/${encodeURIComponent(token)}?done=1" style="color:#fff;margin-left:12px">Done</a>
     </div>`;
     if (htmlText.includes("<body")) {
@@ -2167,7 +2168,7 @@ app.get("/boxes/:token/match", async (c) => {
     await c.env.DB.prepare(
       `UPDATE collections SET mac_handoff_status = 'cloud_done', mac_handoff_at = ?, updated_at = ?, overlay_url = COALESCE(NULLIF(overlay_url, ''), ?), internal_note = COALESCE(internal_note, ?) WHERE id = ? AND mac_handoff_status IN ('cloud_confirming', 'cloud_awaiting_boxes')`
     )
-      .bind(nowIso(), nowIso(), harnessLocal, "Match ready.", row.id)
+      .bind(nowIso(), nowIso(), harnessLocal, "Match ready (CTM v2).", row.id)
       .run();
     return new Response(htmlText, {
       status: 200,
