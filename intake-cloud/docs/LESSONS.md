@@ -1,5 +1,12 @@
 # Intake lessons
 
+## 2026-11-14 — Import movie must not gate editor open
+
+- **Symptom:** Box-overlay “movie” on the waiting page felt like it delayed Board Box Editor.
+- **Cause:** Poll awaited session/box fetches for the animation *before* checking `status.ready`, then waited another 450ms before redirect.
+- **Rule:** Treat the import movie as entertainment only. Check ready first and `location.replace` to the editor immediately; refresh overlays in the background.
+- **Where:** `intake-cloud/public/import-waiting.html`
+
 ## 2026-11-14 — Upside-down boards: reencode stripped EXIF without transpose
 
 - **Symptom:** Cloud lab BBE / detect photos all upside down after upload.
