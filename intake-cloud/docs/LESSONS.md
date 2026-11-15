@@ -4,8 +4,8 @@
 
 - **Symptom:** Seller Match page spun on “Opening Match…” while Cloud Run job was already `finishing_remaining` / harness 200. After open, pins still missing.
 - **Cause:** (1) Confirm `waitUntil` dies before D1 → `cloud_done`. (2) Harness `<base href>` rewrite left the Cloud Run host in front of `/api/boxes/.../match-file/`, so crops/`ui_data` 401’d.
-- **Rule:** Serve Match whenever Cloud Run harness is 200 (don’t wait on D1). Rewrite base to a **same-origin relative** `/api/boxes/:token/match-file/...` path only. Status poll still heals `cloud_confirming` → `cloud_done`. Force harness `lastPage = "match"` so sellers land on ClickToMatch, not Overlay. CTM queue must skip pins with empty `candidates` while deferred eBay is still running (otherwise “Selected listing” is black / $0).
-- **Where:** `intake-cloud/src/app.ts` `GET /boxes/:token/match`, `GET /api/boxes/:token/status`; Cloud Run `POST /jobs/{id}/finish-remaining` to re-kick stuck deferred eBay
+- **Rule:** Seller Match serves **CTM v2** `testing_ui_visual_baseline/new_ctm.html` (not Overlay `index.html`). Inject `<base href="/api/boxes/:token/match-file/testing_ui_visual_baseline/">` so **CTP v2** `new_ctp.html?filter=no_match` works after CTM done. Skip CTM queue pins with empty `thumb` while deferred eBay is still running. Staff admin harness can stay on Overlay.
+- **Where:** `intake-cloud/src/app.ts` `GET /boxes/:token/match`; Cloud Run `POST /jobs/{id}/finish-remaining` to re-kick stuck deferred eBay
 
 ## 2026-11-14 — Import movie must not gate editor open
 
