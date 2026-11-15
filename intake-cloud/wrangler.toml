@@ -47,4 +47,5 @@ binding = "BUCKET"
 bucket_name = "finsandpins-intake-cloud"
 
 [triggers]
-crons = ["*/10 * * * *"]
+# */2: resume stuck finishes + re-kick deferred eBay before Steve notices.
+crons = ["*/2 * * * *"]

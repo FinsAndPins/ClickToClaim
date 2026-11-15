@@ -1,5 +1,12 @@
 # Intake lessons
 
+## 2026-11-14 — Anticipated: deferred eBay dies; Confirm waitUntil; stale CTM
+
+- **Symptom (would hit next upload):** Match opens with few pins; remaining eBay never finishes; Confirm stuck if waitUntil dies before Cloud Run; CTM stays stale after background pricing; Match heal could skip BBE.
+- **Cause:** Cloud Run request-only CPU kills `BackgroundTasks` after confirm returns. Worker had a manual `finish-remaining` but no auto kick. Confirm boards were not persisted. CTM HTML is a one-shot embed. Match heal flipped `cloud_awaiting_boxes` → done.
+- **Rule:** Deploy Cloud Run with `--no-cpu-throttling` so Confirm’s BackgroundTask keeps CPU. Cron (`*/2`) retries Confirm from R2 `confirm_pending/{id}.json` and re-kicks `finish-remaining` only when still stuck (`match_ready`+deferred >90s, or hung `finishing_remaining`). CTM soft-reloads once when phase hits `done`. Heal Match status only from `cloud_confirming` (never skip BBE).
+- **Where:** `intake-cloud` `app.ts` / `cloud_price.ts` / `wrangler.toml`; `IntakeCloudPricing/cloud_detect/deploy.sh` (0.9.3)
+
 ## 2026-11-14 — Confirm stuck on cloud_confirming after Match is ready
 
 - **Symptom:** Seller Match page spun on “Opening Match…” while Cloud Run job was already `finishing_remaining` / harness 200. After open, pins still missing.
