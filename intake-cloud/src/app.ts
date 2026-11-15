@@ -344,7 +344,24 @@ async function processSubmissionBackground(
         continue;
       }
       const buf = await obj.arrayBuffer();
-      const result = await moderateImage(env, buf, p.content_type || "image/jpeg");
+      // Normalize first (HEIC→JPEG) so Vision never sees HEIC, then SafeSearch on (possibly downscaled) JPEG.
+      const re = await ensureJpegBytes(env, buf, p.content_type || "image/jpeg", p.original_filename);
+      if (!re.ok) {
+        // Leave temp for cron retry. Do not count as "missing R2 object".
+        await logEvent(env.DB, collectionId, session.seller_email || "system", "photo_normalize_failed", {
+          photo_id: p.id,
+          reason: re.reason,
+        });
+        continue;
+      }
+      const storeBytes = re.bytes;
+      const storeType = re.contentType;
+      const storeName = re.filename;
+      const result = await moderateImage(
+        env,
+        storeBytes.buffer.slice(storeBytes.byteOffset, storeBytes.byteOffset + storeBytes.byteLength) as ArrayBuffer,
+        storeType
+      );
       if (!result.ok) {
         await rejectModerationAndNotify(env, session, photos, result.codes);
         await env.DB.prepare(
@@ -358,18 +375,6 @@ async function processSubmissionBackground(
           .run();
         return;
       }
-      const re = await ensureJpegBytes(env, buf, p.content_type || "image/jpeg", p.original_filename);
-      if (!re.ok) {
-        // Leave temp for cron retry. Do not count as "missing R2 object".
-        await logEvent(env.DB, collectionId, session.seller_email || "system", "photo_normalize_failed", {
-          photo_id: p.id,
-          reason: re.reason,
-        });
-        continue;
-      }
-      const storeBytes = re.bytes;
-      const storeType = re.contentType;
-      const storeName = re.filename;
       const digest = await crypto.subtle.digest("SHA-256", storeBytes);
       const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
       const destKey = `o_${p.id}`;

@@ -104,18 +104,6 @@ export async function moderateAndPromoteTempPhoto(
     return { ok: false, codes: ["missing_object"] };
   }
   const buf = await obj.arrayBuffer();
-  const result = await moderateImage(env, buf, photo.content_type || "image/jpeg");
-  if (!result.ok) {
-    try {
-      await env.BUCKET.delete(photo.r2_key);
-    } catch {
-      /* ignore */
-    }
-    await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ? AND session_id = ?`)
-      .bind(photo.id, sessionId)
-      .run();
-    return { ok: false, codes: result.codes };
-  }
 
   const { collectionId } = await ensureDraftCollection(env, sessionId);
   const existing = await env.DB.prepare(`SELECT id FROM photos WHERE id = ?`).bind(photo.id).first();
@@ -133,7 +121,20 @@ export async function moderateAndPromoteTempPhoto(
     photo.original_filename || "photo.jpg"
   );
   if (!re.ok) {
-    // Do not store raw HEIC (Cloud Run / Vision need JPEG). Drop temp; seller can re-add.
+    // Leave temp for retry (do not delete; seller can wait for Cloud Run heal).
+    const heic = looksHeic(photo.content_type || "", photo.original_filename);
+    return { ok: false, codes: [heic ? "heic_convert_failed" : `reencode_${re.reason}`] };
+  }
+  const storeBytes = re.bytes;
+  const storeType = re.contentType;
+  const storeName = re.filename || jpegNameFromOriginal(photo.original_filename);
+
+  const result = await moderateImage(
+    env,
+    storeBytes.buffer.slice(storeBytes.byteOffset, storeBytes.byteOffset + storeBytes.byteLength) as ArrayBuffer,
+    storeType
+  );
+  if (!result.ok) {
     try {
       await env.BUCKET.delete(photo.r2_key);
     } catch {
@@ -142,12 +143,8 @@ export async function moderateAndPromoteTempPhoto(
     await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ? AND session_id = ?`)
       .bind(photo.id, sessionId)
       .run();
-    const heic = looksHeic(photo.content_type || "", photo.original_filename);
-    return { ok: false, codes: [heic ? "heic_convert_failed" : `reencode_${re.reason}`] };
+    return { ok: false, codes: result.codes };
   }
-  const storeBytes = re.bytes;
-  const storeType = re.contentType;
-  const storeName = re.filename || jpegNameFromOriginal(photo.original_filename);
   const digest = await crypto.subtle.digest("SHA-256", storeBytes);
   const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
   const destKey = `o_${photo.id}`;

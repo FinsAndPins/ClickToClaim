@@ -1,8 +1,13 @@
 import type { Bindings } from "./types";
+import { cloudPricingConfigured, convertImageViaCloudRun } from "./cloud_price";
 
 export type ModerationResult =
   | { ok: true; provider: string }
   | { ok: false; provider: string; codes: string[] };
+
+/** Vision payload cap: full iPhone boards (~6–8MB) base64 OOMs/slows Worker finish. */
+const VISION_MAX_BYTES = 1_500_000;
+const VISION_MAX_EDGE = 1280;
 
 /**
  * Google SafeSearch thresholds for Disney pin boards.
@@ -31,12 +36,26 @@ export async function moderateImage(
   bytes: ArrayBuffer,
   contentType: string
 ): Promise<ModerationResult> {
+  let visionBytes = bytes;
+  let visionType = contentType || "image/jpeg";
+  // Downscale before SafeSearch so finish does not die on 7MB iPhone JPEGs.
+  if (bytes.byteLength > VISION_MAX_BYTES && cloudPricingConfigured(env)) {
+    const small = await convertImageViaCloudRun(env, bytes, "vision.jpg", { maxEdge: VISION_MAX_EDGE });
+    if (small.ok) {
+      visionBytes = small.bytes.buffer.slice(
+        small.bytes.byteOffset,
+        small.bytes.byteOffset + small.bytes.byteLength
+      ) as ArrayBuffer;
+      visionType = "image/jpeg";
+    }
+  }
+
   // Prefer Google Vision when both are configured (Google is the v1 choice).
   if (env.GOOGLE_VISION_API_KEY) {
-    return moderateGoogle(env, bytes);
+    return moderateGoogle(env, visionBytes);
   }
   if (env.SIGHTENGINE_USER && env.SIGHTENGINE_SECRET) {
-    return moderateSightengine(env, bytes, contentType);
+    return moderateSightengine(env, visionBytes, visionType);
   }
   if (env.ENVIRONMENT === "development") {
     // Local UI work only. Production must have a provider (fail closed).

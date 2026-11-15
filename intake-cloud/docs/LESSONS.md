@@ -1,5 +1,11 @@
 # Intake lessons
 
+## 2026-11-15 — Finish: Vision on full-res + HEIC moderated before convert
+
+- **Symptom / risk:** After JPEG passthrough, finish still slow or dies: SafeSearch base64 of ~7MB boards. HEIC path moderated raw HEIC before convert.
+- **Rule:** `ensureJpegBytes` first, then `moderateImage`. If payload >1.5MB, Cloud Run `/convert-to-jpeg` with `x-max-edge: 1280` for Vision only; store full-res JPEG as before.
+- **Where:** `app.ts` / `progressive.ts` finish order; `moderation.ts`; Cloud Run 0.9.5
+
 ## 2026-11-15 — “Saving your photos…” stuck: Worker reencode OOMs large JPEGs
 
 - **Symptom:** Waiting page stayed on “Saving your photos…”; D1 note `Finish stuck: 0/3 stored; 3 temp object(s) missing` while R2 temps still existed (~6–7MB JPEGs).
