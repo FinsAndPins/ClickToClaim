@@ -144,29 +144,6 @@ export function sellerPhotosRejectedEmail(sellerName: string): OutboundEmail {
   };
 }
 
-/** Cloud lab (+ future prod): confirm we received the submission. Production historically only emailed on reject / offer. */
-export function sellerSubmissionReceivedEmail(opts: {
-  sellerName: string;
-  photoCount: number;
-}): OutboundEmail {
-  const name = (opts.sellerName || "there").trim() || "there";
-  const n = Math.max(0, Number(opts.photoCount) || 0);
-  return {
-    to: [],
-    subject: "We received your Fins & Pins collection photos",
-    text: [
-      `Hi ${name},`,
-      "",
-      `Thanks. We received your upload${n ? ` (${n} photo${n === 1 ? "" : "s"})` : ""}.`,
-      "We’re finding the pins on your boards and will email your offer when it’s ready.",
-      "",
-      NO_REPLY_LINE,
-      "",
-      "- Fins & Pins",
-    ].join("\n"),
-  };
-}
-
 /** Staff: finish background died or stored fewer photos than expected (no auto text to Lexi). */
 export function finishIncompleteStaffEmail(opts: {
   sellerName: string;

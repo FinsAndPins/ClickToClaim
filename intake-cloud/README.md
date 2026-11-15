@@ -24,12 +24,16 @@ npx wrangler secret put CLOUD_PRICE_INVOKE_KEY  # must match Cloud Run INTAKE_CL
 
 Cloud Run service `intake-cloud-detect-parallel` accepts `X-Intake-Cloud-Key` and stays free of Lexi notify.
 
-### iOS-style prefetch (cloud only; iOS app untouched)
+### iOS-style prefetch + Board Box Editor (cloud only; iOS app untouched)
 
 ClickToCollect prefetches eBay for the first **20** pins during celebration, then only reprices box deltas after review. Cloud mirrors that:
 
-- One-shot `/price-collection` (admin Get Offer Faster): prices first 20, then the rest
-- Two-phase (box-confirm UI later): `runCloudDetectAndPrefetch` → `confirmCloudBoxes` in `src/cloud_price.ts`
+1. **Upload finish** → seller lands on `/boxes/:token` (wait while detect + prefetch run)
+2. **Board Box Editor** → auto-opens at `/boxes/:token/editor` when status is `cloud_awaiting_boxes` (same CTR-style UX; token auth, no staff login)
+3. Staff can still open the editor from admin; seller link is on the collection page too
+3. **Confirm** → delta reprice + finish remaining eBay + harness
+
+One-shot (skip editor) remains available on the collection admin page.
 
 ## Deploy
 

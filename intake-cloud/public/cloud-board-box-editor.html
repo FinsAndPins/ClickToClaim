@@ -92,13 +92,6 @@
       background: rgba(255, 234, 0, 0.22);
       z-index: 5;
     }
-    .box .tag {
-      position: absolute; left: 0; top: 0; transform: translateY(-100%);
-      background: rgba(0,0,0,0.82); color: #fff;
-      font-size: 11px; font-weight: 800; padding: 2px 6px;
-      border-radius: 4px 4px 0 0; white-space: nowrap; pointer-events: none;
-    }
-    .box.selected .tag { background: var(--box-sel); color: #111; }
     .handle {
       position: absolute; width: 22px; height: 22px;
       background: var(--handle); border: 2px solid #111;
@@ -160,7 +153,7 @@
       <button type="button" id="btnConfirmAsIs">Confirm as detected</button>
     </div>
     <div id="status">…</div>
-    <p class="hint">Same UX as CTR Board Box Editor: bright boxes, corner handles, Add/Delete/Undo, pinch zoom. Confirm opens Match for ready pins right away; changed boxes reprice first, and the rest keep loading in the background (like the app).</p>
+    <p class="hint">Bright boxes (no labels), corner handles, Add/Delete/Undo, pinch zoom. Confirm opens Match for ready pins; changed boxes reprice first, and the rest keep loading in the background.</p>
   </header>
   <div id="stageWrap">
     <div id="stage">
@@ -325,11 +318,7 @@
       box.style.width = w + "px";
       box.style.height = h + "px";
       box.dataset.idx = String(idx);
-      const tag = document.createElement("div");
-      tag.className = "tag";
-      const label = p.pin_id ? String(p.pin_id).slice(0, 6) : "new";
-      tag.textContent = `${idx + 1} · ${label}`;
-      box.appendChild(tag);
+      // Cloud intake: boxes only (no pin-id / index tags). CTR Board Box Editor keeps labels.
       if (idx === selected) {
         ["nw", "ne", "sw", "se"].forEach((corner) => {
           const hEl = document.createElement("div");
@@ -642,6 +631,68 @@
   el.btnConfirm.addEventListener("click", () => confirmBoxes(false));
   el.btnConfirmAsIs.addEventListener("click", () => confirmBoxes(true));
 
+  let boardsExpected = null;
+  let growTimer = null;
+
+  function boardsStillLoading() {
+    return boardsExpected != null && boards.length < boardsExpected;
+  }
+
+  function updateConfirmGate() {
+    const loading = boardsStillLoading();
+    const more = loading ? ` · ${boards.length}/${boardsExpected} boards loaded` : "";
+    if (loading) {
+      el.btnConfirm.disabled = true;
+      el.btnConfirmAsIs.disabled = true;
+      setStatus(`More boards still detecting${more}. You can fix boxes on ready boards; Confirm unlocks when all are here.`, "");
+    } else if (!dirty) {
+      el.btnConfirm.disabled = false;
+      el.btnConfirmAsIs.disabled = false;
+      setStatus(`Ready · fix boxes then Confirm${more}`, "ok");
+    }
+  }
+
+  function rebuildSelect(keepFilename) {
+    const keep = keepFilename || (boards[boardIndex] && boards[boardIndex].filename);
+    el.select.innerHTML = boards.map((b, i) =>
+      `<option value="${b.filename}">${i + 1}. ${b.filename}</option>`
+    ).join("");
+    if (keep) el.select.value = keep;
+    el.boardTotal.textContent = String(boards.length);
+  }
+
+  /** Pipelined Cloud Run: more boards appear in prefetch.json while seller edits early ones. */
+  async function maybeGrowBoards() {
+    if (dirty) return;
+    try {
+      const res = await fetch(sessionUrl(), { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) return;
+      const incoming = data.boards || [];
+      if (typeof data.boards_total === "number") boardsExpected = data.boards_total;
+      let added = 0;
+      for (const b of incoming) {
+        if (!b || !b.filename) continue;
+        if (boards.some((x) => x.filename === b.filename)) continue;
+        boards.push({
+          filename: b.filename,
+          predictions: clonePreds(b.predictions || []),
+        });
+        added += 1;
+      }
+      if (added) {
+        rebuildSelect(boards[boardIndex] && boards[boardIndex].filename);
+      }
+      updateConfirmGate();
+      if (boardsExpected != null && boards.length >= boardsExpected && growTimer) {
+        clearInterval(growTimer);
+        growTimer = null;
+      }
+    } catch (_) {
+      /* keep editing */
+    }
+  }
+
   async function init() {
     const res = await fetch(sessionUrl(), { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
@@ -653,6 +704,7 @@
       filename: b.filename,
       predictions: clonePreds(b.predictions || []),
     }));
+    if (typeof data.boards_total === "number") boardsExpected = data.boards_total;
     if (!jobId || !boards.length) {
       throw new Error(
         sellerMode
@@ -660,9 +712,7 @@
           : "No detected boards yet. Run Detect pins from the collection admin page first."
       );
     }
-    el.select.innerHTML = boards.map((b, i) =>
-      `<option value="${b.filename}">${i + 1}. ${b.filename}</option>`
-    ).join("");
+    rebuildSelect();
     if (el.btnBack) {
       el.btnBack.href = sellerMode
         ? `/boxes/${encodeURIComponent(boxReviewToken)}`
@@ -674,8 +724,11 @@
     }
     boot.style.display = "none";
     app.style.display = "block";
-    setStatus(`Ready · fix boxes then Confirm`, "ok");
+    updateConfirmGate();
     await loadBoard(0);
+    if (boardsExpected == null || boards.length < boardsExpected) {
+      growTimer = setInterval(maybeGrowBoards, 4000);
+    }
   }
 
   init().catch((e) => {

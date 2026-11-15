@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS collections (
   offer_sent_at TEXT,
   offer_expires_at TEXT,
   offer_token TEXT UNIQUE,
+  box_review_token TEXT UNIQUE,
   internal_note TEXT,
   decline_reason TEXT,
   decline_wanted_cents INTEGER,
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS collections (
 CREATE INDEX IF NOT EXISTS idx_collections_status ON collections(status);
 CREATE INDEX IF NOT EXISTS idx_collections_email ON collections(seller_email);
 CREATE INDEX IF NOT EXISTS idx_collections_token ON collections(offer_token);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_box_review_token ON collections(box_review_token);
 
 CREATE TABLE IF NOT EXISTS photos (
   id TEXT PRIMARY KEY,

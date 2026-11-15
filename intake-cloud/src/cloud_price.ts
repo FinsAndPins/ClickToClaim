@@ -1,6 +1,6 @@
 /**
  * Bridge: Intake cloud-lab Worker → private Cloud Run pricing.
- * eBay keys and RF-DETR stay on GCP. This module only forwards board JPEGs.
+ * eBay keys and RF-DETR stay on GCP. Prefer source_urls (R2 proxy) so bodies stay under Cloud Run's ~32MB cap.
  * Lexi notify must stay off (NOTIFY_LEXI=0).
  */
 
@@ -16,10 +16,16 @@ export type CloudPriceResult = {
   error?: string;
 };
 
-type PhotoBlob = {
+export type PhotoBlob = {
   filename: string;
   bytes: ArrayBuffer;
   contentType: string;
+};
+
+/** Board reference for URL-pull detect (Cloud Run fetches each JPEG). */
+export type PhotoSourceUrl = {
+  filename: string;
+  url: string;
 };
 
 function invokeKey(env: Bindings): string {
@@ -68,33 +74,52 @@ async function parseCloudJson(res: Response): Promise<{ ok: boolean; body: Recor
   return { ok: true, body };
 }
 
+function guardLab(env: Bindings, sources: unknown[]): string | null {
+  if (!priceBase(env) || !invokeKey(env)) {
+    return "CLOUD_PRICE_URL / CLOUD_PRICE_INVOKE_KEY not configured";
+  }
+  if (String(env.NOTIFY_LEXI || "0") === "1") {
+    return "NOTIFY_LEXI must stay 0 on cloud lab";
+  }
+  if (!sources.length) {
+    return "No photos to price";
+  }
+  return null;
+}
+
 /**
- * One-shot price (current admin "Get Offer Faster").
- * Cloud Run now prefetches eBay for the first prefetch_n pins before finishing the rest
- * (same Match-window idea as iOS), then builds the harness.
+ * One-shot price (admin "Get Offer Faster").
+ * Prefer sourceUrls so Cloud Run pulls from the Worker R2 proxy (no 32MB multipart).
  */
 export async function runCloudPriceCollection(
   env: Bindings,
-  photos: PhotoBlob[],
+  photos: PhotoBlob[] | PhotoSourceUrl[],
   opts?: { pool_n?: number; min_conf?: number; prefetch_n?: number }
 ): Promise<CloudPriceResult> {
+  const blocked = guardLab(env, photos);
+  if (blocked) return { ok: false, error: blocked };
+
   const base = priceBase(env);
   const key = invokeKey(env);
-  if (!base || !key) {
-    return { ok: false, error: "CLOUD_PRICE_URL / CLOUD_PRICE_INVOKE_KEY not configured" };
-  }
-  if (String(env.NOTIFY_LEXI || "0") === "1") {
-    return { ok: false, error: "NOTIFY_LEXI must stay 0 on cloud lab" };
-  }
-  if (!photos.length) {
-    return { ok: false, error: "No photos to price" };
-  }
-
   const form = new FormData();
   form.append("pool_n", String(opts?.pool_n ?? 20));
   form.append("min_conf", String(opts?.min_conf ?? 0.25));
   form.append("prefetch_n", String(opts?.prefetch_n ?? CLOUD_PREFETCH_N));
-  appendBoardFiles(form, photos);
+
+  const asUrls = photos as PhotoSourceUrl[];
+  if (asUrls[0] && typeof asUrls[0].url === "string") {
+    form.append(
+      "source_urls",
+      JSON.stringify(
+        asUrls.map((p) => ({
+          filename: p.filename,
+          url: p.url,
+        }))
+      )
+    );
+  } else {
+    appendBoardFiles(form, photos as PhotoBlob[]);
+  }
 
   const res = await fetch(`${base}/price-collection`, {
     method: "POST",
@@ -129,29 +154,45 @@ export type CloudPrefetchResult = CloudPriceResult & {
 /**
  * Phase 1: detect all boxes + eBay for first N pins (iOS celebration prefetch).
  * Leaves job in awaiting_box_confirm. Call confirmCloudBoxes next.
+ * Prefer sourceUrls (R2 proxy) for multi-board collections.
  */
 export async function runCloudDetectAndPrefetch(
   env: Bindings,
-  photos: PhotoBlob[],
-  opts?: { pool_n?: number; min_conf?: number; prefetch_n?: number }
+  photos: PhotoBlob[] | PhotoSourceUrl[],
+  opts?: {
+    pool_n?: number;
+    min_conf?: number;
+    prefetch_n?: number;
+    collection_id?: string;
+    callback_url?: string;
+  }
 ): Promise<CloudPrefetchResult> {
+  const blocked = guardLab(env, photos);
+  if (blocked) return { ok: false, error: blocked };
+
   const base = priceBase(env);
   const key = invokeKey(env);
-  if (!base || !key) {
-    return { ok: false, error: "CLOUD_PRICE_URL / CLOUD_PRICE_INVOKE_KEY not configured" };
-  }
-  if (String(env.NOTIFY_LEXI || "0") === "1") {
-    return { ok: false, error: "NOTIFY_LEXI must stay 0 on cloud lab" };
-  }
-  if (!photos.length) {
-    return { ok: false, error: "No photos to price" };
-  }
-
   const form = new FormData();
   form.append("pool_n", String(opts?.pool_n ?? 20));
   form.append("min_conf", String(opts?.min_conf ?? 0.25));
   form.append("prefetch_n", String(opts?.prefetch_n ?? CLOUD_PREFETCH_N));
-  appendBoardFiles(form, photos);
+  if (opts?.collection_id) form.append("collection_id", opts.collection_id);
+  if (opts?.callback_url) form.append("callback_url", opts.callback_url);
+
+  const asUrls = photos as PhotoSourceUrl[];
+  if (asUrls[0] && typeof asUrls[0].url === "string") {
+    form.append(
+      "source_urls",
+      JSON.stringify(
+        asUrls.map((p) => ({
+          filename: p.filename,
+          url: p.url,
+        }))
+      )
+    );
+  } else {
+    appendBoardFiles(form, photos as PhotoBlob[]);
+  }
 
   const res = await fetch(`${base}/detect-and-prefetch`, {
     method: "POST",
@@ -201,7 +242,12 @@ export async function confirmCloudBoxes(
       "X-Intake-Cloud-Key": key,
       "content-type": "application/json",
     },
-    body: JSON.stringify(boards && boards.length ? { boards } : {}),
+    // defer_remaining: open Match ASAP; Cloud Run finishes other pins in background
+    body: JSON.stringify(
+      boards && boards.length
+        ? { boards, defer_remaining: true }
+        : { defer_remaining: true }
+    ),
   });
   const parsed = await parseCloudJson(res);
   if (!parsed.ok) {
@@ -216,6 +262,8 @@ export async function confirmCloudBoxes(
     priced_count: Number(body.priced_count || 0),
     elapsed_sec: Number(body.elapsed_sec || 0),
     delta: body.delta,
+    match_ready: body.match_ready !== false,
+    remaining_deferred: Boolean(body.remaining_deferred),
   };
 }
 
@@ -257,4 +305,21 @@ export async function fetchCloudJobFile(env: Bindings, jobId: string, filePath: 
       "cache-control": "private, max-age=300",
     },
   });
+}
+
+export async function fetchCloudJobJson(
+  env: Bindings,
+  jobId: string,
+  filePath: string
+): Promise<{ ok: true; body: Record<string, unknown> } | { ok: false; error: string }> {
+  const res = await fetchCloudJobFile(env, jobId, filePath);
+  const text = await res.text();
+  if (!res.ok) {
+    return { ok: false, error: `Cloud job file HTTP ${res.status}: ${text.slice(0, 300)}` };
+  }
+  try {
+    return { ok: true, body: JSON.parse(text) as Record<string, unknown> };
+  } catch {
+    return { ok: false, error: `Invalid JSON at ${filePath}` };
+  }
 }

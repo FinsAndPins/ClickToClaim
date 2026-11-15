@@ -10,15 +10,9 @@ import {
   readyToPayEmail,
   moderationAlertEmail,
   sellerPhotosRejectedEmail,
-  sellerSubmissionReceivedEmail,
   finishIncompleteStaffEmail,
 } from "./email";
-import {
-  moderateAndPromoteTempPhoto,
-  scheduleEarlyDetect,
-  maybeStartOrRefreshDetect,
-  purgeAbandonedDraft,
-} from "./progressive";
+import { maybeStartOrRefreshDetect, purgeAbandonedDraft } from "./progressive";
 import { centsToDollars, declinedWantedMore, offerHelpers, parseDollarsToCents, percentOfValue } from "./money";
 import { addDaysIso, canStaffMove, KANBAN_COLUMNS, offerDueLabel, offerExpired, staffNextStatuses } from "./workflow";
 import { requireStaff, requireMacOrStaff } from "./auth";
@@ -167,32 +161,6 @@ async function alertFinishIncomplete(
   mail.to = staffEmails(env);
   const sent = await sendEmail(env, mail);
   await logEvent(env.DB, opts.collectionId, "system", "finish_incomplete_alerted", { sent });
-}
-
-async function sendSubmissionReceipt(
-  env: Bindings,
-  collectionId: string,
-  sellerName: string,
-  sellerEmail: string
-): Promise<void> {
-  const already = await env.DB.prepare(
-    `SELECT id FROM events WHERE collection_id = ? AND type = 'submission_receipt' LIMIT 1`
-  )
-    .bind(collectionId)
-    .first();
-  if (already) return;
-  const countRow = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM photos WHERE collection_id = ?`
-  )
-    .bind(collectionId)
-    .first<{ n: number }>();
-  const mail = sellerSubmissionReceivedEmail({
-    sellerName,
-    photoCount: Number(countRow?.n || 0),
-  });
-  mail.to = [sellerEmail];
-  const sent = await sendEmail(env, mail);
-  await logEvent(env.DB, collectionId, sellerEmail, "submission_receipt", { sent });
 }
 
 /** Finish path when progressive promote already stored every board during the form. */
@@ -424,6 +392,10 @@ async function processSubmissionBackground(
           created
         )
         .run();
+      // Drop temp row as soon as the photo is durable (R2 temp already deleted above).
+      await env.DB.prepare(`DELETE FROM upload_temp_photos WHERE id = ? AND session_id = ?`)
+        .bind(p.id, session.id)
+        .run();
       stored += 1;
       workedThisTick += 1;
       if (!cover) cover = p.id;
@@ -440,16 +412,10 @@ async function processSubmissionBackground(
       .bind(collectionId)
       .first<{ n: number }>();
     stored = Number(recount?.n || 0);
-    const tempsLeft = await env.DB.prepare(
-      `SELECT COUNT(*) AS n FROM upload_temp_photos WHERE session_id = ?`
-    )
-      .bind(session.id)
-      .first<{ n: number }>();
-    const remainingTemps = Number(tempsLeft?.n || 0);
 
-    // Progressive: early-promoted boards already sit in `photos`, so do not require
-    // stored === original temp count. Done when no temps remain and at least one photo stored.
-    if (remainingTemps === 0 && stored >= 1) {
+    // Done when every finish-batch photo is in `photos`. Do not require temp-row count
+    // (temps are deleted per photo; a prior bug waited for temps==0 before deleting them).
+    if (stored >= photos.length && stored >= 1) {
       if (cover) {
         await env.DB.prepare(`UPDATE collections SET cover_photo_id = COALESCE(cover_photo_id, ?), photo_count = ? WHERE id = ?`)
           .bind(cover, stored, collectionId)
@@ -558,24 +524,58 @@ async function processPendingFinishes(env: Bindings): Promise<void> {
       .all<TempPhotoSnap>();
     const photos = temps.results || [];
     if (!photos.length) {
-      // Orphan claim with no temps: alert if a partial collection exists.
+      // Temps already promoted; finish may have died before detect was queued.
       if (session.collection_id) {
         const n = await env.DB.prepare(`SELECT COUNT(*) AS n FROM photos WHERE collection_id = ?`)
           .bind(session.collection_id)
           .first<{ n: number }>();
-        const expectedRow = await env.DB.prepare(`SELECT photo_count, seller_name, seller_email FROM collections WHERE id = ?`)
+        const expectedRow = await env.DB.prepare(
+          `SELECT photo_count, seller_name, seller_email, status, mac_handoff_status FROM collections WHERE id = ?`
+        )
           .bind(session.collection_id)
-          .first<{ photo_count: number; seller_name: string; seller_email: string }>();
-        if (expectedRow && Number(n?.n || 0) < expectedRow.photo_count) {
+          .first<{
+            photo_count: number;
+            seller_name: string;
+            seller_email: string;
+            status: string;
+            mac_handoff_status: string | null;
+          }>();
+        const stored = Number(n?.n || 0);
+        if (expectedRow && stored < expectedRow.photo_count) {
           await alertFinishIncomplete(env, {
             collectionId: session.collection_id,
             sellerName: expectedRow.seller_name,
             sellerEmail: expectedRow.seller_email,
             expected: expectedRow.photo_count,
-            stored: Number(n?.n || 0),
+            stored,
             detail: "finish session has no remaining temp photos",
           });
+        } else if (
+          expectedRow &&
+          stored >= 1 &&
+          !expectedRow.mac_handoff_status
+        ) {
+          await queueMacHandoff(
+            env.DB,
+            {
+              id: session.collection_id,
+              seller_name: expectedRow.seller_name,
+              status: expectedRow.status,
+            },
+            session.seller_email || "system:cron",
+            { auto: true }
+          );
+          await runCloudDetectForCollection(
+            env,
+            session.collection_id,
+            session.seller_email || "system:cron"
+          );
+          await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
+        } else {
+          await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
         }
+      } else {
+        await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
       }
       continue;
     }
@@ -1234,7 +1234,7 @@ app.get("/privacy", (c) => {
       <h2>Getting pins to us and payment</h2>
       <p>You choose either: ship within the United States (USPS, UPS, or similar), or drop off with Fins and Pins at a pin event in person in Florida. If you accept, we pay PayPal Goods and Services first. If you chose shipping, you then ship to us in Florida using your own postage, and we show our ship-to address after you accept. If you chose drop-off, we'll coordinate the Florida event handoff after you accept.</p>
       <h2>How we email you</h2>
-      <p>We email a short confirmation when we receive your submission, then your offer (accept or decline via the link). If a photo fails automated safety checks, we email you and delete those files.</p>
+      <p>We only email about your offer, using the address you enter. Use the link in that email to accept or decline. If a photo fails automated safety checks, we email you and delete those files.</p>
     </div>`
   );
 });
@@ -1505,41 +1505,8 @@ app.post("/api/submissions/:sessionId/photos", async (c) => {
       .run();
     const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
     await c.env.DB.prepare(`UPDATE upload_sessions SET expires_at = ? WHERE id = ?`).bind(exp, sessionId).run();
-
-    // Progressive: SafeSearch + promote into draft collection while the seller fills the form,
-    // then debounce RF-DETR/prefetch so boards are ready (or loading) by Submit.
-    if (cloudPricingConfigured(c.env) || hasModerationProvider(c.env)) {
-      const tempSnap = {
-        id: photoId,
-        session_id: sessionId,
-        r2_key: key,
-        original_filename: safeName,
-        content_type: file.type || "image/jpeg",
-        size_bytes: file.size,
-      };
-      const progressive = (async () => {
-        const promoted = await moderateAndPromoteTempPhoto(c.env, sessionId, tempSnap);
-        if (!promoted.ok) {
-          await logEvent(c.env.DB, null, "system", "early_moderation_reject", {
-            session_id: sessionId,
-            photo_id: photoId,
-            codes: promoted.codes,
-          });
-          return;
-        }
-        if (cloudPricingConfigured(c.env)) {
-          await scheduleEarlyDetect(c.env, sessionId, promoted.collectionId, (cid, actor) =>
-            runCloudDetectForCollection(c.env, cid, actor)
-          );
-        }
-      })();
-      try {
-        c.executionCtx.waitUntil(progressive);
-      } catch (err) {
-        console.error("early_promote_waitUntil_failed", err);
-      }
-    }
-
+    // Photos stay in temp until Submit (privacy: not a submitted collection yet).
+    // After Submit, Cloud Run pipelines detect→eBay per board in one job.
     return c.json({ ok: true, photoId });
   } catch (e) {
     console.error("photo_upload_failed", e);
@@ -1760,8 +1727,8 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
     }
 
     // Waiting page returns immediately. Finish + detect run under waitUntil; cron resumes if needed.
+    // Offer-only email (same as production): no upload receipt.
     const background = (async () => {
-      await sendSubmissionReceipt(c.env, collectionId!, snap.seller_name, snap.seller_email);
       if (photos.length) {
         await processSubmissionBackground(c.env, snap, photos);
       } else {
@@ -1905,16 +1872,20 @@ app.get("/api/boxes/:token/status", async (c) => {
   const failed = status === "cloud_failed";
   let phase = status || "saving";
   let pinCount: number | null = null;
+  let boardsDone: number | null = null;
+  let boardsTotal: number | null = null;
   let label =
     status === "cloud_running" || status === "cloud_queued"
-      ? "Detecting pins…"
+      ? "Finding pins…"
       : status === "cloud_awaiting_boxes"
         ? "Boxes ready"
         : status === "cloud_confirming"
           ? "Opening Match…"
           : status === "cloud_done"
             ? "Match ready"
-            : "Saving your photos…";
+            : status === "submitted" || status === "pricing" || status === "uploading"
+              ? "Finding pins…"
+              : "Saving your photos…";
 
   const jobId = cloudJobIdFromFolder(row.mac_handoff_folder);
   if (
@@ -1928,8 +1899,15 @@ app.get("/api/boxes/:token/status", async (c) => {
     if (st.ok) {
       phase = String(st.body.phase || st.body.status || phase);
       if (typeof st.body.pin_count === "number") pinCount = st.body.pin_count;
+      if (typeof st.body.boards_done === "number") boardsDone = st.body.boards_done;
+      if (typeof st.body.boards_total === "number") boardsTotal = st.body.boards_total;
       if (phase === "detecting") label = "Finding pins…";
-      else if (phase === "prefetching") label = "Pins found · starting prices…";
+      else if (phase === "board_ready") {
+        label =
+          boardsDone != null && boardsTotal != null
+            ? `Board ${boardsDone} of ${boardsTotal} ready`
+            : "First boards ready…";
+      } else if (phase === "prefetching") label = "Pins found · starting prices…";
       else if (phase === "detect_ready" || phase === "awaiting_box_confirm") label = "Boxes ready";
       else if (phase === "confirming") label = "Applying box edits…";
       else if (phase === "match_ready" || phase === "done" || phase === "done_partial") label = "Match ready";
@@ -1945,6 +1923,8 @@ app.get("/api/boxes/:token/status", async (c) => {
     failed,
     label,
     pin_count: pinCount,
+    boards_done: boardsDone,
+    boards_total: boardsTotal,
     collection_id: row.id,
     photo_count: row.photo_count,
   });
@@ -2003,6 +1983,9 @@ app.get("/api/boxes/:token/session", async (c) => {
     boards: prefetch.body.boards || [],
     pin_count: prefetch.body.pin_count,
     prefetch_priced: prefetch.body.prefetch_priced,
+    boards_done: prefetch.body.boards_done,
+    boards_total: prefetch.body.boards_total,
+    phase: prefetch.body.phase,
     seller: true,
   });
 });
@@ -3032,6 +3015,8 @@ app.post("/internal/cloud-run/detect-complete", async (c) => {
     prefetch_priced?: number;
     elapsed_sec?: number;
     phase?: string;
+    boards_done?: number;
+    boards_total?: number;
     error?: string;
   };
   const collectionId = String(body.collection_id || "").trim();
@@ -3048,6 +3033,8 @@ app.post("/internal/cloud-run/detect-complete", async (c) => {
   }
 
   const phase = String(body.phase || "awaiting_box_confirm");
+  const boardsDone = typeof body.boards_done === "number" ? body.boards_done : null;
+  const boardsTotal = typeof body.boards_total === "number" ? body.boards_total : null;
 
   if (phase === "detecting") {
     // Job id known: keep cloud_running so the import movie can poll status.json.
@@ -3065,12 +3052,15 @@ app.post("/internal/cloud-run/detect-complete", async (c) => {
     return c.json({ ok: true, recorded: "running", phase });
   }
 
+  // board_ready / detect_ready: open BBE as soon as the first board has boxes.
+  // Later boards keep landing in prefetch.json; the editor polls and grows the list.
   const note =
-    phase === "detect_ready"
-      ? `Detect ready (${body.pin_count || "?"} pins). Opening Board Box Editor; eBay prefetch continues.`
-      : `Detect OK (${body.pin_count || "?"} pins, ${body.prefetch_priced || "?"} prefetched). Open Board Box Editor.`;
+    phase === "board_ready"
+      ? `Board ${boardsDone ?? "?"}/${boardsTotal ?? "?"} ready (${body.pin_count || "?"} pins so far). Editor open; more boards loading.`
+      : phase === "detect_ready"
+        ? `Detect ready (${body.pin_count || "?"} pins). Board Box Editor open; eBay prefetch continues.`
+        : `Detect OK (${body.pin_count || "?"} pins, ${body.prefetch_priced || "?"} prefetched). Open Board Box Editor.`;
 
-  // Open editor as soon as boxes exist (detect_ready). Later callback refreshes prefetch counts.
   await c.env.DB.prepare(
     `UPDATE collections SET mac_handoff_status = 'cloud_awaiting_boxes', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ?`
   )
@@ -3082,10 +3072,12 @@ app.post("/internal/cloud-run/detect-complete", async (c) => {
     prefetch_priced: body.prefetch_priced,
     elapsed_sec: body.elapsed_sec,
     phase,
+    boards_done: boardsDone,
+    boards_total: boardsTotal,
     via: "callback",
     notify_lexi: false,
   });
-  return c.json({ ok: true, recorded: "awaiting_boxes", phase });
+  return c.json({ ok: true, recorded: "awaiting_boxes", phase, boards_done: boardsDone });
 });
 
 /**

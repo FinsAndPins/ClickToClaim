@@ -1,11 +1,25 @@
 # Intake lessons
 
-## 2026-11-14 — Vision wired; no “confirmation email” on success (until receipt + Resend)
+## 2026-11-14 — Upside-down boards: reencode stripped EXIF without transpose
 
-- **Symptom:** Lab health showed `moderation:dev_pass`. Test uploads with an email never got a confirmation message.
-- **Cause:** Lab lacked `GOOGLE_VISION_API_KEY` (production SafeSearch lived only on `finsandpins-intake`). Success path historically has **no** seller receipt email (privacy said offer-only); reject/offer need `RESEND_API_KEY`, also missing on the lab Worker. Wrangler cannot export production secret values.
-- **Rule:** Match SafeSearch by putting Vision on `finsandpins-intake-cloud` (GCP Vision-restricted API key is fine). Add `sellerSubmissionReceivedEmail` for cloud confirmation. Put `RESEND_API_KEY` via `scripts/wire_lab_resend.sh` (stdin; never paste into chat). Health: `moderation` + `email`.
-- **Where:** `wrangler secret put GOOGLE_VISION_API_KEY`; `src/email.ts`; `/health`
+- **Symptom:** Cloud lab BBE / detect photos all upside down after upload.
+- **Cause:** Worker `reencodeToJpeg` (jsquash) decoded JPEG and re-saved without applying EXIF Orientation, stripping the tag. Cloud Run `_downscale_jpeg_bytes` did the same. Watcher / `rfdetr_onnx_detector` use `ImageOps.exif_transpose`; that only helps when Orientation is still present.
+- **Rule:** Bake orientation into pixels before any re-encode or downscale (Worker + Cloud Run), same as Mac pricing. Redeploy both after changing either path.
+- **Where:** `intake-cloud/src/reencode.ts`; `IntakeCloudPricing/cloud_detect/main.py` `_downscale_jpeg_bytes`
+
+## 2026-11-14 — Finish deadlock: temps never cleared → detect never queued
+
+- **Symptom:** Waiting page stuck on “Saving your photos…” / “Hang tight” with board visible; `mac_handoff_status` stayed null while all photos were already in `photos`.
+- **Cause:** Completion required `upload_temp_photos` count == 0, but temp rows were only deleted *after* completion. Fake random boxes on the wait screen also looked like bad RF-DETR.
+- **Rule:** Delete each temp row when its photo is stored; complete when `stored >= finish batch size`. Wait UI draws **real** boxes from `prefetch.json` only (no random placeholders).
+- **Where:** `processSubmissionBackground`, `processPendingFinishes`, `public/import-waiting.html`
+
+## 2026-11-14 — Vision wired; upload confirmation email is intentional no-op
+
+- **Symptom:** Lab health showed `moderation:dev_pass`. Tests with an email address got no message.
+- **Cause:** Lab lacked `GOOGLE_VISION_API_KEY`. Success path is offer-only by design (same as production); reject/offer need `RESEND_API_KEY` when those paths are tested.
+- **Rule:** Wire Vision on `finsandpins-intake-cloud` for SafeSearch. Do **not** send an upload receipt. Put Resend only when testing offer/reject mail.
+- **Where:** `wrangler secret put GOOGLE_VISION_API_KEY`; `/health`
 
 ## 2026-11-14 — “No photos yet” on import movie; lab moderation is dev_pass
 

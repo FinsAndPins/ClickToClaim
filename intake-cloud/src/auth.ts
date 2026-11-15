@@ -28,3 +28,27 @@ export async function requireStaff(
     headers: { "content-type": "text/plain; charset=utf-8" },
   });
 }
+
+/**
+ * Staff (Access / DEV_ADMIN) or Mac helper bearer token.
+ * Cloud lab keeps Mac routes for API shape compatibility; prefer staff.
+ */
+export async function requireMacOrStaff(
+  env: Bindings,
+  request: Request
+): Promise<{ email: string } | Response> {
+  const staff = await requireStaff(env, request);
+  if (!(staff instanceof Response)) return staff;
+
+  const expected = String((env as Bindings & { MAC_HANDOFF_TOKEN?: string }).MAC_HANDOFF_TOKEN || "").trim();
+  if (!expected) return staff;
+
+  const auth = (request.headers.get("authorization") || "").trim();
+  const headerTok = (request.headers.get("x-mac-handoff-token") || "").trim();
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  const got = bearer || headerTok;
+  if (got && got === expected) {
+    return { email: "mac-handoff" };
+  }
+  return staff;
+}

@@ -27,3 +27,24 @@ export function offerHelpers(harnessTotalCents: number | null) {
     p60: Math.round(harnessTotalCents * 0.6),
   };
 }
+
+/** Declined because they wanted a higher price than our offer. */
+export function declinedWantedMore(row: {
+  decline_wanted_cents?: number | null;
+  offer_cents?: number | null;
+}): boolean {
+  const wanted = row.decline_wanted_cents;
+  const offered = row.offer_cents;
+  if (wanted == null || wanted <= 0) return false;
+  if (offered == null) return true;
+  return wanted > offered;
+}
+
+/** e.g. offer vs harness total → "42%". */
+export function percentOfValue(
+  partCents: number | null | undefined,
+  totalCents: number | null | undefined
+): string {
+  if (partCents == null || totalCents == null || totalCents <= 0) return "n/a";
+  return `${Math.round((partCents / totalCents) * 100)}%`;
+}

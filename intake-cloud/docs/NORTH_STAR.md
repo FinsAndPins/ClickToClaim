@@ -6,23 +6,28 @@ Production `sellmycollection.finsandpins.shop` stays untouched until **SHIP TO P
 
 ## Latency goals
 
-1. **While the seller fills the form**, uploaded boards already run SafeSearch → RF-DETR → eBay prefetch.
-2. **By Submit**, Board Box Editor should often be ready (or show boards that are ready first).
-3. **Partial readiness:** show detected boards / Match pins as they become available; keep the rest loading in the background.
+1. Photos may **upload** while the seller fills the form (disclosed). Detect/eBay wait until **Submit** (privacy / ToS).
+2. After Submit, **pipelined** detect→eBay so board 1’s boxes (and Match-window prices) appear ASAP while later boards still detect.
+3. **Partial readiness:** BBE/CTM show boards/pins as they become available; keep the rest loading.
 4. Lexi iMessage stays off until Steve says GO.
 
-## Current lab behavior (progressive v1)
+## Current lab behavior
 
 | Phase | What runs |
 |-------|-----------|
-| Photo pick | Upload to R2 temp → Vision SafeSearch → promote into draft collection → debounced Cloud Run detect+prefetch |
-| Form fill | Detect continues; import movie / BBE can open once `cloud_awaiting_boxes` |
-| Submit | Identity written onto draft; confirmation email attempted; remaining temps finished; detect refreshed if more boards landed |
-| Confirm boxes | Same as before → Match with deferred remaining pricing |
+| Photo pick | Upload to R2 temp only (not a submission yet) |
+| Submit | SafeSearch → store → one Cloud Run job: detect board N, eBay those crops while detecting N+1 |
+| First board ready | `board_ready` callback → import movie opens BBE; editor polls for more boards |
+| Confirm boxes | Match for ready pins; remaining eBay deferred in background |
+
+## Detect ↔ eBay order (cloud only)
+
+Batch “detect all boards, then eBay all pins” is right for overnight Mac pricing. For seller wait time it is wrong.
+
+**Prefer pipelined per board (not strict sequential):** as each board finishes RF-DETR, immediately start eBay on those crops while the next board detects. Overlap detect and eBay. Do **not** wait for board 1’s full eBay window before starting board 2 detect (that idles the GPU). Do **not** wait for all 25 detects before any eBay (that delays first Match pins).
+
+Seller-facing: BBE/CTM show boards/pins as each board’s detect (then its eBay) completes.
 
 ## Still next
 
-- True incremental detect (append boards without full re-job)
-- Progressive CTM UI that lists ready pins while others load
-- Wire `RESEND_API_KEY` on the lab Worker (receipt + reject + offer emails)
-- Lexi notify only after explicit GO
+See `FUTURE_DEVELOPMENT.md` (Lexi staff cloud price, progressive CTM, Lexi notify GO, etc.).

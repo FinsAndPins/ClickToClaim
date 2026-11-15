@@ -55,6 +55,7 @@ export type CollectionRow = {
   offer_sent_at: string | null;
   offer_expires_at: string | null;
   offer_token: string | null;
+  box_review_token: string | null;
   internal_note: string | null;
   decline_reason: string | null;
   decline_wanted_cents: number | null;

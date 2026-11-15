@@ -16,7 +16,7 @@ run_worker_first = true
 
 [vars]
 APP_NAME = "Fins & Pins: Sell My Collection (Cloud lab)"
-PUBLIC_BASE_URL = "https://finsandpins-intake-cloud.steve-fierstein.workers.dev"
+PUBLIC_BASE_URL = "https://finsandpins-intake-cloud.finsandpins.workers.dev"
 FROM_EMAIL = "offer@finsandpins.shop"
 NOREPLY_EMAIL = "noreply@finsandpins.shop"
 STAFF_ALERT_EMAILS = "finsandpins@gmail.com"
@@ -39,7 +39,7 @@ NOTIFY_LEXI = "0"
 [[d1_databases]]
 binding = "DB"
 database_name = "intake-cloud"
-database_id = "REPLACE_AFTER_D1_CREATE"
+database_id = "74f612eb-3f27-46d0-ad39-3e619cf692d9"
 
 # Create with: npx wrangler r2 bucket create finsandpins-intake-cloud
 [[r2_buckets]]

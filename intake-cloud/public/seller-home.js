@@ -401,8 +401,8 @@
       } catch (_) {
         /* ignore */
       }
-      setStatus("Done. Opening thank-you page…");
-      location.href = "/thanks";
+      setStatus("Done. Opening pin review…");
+      location.href = data.box_review_url || "/thanks";
     } catch (e) {
       submitted = false;
       updateSubmit();
