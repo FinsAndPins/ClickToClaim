@@ -1,5 +1,12 @@
 # Intake lessons
 
+## 2026-11-14 — HEIC: Mac uses sips; cloud lab converts in browser + Cloud Run
+
+- **Symptom:** iPhone HEIC uploads accepted by allowlist, then Worker `reencodeToJpeg` returned `heic_unsupported_on_worker` and used to passthrough raw HEIC (or fail detect).
+- **Cause:** Production intake converts HEIC on the Mac with `sips` during handoff. Cloud lab never hits that path. Workers cannot decode HEIC.
+- **Rule:** Convert HEIC→JPEG in `seller-home.js` before upload (createImageBitmap / canvas). Worker `ensureJpegBytes` falls back to Cloud Run `POST /convert-to-jpeg` (pillow-heif). Never store raw HEIC in `photos`.
+- **Where:** `intake-cloud/public/seller-home.js`; `cloud_price.ts` `ensureJpegBytes`; `IntakeCloudPricing` `/convert-to-jpeg` + `pillow-heif`
+
 ## 2026-11-14 — Anticipated: deferred eBay dies; Confirm waitUntil; stale CTM
 
 - **Symptom (would hit next upload):** Match opens with few pins; remaining eBay never finishes; Confirm stuck if waitUntil dies before Cloud Run; CTM stays stale after background pricing; Match heal could skip BBE.
