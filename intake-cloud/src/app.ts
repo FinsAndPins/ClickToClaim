@@ -2100,6 +2100,19 @@ app.post("/api/boxes/:token/confirm", async (c) => {
   });
 });
 
+function rewriteMatchHarnessHtml(htmlText: string, token: string): string {
+  // Always use a same-origin relative base. Leaving the Cloud Run host + Worker path
+  // (absolute rewrite) makes every crop/ui_data request 401 and Match looks empty.
+  const matchFileBase = `/api/boxes/${encodeURIComponent(token)}/match-file/testing_ui_visual_baseline/`;
+  return htmlText
+    .replace(
+      /https?:\/\/[^"'/\s]+\/(?:jobs\/[^/"']+\/file\/|api\/cloud\/jobs\/[^/"']+\/file\/)testing_ui_visual_baseline\//g,
+      matchFileBase
+    )
+    .replace(/\/api\/cloud\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase)
+    .replace(/\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase);
+}
+
 /** Seller Match / CTM harness (token auth). Prefetched pins are ready; rest fill in behind the scenes. */
 app.get("/boxes/:token/match", async (c) => {
   const token = c.req.param("token");
@@ -2123,6 +2136,33 @@ app.get("/boxes/:token/match", async (c) => {
        <p><a class="btn" href="/boxes/${encodeURIComponent(token)}/editor">Back to box editor</a></p></div>`
     );
   }
+
+  const harnessRes = await fetchCloudHarnessHtml(c.env, jobId);
+  let htmlText = await harnessRes.text();
+  if (harnessRes.ok) {
+    htmlText = rewriteMatchHarnessHtml(htmlText, token);
+    const banner = `<div style="position:sticky;top:0;z-index:9999;background:#0b6e4f;color:#fff;padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif">
+      Match ready for priced pins. More pins keep loading in the background (same idea as the app).
+      <a href="/boxes/${encodeURIComponent(token)}?done=1" style="color:#fff;margin-left:12px">Done</a>
+    </div>`;
+    if (htmlText.includes("<body")) {
+      htmlText = htmlText.replace(/<body[^>]*>/i, (m) => `${m}\n${banner}`);
+    } else {
+      htmlText = banner + htmlText;
+    }
+    // Harness exists: don't leave D1 on cloud_confirming (Confirm waitUntil often dies).
+    const harnessLocal = `${c.env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${row.id}/cloud-harness`;
+    await c.env.DB.prepare(
+      `UPDATE collections SET mac_handoff_status = 'cloud_done', mac_handoff_at = ?, updated_at = ?, overlay_url = COALESCE(NULLIF(overlay_url, ''), ?), internal_note = COALESCE(internal_note, ?) WHERE id = ? AND mac_handoff_status IN ('cloud_confirming', 'cloud_awaiting_boxes')`
+    )
+      .bind(nowIso(), nowIso(), harnessLocal, "Match ready.", row.id)
+      .run();
+    return new Response(htmlText, {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
+
   if (status === "cloud_confirming" || status === "cloud_awaiting_boxes") {
     return html(
       c.env,
@@ -2131,6 +2171,7 @@ app.get("/boxes/:token/match", async (c) => {
        <div class="card">
          <p>Applying your box edits, then Match for pins that are ready. Other pins keep loading in the background.</p>
          <p id="wait" class="hint">Working…</p>
+         <p style="margin-top:12px"><a class="btn" href="/boxes/${encodeURIComponent(token)}/match">Try Match again</a></p>
        </div>
        <script>
          (async function poll() {
@@ -2138,48 +2179,27 @@ app.get("/boxes/:token/match", async (c) => {
              const res = await fetch("/api/boxes/${encodeURIComponent(token)}/status", { cache: "no-store" });
              const data = await res.json().catch(() => ({}));
              const el = document.getElementById("wait");
-             if (data.status === "cloud_done" || data.status === "cloud_failed") {
-               location.reload();
+             const phase = String(data.phase || "");
+             const matchPhases = ["match_ready","finishing_remaining","done","done_partial"];
+             if (data.status === "cloud_done" || data.status === "cloud_failed" || matchPhases.indexOf(phase) >= 0) {
+               location.replace("/boxes/${encodeURIComponent(token)}/match");
                return;
              }
              if (el) el.textContent = data.label || "Building Match harness…";
            } catch (_) {}
-           setTimeout(poll, 2000);
+           setTimeout(poll, 1500);
          })();
        </script>`
     );
   }
-  const res = await fetchCloudHarnessHtml(c.env, jobId);
-  let htmlText = await res.text();
-  if (!res.ok) {
-    return html(
-      c.env,
-      "Match",
-      `<h1>Building Match…</h1><div class="card"><p>Harness is still uploading. This page will refresh.</p>
-       <p id="wait" class="hint">Working…</p></div>
-       <script>setTimeout(() => location.reload(), 2500);</script>`
-    );
-  }
-  // Point harness assets at seller-token file proxy (not staff /api/cloud/…).
-  const matchFileBase = `/api/boxes/${encodeURIComponent(token)}/match-file/testing_ui_visual_baseline/`;
-  htmlText = htmlText.replace(
-    /\/api\/cloud\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g,
-    matchFileBase
+
+  return html(
+    c.env,
+    "Match",
+    `<h1>Building Match…</h1><div class="card"><p>Harness is still uploading. This page will refresh.</p>
+     <p id="wait" class="hint">Working…</p></div>
+     <script>setTimeout(() => location.replace("/boxes/${encodeURIComponent(token)}/match"), 2000);</script>`
   );
-  htmlText = htmlText.replace(/\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase);
-  const banner = `<div style="position:sticky;top:0;z-index:9999;background:#0b6e4f;color:#fff;padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif">
-    Match ready for priced pins. More pins keep loading in the background (same idea as the app).
-    <a href="/boxes/${encodeURIComponent(token)}?done=1" style="color:#fff;margin-left:12px">Done</a>
-  </div>`;
-  if (htmlText.includes("<body")) {
-    htmlText = htmlText.replace(/<body[^>]*>/i, (m) => `${m}\n${banner}`);
-  } else {
-    htmlText = banner + htmlText;
-  }
-  return new Response(htmlText, {
-    status: 200,
-    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
-  });
 });
 
 app.get("/api/boxes/:token/match-file/*", async (c) => {
