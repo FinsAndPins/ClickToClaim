@@ -1865,10 +1865,9 @@ app.get("/boxes/:token/editor", async (c) => {
 });
 
 app.get("/api/boxes/:token/status", async (c) => {
-  const row = await collectionByBoxToken(c.env.DB, c.req.param("token"));
+  let row = await collectionByBoxToken(c.env.DB, c.req.param("token"));
   if (!row) return c.json({ ok: false, error: "Not found" }, 404);
-  const status = row.mac_handoff_status || "";
-  const ready = status === "cloud_awaiting_boxes";
+  let status = row.mac_handoff_status || "";
   const failed = status === "cloud_failed";
   let phase = status || "saving";
   let pinCount: number | null = null;
@@ -1912,8 +1911,33 @@ app.get("/api/boxes/:token/status", async (c) => {
       else if (phase === "confirming") label = "Applying box edits…";
       else if (phase === "match_ready" || phase === "done" || phase === "done_partial") label = "Match ready";
       else if (phase === "finishing_remaining") label = "Match ready · more pins loading…";
+
+      // waitUntil after seller Confirm often dies before D1 flips to cloud_done.
+      // If Cloud Run already has Match, heal so /boxes/:token/match stops spinning.
+      const matchPhases = new Set(["match_ready", "finishing_remaining", "done", "done_partial"]);
+      if (status === "cloud_confirming" && matchPhases.has(phase)) {
+        const harnessLocal = `${c.env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${row.id}/cloud-harness`;
+        await c.env.DB.prepare(
+          `UPDATE collections SET mac_handoff_status = 'cloud_done', mac_handoff_at = ?, updated_at = ?, overlay_url = COALESCE(NULLIF(overlay_url, ''), ?), internal_note = ? WHERE id = ? AND mac_handoff_status = 'cloud_confirming'`
+        )
+          .bind(
+            nowIso(),
+            nowIso(),
+            harnessLocal,
+            phase === "finishing_remaining"
+              ? "Match ready. Remaining eBay finishing in background."
+              : "Match ready.",
+            row.id
+          )
+          .run();
+        status = "cloud_done";
+        label = phase === "finishing_remaining" ? "Match ready · more pins loading…" : "Match ready";
+        row = { ...row, mac_handoff_status: "cloud_done" };
+      }
     }
   }
+
+  const ready = status === "cloud_awaiting_boxes";
 
   return c.json({
     ok: true,
