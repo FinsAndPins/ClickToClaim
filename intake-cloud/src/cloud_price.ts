@@ -390,7 +390,8 @@ export async function ensureJpegBytes(
 export async function convertImageViaCloudRun(
   env: Bindings,
   bytes: ArrayBuffer | Uint8Array,
-  filename: string
+  filename: string,
+  opts?: { maxEdge?: number }
 ): Promise<{ ok: true; bytes: Uint8Array; contentType: "image/jpeg" } | { ok: false; error: string }> {
   const base = priceBase(env);
   const key = invokeKey(env);
@@ -398,14 +399,18 @@ export async function convertImageViaCloudRun(
     return { ok: false, error: "CLOUD_PRICE_URL / CLOUD_PRICE_INVOKE_KEY not configured" };
   }
   const body = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const headers: Record<string, string> = {
+    "X-Intake-Cloud-Key": key,
+    "content-type": "application/octet-stream",
+    "x-filename": filename || "photo.heic",
+  };
+  if (opts?.maxEdge && opts.maxEdge > 0) {
+    headers["x-max-edge"] = String(Math.round(opts.maxEdge));
+  }
   try {
     const res = await fetch(`${base}/convert-to-jpeg`, {
       method: "POST",
-      headers: {
-        "X-Intake-Cloud-Key": key,
-        "content-type": "application/octet-stream",
-        "x-filename": filename || "photo.heic",
-      },
+      headers,
       body,
     });
     if (!res.ok) {
