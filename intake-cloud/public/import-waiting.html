@@ -313,7 +313,15 @@
       refreshMovieInBackground();
 
       if (data.failed) {
-        setProgress(progress, "Still working…", "Retrying detect…");
+        // Soft retry for brief Cloud Run blips; after ~90s show a real recovery path.
+        if (Date.now() - started > 90000) {
+          setProgress(progress, "Something stalled", "Tap below to try again");
+          err.classList.add("open");
+          errText.textContent = "Pin detect stalled. Your photos are saved.";
+          errRetry.href = "/boxes/" + encodeURIComponent(token);
+        } else {
+          setProgress(progress, "Still working…", "Retrying detect…");
+        }
       } else {
         const phase = data.phase || data.status || "";
         const pins = data.pin_count;
