@@ -24,6 +24,7 @@ import {
   fetchCloudHarnessHtml,
   fetchCloudJobFile,
   fetchCloudJobJson,
+  kickFinishRemaining,
   runCloudDetectAndPrefetch,
   runCloudPriceCollection,
   type PhotoSourceUrl,
@@ -1865,10 +1866,9 @@ app.get("/boxes/:token/editor", async (c) => {
 });
 
 app.get("/api/boxes/:token/status", async (c) => {
-  const row = await collectionByBoxToken(c.env.DB, c.req.param("token"));
+  let row = await collectionByBoxToken(c.env.DB, c.req.param("token"));
   if (!row) return c.json({ ok: false, error: "Not found" }, 404);
-  const status = row.mac_handoff_status || "";
-  const ready = status === "cloud_awaiting_boxes";
+  let status = row.mac_handoff_status || "";
   const failed = status === "cloud_failed";
   let phase = status || "saving";
   let pinCount: number | null = null;
@@ -1912,8 +1912,33 @@ app.get("/api/boxes/:token/status", async (c) => {
       else if (phase === "confirming") label = "Applying box edits…";
       else if (phase === "match_ready" || phase === "done" || phase === "done_partial") label = "Match ready";
       else if (phase === "finishing_remaining") label = "Match ready · more pins loading…";
+
+      // waitUntil after seller Confirm often dies before D1 flips to cloud_done.
+      // If Cloud Run already has Match, heal so /boxes/:token/match stops spinning.
+      const matchPhases = new Set(["match_ready", "finishing_remaining", "done", "done_partial"]);
+      if (status === "cloud_confirming" && matchPhases.has(phase)) {
+        const harnessLocal = `${c.env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${row.id}/cloud-harness`;
+        await c.env.DB.prepare(
+          `UPDATE collections SET mac_handoff_status = 'cloud_done', mac_handoff_at = ?, updated_at = ?, overlay_url = COALESCE(NULLIF(overlay_url, ''), ?), internal_note = ? WHERE id = ? AND mac_handoff_status = 'cloud_confirming'`
+        )
+          .bind(
+            nowIso(),
+            nowIso(),
+            harnessLocal,
+            phase === "finishing_remaining"
+              ? "Match ready. Remaining eBay finishing in background."
+              : "Match ready.",
+            row.id
+          )
+          .run();
+        status = "cloud_done";
+        label = phase === "finishing_remaining" ? "Match ready · more pins loading…" : "Match ready";
+        row = { ...row, mac_handoff_status: "cloud_done" };
+      }
     }
   }
+
+  const ready = status === "cloud_awaiting_boxes";
 
   return c.json({
     ok: true,
@@ -2022,6 +2047,8 @@ app.post("/api/boxes/:token/confirm", async (c) => {
   const matchLocal = `/boxes/${encodeURIComponent(token)}/match`;
   const harnessLocal = `${c.env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${row.id}/cloud-harness`;
   const boardsPayload = body.boards;
+  // Persist boards so cron can retry Confirm if waitUntil dies before Cloud Run.
+  await saveConfirmPending(c.env, row.id, jobId, Array.isArray(boardsPayload) ? boardsPayload : undefined);
 
   // Return immediately (avoids browser "Load failed"). Match page polls until harness exists.
   const run = async () => {
@@ -2049,6 +2076,9 @@ app.post("/api/boxes/:token/confirm", async (c) => {
         row.id
       )
       .run();
+    await clearConfirmPending(c.env, row.id);
+    // Do not kick finish-remaining here: Cloud Run already scheduled it on confirm.
+    // Cron healStuckCloudJobs re-kicks only if still stuck after ~90s (avoids double eBay).
     await logEvent(c.env.DB, row.id, row.seller_email, "cloud_price_done", {
       job_id: result.job_id || jobId,
       pin_count: result.pin_count,
@@ -2076,6 +2106,192 @@ app.post("/api/boxes/:token/confirm", async (c) => {
   });
 });
 
+/**
+ * Seller Match serves ClickToMatch v2 (new_ctm.html), then CTP v2 via relative
+ * new_ctp.html?filter=no_match (same flow as PreparingInventory Mac harness).
+ * Inject <base> so those relative links resolve through the token file proxy.
+ */
+function rewriteSellerCtmV2Html(htmlText: string, token: string): string {
+  const matchFileBase = `/api/boxes/${encodeURIComponent(token)}/match-file/testing_ui_visual_baseline/`;
+  let out = htmlText
+    .replace(
+      /https?:\/\/[^"'/\s]+\/(?:jobs\/[^/"']+\/file\/|api\/cloud\/jobs\/[^/"']+\/file\/)testing_ui_visual_baseline\//g,
+      matchFileBase
+    )
+    .replace(/\/api\/cloud\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase)
+    .replace(/\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase);
+  if (!/<base\s/i.test(out)) {
+    out = out.replace(/<head([^>]*)>/i, `<head$1>\n<base href="${matchFileBase}">`);
+  }
+  // Deferred eBay: skip pins with no listing thumb so CTM v2 is not a blank right pane.
+  if (out.includes("const queue = PINS.filter(p => !SKIP_MS.includes(p.ms));")) {
+    out = out.replace(
+      "const queue = PINS.filter(p => !SKIP_MS.includes(p.ms));",
+      "const queue = PINS.filter(p => !SKIP_MS.includes(p.ms) && p.thumb);"
+    );
+  } else if (
+    /const queue = PINS\.filter\(p => !SKIP_MS\.includes\(p\.ms\)\);/.test(out) &&
+    !out.includes("&& p.thumb")
+  ) {
+    out = out.replace(
+      /const queue = PINS\.filter\(p => !SKIP_MS\.includes\(p\.ms\)\);/,
+      "const queue = PINS.filter(p => !SKIP_MS.includes(p.ms) && p.thumb);"
+    );
+  }
+  // Soft-reload once when deferred eBay finishes so newly priced pins join the queue.
+  const reloadPoll = `<script>(function(){var t=${JSON.stringify(token)};var k="ctm_reloaded_"+t;if(sessionStorage.getItem(k))return;var n=0,saw=false;function tick(){n++;if(n>150)return;fetch("/api/boxes/"+encodeURIComponent(t)+"/status",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){var p=String(d.phase||"");if(p==="finishing_remaining"||p==="match_ready")saw=true;if(saw&&(p==="done"||p==="done_partial")){sessionStorage.setItem(k,"1");location.reload();return}setTimeout(tick,4000)}).catch(function(){setTimeout(tick,5000)})}setTimeout(tick,8000)})();</script>`;
+  if (out.includes("</body>")) {
+    out = out.replace(/<\/body>/i, `${reloadPoll}</body>`);
+  } else {
+    out += reloadPoll;
+  }
+  return out;
+}
+
+function confirmPendingKey(collectionId: string): string {
+  return `confirm_pending/${collectionId}.json`;
+}
+
+async function saveConfirmPending(
+  env: Bindings,
+  collectionId: string,
+  jobId: string,
+  boards: unknown[] | undefined
+): Promise<void> {
+  await env.BUCKET.put(
+    confirmPendingKey(collectionId),
+    JSON.stringify({ job_id: jobId, boards: boards || null, at: nowIso() }),
+    { httpMetadata: { contentType: "application/json" } }
+  );
+}
+
+async function loadConfirmPending(
+  env: Bindings,
+  collectionId: string
+): Promise<{ job_id: string; boards: unknown[] | null } | null> {
+  const obj = await env.BUCKET.get(confirmPendingKey(collectionId));
+  if (!obj) return null;
+  try {
+    const parsed = JSON.parse(await obj.text()) as { job_id?: string; boards?: unknown[] | null };
+    if (!parsed.job_id) return null;
+    return { job_id: parsed.job_id, boards: Array.isArray(parsed.boards) ? parsed.boards : null };
+  } catch {
+    return null;
+  }
+}
+
+async function clearConfirmPending(env: Bindings, collectionId: string): Promise<void> {
+  try {
+    await env.BUCKET.delete(confirmPendingKey(collectionId));
+  } catch {
+    /* ignore */
+  }
+}
+
+async function recentlyLogged(
+  db: D1Database,
+  collectionId: string,
+  type: string,
+  withinMs: number
+): Promise<boolean> {
+  const row = await db
+    .prepare(`SELECT created_at FROM events WHERE collection_id = ? AND type = ? ORDER BY created_at DESC LIMIT 1`)
+    .bind(collectionId, type)
+    .first<{ created_at: string }>();
+  if (!row?.created_at) return false;
+  const t = Date.parse(row.created_at);
+  return Number.isFinite(t) && Date.now() - t < withinMs;
+}
+
+/** Re-kick deferred eBay / retry Confirm when waitUntil or Cloud Run background died. */
+async function healStuckCloudJobs(env: Bindings): Promise<void> {
+  if (!cloudPricingConfigured(env)) return;
+  const rows = await env.DB.prepare(
+    `SELECT id, mac_handoff_folder, mac_handoff_status, mac_handoff_at, seller_email
+     FROM collections
+     WHERE mac_handoff_status IN ('cloud_confirming', 'cloud_done')
+     ORDER BY updated_at DESC
+     LIMIT 15`
+  ).all<{
+    id: string;
+    mac_handoff_folder: string | null;
+    mac_handoff_status: string | null;
+    mac_handoff_at: string | null;
+    seller_email: string;
+  }>();
+
+  for (const row of rows.results || []) {
+    const jobId = cloudJobIdFromFolder(row.mac_handoff_folder);
+    if (!jobId) continue;
+    const handoffAgeMs = row.mac_handoff_at ? Date.now() - Date.parse(row.mac_handoff_at) : 0;
+    const st = await fetchCloudJobJson(env, jobId, "status.json");
+    if (!st.ok) continue;
+    const phase = String(st.body.phase || st.body.status || "");
+    const remainingDeferred = Boolean(st.body.remaining_deferred);
+
+    // Confirm accepted in D1 but Cloud Run never got the POST (waitUntil died early).
+    if (
+      row.mac_handoff_status === "cloud_confirming" &&
+      handoffAgeMs > 45_000 &&
+      (phase === "awaiting_box_confirm" || phase === "detect_ready" || phase === "prefetch_ready")
+    ) {
+      if (await recentlyLogged(env.DB, row.id, "confirm_retried", 180_000)) continue;
+      const pending = await loadConfirmPending(env, row.id);
+      const boards = pending?.boards || undefined;
+      await logEvent(env.DB, row.id, row.seller_email || "system:cron", "confirm_retried", {
+        job_id: jobId,
+        phase,
+        has_boards: Boolean(boards?.length),
+      });
+      const result = await confirmCloudBoxes(env, jobId, boards);
+      if (result.ok) {
+        const harnessLocal = `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${row.id}/cloud-harness`;
+        await env.DB.prepare(
+          `UPDATE collections SET mac_handoff_status = 'cloud_done', mac_handoff_at = ?, updated_at = ?, overlay_url = COALESCE(NULLIF(overlay_url, ''), ?), internal_note = ? WHERE id = ?`
+        )
+          .bind(
+            nowIso(),
+            nowIso(),
+            harnessLocal,
+            result.remaining_deferred
+              ? "Match ready (confirm retried). Remaining eBay finishing in background."
+              : "Match ready (confirm retried).",
+            row.id
+          )
+          .run();
+        await clearConfirmPending(env, row.id);
+        // Cloud Run schedules finish-remaining on confirm; heal path below covers stuck jobs.
+      }
+      continue;
+    }
+
+    // Deferred eBay stuck after Match opened.
+    // match_ready + remaining_deferred >90s ⇒ BackgroundTask never started (CPU throttle).
+    // finishing_remaining >8m ⇒ likely hung mid-eBay (large collections need longer).
+    // remaining_failed ⇒ explicit bg failure; re-kick soon.
+    const stuckDeferred =
+      (phase === "match_ready" && remainingDeferred && handoffAgeMs > 90_000) ||
+      (phase === "finishing_remaining" && handoffAgeMs > 480_000) ||
+      (phase === "remaining_failed" && handoffAgeMs > 30_000);
+    if (!stuckDeferred) continue;
+    if (await recentlyLogged(env.DB, row.id, "finish_remaining_kicked", 180_000)) continue;
+    const kick = await kickFinishRemaining(env, jobId);
+    await logEvent(env.DB, row.id, row.seller_email || "system:cron", "finish_remaining_kicked", {
+      job_id: jobId,
+      phase,
+      ok: kick.ok,
+      error: kick.error || null,
+    });
+    if (kick.ok) {
+      await env.DB.prepare(
+        `UPDATE collections SET updated_at = ?, internal_note = ? WHERE id = ?`
+      )
+        .bind(nowIso(), "Re-kicked remaining eBay (auto heal).", row.id)
+        .run();
+    }
+  }
+}
+
 /** Seller Match / CTM harness (token auth). Prefetched pins are ready; rest fill in behind the scenes. */
 app.get("/boxes/:token/match", async (c) => {
   const token = c.req.param("token");
@@ -2099,6 +2315,35 @@ app.get("/boxes/:token/match", async (c) => {
        <p><a class="btn" href="/boxes/${encodeURIComponent(token)}/editor">Back to box editor</a></p></div>`
     );
   }
+
+  // CTM v2 (new_ctm.html), not Overlay index.html. Done banner → new_ctp.html?filter=no_match.
+  const ctmRes = await fetchCloudJobFile(c.env, jobId, "testing_ui_visual_baseline/new_ctm.html");
+  let htmlText = await ctmRes.text();
+  if (ctmRes.ok) {
+    htmlText = rewriteSellerCtmV2Html(htmlText, token);
+    const banner = `<div style="position:sticky;top:0;z-index:9999;background:#0b6e4f;color:#fff;padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif">
+      ClickToMatch v2 · priced pins first. After Match, continue to ClickToPrice (no match).
+      <a href="/boxes/${encodeURIComponent(token)}?done=1" style="color:#fff;margin-left:12px">Done</a>
+    </div>`;
+    if (htmlText.includes("<body")) {
+      htmlText = htmlText.replace(/<body[^>]*>/i, (m) => `${m}\n${banner}`);
+    } else {
+      htmlText = banner + htmlText;
+    }
+    // Harness exists: don't leave D1 on cloud_confirming (Confirm waitUntil often dies).
+    // Only heal confirming — never skip BBE by flipping awaiting_boxes → done.
+    const harnessLocal = `${c.env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${row.id}/cloud-harness`;
+    await c.env.DB.prepare(
+      `UPDATE collections SET mac_handoff_status = 'cloud_done', mac_handoff_at = ?, updated_at = ?, overlay_url = COALESCE(NULLIF(overlay_url, ''), ?), internal_note = COALESCE(internal_note, ?) WHERE id = ? AND mac_handoff_status = 'cloud_confirming'`
+    )
+      .bind(nowIso(), nowIso(), harnessLocal, "Match ready (CTM v2).", row.id)
+      .run();
+    return new Response(htmlText, {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
+
   if (status === "cloud_confirming" || status === "cloud_awaiting_boxes") {
     return html(
       c.env,
@@ -2107,6 +2352,7 @@ app.get("/boxes/:token/match", async (c) => {
        <div class="card">
          <p>Applying your box edits, then Match for pins that are ready. Other pins keep loading in the background.</p>
          <p id="wait" class="hint">Working…</p>
+         <p style="margin-top:12px"><a class="btn" href="/boxes/${encodeURIComponent(token)}/match">Try Match again</a></p>
        </div>
        <script>
          (async function poll() {
@@ -2114,48 +2360,27 @@ app.get("/boxes/:token/match", async (c) => {
              const res = await fetch("/api/boxes/${encodeURIComponent(token)}/status", { cache: "no-store" });
              const data = await res.json().catch(() => ({}));
              const el = document.getElementById("wait");
-             if (data.status === "cloud_done" || data.status === "cloud_failed") {
-               location.reload();
+             const phase = String(data.phase || "");
+             const matchPhases = ["match_ready","finishing_remaining","done","done_partial"];
+             if (data.status === "cloud_done" || data.status === "cloud_failed" || matchPhases.indexOf(phase) >= 0) {
+               location.replace("/boxes/${encodeURIComponent(token)}/match");
                return;
              }
              if (el) el.textContent = data.label || "Building Match harness…";
            } catch (_) {}
-           setTimeout(poll, 2000);
+           setTimeout(poll, 1500);
          })();
        </script>`
     );
   }
-  const res = await fetchCloudHarnessHtml(c.env, jobId);
-  let htmlText = await res.text();
-  if (!res.ok) {
-    return html(
-      c.env,
-      "Match",
-      `<h1>Building Match…</h1><div class="card"><p>Harness is still uploading. This page will refresh.</p>
-       <p id="wait" class="hint">Working…</p></div>
-       <script>setTimeout(() => location.reload(), 2500);</script>`
-    );
-  }
-  // Point harness assets at seller-token file proxy (not staff /api/cloud/…).
-  const matchFileBase = `/api/boxes/${encodeURIComponent(token)}/match-file/testing_ui_visual_baseline/`;
-  htmlText = htmlText.replace(
-    /\/api\/cloud\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g,
-    matchFileBase
+
+  return html(
+    c.env,
+    "Match",
+    `<h1>Building Match…</h1><div class="card"><p>Harness is still uploading. This page will refresh.</p>
+     <p id="wait" class="hint">Working…</p></div>
+     <script>setTimeout(() => location.replace("/boxes/${encodeURIComponent(token)}/match"), 2000);</script>`
   );
-  htmlText = htmlText.replace(/\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g, matchFileBase);
-  const banner = `<div style="position:sticky;top:0;z-index:9999;background:#0b6e4f;color:#fff;padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif">
-    Match ready for priced pins. More pins keep loading in the background (same idea as the app).
-    <a href="/boxes/${encodeURIComponent(token)}?done=1" style="color:#fff;margin-left:12px">Done</a>
-  </div>`;
-  if (htmlText.includes("<body")) {
-    htmlText = htmlText.replace(/<body[^>]*>/i, (m) => `${m}\n${banner}`);
-  } else {
-    htmlText = banner + htmlText;
-  }
-  return new Response(htmlText, {
-    status: 200,
-    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
-  });
 });
 
 app.get("/api/boxes/:token/match-file/*", async (c) => {
@@ -2961,6 +3186,7 @@ app.post("/admin/collections/:id/confirm-boxes-as-detected", async (c) => {
   )
     .bind(nowIso(), nowIso(), collectionId)
     .run();
+  await saveConfirmPending(c.env, collectionId, jobId, undefined);
   const run = async () => {
     const result = await confirmCloudBoxes(c.env, jobId);
     if (!result.ok) {
@@ -2978,12 +3204,14 @@ app.post("/admin/collections/:id/confirm-boxes-as-detected", async (c) => {
     )
       .bind(`cloud:${result.job_id || jobId}`, nowIso(), nowIso(), harnessLocal, collectionId)
       .run();
+    await clearConfirmPending(c.env, collectionId);
     await logEvent(c.env.DB, collectionId, staff.email, "cloud_price_done", {
       job_id: result.job_id || jobId,
       pin_count: result.pin_count,
       priced_count: result.priced_count,
       elapsed_sec: result.elapsed_sec,
       confirm_as_detected: true,
+      remaining_deferred: result.remaining_deferred,
       notify_lexi: false,
     });
   };
@@ -3191,6 +3419,7 @@ app.post("/api/cloud/collections/:id/confirm-boxes", async (c) => {
   )
     .bind(nowIso(), nowIso(), collectionId)
     .run();
+  await saveConfirmPending(c.env, collectionId, jobId, Array.isArray(body.boards) ? body.boards : undefined);
 
   const result = await confirmCloudBoxes(c.env, jobId, body.boards);
   if (!result.ok) {
@@ -3209,6 +3438,7 @@ app.post("/api/cloud/collections/:id/confirm-boxes", async (c) => {
   )
     .bind(`cloud:${result.job_id || jobId}`, nowIso(), nowIso(), harnessLocal, collectionId)
     .run();
+  await clearConfirmPending(c.env, collectionId);
   await logEvent(c.env.DB, collectionId, staff.email, "cloud_price_done", {
     job_id: result.job_id || jobId,
     pin_count: result.pin_count,
@@ -3609,6 +3839,11 @@ export async function cleanupExpired(env: Bindings) {
     await processQueuedCloudPricing(env);
   } catch (e) {
     console.error("process_queued_cloud_pricing_failed", e);
+  }
+  try {
+    await healStuckCloudJobs(env);
+  } catch (e) {
+    console.error("heal_stuck_cloud_jobs_failed", e);
   }
 
   const cutoff = nowIso();

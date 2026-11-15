@@ -14,6 +14,8 @@ export type CloudPriceResult = {
   priced_count?: number;
   elapsed_sec?: number;
   error?: string;
+  match_ready?: boolean;
+  remaining_deferred?: boolean;
 };
 
 export type PhotoBlob = {
@@ -321,5 +323,33 @@ export async function fetchCloudJobJson(
     return { ok: true, body: JSON.parse(text) as Record<string, unknown> };
   } catch {
     return { ok: false, error: `Invalid JSON at ${filePath}` };
+  }
+}
+
+/**
+ * Re-kick deferred eBay when Confirm's Cloud Run BackgroundTask died
+ * (CPU throttle after response, instance recycle, etc.).
+ */
+export async function kickFinishRemaining(
+  env: Bindings,
+  jobId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const base = priceBase(env);
+  const key = invokeKey(env);
+  if (!base || !key) {
+    return { ok: false, error: "CLOUD_PRICE_URL / CLOUD_PRICE_INVOKE_KEY not configured" };
+  }
+  try {
+    const res = await fetch(`${base}/jobs/${encodeURIComponent(jobId)}/finish-remaining`, {
+      method: "POST",
+      headers: { "X-Intake-Cloud-Key": key },
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      return { ok: false, error: `finish-remaining HTTP ${res.status}: ${text.slice(0, 300)}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }

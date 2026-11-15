@@ -1,5 +1,26 @@
 # Intake lessons
 
+## 2026-11-14 — Anticipated: deferred eBay dies; Confirm waitUntil; stale CTM
+
+- **Symptom (would hit next upload):** Match opens with few pins; remaining eBay never finishes; Confirm stuck if waitUntil dies before Cloud Run; CTM stays stale after background pricing; Match heal could skip BBE.
+- **Cause:** Cloud Run request-only CPU kills `BackgroundTasks` after confirm returns. Worker had a manual `finish-remaining` but no auto kick. Confirm boards were not persisted. CTM HTML is a one-shot embed. Match heal flipped `cloud_awaiting_boxes` → done.
+- **Rule:** Deploy Cloud Run with `--no-cpu-throttling` so Confirm’s BackgroundTask keeps CPU. Cron (`*/2`) retries Confirm from R2 `confirm_pending/{id}.json` and re-kicks `finish-remaining` only when still stuck (`match_ready`+deferred >90s, or hung `finishing_remaining`). CTM soft-reloads once when phase hits `done`. Heal Match status only from `cloud_confirming` (never skip BBE).
+- **Where:** `intake-cloud` `app.ts` / `cloud_price.ts` / `wrangler.toml`; `IntakeCloudPricing/cloud_detect/deploy.sh` (0.9.3)
+
+## 2026-11-14 — Confirm stuck on cloud_confirming after Match is ready
+
+- **Symptom:** Seller Match page spun on “Opening Match…” while Cloud Run job was already `finishing_remaining` / harness 200. After open, pins still missing.
+- **Cause:** (1) Confirm `waitUntil` dies before D1 → `cloud_done`. (2) Harness `<base href>` rewrite left the Cloud Run host in front of `/api/boxes/.../match-file/`, so crops/`ui_data` 401’d.
+- **Rule:** Seller Match serves **CTM v2** `testing_ui_visual_baseline/new_ctm.html` (not Overlay `index.html`). Inject `<base href="/api/boxes/:token/match-file/testing_ui_visual_baseline/">` so **CTP v2** `new_ctp.html?filter=no_match` works after CTM done. Skip CTM queue pins with empty `thumb` while deferred eBay is still running. Staff admin harness can stay on Overlay.
+- **Where:** `intake-cloud/src/app.ts` `GET /boxes/:token/match`; Cloud Run `POST /jobs/{id}/finish-remaining` to re-kick stuck deferred eBay
+
+## 2026-11-14 — Import movie must not gate editor open
+
+- **Symptom:** Box-overlay “movie” on the waiting page felt like it delayed Board Box Editor.
+- **Cause:** Poll awaited session/box fetches for the animation *before* checking `status.ready`, then waited another 450ms before redirect.
+- **Rule:** Treat the import movie as entertainment only. Check ready first and `location.replace` to the editor immediately; refresh overlays in the background.
+- **Where:** `intake-cloud/public/import-waiting.html`
+
 ## 2026-11-14 — Upside-down boards: reencode stripped EXIF without transpose
 
 - **Symptom:** Cloud lab BBE / detect photos all upside down after upload.

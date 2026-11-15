@@ -264,38 +264,53 @@
     throw new Error("Photos are still saving. Tap Try again in a moment.");
   }
 
+  function goEditor(pins) {
+    if (ready) return;
+    ready = true;
+    setProgress(100, pins != null ? pins + " pins found" : "Boxes ready", "Opening editor…");
+    barFill.style.width = "100%";
+    // Entertainment only: never hold the seller for box-trace animations.
+    location.replace("/boxes/" + encodeURIComponent(token) + "/editor");
+  }
+
+  /** Movie/overlay refresh must never block the ready check. */
+  function refreshMovieInBackground() {
+    if (ready) return;
+    Promise.resolve()
+      .then(async () => {
+        if (!photos.length) {
+          const got = await loadPhotosOnce();
+          if (ready) return;
+          if (got.ok && got.photos.length) {
+            photos = got.photos;
+            if (!img.classList.contains("on") && !detectedBoards.length) showPhoto(0);
+          }
+        }
+        const detected = await loadDetectedBoards();
+        if (ready) return;
+        if (detected.length) {
+          const grew = detected.length > detectedBoards.length;
+          detectedBoards = detected;
+          if (grew || !img.classList.contains("on")) showDetectedBoard(detectedIndex);
+        }
+      })
+      .catch(() => {});
+  }
+
   async function poll() {
     if (ready) return;
     try {
-      if (!photos.length) {
-        const got = await loadPhotosOnce();
-        if (got.ok && got.photos.length) {
-          photos = got.photos;
-          showPhoto(0);
-        }
-      }
-
-      const detected = await loadDetectedBoards();
-      if (detected.length) {
-        const grew = detected.length > detectedBoards.length;
-        detectedBoards = detected;
-        if (grew || !img.classList.contains("on")) showDetectedBoard(detectedIndex);
-      }
-
+      // Completion first. Box movie is decorative and runs in parallel.
       const res = await fetch("/api/boxes/" + encodeURIComponent(token) + "/status", { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "status " + res.status);
 
       if (data.ready) {
-        ready = true;
-        const pins = data.pin_count != null ? data.pin_count : null;
-        setProgress(100, pins != null ? (pins + " pins found") : "Boxes ready", "Opening editor…");
-        barFill.style.width = "100%";
-        setTimeout(() => {
-          location.replace("/boxes/" + encodeURIComponent(token) + "/editor");
-        }, 450);
+        goEditor(data.pin_count != null ? data.pin_count : null);
         return;
       }
+
+      refreshMovieInBackground();
 
       if (data.failed) {
         setProgress(progress, "Still working…", "Retrying detect…");
@@ -315,10 +330,11 @@
                 : "Looking for pins on your boards";
           setProgress(35 + Math.min(40, (Date.now() - started) / 800), "Finding pins…", boardSub);
         } else if (phase === "board_ready") {
+          // Server already marks ready on first board_ready; this is only if status lags.
           setProgress(
             bt ? Math.min(90, 40 + (60 * (bd || 1)) / bt) : 70,
             bd != null && bt != null ? ("Board " + bd + " of " + bt + " ready") : "Boards ready…",
-            "Opening editor for boards that are ready"
+            "Opening editor…"
           );
         } else if (phase === "prefetching") {
           setProgress(78, pins != null ? (pins + " pins · starting prices") : "Pins found", "Almost ready…");
@@ -337,9 +353,10 @@
         }
       }
     } catch (e) {
-      /* keep movie going; next poll */
+      /* keep polling; movie is optional */
+      refreshMovieInBackground();
     }
-    setTimeout(poll, 1500);
+    setTimeout(poll, 800);
   }
 
   setInterval(() => {
@@ -349,12 +366,16 @@
   }, 2800);
 
   window.addEventListener("resize", () => {
+    if (ready) return;
     if (detectedBoards.length) drawRealBoxes(detectedBoards[detectedIndex]?.predictions || []);
   });
 
   ensurePhotos()
-    .then(() => poll())
+    .then(() => {
+      if (!ready) refreshMovieInBackground();
+    })
     .catch((e) => {
+      if (ready) return;
       err.classList.add("open");
       errText.textContent = e && e.message ? e.message : String(e);
     });
