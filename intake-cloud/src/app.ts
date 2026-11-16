@@ -713,9 +713,84 @@ async function loadCollectionPhotoRows(
 }
 
 /**
- * Phase 1: RF-DETR (+ optional Match-window eBay).
- * prefetch_n=0 → detect-only (staff/internal drafts). Seller path does not auto-queue.
- * Default CLOUD_PREFETCH_N → detect + eBay (staff / after Submit kick).
+ * After RF-DETR (+ Match-window prefetch): confirm-as-detected and finish eBay.
+ * Board Box Editor is optional later; edits call the same confirm path with a delta.
+ */
+async function continuePricingAfterDetect(
+  env: Bindings,
+  collectionId: string,
+  jobId: string,
+  actor: string,
+  opts?: { via?: string }
+): Promise<boolean> {
+  const claim = await env.DB.prepare(
+    `UPDATE collections
+     SET mac_handoff_status = 'cloud_confirming', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?,
+         internal_note = ?
+     WHERE id = ? AND mac_handoff_status IN ('cloud_running', 'cloud_awaiting_boxes')`
+  )
+    .bind(
+      `cloud:${jobId}`,
+      nowIso(),
+      nowIso(),
+      "Detect done. Finishing eBay pricing (Board Box Editor optional)…",
+      collectionId
+    )
+    .run();
+  if (!claim.meta.changes) {
+    return false;
+  }
+  await saveConfirmPending(env, collectionId, jobId, undefined);
+  await logEvent(env.DB, collectionId, actor, "cloud_auto_confirm_started", {
+    job_id: jobId,
+    via: opts?.via || "auto",
+    notify_lexi: false,
+  });
+  const result = await confirmCloudBoxes(env, jobId);
+  if (!result.ok) {
+    await env.DB.prepare(
+      `UPDATE collections SET mac_handoff_status = 'cloud_failed', mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ?`
+    )
+      .bind(nowIso(), nowIso(), `Auto-confirm failed: ${(result.error || "").slice(0, 240)}`, collectionId)
+      .run();
+    await logEvent(env.DB, collectionId, actor, "cloud_price_failed", {
+      error: result.error,
+      via: opts?.via || "auto",
+    });
+    return false;
+  }
+  const harnessLocal = `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${collectionId}/cloud-harness`;
+  await env.DB.prepare(
+    `UPDATE collections SET mac_handoff_status = 'cloud_done', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?, overlay_url = ?, internal_note = ? WHERE id = ?`
+  )
+    .bind(
+      `cloud:${result.job_id || jobId}`,
+      nowIso(),
+      nowIso(),
+      harnessLocal,
+      result.remaining_deferred
+        ? "Harness ready. Remaining eBay finishing in background. Edit boxes only if needed (delta reprice)."
+        : "Harness ready. Edit boxes only if needed (delta reprice).",
+      collectionId
+    )
+    .run();
+  await clearConfirmPending(env, collectionId);
+  await logEvent(env.DB, collectionId, actor, "cloud_price_done", {
+    job_id: result.job_id || jobId,
+    pin_count: result.pin_count,
+    priced_count: result.priced_count,
+    elapsed_sec: result.elapsed_sec,
+    auto_confirm: true,
+    remaining_deferred: result.remaining_deferred,
+    via: opts?.via || "auto",
+    notify_lexi: false,
+  });
+  return true;
+}
+
+/**
+ * Staff Detect: RF-DETR + Match-window eBay, then auto-continue into full pricing.
+ * prefetch_n=0 remains detect-only (legacy); staff Detect uses default CLOUD_PREFETCH_N.
  */
 async function runCloudDetectForCollection(
   env: Bindings,
@@ -761,16 +836,20 @@ async function runCloudDetectForCollection(
     return;
   }
 
-  const note =
-    prefetchN <= 0
-      ? `Detect-only (${result.pin_count || "?"} pins). eBay waits until Submit.`
-      : null;
   await env.DB.prepare(
-    `UPDATE collections SET mac_handoff_status = 'cloud_awaiting_boxes', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?, internal_note = COALESCE(?, internal_note) WHERE id = ?`
+    `UPDATE collections SET mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ?`
   )
-    .bind(`cloud:${result.job_id}`, nowIso(), nowIso(), note, collectionId)
+    .bind(
+      `cloud:${result.job_id}`,
+      nowIso(),
+      nowIso(),
+      prefetchN <= 0
+        ? `Detect-only (${result.pin_count || "?"} pins).`
+        : `Detect OK (${result.pin_count || "?"} pins, ${result.prefetch_priced || "?"} prefetched). Continuing eBay…`,
+      collectionId
+    )
     .run();
-  await logEvent(env.DB, collectionId, actor, "cloud_awaiting_boxes", {
+  await logEvent(env.DB, collectionId, actor, "cloud_detect_ready", {
     job_id: result.job_id,
     pin_count: result.pin_count,
     prefetch_priced: result.prefetch_priced,
@@ -778,6 +857,17 @@ async function runCloudDetectForCollection(
     detect_only: prefetchN <= 0,
     notify_lexi: false,
   });
+
+  // Detect-only stays parked; normal staff Detect auto-prices without requiring BBE.
+  if (prefetchN <= 0) {
+    await env.DB.prepare(
+      `UPDATE collections SET mac_handoff_status = 'cloud_awaiting_boxes', updated_at = ? WHERE id = ? AND mac_handoff_status = 'cloud_running'`
+    )
+      .bind(nowIso(), collectionId)
+      .run();
+    return;
+  }
+  await continuePricingAfterDetect(env, collectionId, result.job_id, actor, { via: "detect_sync" });
 }
 
 /** On Submit: if detect-only already ran, queue Match-window eBay without re-detect. */
@@ -2305,7 +2395,7 @@ async function healStuckCloudJobs(env: Bindings): Promise<void> {
   const rows = await env.DB.prepare(
     `SELECT id, mac_handoff_folder, mac_handoff_status, mac_handoff_at, seller_email
      FROM collections
-     WHERE mac_handoff_status IN ('cloud_running', 'cloud_confirming', 'cloud_done')
+     WHERE mac_handoff_status IN ('cloud_running', 'cloud_awaiting_boxes', 'cloud_confirming', 'cloud_done')
      ORDER BY updated_at DESC
      LIMIT 20`
   ).all<{
@@ -2325,26 +2415,34 @@ async function healStuckCloudJobs(env: Bindings): Promise<void> {
     const phase = String(st.body.phase || st.body.status || "");
     const remainingDeferred = Boolean(st.body.remaining_deferred);
 
-    // Detect finished on Cloud Run but D1 never flipped (callback / waitUntil died).
-    const boxReadyPhases = new Set([
-      "board_ready",
-      "detect_ready",
-      "awaiting_box_confirm",
-      "prefetch_ready",
-      "prefetching",
-    ]);
+    // Detect finished: auto-continue eBay (BBE is optional; do not park on awaiting_boxes).
+    const detectDonePhases = new Set(["awaiting_box_confirm", "prefetch_ready"]);
+    if (
+      (row.mac_handoff_status === "cloud_running" || row.mac_handoff_status === "cloud_awaiting_boxes") &&
+      handoffAgeMs > 20_000 &&
+      detectDonePhases.has(phase)
+    ) {
+      if (await recentlyLogged(env.DB, row.id, "cloud_auto_confirm_started", 120_000)) continue;
+      await continuePricingAfterDetect(env, row.id, jobId, row.seller_email || "system:cron", {
+        via: "cron_heal",
+      });
+      continue;
+    }
+
+    // Still detecting / prefetching: keep running status with a progress note.
+    const inProgressPhases = new Set(["board_ready", "detect_ready", "prefetching", "detecting"]);
     if (
       row.mac_handoff_status === "cloud_running" &&
-      handoffAgeMs > 30_000 &&
-      boxReadyPhases.has(phase)
+      handoffAgeMs > 60_000 &&
+      inProgressPhases.has(phase)
     ) {
-      if (await recentlyLogged(env.DB, row.id, "awaiting_boxes_healed", 120_000)) continue;
+      if (await recentlyLogged(env.DB, row.id, "cloud_detect_progress_healed", 180_000)) continue;
       await env.DB.prepare(
-        `UPDATE collections SET mac_handoff_status = 'cloud_awaiting_boxes', mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ? AND mac_handoff_status = 'cloud_running'`
+        `UPDATE collections SET updated_at = ?, internal_note = ? WHERE id = ? AND mac_handoff_status = 'cloud_running'`
       )
-        .bind(nowIso(), nowIso(), "Boxes ready (cron heal).", row.id)
+        .bind(nowIso(), `Detect/prefetch still running (phase ${phase}).`, row.id)
         .run();
-      await logEvent(env.DB, row.id, row.seller_email || "system:cron", "awaiting_boxes_healed", {
+      await logEvent(env.DB, row.id, row.seller_email || "system:cron", "cloud_detect_progress_healed", {
         job_id: jobId,
         phase,
       });
@@ -2877,24 +2975,41 @@ app.get("/admin/collections/:id", async (c) => {
       ? `<div class="flash ok">${escapeHtml(flashOk)}</div>`
       : "";
   const boxEditorHref = `/admin/collections/${row.id}/box-editor`;
-  const sellerBoxToken = (row as CollectionRow & { box_review_token?: string | null }).box_review_token || "";
-  const sellerBoxHref = sellerBoxToken ? `/boxes/${encodeURIComponent(sellerBoxToken)}` : "";
   const awaitingBoxes = row.mac_handoff_status === "cloud_awaiting_boxes";
+  const pricingBusy =
+    row.mac_handoff_status === "cloud_running" ||
+    row.mac_handoff_status === "cloud_queued" ||
+    row.mac_handoff_status === "cloud_confirming";
+  const canEditBoxes =
+    Boolean(row.mac_handoff_folder) &&
+    (row.mac_handoff_status === "cloud_done" ||
+      row.mac_handoff_status === "cloud_awaiting_boxes" ||
+      row.mac_handoff_status === "cloud_confirming");
   const finishIncomplete =
     Boolean(pendingFinish) || storedPhotoCount < Number(row.photo_count || 0);
+  const optionalBoxEdit = canEditBoxes
+    ? `<p style="margin-top:10px"><a class="btn secondary" href="${boxEditorHref}">Edit boxes (optional)</a></p>
+       <p class="hint">Only if detections look wrong. Saving reprices added/moved boxes, drops deleted ones, and keeps unchanged eBay results.</p>`
+    : "";
   const overlayBlock = row.overlay_url
     ? `<p><a class="btn" href="${escapeHtml(row.overlay_url)}" target="_blank" rel="noopener">Open cloud CTM / CTP harness</a></p>
-       <p class="hint">Cloud lab harness (Match / No match). Lexi is not texted from this site.</p>`
-    : awaitingBoxes
-      ? `<p><a class="btn" href="${boxEditorHref}">Open Board Box Editor (staff)</a></p>
-         ${sellerBoxHref ? `<p><a class="btn secondary" href="${sellerBoxHref}">Seller review link</a></p>` : ""}
-         <p class="hint">Detect + first-20 eBay prefetch done. Uploader gets this link automatically after finish; Confirm finishes pricing.</p>`
-      : finishIncomplete
-        ? `<p class="hint"><strong>Still ingesting photos</strong> (${storedPhotoCount} of ${row.photo_count} stored). Board Box Editor appears after detect finishes.</p>
-           <form method="post" action="/admin/collections/${row.id}/resume-finish" style="margin-top:8px">
-             <button type="submit">Resume photo finish now</button>
+       <p class="hint">Cloud lab harness (Match / No match). Lexi is not texted from this site.</p>
+       ${optionalBoxEdit}`
+    : pricingBusy
+      ? `<p class="hint"><strong>Pricing in progress</strong> (${escapeHtml(row.mac_handoff_status || "")}). Harness link appears when Match is ready.</p>
+         ${optionalBoxEdit}`
+      : awaitingBoxes
+        ? `<p class="hint">Detect finished; continuing into eBay shortly (or use Resume confirm below).</p>
+           ${optionalBoxEdit}
+           <form method="post" action="/admin/collections/${row.id}/confirm-boxes-as-detected" style="margin-top:8px">
+             <button class="secondary" type="submit">Resume confirm + price now</button>
            </form>`
-        : `<p class="hint">Harness link appears after you confirm boxes (or run one-shot pricing). Use <strong>Detect pins</strong> below to start.</p>`;
+        : finishIncomplete
+          ? `<p class="hint"><strong>Still ingesting photos</strong> (${storedPhotoCount} of ${row.photo_count} stored). Detect + price starts after photos are stored.</p>
+             <form method="post" action="/admin/collections/${row.id}/resume-finish" style="margin-top:8px">
+               <button type="submit">Resume photo finish now</button>
+             </form>`
+          : `<p class="hint">Harness appears after <strong>Detect + price</strong> finishes. Board Box Editor is optional afterward.</p>`;
   const next = staffNextStatuses(row.status)
     .map(
       (s) =>
@@ -3001,13 +3116,10 @@ app.get("/admin/collections/:id", async (c) => {
       <h2>Status</h2>
       <div class="row">${next || "<span class='hint'>No staff moves from here (accept/decline are seller actions).</span>"}</div>
       ${
-        awaitingBoxes
+        canEditBoxes
           ? `<p class="row" style="margin-top:14px">
-               <a class="btn" href="${boxEditorHref}">Open Board Box Editor</a>
-             </p>
-             <form method="post" action="/admin/collections/${row.id}/confirm-boxes-as-detected" style="margin-top:8px">
-               <button class="secondary" type="submit">Confirm as detected (skip editor)</button>
-             </form>`
+               <a class="btn secondary" href="${boxEditorHref}">Edit boxes (optional)</a>
+             </p>`
           : ""
       }
       <form method="post" action="/admin/collections/${row.id}/send-to-ctp" style="margin-top:14px">
@@ -3019,23 +3131,20 @@ app.get("/admin/collections/:id", async (c) => {
             : ""
         }>${
           row.mac_handoff_status === "cloud_done" || row.mac_handoff_status === "cloud_failed"
-            ? "Re-detect pins (box editor)"
+            ? "Re-detect + price"
             : row.mac_handoff_status === "cloud_running" || row.mac_handoff_status === "cloud_queued"
-              ? "Detect / prefetch in progress…"
+              ? "Detect / price in progress…"
               : row.mac_handoff_status === "cloud_awaiting_boxes"
-                ? "Re-detect pins"
+                ? "Re-detect + price"
                 : row.mac_handoff_status === "cloud_confirming"
                   ? "Finishing pricing…"
-                  : "Detect pins (open box editor next)"
+                  : "Detect + price"
         }</button>
-      </form>
-      <form method="post" action="/admin/collections/${row.id}/price-oneshot" style="margin-top:8px">
-        <button class="secondary" type="submit">One-shot price (skip box editor)</button>
       </form>
       <form method="post" action="/admin/collections/${row.id}/hold-ctp" style="margin-top:8px">
         <button class="secondary" type="submit">Hold / don't price</button>
       </form>
-      <p class="hint">CLOUD LAB: RF-DETR + eBay on Google Cloud. Prefetch first ~20 pins, then Board Box Editor (CTR-style), then delta reprice. Lexi notify is off.
+      <p class="hint">CLOUD LAB: RF-DETR then eBay immediately. Board Box Editor is optional for bad boxes (delta reprice only). Lexi notify is off.
       ${
         row.mac_handoff_status
           ? ` Current: <strong>${escapeHtml(row.mac_handoff_status)}</strong>${
@@ -3262,7 +3371,7 @@ app.post("/admin/collections/:id/resume-finish", async (c) => {
   await logEvent(c.env.DB, collectionId, staff.email, "finish_resume_requested");
   return c.redirect(
     `/admin/collections/${collectionId}?ok=${encodeURIComponent(
-      "Resumed photo finish. Refresh in a minute; Board Box Editor appears after detect (cloud_awaiting_boxes)."
+      "Resumed photo finish. Refresh in a minute; Detect + price continues after photos are stored."
     )}`
   );
 });
@@ -3289,24 +3398,10 @@ app.post("/admin/collections/:id/send-to-ctp", async (c) => {
     await runCloudDetectForCollection(c.env, row.id, staff.email);
   }
   return c.redirect(
-    `/admin/collections/${row.id}?ok=${encodeURIComponent("Detect + prefetch started. Open Board Box Editor when status is awaiting boxes.")}`
+    `/admin/collections/${row.id}?ok=${encodeURIComponent(
+      "Detect + price started. Harness appears when Match is ready. Board Box Editor stays optional."
+    )}`
   );
-});
-
-app.post("/admin/collections/:id/price-oneshot", async (c) => {
-  const staff = await requireStaff(c.env, c.req.raw);
-  if (staff instanceof Response) return staff;
-  const row = await c.env.DB.prepare(`SELECT * FROM collections WHERE id = ?`)
-    .bind(c.req.param("id"))
-    .first<CollectionRow>();
-  if (!row) return c.redirect("/admin");
-  await queueMacHandoff(c.env.DB, row, staff.email);
-  try {
-    c.executionCtx.waitUntil(runCloudPricingForCollection(c.env, row.id, staff.email));
-  } catch {
-    await runCloudPricingForCollection(c.env, row.id, staff.email);
-  }
-  return c.redirect(`/admin/collections/${row.id}?ok=${encodeURIComponent("One-shot cloud pricing started")}`);
 });
 
 app.post("/admin/collections/:id/confirm-boxes-as-detected", async (c) => {
@@ -3405,37 +3500,36 @@ app.post("/internal/cloud-run/detect-complete", async (c) => {
   const boardsDone = typeof body.boards_done === "number" ? body.boards_done : null;
   const boardsTotal = typeof body.boards_total === "number" ? body.boards_total : null;
 
-  if (phase === "detecting") {
-    // Job id known: keep cloud_running so the import movie can poll status.json.
+  if (phase === "detecting" || phase === "board_ready" || phase === "detect_ready" || phase === "prefetching") {
+    const note =
+      phase === "board_ready"
+        ? `Board ${boardsDone ?? "?"}/${boardsTotal ?? "?"} detected (${body.pin_count || "?"} pins). Pricing continues…`
+        : phase === "detect_ready"
+          ? `Detect ready (${body.pin_count || "?"} pins). eBay prefetch running…`
+          : phase === "prefetching"
+            ? `eBay prefetch in progress (${body.prefetch_priced || "?"} priced)…`
+            : `Detecting pins (job ${body.job_id})…`;
     await c.env.DB.prepare(
-      `UPDATE collections SET mac_handoff_status = 'cloud_running', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ?`
+      `UPDATE collections SET mac_handoff_status = 'cloud_running', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ? AND mac_handoff_status IN ('cloud_running', 'cloud_queued', 'pricing', 'submitted', 'uploading')`
     )
-      .bind(
-        `cloud:${body.job_id}`,
-        nowIso(),
-        nowIso(),
-        `Detecting pins (job ${body.job_id})…`,
-        collectionId
-      )
+      .bind(`cloud:${body.job_id}`, nowIso(), nowIso(), note, collectionId)
       .run();
-    return c.json({ ok: true, recorded: "running", phase });
+    return c.json({ ok: true, recorded: "running", phase, boards_done: boardsDone });
   }
 
-  // board_ready / detect_ready: open BBE as soon as the first board has boxes.
-  // Later boards keep landing in prefetch.json; the editor polls and grows the list.
-  const note =
-    phase === "board_ready"
-      ? `Board ${boardsDone ?? "?"}/${boardsTotal ?? "?"} ready (${body.pin_count || "?"} pins so far). Editor open; more boards loading.`
-      : phase === "detect_ready"
-        ? `Detect ready (${body.pin_count || "?"} pins). Board Box Editor open; eBay prefetch continues.`
-        : `Detect OK (${body.pin_count || "?"} pins, ${body.prefetch_priced || "?"} prefetched). Open Board Box Editor.`;
-
+  // Final detect phase: auto-confirm-as-detected and finish eBay (BBE optional afterward).
   await c.env.DB.prepare(
-    `UPDATE collections SET mac_handoff_status = 'cloud_awaiting_boxes', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ?`
+    `UPDATE collections SET mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ?`
   )
-    .bind(`cloud:${body.job_id}`, nowIso(), nowIso(), note, collectionId)
+    .bind(
+      `cloud:${body.job_id}`,
+      nowIso(),
+      nowIso(),
+      `Detect OK (${body.pin_count || "?"} pins, ${body.prefetch_priced || "?"} prefetched). Continuing eBay…`,
+      collectionId
+    )
     .run();
-  await logEvent(c.env.DB, collectionId, "cloud-run", "cloud_awaiting_boxes", {
+  await logEvent(c.env.DB, collectionId, "cloud-run", "cloud_detect_ready", {
     job_id: body.job_id,
     pin_count: body.pin_count,
     prefetch_priced: body.prefetch_priced,
@@ -3446,7 +3540,26 @@ app.post("/internal/cloud-run/detect-complete", async (c) => {
     via: "callback",
     notify_lexi: false,
   });
-  return c.json({ ok: true, recorded: "awaiting_boxes", phase, boards_done: boardsDone });
+
+  const jobId = String(body.job_id);
+  const run = async () => {
+    // Ensure claimable status if callback raced ahead of sync detect.
+    await c.env.DB.prepare(
+      `UPDATE collections SET mac_handoff_status = CASE
+         WHEN mac_handoff_status IN ('cloud_done', 'cloud_confirming', 'cloud_failed') THEN mac_handoff_status
+         ELSE 'cloud_running'
+       END, updated_at = ? WHERE id = ?`
+    )
+      .bind(nowIso(), collectionId)
+      .run();
+    await continuePricingAfterDetect(c.env, collectionId, jobId, "cloud-run", { via: "detect_callback" });
+  };
+  try {
+    c.executionCtx.waitUntil(run());
+  } catch {
+    await run();
+  }
+  return c.json({ ok: true, recorded: "auto_confirm", phase, boards_done: boardsDone });
 });
 
 /**
@@ -3487,10 +3600,14 @@ app.get("/admin/collections/:id/box-editor", async (c) => {
     .bind(idParam)
     .first<{ mac_handoff_status: string | null }>();
   if (!row) return c.redirect("/admin");
-  if (row.mac_handoff_status !== "cloud_awaiting_boxes" && row.mac_handoff_status !== "cloud_done") {
+  if (
+    row.mac_handoff_status !== "cloud_awaiting_boxes" &&
+    row.mac_handoff_status !== "cloud_done" &&
+    row.mac_handoff_status !== "cloud_confirming"
+  ) {
     return c.redirect(
       `/admin/collections/${idParam}?err=${encodeURIComponent(
-        "Run Detect pins first. Editor opens when status is cloud_awaiting_boxes."
+        "Run Detect + price first. Optional box editor opens after detect has a job."
       )}`
     );
   }
@@ -3551,14 +3668,18 @@ app.post("/api/cloud/collections/:id/confirm-boxes", async (c) => {
   if (!jobId) {
     return c.json({ ok: false, error: "No cloud job for this collection" }, 404);
   }
-  if (row?.mac_handoff_status !== "cloud_awaiting_boxes" && row?.mac_handoff_status !== "cloud_confirming") {
+  if (
+    row?.mac_handoff_status !== "cloud_awaiting_boxes" &&
+    row?.mac_handoff_status !== "cloud_confirming" &&
+    row?.mac_handoff_status !== "cloud_done"
+  ) {
     return c.json({ ok: false, error: `Unexpected status ${row?.mac_handoff_status}` }, 409);
   }
   const body = (await c.req.json().catch(() => ({}))) as { boards?: unknown[] };
   await c.env.DB.prepare(
-    `UPDATE collections SET mac_handoff_status = 'cloud_confirming', mac_handoff_at = ?, updated_at = ? WHERE id = ?`
+    `UPDATE collections SET mac_handoff_status = 'cloud_confirming', mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ?`
   )
-    .bind(nowIso(), nowIso(), collectionId)
+    .bind(nowIso(), nowIso(), "Applying box edits (delta reprice)…", collectionId)
     .run();
   await saveConfirmPending(c.env, collectionId, jobId, Array.isArray(body.boards) ? body.boards : undefined);
 
