@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fins and Pins · Shopping Catalog click report</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 20px; background: #f0f0f0; color: #222; }
+    .header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .btn { padding: 10px 15px; background: #0066aa; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; }
+    .note { font-size: 14px; color: #555; line-height: 1.45; margin: 0 0 16px; max-width: 720px; }
+    section { background: #fff; padding: 16px 18px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; overflow-x: auto; }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; vertical-align: top; }
+    th { background: #f9f9f9; }
+    tr:hover { background: #f1f7ff; }
+    .muted { color: #666; font-size: 13px; }
+    #status { font-size: 13px; color: #555; margin-bottom: 10px; }
+    #status.ok { color: #0b6e4f; font-weight: bold; }
+    code { font-size: 12px; background: #f3f3f3; padding: 1px 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;">Click report (test catalog)</h1>
+    <a class="btn" href="./">Back to catalog</a>
+  </div>
+  <p class="note">
+    Reads Firebase <code>claims/rolling_sandbox</code> only. This is not a live Whatnot show folder
+    (not a <code>YYYYMMDD</code> CTR reports page).
+  </p>
+  <div id="status">Connecting…</div>
+
+  <section>
+    <h2>Summary</h2>
+    <p class="muted" id="summaryLine">Loading…</p>
+  </section>
+
+  <section>
+    <h2>By person</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Pins</th>
+          <th>Latest tap</th>
+          <th>Pin keys</th>
+        </tr>
+      </thead>
+      <tbody id="userRows"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>By pin</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Pin key</th>
+          <th>Requesters</th>
+          <th>Names</th>
+        </tr>
+      </thead>
+      <tbody id="pinRows"></tbody>
+    </table>
+  </section>
+
+  <script>
+    window.FP_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyB5HoTCon9uIFJqnF506tB_jORAG1HvI7o",
+      authDomain: "fins-and-pins-click-to-claim.firebaseapp.com",
+      databaseURL: "https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com",
+      projectId: "fins-and-pins-click-to-claim",
+      storageBucket: "fins-and-pins-click-to-claim.firebasestorage.app",
+      messagingSenderId: "31512845258",
+      appId: "1:31512845258:web:2124fae24cfee229084d33"
+    };
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    (function () {
+      const CLAIMS_SHOW = "rolling_sandbox";
+      const statusEl = document.getElementById("status");
+      const summaryEl = document.getElementById("summaryLine");
+      const userRows = document.getElementById("userRows");
+      const pinRows = document.getElementById("pinRows");
+
+      function fmtTime(ms) {
+        if (!ms || !Number.isFinite(ms)) return "—";
+        try {
+          return new Date(ms).toLocaleString("en-US", { timeZone: "America/New_York" }) + " ET";
+        } catch {
+          return String(ms);
+        }
+      }
+
+      function render(claims) {
+        const byUser = new Map();
+        const byPin = [];
+        let pinCount = 0;
+        let requestCount = 0;
+
+        Object.entries(claims || {}).forEach(([pinKey, users]) => {
+          const entries = Object.entries(users || {}).filter(([, meta]) => meta && typeof meta === "object");
+          if (!entries.length) return;
+          pinCount++;
+          const names = [];
+          entries.forEach(([uid, meta]) => {
+            requestCount++;
+            const label = (meta.label && String(meta.label).trim()) || uid;
+            names.push(label);
+            if (!byUser.has(uid)) {
+              byUser.set(uid, { uid, label, pins: [], latest: 0 });
+            }
+            const row = byUser.get(uid);
+            if (meta.label) row.label = String(meta.label).trim();
+            row.pins.push(pinKey);
+            const t = typeof meta.time === "number" ? meta.time : 0;
+            if (t > row.latest) row.latest = t;
+          });
+          byPin.push({ pinKey, count: entries.length, names: names.sort((a, b) => a.localeCompare(b)) });
+        });
+
+        summaryEl.textContent =
+          `${requestCount} request(s) across ${pinCount} pin(s) from ${byUser.size} person(s).`;
+
+        const userList = [...byUser.values()].sort((a, b) => b.pins.length - a.pins.length || a.label.localeCompare(b.label));
+        userRows.innerHTML = userList.length
+          ? userList
+              .map(
+                (u) => `<tr>
+              <td>${escapeHtml(u.label)}</td>
+              <td>${u.pins.length}</td>
+              <td>${fmtTime(u.latest)}</td>
+              <td class="muted">${escapeHtml(u.pins.sort().join(", "))}</td>
+            </tr>`
+              )
+              .join("")
+          : `<tr><td colspan="4" class="muted">No clicks in claims/${CLAIMS_SHOW} yet.</td></tr>`;
+
+        byPin.sort((a, b) => b.count - a.count || a.pinKey.localeCompare(b.pinKey));
+        pinRows.innerHTML = byPin.length
+          ? byPin
+              .map(
+                (p) => `<tr>
+              <td><code>${escapeHtml(p.pinKey)}</code></td>
+              <td>${p.count}</td>
+              <td>${escapeHtml(p.names.join(", "))}</td>
+            </tr>`
+              )
+              .join("")
+          : `<tr><td colspan="3" class="muted">No pins yet.</td></tr>`;
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(window.FP_FIREBASE_CONFIG);
+        const db = firebase.database();
+        statusEl.textContent = "Connected · live";
+        statusEl.classList.add("ok");
+        db.ref(`claims/${CLAIMS_SHOW}`).on(
+          "value",
+          (snap) => render(snap.val() || {}),
+          (err) => {
+            statusEl.textContent = "Firebase error: " + (err && err.message);
+            statusEl.classList.remove("ok");
+          }
+        );
+      } catch (e) {
+        statusEl.textContent = "Could not connect: " + (e && e.message);
+      }
+    })();
+  </script>
+</body>
+</html>
