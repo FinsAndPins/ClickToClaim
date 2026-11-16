@@ -234,6 +234,33 @@
       text-decoration: underline; font-weight: bold; font-size: 13px;
       padding: 6px; width: 100%;
     }
+    button.clear-action {
+      background: #fff; color: #8b1e3f; border: 2px solid #8b1e3f;
+      border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: bold; width: 100%;
+    }
+
+    #virtualBoardExportOverlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3100;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    #virtualBoardExportOverlay.open { display: flex; }
+    #virtualBoardExportOverlay .vb-card {
+      background: var(--fp-chunk); color: var(--fp-text); border-radius: 12px;
+      padding: 18px; width: min(420px, 100%); max-height: 90vh; overflow: auto;
+    }
+    #virtualBoardExportOverlay .vb-progress-track {
+      width: 100%; height: 12px; background: rgba(0,0,0,0.15); border-radius: 8px; overflow: hidden; margin: 14px 0 8px;
+    }
+    #virtualBoardExportOverlay .vb-progress-fill {
+      height: 100%; width: 0%; background: #1877f2; border-radius: 8px; transition: width 0.2s ease;
+    }
+    #virtualBoardExportOverlay .vb-preview-wrap { display: none; margin: 10px 0 12px; }
+    #virtualBoardExportOverlay .vb-preview-wrap.show { display: block; }
+    #virtualBoardExportOverlay .vb-preview {
+      max-width: 100%; max-height: 42vh; border-radius: 8px; background: #2a2a4a;
+    }
+    #virtualBoardExportOverlay .vb-save-actions { display: none; gap: 8px; flex-direction: column; }
+    #virtualBoardExportOverlay .vb-save-actions.show { display: flex; }
 
     #trayDrawer {
       position: fixed; top: 0; right: 0; width: min(420px, 100%); height: 100%;
@@ -303,9 +330,8 @@
 
   <h1>Fins and Pins</h1>
   <p id="introNote">
-    Tap pins to select them (same as Click To Request). Open your Shopping Board to
-    <strong>Buy all now</strong>, <strong>Request all for Whatnot</strong>,
-    or <strong>Buy some and request the rest</strong>.
+    Tap the pins you want. Open your <strong>Shopping Board</strong> to remove any you don’t want,
+    create a <strong>Virtual Pin Board</strong> photo, then <strong>Buy all now</strong>.
   </p>
 
   <div id="globalCounts">
@@ -313,19 +339,12 @@
       <div class="global-counts-row">
         <span class="gc-item">On Shopping Board: <span id="statTray">0</span></span>
         <span class="gc-dot" aria-hidden="true">·</span>
-        <span class="gc-item">Requested: <span id="statRequests">0</span></span>
-        <span class="gc-dot" aria-hidden="true">·</span>
         <span id="syncStatus">Starting…</span>
       </div>
       <div class="global-admin-row">
         Shows <span id="statShows">0</span> · Pins <span id="statMapped">0</span> · Shopify <span id="statVariants">0</span> · <span id="statMode">…</span>
       </div>
     </div>
-  </div>
-
-  <div id="splitBanner">
-    Split mode: tap pins on the Shopping Board (or on the boards) to mark <strong>Buy Now</strong> (blue).
-    Unmarked pins stay <strong>Request for Whatnot</strong>. Then use the Shopping Board buttons.
   </div>
 
   <div id="passwordHelp">
@@ -340,21 +359,31 @@
       <strong>Your Shopping Board</strong>
       <button type="button" class="secondary" id="btnCloseTray">Close</button>
     </div>
-    <p class="muted" id="trayHint">You’ll receive the pin in the photo for anything you buy.</p>
-    <div id="trayList"></div>
-    <div class="tray-actions" id="trayActionsNormal">
+    <p class="muted" id="trayHint">You’ll receive the pin in the photo for anything you buy. Remove pins you don’t want, then buy the rest.</p>
+    <div class="tray-actions" id="trayActionsNormal" style="margin-top:0;margin-bottom:12px;">
       <button type="button" class="buy-action" id="btnBuyAll">Buy all now</button>
-      <button type="button" class="primary-action" id="btnRequestAll">Request all for Whatnot</button>
-      <button type="button" class="secondary" id="btnSplitMode" style="width:100%;">Buy some, request the rest…</button>
-      <button type="button" class="text-link" id="btnClearTray">Clear Shopping Board</button>
+      <button type="button" class="primary-action" id="btnVirtualBoard">Create Virtual Pin Board</button>
+      <button type="button" class="clear-action" id="btnClearTray">Clear Shopping Board</button>
     </div>
-    <div class="tray-actions" id="trayActionsSplit" hidden>
-      <p class="muted" id="splitTrayNote" style="margin:0 0 4px;">
-        Tap pins to mark <strong>Buy Now</strong> (blue). Unmarked will be requested.
-      </p>
-      <button type="button" class="buy-action" id="btnCheckoutMarked">Checkout Buy Now pins</button>
-      <button type="button" class="primary-action" id="btnFinishSplit">Request the rest for Whatnot</button>
-      <button type="button" class="text-link" id="btnCancelSplit">Cancel</button>
+    <div id="trayList"></div>
+  </div>
+
+  <div id="virtualBoardExportOverlay" role="dialog" aria-modal="true" aria-labelledby="virtualBoardExportTitle">
+    <div class="vb-card">
+      <h3 id="virtualBoardExportTitle" style="margin:0 0 6px;">Building virtual pin board</h3>
+      <p class="muted" id="virtualBoardExportStatus" style="margin:0;">Preparing…</p>
+      <div class="vb-progress-track" id="virtualBoardExportTrack" aria-hidden="true">
+        <div class="vb-progress-fill" id="virtualBoardExportBar"></div>
+      </div>
+      <p class="muted" id="virtualBoardExportEta" style="margin:0 0 8px;">Estimating time…</p>
+      <div class="vb-preview-wrap" id="virtualBoardExportPreviewWrap">
+        <img class="vb-preview" id="virtualBoardExportPreview" alt="Virtual pin board preview">
+      </div>
+      <div class="vb-save-actions" id="virtualBoardExportSaveActions">
+        <button type="button" class="primary-action" id="virtualBoardExportSaveBtn">Save to Photos</button>
+        <button type="button" class="secondary" id="virtualBoardExportSkipBtn" style="width:100%;">Skip this photo</button>
+      </div>
+      <button type="button" class="secondary" id="virtualBoardExportCancelBtn" style="width:100%;margin-top:10px;">Cancel</button>
     </div>
   </div>
 
@@ -380,6 +409,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="./js/shopify-config.js"></script>
-  <script src="./js/app.js?v=20261116-shopping-board"></script>
+  <script src="./js/app.js?v=20261116-vb-buy"></script>
 </body>
 </html>
