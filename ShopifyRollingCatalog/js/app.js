@@ -286,7 +286,7 @@
     $("trayActionsSplit").hidden = !splitMode;
     if (splitMode) {
       $("trayHint").textContent =
-        "Tap a pin below (or on the board) to mark Buy Now (blue). Unmarked = Request for Whatnot.";
+        "Tap a pin below (or on the photo boards) to mark Buy Now (blue). Unmarked = Request for Whatnot.";
       $("trayDrawer").classList.add("open");
     } else {
       $("trayHint").textContent = "You’ll receive the pin in the photo for anything you buy.";
@@ -303,7 +303,7 @@
     if (!list) return;
     list.innerHTML = "";
     if (!tray.length) {
-      list.innerHTML = `<p class="muted">Tray is empty. Tap pins on the boards to add them.</p>`;
+      list.innerHTML = `<p class="muted">Shopping Board is empty. Tap pins on the boards to add them.</p>`;
     } else {
       tray.forEach((item, i) => {
         const row = document.createElement("div");
@@ -339,7 +339,7 @@
         if (item) writeInterest(item, { status: "removed_from_tray", channel: "tray" });
         tray.splice(Number(btn.dataset.remove), 1);
         saveTray();
-        toast("Removed from tray");
+        toast("Removed from Shopping Board");
       };
     });
     updateStats();
@@ -375,12 +375,12 @@
       writeInterest(pin, { status: "removed_from_tray", channel: "tray" });
       tray.splice(existing, 1);
       saveTray();
-      toast("Removed from tray");
+      toast("Removed from Shopping Board");
       return;
     }
 
     addToTray(pin, { buyNow: false });
-    toast("Added to tray");
+    toast("Added to Shopping Board");
   }
 
   function addToTray(pin, opts) {
@@ -770,7 +770,7 @@
       tray.forEach((p) => writeInterest(p, { status: "removed_from_tray" }));
       tray = [];
       saveTray();
-      toast("Tray cleared");
+      toast("Shopping Board cleared");
     };
     $("btnBuyAll").onclick = () => {
       const tab = openCheckoutTabForGesture();

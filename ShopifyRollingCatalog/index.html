@@ -303,7 +303,7 @@
 
   <h1>Fins and Pins</h1>
   <p id="introNote">
-    Tap pins to select them (same as Click To Request). Open your tray to
+    Tap pins to select them (same as Click To Request). Open your Shopping Board to
     <strong>Buy all now</strong>, <strong>Request all for Whatnot</strong>,
     or <strong>Buy some and request the rest</strong>.
   </p>
@@ -311,7 +311,7 @@
   <div id="globalCounts">
     <div id="globalCountsStick">
       <div class="global-counts-row">
-        <span class="gc-item">In tray: <span id="statTray">0</span></span>
+        <span class="gc-item">On Shopping Board: <span id="statTray">0</span></span>
         <span class="gc-dot" aria-hidden="true">·</span>
         <span class="gc-item">Requested: <span id="statRequests">0</span></span>
         <span class="gc-dot" aria-hidden="true">·</span>
@@ -324,8 +324,8 @@
   </div>
 
   <div id="splitBanner">
-    Split mode: tap pins in the tray (or on the boards) to mark <strong>Buy Now</strong> (blue).
-    Unmarked pins stay <strong>Request for Whatnot</strong>. Then use the buttons in the tray.
+    Split mode: tap pins on the Shopping Board (or on the boards) to mark <strong>Buy Now</strong> (blue).
+    Unmarked pins stay <strong>Request for Whatnot</strong>. Then use the Shopping Board buttons.
   </div>
 
   <div id="passwordHelp">
@@ -337,7 +337,7 @@
 
   <div id="trayDrawer" aria-live="polite">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <strong>Your tray</strong>
+      <strong>Your Shopping Board</strong>
       <button type="button" class="secondary" id="btnCloseTray">Close</button>
     </div>
     <p class="muted" id="trayHint">You’ll receive the pin in the photo for anything you buy.</p>
@@ -346,7 +346,7 @@
       <button type="button" class="buy-action" id="btnBuyAll">Buy all now</button>
       <button type="button" class="primary-action" id="btnRequestAll">Request all for Whatnot</button>
       <button type="button" class="secondary" id="btnSplitMode" style="width:100%;">Buy some, request the rest…</button>
-      <button type="button" class="text-link" id="btnClearTray">Clear tray</button>
+      <button type="button" class="text-link" id="btnClearTray">Clear Shopping Board</button>
     </div>
     <div class="tray-actions" id="trayActionsSplit" hidden>
       <p class="muted" id="splitTrayNote" style="margin:0 0 4px;">
@@ -361,7 +361,7 @@
   <div id="footerControls">
     <div id="guestLabel" style="font-weight:bold;">guest</div>
     <div class="footer-links">
-      <button type="button" id="btnOpenTray">Tray (<span id="statTrayBar">0</span>)</button>
+      <button type="button" id="btnOpenTray">Shopping Board (<span id="statTrayBar">0</span>)</button>
     </div>
   </div>
   <div id="toast"></div>
@@ -380,6 +380,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="./js/shopify-config.js"></script>
-  <script src="./js/app.js?v=20261106-sold"></script>
+  <script src="./js/app.js?v=20261116-shopping-board"></script>
 </body>
 </html>
