@@ -9,6 +9,7 @@ Steve asked for pushback when a choice is weak on tech, privacy, ToS, or harm. L
 | Seller cloud = non-cloud workflow | **Do this.** Lexi’s win is Instagram → site. Keep upload → Submit → Thanks. No seller BBE/Match. |
 | Seller Agree-and-choose + early detect | **Retired (2026-11-16).** Overcomplicated the seller path; non-cloud was already fine. |
 | Internal cloud BoardsToPrice (detect + BBE immediately) | **Later, separate tool.** Staff only; no privacy acknowledgments. See `FUTURE_DEVELOPMENT.md`. |
+| Staff Detect requires BBE before eBay | **No.** Detect then auto-price. BBE is optional exception with delta reprice. |
 | One Cloud Run job, pipelined per board | **Keep for internal / staff pricing.** Not for the public seller wait screen. |
 | Upload confirmation email | **Don’t.** Offer-only (and reject) by design. |
 | Lexi notify on cloud lab | **Off** until Steve says GO. |

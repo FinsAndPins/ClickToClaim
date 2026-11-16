@@ -1,5 +1,12 @@
 # Intake lessons
 
+## 2026-11-16 — Staff Detect auto-prices; BBE optional delta
+
+- **Symptom:** Admin collection page parked on Board Box Editor after RF-DETR; harness only after Confirm.
+- **Cause:** Progressive seller UX treated BBE as a required gate before eBay finish.
+- **Rule:** Staff **Detect + price** runs RF-DETR then auto confirm-as-detected (finish eBay + harness). Board Box Editor is optional for bad boards; Save delta-reprices (drop deleted, price added, re-price moved, keep unchanged). Cron heals stuck `cloud_awaiting_boxes` the same way.
+- **Where:** `intake-cloud/src/app.ts` `continuePricingAfterDetect`; Cloud Run `confirm-boxes` / `apply_box_confirm_delta`
+
 ## 2026-11-16 — Seller path = non-cloud; detect+BBE is internal later
 
 - **Symptom:** Agree-and-choose + early detect + seller BBE made cloud intake feel harder than the Mac form Lexi already liked.

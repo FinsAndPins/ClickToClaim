@@ -26,14 +26,14 @@ A **separate** staff tool, similar UX energy to seller upload, but for **our** b
 | Who | Public / invite sellers | Lexi + Steve (staff auth only) |
 | Privacy / ToS acknowledgments | Required (seller checkbox + privacy page) | **None** (internal operators) |
 | When detect starts | Not on seller path | **Immediately** on photo drop |
-| Box editor | No | Yes (Board Box Editor + confirm as detected) |
+| Box editor | No | Optional after detect (delta reprice on edits). Default: auto-price as detected |
 | Then | Thanks → offer email later | Match / CTM–CTP harness link for pricing |
 | Notify Lexi | Offer email only (lab: notify off until GO) | Optional; iMessage stays off until Steve says GO |
 
 ### Suggested shape
 
 - **Home:** `/admin/cloud-price` (or short staff URL) on the cloud lab Worker first.
-- **Flow:** Drop board photos → Cloud Run pipelined detect→eBay starts immediately → Board Box Editor (or confirm as detected) → Match / harness.
+- **Flow:** Drop board photos → Cloud Run detect→eBay immediately → Match / harness. Optional Board Box Editor only when boxes look wrong (delta reprice).
 - **Reuse:** Existing Cloud Run (`IntakeCloudPricing`), admin box-session / confirm / Match plumbing already built for the lab. Seller `/boxes/:token` routes can stay as staff/debug or be folded under `/admin/…`.
 - **Do not:** Retarget production BoardsToPrice / Mac Named Collections / sellmycollection without **SHIP TO PRODUCTION**.
 - **Do not:** Add seller privacy modals to this internal tool.
