@@ -2375,8 +2375,8 @@ function buildVirtualPageCanvas(cropCanvases, pageSeed) {
         const scale = Math.min(maxDim / crop.width, maxDim / crop.height) * (0.92 + rand() * 0.16);
         const dw = Math.max(1, crop.width * scale);
         const dh = Math.max(1, crop.height * scale);
-        // Mild tilt like a hand-pinned board; AABB accounts for rotation so they never overlap.
-        const rot = (rand() - 0.5) * 0.28; // ~±8°
+        // Pins stay in the orientation they have on the board photo.
+        const rot = 0;
         const c = Math.abs(Math.cos(rot));
         const s = Math.abs(Math.sin(rot));
         const aw = dw * c + dh * s;
