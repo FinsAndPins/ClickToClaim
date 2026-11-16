@@ -1,31 +1,61 @@
 # Cloud intake — future development
 
-Ideas deferred on purpose. Build when seller cloud path is stable. Production sellmycollection / Mac inbox stay untouched until **SHIP TO PRODUCTION**.
+Ideas deferred on purpose. Production `sellmycollection` / Mac inbox stay untouched until **SHIP TO PRODUCTION**.
 
-## Lexi staff cloud price (priority)
+## Seller cloud lab (current goal)
 
-Separate staff section (not the seller intake form) that reuses the same Cloud Run pipeline with a simplified front end.
+Match the **non-cloud / Mac intake** seller experience Lexi already liked:
 
-- **Auth:** Staff only (existing admin / DEV_ADMIN pattern), no invite code or seller contact form.
-- **Flow:** Drop board photos → pipeline starts immediately (pipelined detect→eBay) → optional Board Box Editor or “confirm as detected” → Match / harness link.
-- **Notify:** Lexi iMessage stays **off** until Steve says GO.
-- **Privacy:** Staff tooling is not the seller privacy path (no “hold until Submit” seller copy).
-- **Suggested home:** `/admin/cloud-price` (or a short staff URL) on the cloud lab Worker first.
-- **Do not:** Retarget BoardsToPrice / Mac Named Collections without SHIP TO PRODUCTION.
+1. Seller uploads board photos (may upload while filling contact).
+2. Privacy/terms checkbox at **Submit** (not a separate pre-picker processing modal).
+3. SafeSearch → store photos → **Thanks** (offer later by email).
+4. No seller Board Box Editor, Match, or live detect wait.
+
+The win for Lexi is moving collection intake **off Instagram** onto this site. Pricing stays a staff/Mac (or later staff-cloud) step behind the scenes.
+
+---
+
+## Internal cloud BoardsToPrice (future — Lexi + Steve)
+
+**Status:** Spec only. Do not wire into the seller form.
+
+A **separate** staff tool, similar UX energy to seller upload, but for **our** boards we want to price (like dropping into BoardsToPrice), not for public sellers.
+
+| | Seller intake (now) | Internal cloud price (later) |
+|--|---------------------|------------------------------|
+| Who | Public / invite sellers | Lexi + Steve (staff auth only) |
+| Privacy / ToS acknowledgments | Required (seller checkbox + privacy page) | **None** (internal operators) |
+| When detect starts | Not on seller path | **Immediately** on photo drop |
+| Box editor | No | Yes (Board Box Editor + confirm as detected) |
+| Then | Thanks → offer email later | Match / CTM–CTP harness link for pricing |
+| Notify Lexi | Offer email only (lab: notify off until GO) | Optional; iMessage stays off until Steve says GO |
+
+### Suggested shape
+
+- **Home:** `/admin/cloud-price` (or short staff URL) on the cloud lab Worker first.
+- **Flow:** Drop board photos → Cloud Run pipelined detect→eBay starts immediately → Board Box Editor (or confirm as detected) → Match / harness.
+- **Reuse:** Existing Cloud Run (`IntakeCloudPricing`), admin box-session / confirm / Match plumbing already built for the lab. Seller `/boxes/:token` routes can stay as staff/debug or be folded under `/admin/…`.
+- **Do not:** Retarget production BoardsToPrice / Mac Named Collections / sellmycollection without **SHIP TO PRODUCTION**.
+- **Do not:** Add seller privacy modals to this internal tool.
+
+### Why separate
+
+Seller path must stay simple and trustworthy (Instagram replacement). Internal path can optimize for Lexi’s pricing speed (immediate detect + box edit) without seller consent theater.
+
+---
 
 ## Other backlog
 
 | Item | Notes |
 |------|--------|
-| Progressive CTM | Show Match pins as they price; keep loading the rest (seller path). |
-| Privacy update for pre-Submit detect | Only if product wants RF-DETR before Submit; requires rewriting `/privacy` first. Not allowed under current copy. |
-| Incremental detect append | Add boards to a running job without full re-detect when more photos land mid-job. |
 | Resend on lab | Wire when testing offer/reject email; no upload receipt. |
 | Custom domain for cloud lab | e.g. cloud-lab.finsandpins.shop after DNS. |
 | Lexi notify on cloud | Explicit GO only. |
 | SHIP TO PRODUCTION | Wire production intake / pages only when Steve says so. |
+| Incremental detect append | Add boards to a running job without full re-detect (internal tool). |
 
 ## Related
 
 - North star: `NORTH_STAR.md`
 - Advisor / ToS notes: `ADVISOR_NOTES.md`
+- Cloud pricing migration (longer arc): `CLOUD_PRICING_MIGRATION.md`
