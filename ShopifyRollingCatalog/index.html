@@ -239,6 +239,22 @@
       border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: bold; width: 100%;
     }
 
+    #loginOverlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3000;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    #loginOverlay .login-box {
+      background: var(--fp-chunk); color: var(--fp-text); border-radius: 12px;
+      padding: 18px; width: min(400px, 100%);
+    }
+    #loginOverlay h3 { margin: 0 0 8px; font-size: 18px; }
+    #loginOverlay p { margin: 0 0 12px; font-size: 13px; color: var(--fp-muted); line-height: 1.4; }
+    #loginOverlay input {
+      width: 100%; box-sizing: border-box; font-size: 16px; padding: 12px;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.85); color: var(--fp-text); margin-bottom: 10px;
+    }
+
     #virtualBoardExportOverlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3100;
       display: none; align-items: center; justify-content: center; padding: 20px;
@@ -328,6 +344,15 @@
     </a>
   </div>
 
+  <div id="loginOverlay" aria-modal="true" role="dialog" aria-labelledby="loginTitle">
+    <div class="login-box">
+      <h3 id="loginTitle">Who’s requesting?</h3>
+      <p>Enter your Whatnot or Instagram username so we can see who requested which pins. This is interest only, not a purchase.</p>
+      <input type="text" id="usernameInput" placeholder="Whatnot or Instagram username" autocomplete="username" enterkeyhint="done">
+      <button type="button" class="primary-action" id="btnSaveUsername">Start browsing</button>
+    </div>
+  </div>
+
   <h1>Fins and Pins</h1>
   <p id="introNote">
     Tap the pins you want. Open your <strong>Shopping Board</strong> to remove any you don’t want,
@@ -409,6 +434,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="./js/shopify-config.js"></script>
-  <script src="./js/app.js?v=20261116-vb-buy"></script>
+  <script src="./js/app.js?v=20261116-vb-upright-claims"></script>
 </body>
 </html>

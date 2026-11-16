@@ -1,6 +1,7 @@
 /* Fins & Pins rolling catalog — Shopping Board + Buy Now + Virtual Pin Board
    Tap = add/remove Shopping Board. Drawer: Buy all / Virtual board / Clear.
-   Isolation: catalogInterest/rolling_sandbox + shopifyBuyNowTaps/ only (NOT production claims/).
+   Click capture: claims/rolling_sandbox (sandbox show slug, NOT a real YYYYMMDD show)
+   + catalogInterest/rolling_sandbox + shopifyBuyNowTaps/rolling_catalog.
 */
 (function () {
   const CATALOG_KEY = "fp_rolling_catalog_v2";
@@ -10,6 +11,8 @@
   const INTEREST_KEY = `${CATALOG_KEY}_interest`;
   const FB_INTEREST_ROOT = "catalogInterest/rolling_sandbox";
   const FB_TAP_ROOT = "shopifyBuyNowTaps/rolling_catalog";
+  /** Sandbox claims bucket — same shape as CTR claims/{show}/… but never a live show date. */
+  const FB_CLAIMS_SHOW = "rolling_sandbox";
   const VB_MAX_PER_PAGE = 24;
 
   let db = null;
@@ -19,6 +22,8 @@
   let tray = loadTray();
   let interest = loadInterest();
   const guestId = ensureGuestId();
+  const identityKey = ensureIdentity();
+  let displayName = loadDisplayName();
   const cfg = () => window.FP_SHOPIFY_CONFIG || {};
   let searchHits = [];
   let searchFocus = 0;
@@ -26,6 +31,52 @@
   let vbCancel = false;
 
   const $ = (id) => document.getElementById(id);
+
+  function sanitizeUserKey(id) {
+    return String(id || "").replace(/[.#$\[\]\/]/g, "_");
+  }
+
+  function normalizeUserDisplayName(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    if (/^Guest_/i.test(s)) return s;
+    const inner = s.replace(/^@+/, "").trim();
+    if (!inner) return s;
+    return "@" + inner.toLowerCase();
+  }
+
+  function ensureIdentity() {
+    let id = localStorage.getItem("fp_identity");
+    if (!id) {
+      if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+        id =
+          "id_" +
+          [...crypto.getRandomValues(new Uint8Array(12))]
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+      } else {
+        id = "id_" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      }
+      localStorage.setItem("fp_identity", id);
+    }
+    return id;
+  }
+
+  function loadDisplayName() {
+    let name = localStorage.getItem("fp_display_name") || "";
+    if (!name && localStorage.getItem("fp_username")) {
+      name = localStorage.getItem("fp_username");
+      localStorage.setItem("fp_display_name", name);
+    }
+    if (name) {
+      const n = normalizeUserDisplayName(name);
+      if (n !== name) {
+        name = n;
+        localStorage.setItem("fp_display_name", name);
+      }
+    }
+    return name;
+  }
 
   function ensureGuestId() {
     let id = localStorage.getItem(GUEST_KEY);
@@ -36,6 +87,58 @@
       localStorage.setItem(GUEST_KEY, id);
     }
     return id;
+  }
+
+  /** Cross-show unique pin id under claims/rolling_sandbox (avoids IMG_ collisions). */
+  function claimsPinKey(pin) {
+    const showId = (pin && pin.showId) || "unknown";
+    const pinKey = (pin && pin.pinKey) || (pin && pin.catalogKey) || "pin";
+    return sanitizeUserKey(`${showId}__${pinKey}`);
+  }
+
+  function requireDisplayName() {
+    if (displayName) return true;
+    const overlay = $("loginOverlay");
+    if (overlay) overlay.style.display = "flex";
+    toast("Enter your Whatnot or Instagram username first");
+    return false;
+  }
+
+  function saveUsername() {
+    const raw = (($("usernameInput") && $("usernameInput").value) || "").trim();
+    if (!raw) {
+      displayName = "Guest_" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    } else {
+      displayName = normalizeUserDisplayName("@" + raw.replace(/^@+/, "").trim());
+    }
+    localStorage.setItem("fp_display_name", displayName);
+    localStorage.removeItem("fp_username");
+    const overlay = $("loginOverlay");
+    if (overlay) overlay.style.display = "none";
+    if ($("guestLabel")) $("guestLabel").textContent = displayName;
+    if (db && tray.length) {
+      tray.forEach((p) => writeInterest(p, { status: "tray", channel: "tray" }));
+    }
+    toast(`Signed in as ${displayName}`);
+  }
+
+  function writeClaim(pin, active) {
+    if (!db || !pin) return;
+    const userKey = sanitizeUserKey(identityKey);
+    if (!userKey) return;
+    const ref = db.ref(`claims/${FB_CLAIMS_SHOW}/${claimsPinKey(pin)}/${userKey}`);
+    if (!active) {
+      ref.set(null);
+      return;
+    }
+    ref.set({
+      time: firebase.database.ServerValue.TIMESTAMP,
+      label: displayName || guestId,
+      showId: pin.showId || null,
+      pinKey: pin.pinKey || null,
+      catalogKey: pin.catalogKey || null,
+      crop_stem: pin.crop_stem || pin.sku || null
+    });
   }
 
   function loadTray() {
@@ -238,23 +341,31 @@
       sku: pin.sku,
       boardStem: pin.boardStem,
       guestId,
+      identityKey,
       channel: "tray",
       status: "tray",
       ...prev,
       ...patch,
+      label: displayName || prev.label || guestId,
       updatedAt: Date.now()
     };
     if (!next.createdAt) next.createdAt = Date.now();
     interest[key] = next;
     saveInterest();
 
+    const status = String(next.status || "");
+    const activeClaim =
+      status === "tray" || status === "buy_now" || status === "requested";
+    writeClaim(pin, activeClaim);
+
     if (db) {
+      const userKey = sanitizeUserKey(identityKey);
       const payload = {
         ...next,
         time: firebase.database.ServerValue.TIMESTAMP
       };
-      db.ref(`${FB_INTEREST_ROOT}/${pin.showId}/${pin.pinKey}/${guestId}`).set(payload);
-      db.ref(`${FB_TAP_ROOT}/${key}/${guestId}`).set(payload);
+      db.ref(`${FB_INTEREST_ROOT}/${pin.showId}/${pin.pinKey}/${userKey}`).set(payload);
+      db.ref(`${FB_TAP_ROOT}/${sanitizeUserKey(key)}/${userKey}`).set(payload);
     }
   }
 
@@ -262,7 +373,9 @@
     if ($("statTray")) $("statTray").textContent = String(tray.length);
     if ($("statTrayBar")) $("statTrayBar").textContent = String(tray.length);
     if ($("statMode")) $("statMode").textContent = modeLabel();
-    if ($("guestLabel")) $("guestLabel").textContent = `@${guestId.slice(0, 8)}`;
+    if ($("guestLabel")) {
+      $("guestLabel").textContent = displayName || `@${guestId.slice(0, 8)}`;
+    }
     if ($("statMapped")) $("statMapped").textContent = String(allPins.length);
     if ($("statVariants")) {
       $("statVariants").textContent = String(allPins.filter((p) => p.shopifyVariantGid).length);
@@ -324,6 +437,7 @@
   }
 
   function handlePinClick(pin, pinEl) {
+    if (!requireDisplayName()) return;
     const existing = tray.findIndex((t) => t.catalogKey === pin.catalogKey);
 
     if (existing >= 0) {
@@ -339,6 +453,7 @@
   }
 
   function addToTray(pin) {
+    if (!requireDisplayName()) return;
     if (isSoldPin(pin)) {
       toast("That pin is sold");
       return;
@@ -669,6 +784,10 @@
         sync.textContent = "Connected";
         sync.classList.add("sync-connected");
       }
+      // Re-publish any pins already on the Shopping Board so sandbox claims stay current.
+      if (displayName && tray.length) {
+        tray.forEach((p) => writeInterest(p, { status: "tray", channel: "tray" }));
+      }
     } catch (err) {
       console.warn(err);
       const sync = $("syncStatus");
@@ -722,8 +841,28 @@
     };
     $("virtualBoardExportCancelBtn").onclick = () => {
       vbCancel = true;
+      // During save wait, waitForVbSave polls vbCancel and finishes as aborted.
+      // If export is not running, close immediately.
       if (!vbRunning) closeVbOverlay();
     };
+    const loginBtn = $("btnSaveUsername");
+    if (loginBtn) loginBtn.onclick = () => saveUsername();
+    const usernameInput = $("usernameInput");
+    if (usernameInput) {
+      usernameInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          saveUsername();
+        }
+      });
+    }
+    if (displayName) {
+      const overlay = $("loginOverlay");
+      if (overlay) overlay.style.display = "none";
+    } else {
+      const overlay = $("loginOverlay");
+      if (overlay) overlay.style.display = "flex";
+    }
   }
 
   function loadCropImage(url) {
@@ -755,7 +894,8 @@
       const scale = Math.min(maxDim / crop.width, maxDim / crop.height) * (0.92 + rand() * 0.16);
       const dw = Math.max(1, crop.width * scale);
       const dh = Math.max(1, crop.height * scale);
-      const rot = (rand() - 0.5) * 0.28;
+      // Pins stay upright (same as CTR 20261117).
+      const rot = 0;
       const c = Math.abs(Math.cos(rot));
       const s = Math.abs(Math.sin(rot));
       return { i, crop, dw, dh, rot, aw: dw * c + dh * s, ah: dw * s + dh * c };
@@ -925,7 +1065,12 @@
       const eta = $("virtualBoardExportEta");
       if (title) title.textContent = `Save photo ${pageIndex} of ${pageCount}`;
       if (st) st.textContent = `Ready: ${filename}`;
-      if (eta) eta.textContent = "Tap Save to Photos, or download on desktop.";
+      if (eta) {
+        eta.textContent =
+          pageCount > 1
+            ? "Save, Skip this photo, or Cancel to stop."
+            : "Save to Photos, or Cancel to close.";
+      }
       if (preview) preview.src = previewUrl;
       if (wrap) wrap.classList.add("show");
       if (actions) actions.classList.add("show");
@@ -933,32 +1078,52 @@
         saveBtn.disabled = false;
         saveBtn.textContent = "Save to Photos";
       }
+      if (skipBtn) {
+        // One board: Skip just means "don't save"; Cancel closes. Hide Skip to avoid confusion.
+        if (pageCount <= 1) {
+          skipBtn.hidden = true;
+          skipBtn.onclick = null;
+        } else {
+          skipBtn.hidden = false;
+          skipBtn.textContent = "Skip this photo";
+        }
+      }
 
       let settled = false;
-      const finish = (result) => {
-        if (settled) return;
-        settled = true;
+      const cleanup = () => {
         if (saveBtn) saveBtn.onclick = null;
         if (skipBtn) skipBtn.onclick = null;
+        clearInterval(poll);
         URL.revokeObjectURL(previewUrl);
         if (preview) preview.removeAttribute("src");
         if (wrap) wrap.classList.remove("show");
         if (actions) actions.classList.remove("show");
+      };
+      const finish = (result) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
         resolve(result);
       };
 
+      const poll = setInterval(() => {
+        if (vbCancel) finish("aborted");
+      }, 200);
+
       if (saveBtn) {
         saveBtn.onclick = async () => {
+          if (vbCancel) return finish("aborted");
           saveBtn.disabled = true;
           const how = await saveVbBlob(blob, filename);
           if (how === "aborted") {
             saveBtn.disabled = false;
+            if (st) st.textContent = "Save cancelled. Tap Save again, or Cancel.";
             return;
           }
           finish(how);
         };
       }
-      if (skipBtn) skipBtn.onclick = () => finish("skipped");
+      if (skipBtn && pageCount > 1) skipBtn.onclick = () => finish("skipped");
     });
   }
 
