@@ -1,10 +1,17 @@
 # Intake lessons
 
-## 2026-11-15 — Processing consent before Choose; detect-only until Submit
+## 2026-11-16 — Seller path = non-cloud; detect+BBE is internal later
 
-- **Goal:** Start RF-DETR as soon as boards upload, without eBay on abandoners.
-- **Rule:** Agree-and-choose modal → `processing_consent_at` on the upload session → photos allowed. Progressive promote + `prefetch_n=0` detect. On Submit, `start-prefetch` (Cloud Run 0.9.6+) or full detect+prefetch if no job yet. Submit checkbox stays commercial/privacy for the offer.
-- **Where:** `seller-home.js` / `app.ts`; `IntakeCloudPricing` `detect_and_prefetch` + `/jobs/{id}/start-prefetch`
+- **Symptom:** Agree-and-choose + early detect + seller BBE made cloud intake feel harder than the Mac form Lexi already liked.
+- **Cause:** Optimized for pricing speed on the public seller path; Lexi’s real win is Instagram → site, not seller box editing.
+- **Rule:** Seller cloud = upload → Submit privacy checkbox → SafeSearch → `/thanks` → staff prices → offer email. No seller BBE/Match/early detect. Keep detect + Board Box Editor for a **separate** internal BoardsToPrice tool (staff auth, no privacy acknowledgments). Spec: `FUTURE_DEVELOPMENT.md`.
+- **Where:** `seller-home.js`, `app.ts` finish/`/thanks`; docs `NORTH_STAR.md`, `ADVISOR_NOTES.md`, `FUTURE_DEVELOPMENT.md`
+
+## 2026-11-15 — Processing consent before Choose; detect-only until Submit (retired)
+
+- **Goal (retired):** Start RF-DETR as soon as boards upload, without eBay on abandoners.
+- **Was:** Agree-and-choose modal → `processing_consent_at` → progressive promote + `prefetch_n=0`. Replaced by non-cloud seller path above; consent column may linger unused in schema.
+- **Where (historical):** `seller-home.js` / `app.ts`; `IntakeCloudPricing` `start-prefetch`
 
 ## 2026-11-15 — Match “Opening Match…” forever while still awaiting boxes
 

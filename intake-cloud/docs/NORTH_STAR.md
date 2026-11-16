@@ -1,33 +1,27 @@
 # Cloud intake north star
 
-**Intent:** The cloud lab starts as an exact duplicate of Mac/non-cloud intake (photos → SafeSearch → seller review → offer), with **everything in the cloud**. Lexi notification stays **OFF** while testing. Then we add cloud-only speed: Board Box Editor + ClickToMatch, with as little wait as possible.
+**Intent (2026-11-16):** Seller cloud lab = **same workflow as non-cloud / Mac intake** Lexi already accepted: photos → SafeSearch → Thanks → staff prices → offer email. The product win is moving intake **off Instagram** onto our site.
 
-Production `sellmycollection.finsandpins.shop` stays untouched until **SHIP TO PRODUCTION**.
+Production `sellmycollection.finsandpins.shop` stays untouched until **SHIP TO PRODUCTION**. Lexi notification stays **OFF** on the lab until Steve says GO.
 
-## Latency goals
-
-1. Photos may **upload** while the seller fills the form (disclosed). Detect/eBay wait until **Submit** (privacy / ToS).
-2. After Submit, **pipelined** detect→eBay so board 1’s boxes (and Match-window prices) appear ASAP while later boards still detect.
-3. **Partial readiness:** BBE/CTM show boards/pins as they become available; keep the rest loading.
-4. Lexi iMessage stays off until Steve says GO.
-
-## Current lab behavior
+## Seller path (ship this)
 
 | Phase | What runs |
 |-------|-----------|
-| Photo pick | Upload to R2 temp only (not a submission yet) |
-| Submit | SafeSearch → store → one Cloud Run job: detect board N, eBay those crops while detecting N+1 |
-| First board ready | `board_ready` callback → import movie opens BBE; editor polls for more boards |
-| Confirm boxes | Match for ready pins; remaining eBay deferred in background |
+| Photo pick | Upload to R2 temp while they fill contact (disclosed on privacy page) |
+| Submit | Privacy checkbox → SafeSearch → store → **Thanks** |
+| After | Staff prices (Mac handoff when enabled, or admin / future internal cloud tool). Seller does **not** edit boxes or open Match. |
 
-## Detect ↔ eBay order (cloud only)
+## Not on the seller path
 
-Batch “detect all boards, then eBay all pins” is right for overnight Mac pricing. For seller wait time it is wrong.
+- Agree-and-choose / pre-picker processing consent modal
+- Progressive RF-DETR or eBay while filling the form
+- Seller Board Box Editor or ClickToMatch
 
-**Prefer pipelined per board (not strict sequential):** as each board finishes RF-DETR, immediately start eBay on those crops while the next board detects. Overlap detect and eBay. Do **not** wait for board 1’s full eBay window before starting board 2 detect (that idles the GPU). Do **not** wait for all 25 detects before any eBay (that delays first Match pins).
+## Internal speed path (later)
 
-Seller-facing: BBE/CTM show boards/pins as each board’s detect (then its eBay) completes.
+Immediate detect + Board Box Editor + Match for **Lexi/Steve uploading boards to price** lives in `FUTURE_DEVELOPMENT.md` (**Internal cloud BoardsToPrice**). Staff auth only; no seller privacy acknowledgments.
 
 ## Still next
 
-See `FUTURE_DEVELOPMENT.md` (Lexi staff cloud price, progressive CTM, Lexi notify GO, etc.).
+See `FUTURE_DEVELOPMENT.md`.

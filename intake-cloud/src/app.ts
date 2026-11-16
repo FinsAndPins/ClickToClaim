@@ -12,12 +12,7 @@ import {
   sellerPhotosRejectedEmail,
   finishIncompleteStaffEmail,
 } from "./email";
-import {
-  maybeStartOrRefreshDetect,
-  moderateAndPromoteTempPhoto,
-  purgeAbandonedDraft,
-  scheduleEarlyDetect,
-} from "./progressive";
+import { purgeAbandonedDraft } from "./progressive";
 import { centsToDollars, declinedWantedMore, offerHelpers, parseDollarsToCents, percentOfValue } from "./money";
 import { addDaysIso, canStaffMove, KANBAN_COLUMNS, offerDueLabel, offerExpired, staffNextStatuses } from "./workflow";
 import { requireStaff, requireMacOrStaff } from "./auth";
@@ -208,50 +203,17 @@ async function finalizeEarlySubmission(
     .first<{ id: string; seller_name: string; status: string; mac_handoff_status: string | null }>();
   if (!row) return;
   const status = row.mac_handoff_status || "";
-  if (
-    status !== "cloud_running" &&
-    status !== "cloud_awaiting_boxes" &&
-    status !== "cloud_confirming" &&
-    status !== "cloud_done"
-  ) {
-    await queueMacHandoff(
-      env.DB,
-      { id: row.id, seller_name: row.seller_name, status: row.status },
-      actor,
-      { auto: true }
-    );
-    // Submit path: detect + Match-window eBay together.
-    await runCloudDetectForCollection(env, row.id, actor);
-  } else if (status === "cloud_awaiting_boxes" || status === "cloud_running") {
-    // Early detect-only already ran: kick Match-window eBay now (not during form).
-    await ensureMatchWindowPrefetch(env, collectionId, actor);
-    // If more boards landed after the first early detect, re-run so BBE/Match see all.
-    const folder = await env.DB.prepare(`SELECT mac_handoff_folder FROM collections WHERE id = ?`)
-      .bind(collectionId)
-      .first<{ mac_handoff_folder: string | null }>();
-    const jobId = cloudJobIdFromFolder(folder?.mac_handoff_folder);
-    let jobBoards = 0;
-    if (jobId) {
-      const prefetch = await fetchCloudJobJson(env, jobId, "prefetch.json");
-      if (prefetch.ok) {
-        const boards = (prefetch.body as { boards?: unknown[] }).boards;
-        jobBoards = Array.isArray(boards) ? boards.length : 0;
-      }
-    }
-    if (jobBoards > 0 && jobBoards < n) {
-      await env.DB.prepare(
-        `UPDATE collections SET mac_handoff_status = 'cloud_queued', mac_handoff_at = ?, updated_at = ?, internal_note = ? WHERE id = ?`
-      )
-        .bind(
-          nowIso(),
-          nowIso(),
-          `Refreshing detect: ${jobBoards} boards in job, ${n} photos stored`,
-          collectionId
-        )
-        .run();
-      // Refresh includes eBay (seller already submitted).
-      await runCloudDetectForCollection(env, row.id, actor);
-    }
+  // Seller finish: no auto Cloud Run detect. Staff uses admin Detect (future: internal BoardsToPrice).
+  if (!status || status === "cloud_failed") {
+    await env.DB.prepare(
+      `UPDATE collections SET status = CASE WHEN status IN ('uploading','submitted') THEN 'pricing' ELSE status END, updated_at = ?, internal_note = ? WHERE id = ?`
+    )
+      .bind(nowIso(), "Submitted. Staff will price (admin Detect or Mac when enabled).", collectionId)
+      .run();
+    await logEvent(env.DB, collectionId, actor, "submitted_awaiting_staff", {
+      photo_count: n,
+      notify_lexi: false,
+    });
   }
   const sessionRows = await env.DB.prepare(
     `SELECT id FROM upload_sessions WHERE collection_id = ? AND finish_started_at IS NOT NULL`
@@ -500,14 +462,16 @@ async function processSubmissionBackground(
         row.mac_handoff_status !== "queued" &&
         row.mac_handoff_status !== "delivered"
       ) {
-        await queueMacHandoff(
-          env.DB,
-          { id: row.id, seller_name: row.seller_name, status: row.status },
-          session.seller_email,
-          { auto: true }
-        );
-        // Cloud lab: detect + prefetch, then staff confirms boxes in Board Box Editor.
-        await runCloudDetectForCollection(env, row.id, session.seller_email);
+        // Seller path = non-cloud: store photos and wait for staff. No auto detect/BBE.
+        await env.DB.prepare(
+          `UPDATE collections SET status = CASE WHEN status = 'submitted' THEN 'pricing' ELSE status END, updated_at = ?, internal_note = ? WHERE id = ?`
+        )
+          .bind(nowIso(), "Submitted. Staff will price (admin Detect or Mac when enabled).", row.id)
+          .run();
+        await logEvent(env.DB, row.id, session.seller_email, "submitted_awaiting_staff", {
+          photo_count: stored,
+          notify_lexi: false,
+        });
       } else if (row) {
         await finalizeEarlySubmission(env, row.id, session.seller_email);
         return;
@@ -598,26 +562,21 @@ async function processPendingFinishes(env: Bindings): Promise<void> {
             stored,
             detail: "finish session has no remaining temp photos",
           });
-        } else if (
-          expectedRow &&
-          stored >= 1 &&
-          !expectedRow.mac_handoff_status
-        ) {
-          await queueMacHandoff(
-            env.DB,
-            {
-              id: session.collection_id,
-              seller_name: expectedRow.seller_name,
-              status: expectedRow.status,
-            },
-            session.seller_email || "system:cron",
-            { auto: true }
-          );
-          await runCloudDetectForCollection(
-            env,
-            session.collection_id,
-            session.seller_email || "system:cron"
-          );
+        } else if (expectedRow && stored >= 1 && !expectedRow.mac_handoff_status) {
+          await env.DB.prepare(
+            `UPDATE collections SET status = CASE WHEN status IN ('uploading','submitted') THEN 'pricing' ELSE status END, updated_at = ?, internal_note = ? WHERE id = ?`
+          )
+            .bind(
+              nowIso(),
+              "Submitted. Staff will price (admin Detect or Mac when enabled).",
+              session.collection_id
+            )
+            .run();
+          await logEvent(env.DB, session.collection_id, session.seller_email || "system:cron", "submitted_awaiting_staff", {
+            photo_count: stored,
+            via: "cron_finish",
+            notify_lexi: false,
+          });
           await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
         } else {
           await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
@@ -755,7 +714,7 @@ async function loadCollectionPhotoRows(
 
 /**
  * Phase 1: RF-DETR (+ optional Match-window eBay).
- * prefetch_n=0 → detect-only (after processing consent, before Submit).
+ * prefetch_n=0 → detect-only (staff/internal drafts). Seller path does not auto-queue.
  * Default CLOUD_PREFETCH_N → detect + eBay (staff / after Submit kick).
  */
 async function runCloudDetectForCollection(
@@ -1262,25 +1221,13 @@ app.get("/", (c) => {
         <li>Use even light. Avoid heavy glare on cellophane if you can.</li>
         <li>Don’t include people, faces, or anything that isn’t the pins.</li>
       </ul>
-      <p class="hint">Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. You’ll agree to a quick photo-scan first, then pick files. Pin detect can start while you fill step 2; eBay pricing waits until you Submit.</p>
+      <p class="hint">Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. Upload starts as soon as you pick files.</p>
       <div class="choose-wrap">
         <input id="files" class="choose-input" type="file" accept="image/*" multiple />
-        <button type="button" class="choose-btn" id="agreeChooseBtn">Agree and choose photos</button>
+        <label for="files" class="choose-btn">Choose board photos</label>
       </div>
-      <div class="upload-status" id="uploadStatus">Agree to scan, then choose board photos.</div>
+      <div class="upload-status" id="uploadStatus">Choose board photos to get started.</div>
       <div class="thumbs" id="thumbs"></div>
-    </div>
-    <div id="processConsentModal" class="consent-modal" hidden>
-      <div class="consent-dialog" role="dialog" aria-modal="true" aria-labelledby="processConsentTitle">
-        <h2 id="processConsentTitle">Before we scan your boards</h2>
-        <p>We’ll upload the photos you pick and may run automated safety checks and pin detection while you finish the form. That helps us open review faster.</p>
-        <p>Your collection is <strong>not submitted</strong> until you tap Submit. eBay pricing starts only after Submit. If you leave without submitting, leftover files are deleted. Rejected files are not kept.</p>
-        <p class="hint">Full <a href="/privacy" target="_blank" rel="noopener">privacy and terms</a>. You’ll confirm the offer terms again at Submit.</p>
-        <div class="consent-actions">
-          <button type="button" class="btn-secondary" id="processConsentCancel">Cancel</button>
-          <button type="button" class="choose-btn consent-agree" id="processConsentAgree">I agree — choose photos</button>
-        </div>
-      </div>
     </div>
     <div class="card step-card is-locked" id="step2" aria-hidden="true">
       <p class="step-kicker">Step 2 of 2</p>
@@ -1313,7 +1260,7 @@ app.get("/", (c) => {
           </fieldset>
           <label class="agree">
             <input required type="checkbox" name="agree" value="yes" />
-            <span>I agree to the <a href="/privacy">privacy and terms</a> for submitting this collection for an offer. If we buy the collection, we may keep board photos and pin detections for our research.</span>
+            <span>I agree to the <a href="/privacy">privacy and terms</a>. Photos you pick are held briefly so they can upload while you fill this form. They are not a submitted collection until you tap Submit. Rejected files are not stored. If we buy the collection, we may keep board photos and pin detections for our research.</span>
           </label>
           <div class="flash err form-err" id="formErr" hidden></div>
           <div class="row">
@@ -1323,7 +1270,7 @@ app.get("/", (c) => {
       </form>
     </div>
     <script>window.INTAKE = ${JSON.stringify({ maxPhotos, maxBytes })};</script>
-    <script src="/seller-home.js?v=20261115consent"></script>`
+    <script src="/seller-home.js?v=20261116simple"></script>`
   );
 });
 
@@ -1337,7 +1284,7 @@ app.get("/privacy", (c) => {
       <h2>What you send us</h2>
       <p>Your name, email, the price you have in mind, optional notes (for example AP / PP), optional Instagram, how you'll get the pins to us, and board photos. If you accept an offer, we ask for a PayPal Goods and Services email so we can pay you.</p>
       <h2>Photo checks</h2>
-      <p>Before you choose photos, you agree that we may upload them and run automated safety checks and pin detection while you fill in your contact information. eBay pricing starts only after you tap Submit. They are not a submitted collection until Submit. If a photo doesn't pass safety checks, it is deleted and we email you. If you leave without submitting, leftover files are deleted. We may also email ourselves your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
+      <p>You pick photos first. We hold those files briefly so they can upload while you fill in your contact information. They are not a submitted collection until you tap Submit. After you submit, every photo is checked by automated safety filters. You see a confirmation right away. If a photo doesn't pass, it is deleted and we email you. If you leave without submitting, leftover files are deleted. We may also email ourselves your name, email, and a reason code (not the image) so we know a submission was blocked.</p>
       <h2>What we keep</h2>
       <p>Photos that pass may be kept as board photos and as pin detections. We keep detections for our research. We keep board photos for now. We may later delete board photos after a set time, after we receive a collection, or after an offer is declined.</p>
       <h2>Offers</h2>
@@ -1352,50 +1299,18 @@ app.get("/privacy", (c) => {
 
 app.post("/api/upload-sessions", async (c) => {
   try {
-    const form = await c.req.parseBody().catch(() => ({} as Record<string, unknown>));
-    const consent =
-      String((form as Record<string, unknown>).processing_consent || "") === "yes" ||
-      String((form as Record<string, unknown>).processing_consent || "") === "true";
-    if (!consent) {
-      return c.json(
-        { error: "Please agree to photo scanning before choosing board photos." },
-        400
-      );
-    }
     const sessionId = id();
     const created = nowIso();
     const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
-    // accepted_terms_at stays empty until Submit (commercial/privacy checkbox).
-    try {
-      await c.env.DB.prepare(
-        `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, delivery_method, accepted_terms_at, processing_consent_at, created_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-        .bind(sessionId, "", "", "", null, null, null, "", created, created, exp)
-        .run();
-    } catch {
-      // Column may be missing until migrate; still create session, then best-effort stamp consent.
-      await c.env.DB.prepare(
-        `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, delivery_method, accepted_terms_at, created_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-        .bind(sessionId, "", "", "", null, null, null, "", created, exp)
-        .run();
-      try {
-        await c.env.DB.prepare(
-          `UPDATE upload_sessions SET processing_consent_at = ? WHERE id = ?`
-        )
-          .bind(created, sessionId)
-          .run();
-      } catch {
-        /* migrate schema_processing_consent.sql */
-      }
-    }
-    await logEvent(c.env.DB, null, "seller", "photo_session_started", {
-      sessionId,
-      processing_consent: true,
-    });
-    return c.json({ ok: true, sessionId, processing_consent: true });
+    // accepted_terms_at filled at Submit (privacy checkbox). Upload may start before that.
+    await c.env.DB.prepare(
+      `INSERT INTO upload_sessions (id, seller_name, seller_email, paypal_gs_email, instagram, asking_cents, delivery_method, accepted_terms_at, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(sessionId, "", "", "", null, null, null, "", created, exp)
+      .run();
+    await logEvent(c.env.DB, null, "seller", "photo_session_started", { sessionId });
+    return c.json({ ok: true, sessionId });
   } catch (e) {
     console.error("upload_session_create_failed", e);
     return c.json({ error: "Could not start upload. Please try again." }, 500);
@@ -1523,8 +1438,8 @@ app.get("/upload/:sessionId", async (c) => {
           const fin = await fetch('/api/submissions/' + sessionId + '/finish', { method: 'POST' });
           const data = await readJson(fin);
           if (!fin.ok) throw new Error(data.error || 'Could not finish');
-          status.textContent = 'Done. Opening pin review…';
-          location.href = (data.box_review_url || '/thanks');
+          status.textContent = 'Done. Thanks…';
+          location.href = (data.thanks_url || data.next_url || '/thanks');
         } catch (e) {
           status.textContent = (e && e.message) ? e.message : String(e);
           go.disabled = false;
@@ -1607,14 +1522,8 @@ app.post("/api/submissions/:sessionId/photos", async (c) => {
     const sessionId = c.req.param("sessionId");
     const session = await c.env.DB.prepare(`SELECT * FROM upload_sessions WHERE id = ?`)
       .bind(sessionId)
-      .first<UploadSessionSnap & { processing_consent_at?: string | null }>();
+      .first<UploadSessionSnap>();
     if (!session) return c.json({ error: "Session not found" }, 404);
-    if (!session.processing_consent_at) {
-      return c.json(
-        { error: "Please agree to photo scanning before uploading board photos." },
-        403
-      );
-    }
     const countRow = await c.env.DB.prepare(
       `SELECT COUNT(*) AS n FROM upload_temp_photos WHERE session_id = ?`
     )
@@ -1657,32 +1566,7 @@ app.post("/api/submissions/:sessionId/photos", async (c) => {
       .run();
     const exp = new Date(Date.now() + 40 * 60 * 1000).toISOString();
     await c.env.DB.prepare(`UPDATE upload_sessions SET expires_at = ? WHERE id = ?`).bind(exp, sessionId).run();
-
-    // After processing consent: moderate + promote + detect-only (no eBay) while they fill the form.
-    const promote = async () => {
-      try {
-        const result = await moderateAndPromoteTempPhoto(c.env, sessionId, {
-          id: photoId,
-          session_id: sessionId,
-          r2_key: key,
-          original_filename: safeName,
-          content_type: file.type || "image/jpeg",
-          size_bytes: file.size,
-        });
-        if (!result.ok) return;
-        await scheduleEarlyDetect(c.env, sessionId, result.collectionId, (collectionId, actor) =>
-          runCloudDetectForCollection(c.env, collectionId, actor, { prefetch_n: 0 })
-        );
-      } catch (e) {
-        console.error("progressive_promote_failed", e);
-      }
-    };
-    try {
-      c.executionCtx.waitUntil(promote());
-    } catch {
-      /* cron / finish will catch remaining temps */
-    }
-
+    // Temps only until Submit (same as non-cloud). No progressive detect on the seller path.
     return c.json({ ok: true, photoId });
   } catch (e) {
     console.error("photo_upload_failed", e);
@@ -1790,8 +1674,8 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
           ok: true,
           accepted: true,
           collection_id: existingId,
-          box_review_token: token,
-          box_review_url: `/boxes/${token}`,
+          thanks_url: "/thanks",
+          next_url: "/thanks",
         });
       }
       return c.json({ ok: true, accepted: true });
@@ -1800,8 +1684,8 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
     // Large finishes (20+ boards) need headroom; do not let the 40m session TTL wipe temps mid-job.
     const finishExpires = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
 
-    // Create collection + seller box-review token before waitUntil so the uploader can open BBE ASAP.
-    // Progressive drafts may already exist from photo upload.
+    // Create collection before waitUntil. Seller lands on /thanks (non-cloud workflow).
+    // box_review_token kept for staff/debug / future internal tool only.
     let collectionId = session.collection_id || null;
     let boxToken: string | null = null;
     if (!collectionId) {
@@ -1893,8 +1777,8 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
           ok: true,
           accepted: true,
           collection_id: collectionId,
-          box_review_token: token,
-          box_review_url: `/boxes/${token}`,
+          thanks_url: "/thanks",
+          next_url: "/thanks",
         });
       }
     } catch (claimErr) {
@@ -1908,7 +1792,7 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
       if (photos.length) {
         await processSubmissionBackground(c.env, snap, photos);
       } else {
-        // All boards already promoted during form fill; ensure detect is running / refreshed.
+        // Rare: leftover early-promote collection from a prior build. Mark awaiting staff; no auto detect.
         await finalizeEarlySubmission(c.env, collectionId!, snap.seller_email);
       }
     })();
@@ -1923,8 +1807,8 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
       ok: true,
       accepted: true,
       collection_id: collectionId,
-      box_review_token: boxToken,
-      box_review_url: `/boxes/${boxToken}`,
+      thanks_url: "/thanks",
+      next_url: "/thanks",
     });
   } catch (e) {
     console.error("finish_failed", e);
@@ -1938,7 +1822,7 @@ app.get("/thanks", (c) => {
     "Thanks",
     `<h1>We have your photos</h1>
     <div class="card">
-      <p>Thanks. After we find the pins on your boards, you’ll review the boxes (same idea as the app), then we’ll finish pricing and email your offer.</p>
+      <p>Thanks. We’ll review your boards and email your offer, usually within 24-48 business hours.</p>
       <p class="hint">We still run a quick automated safety check in the background. If a photo doesn’t pass, we’ll email you and those files are not kept.</p>
     </div>`
   );

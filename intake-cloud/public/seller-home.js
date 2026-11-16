@@ -11,16 +11,10 @@
   const submitBtn = document.getElementById("submitAll");
   const formErr = document.getElementById("formErr");
   const form = document.getElementById("contactForm");
-  const agreeChooseBtn = document.getElementById("agreeChooseBtn");
-  const consentModal = document.getElementById("processConsentModal");
-  const consentAgree = document.getElementById("processConsentAgree");
-  const consentCancel = document.getElementById("processConsentCancel");
-
   let sessionId = "";
   let sessionPromise = null;
   let uploading = 0;
   let submitted = false;
-  let processingConsented = false;
   const items = [];
 
   function setStatus(msg) {
@@ -130,33 +124,16 @@
         : "");
   }
 
-  function openConsentModal() {
-    if (!consentModal) return;
-    consentModal.hidden = false;
-    consentModal.classList.add("open");
-    if (consentAgree) consentAgree.focus();
-  }
-
-  function closeConsentModal() {
-    if (!consentModal) return;
-    consentModal.hidden = true;
-    consentModal.classList.remove("open");
-  }
-
   async function ensureSession() {
-    if (sessionId && processingConsented) return sessionId;
+    if (sessionId) return sessionId;
     if (sessionPromise) return sessionPromise;
     sessionPromise = (async () => {
-      const body = new FormData();
-      body.set("processing_consent", "yes");
-      const res = await fetch("/api/upload-sessions", { method: "POST", body });
+      const res = await fetch("/api/upload-sessions", { method: "POST" });
       const data = await readJson(res);
       if (!res.ok) throw new Error(data.error || "Could not start upload.");
       sessionId = data.sessionId;
-      processingConsented = true;
       try {
         sessionStorage.setItem("intakeSession", sessionId);
-        sessionStorage.setItem("intakeProcessConsent", "1");
       } catch (_) {
         /* ignore */
       }
@@ -167,18 +144,6 @@
     } catch (e) {
       sessionPromise = null;
       throw e;
-    }
-  }
-
-  async function beginChoosePhotos() {
-    showErr("");
-    try {
-      await ensureSession();
-      closeConsentModal();
-      if (filesEl) filesEl.click();
-    } catch (e) {
-      showErr(e && e.message ? e.message : "Could not start upload.");
-      closeConsentModal();
     }
   }
 
@@ -219,26 +184,13 @@
         renderItem(it);
       }
       if (photos.length) {
-        processingConsented = true;
-        try {
-          sessionStorage.setItem("intakeProcessConsent", "1");
-        } catch (_) {
-          /* ignore */
-        }
         unlockStep2();
         restoreUploadStatus();
-      } else {
-        try {
-          processingConsented = sessionStorage.getItem("intakeProcessConsent") === "1";
-        } catch (_) {
-          processingConsented = false;
-        }
       }
       updateSubmit();
     } catch (_) {
       try {
         sessionStorage.removeItem("intakeSession");
-        sessionStorage.removeItem("intakeProcessConsent");
       } catch (__) {
         /* ignore */
       }
@@ -451,11 +403,7 @@
     const idx = items.indexOf(it);
     if (idx >= 0) items.splice(idx, 1);
     const ok = items.filter((x) => x.status === "ok").length;
-    setStatus(
-      ok
-        ? ok + " photo" + (ok === 1 ? "" : "s") + " uploaded."
-        : "Agree to scan, then choose board photos."
-    );
+    setStatus(ok ? ok + " photo" + (ok === 1 ? "" : "s") + " uploaded." : "Choose board photos to get started.");
     updateSubmit();
   }
 
@@ -492,7 +440,7 @@
     if (!askingRaw) missing.push("Price you have in mind");
     else if (!askingOk) other.push("Price must be greater than $0 (for example 1000, not 0).");
     if (!delivery) missing.push("How you'll get the pins to us");
-    if (!agree) missing.push("Submit privacy and terms checkbox");
+    if (!agree) missing.push("Privacy and terms checkbox");
     if (!missing.length && !other.length) return "";
     const parts = [];
     if (missing.length === 1) parts.push("Please fill in: " + missing[0] + ".");
@@ -510,7 +458,7 @@
       setStatus(ok + " photo" + (ok === 1 ? "" : "s") + " uploaded. You're almost done.");
     else if (ok)
       setStatus(ok + " uploaded. You can remove a failed photo and add another.");
-    else setStatus("Agree to scan, then choose board photos.");
+    else setStatus("Choose board photos to get started.");
   }
 
   async function submitCollection() {
@@ -556,8 +504,8 @@
       } catch (_) {
         /* ignore */
       }
-      setStatus("Done. Opening pin review…");
-      location.href = data.box_review_url || "/thanks";
+      setStatus("Done. Thanks…");
+      location.href = data.thanks_url || data.next_url || "/thanks";
     } catch (e) {
       submitted = false;
       updateSubmit();
@@ -566,36 +514,8 @@
     }
   }
 
-  if (agreeChooseBtn) {
-    agreeChooseBtn.addEventListener("click", () => {
-      if (processingConsented && sessionId) {
-        if (filesEl) filesEl.click();
-        return;
-      }
-      openConsentModal();
-    });
-  }
-  if (consentAgree) {
-    consentAgree.addEventListener("click", () => {
-      beginChoosePhotos();
-    });
-  }
-  if (consentCancel) {
-    consentCancel.addEventListener("click", () => closeConsentModal());
-  }
-  if (consentModal) {
-    consentModal.addEventListener("click", (ev) => {
-      if (ev.target === consentModal) closeConsentModal();
-    });
-  }
   if (filesEl) {
     filesEl.addEventListener("change", () => {
-      if (!processingConsented) {
-        showErr("Please agree to photo scanning before choosing board photos.");
-        filesEl.value = "";
-        openConsentModal();
-        return;
-      }
       const list = filesEl.files;
       addFiles(list);
       filesEl.value = "";
