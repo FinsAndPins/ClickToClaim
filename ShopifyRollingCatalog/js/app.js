@@ -1,6 +1,6 @@
-/* Fins & Pins rolling catalog — tray + three actions
-   Tap = add/remove tray (CTR muscle memory). Tray: Buy all / Request all / Split.
-   Isolation: catalogRequests/ + shopifyBuyNowTaps/ only (not production claims/).
+/* Fins & Pins rolling catalog — Shopping Board + Buy Now + Virtual Pin Board
+   Tap = add/remove Shopping Board. Drawer: Buy all / Virtual board / Clear.
+   Isolation: catalogInterest/rolling_sandbox + shopifyBuyNowTaps/ only (NOT production claims/).
 */
 (function () {
   const CATALOG_KEY = "fp_rolling_catalog_v2";
@@ -10,6 +10,7 @@
   const INTEREST_KEY = `${CATALOG_KEY}_interest`;
   const FB_INTEREST_ROOT = "catalogInterest/rolling_sandbox";
   const FB_TAP_ROOT = "shopifyBuyNowTaps/rolling_catalog";
+  const VB_MAX_PER_PAGE = 24;
 
   let db = null;
   let showDefs = [];
@@ -17,11 +18,12 @@
   let allPins = [];
   let tray = loadTray();
   let interest = loadInterest();
-  let splitMode = false;
   const guestId = ensureGuestId();
   const cfg = () => window.FP_SHOPIFY_CONFIG || {};
   let searchHits = [];
   let searchFocus = 0;
+  let vbRunning = false;
+  let vbCancel = false;
 
   const $ = (id) => document.getElementById(id);
 
@@ -266,8 +268,6 @@
       $("statVariants").textContent = String(allPins.filter((p) => p.shopifyVariantGid).length);
     }
     if ($("statShows")) $("statShows").textContent = String(showDefs.length);
-    const requested = Object.values(interest).filter((x) => x.status === "whatnot_request").length;
-    if ($("statRequests")) $("statRequests").textContent = String(requested);
   }
 
   function syncPinClasses() {
@@ -275,27 +275,8 @@
       const key = el.dataset.catalogKey;
       const item = tray.find((t) => t.catalogKey === key);
       el.classList.toggle("in-tray", !!item);
-      el.classList.toggle("mark-buy", !!(item && item.buyNow));
+      el.classList.remove("mark-buy");
     });
-  }
-
-  function setSplitMode(on) {
-    splitMode = !!on;
-    document.body.classList.toggle("split-mode", splitMode);
-    $("trayActionsNormal").hidden = splitMode;
-    $("trayActionsSplit").hidden = !splitMode;
-    if (splitMode) {
-      $("trayHint").textContent =
-        "Tap a pin below (or on the photo boards) to mark Buy Now (blue). Unmarked = Request for Whatnot.";
-      $("trayDrawer").classList.add("open");
-    } else {
-      $("trayHint").textContent = "You’ll receive the pin in the photo for anything you buy.";
-      tray.forEach((t) => {
-        t.buyNow = false;
-      });
-      saveTray();
-    }
-    renderTray();
   }
 
   function renderTray() {
@@ -307,11 +288,11 @@
     } else {
       tray.forEach((item, i) => {
         const row = document.createElement("div");
-        row.className = "tray-row" + (item.buyNow ? " mark-buy" : "");
+        row.className = "tray-row";
         row.dataset.catalogKey = item.catalogKey;
         const src = cropImageSrc(item);
         const img = src
-          ? `<img src="${src}" alt="" loading="lazy">`
+          ? `<img src="${src}" alt="" loading="lazy" crossorigin="anonymous">`
           : `<div class="tray-thumb-missing" aria-hidden="true"></div>`;
         const label = shortTitle(item) || "Pin";
         row.innerHTML = `
@@ -320,15 +301,8 @@
             <strong>You'll receive the pin in the photo</strong>
             <div class="muted">${label}</div>
             <div class="muted">${item.showId || ""} · ${formatPrice(resolvePinPrice(item))}</div>
-            ${item.buyNow ? `<span class="buy-tag">Buy Now</span>` : splitMode ? `<span class="muted">Will request</span>` : ""}
           </div>
           <button type="button" class="remove" data-remove="${i}">Remove</button>`;
-        if (splitMode) {
-          row.onclick = (e) => {
-            if (e.target.closest("[data-remove]")) return;
-            toggleBuyMark(item.catalogKey);
-          };
-        }
         list.appendChild(row);
       });
     }
@@ -342,34 +316,15 @@
         toast("Removed from Shopping Board");
       };
     });
+    const vbBtn = $("btnVirtualBoard");
+    if (vbBtn) vbBtn.disabled = !tray.length;
+    const buyBtn = $("btnBuyAll");
+    if (buyBtn) buyBtn.disabled = !tray.length;
     updateStats();
-  }
-
-  function toggleBuyMark(catalogKey) {
-    const item = tray.find((t) => t.catalogKey === catalogKey);
-    if (!item) return;
-    item.buyNow = !item.buyNow;
-    writeInterest(item, {
-      status: "tray",
-      channel: item.buyNow ? "buy_now_marked" : "whatnot_request_pending"
-    });
-    saveTray();
   }
 
   function handlePinClick(pin, pinEl) {
     const existing = tray.findIndex((t) => t.catalogKey === pin.catalogKey);
-
-    if (splitMode) {
-      if (existing < 0) {
-        // In split mode, tapping a board pin not in tray adds it marked Buy Now
-        addToTray(pin, { buyNow: true });
-        toast("Marked Buy Now");
-        return;
-      }
-      toggleBuyMark(pin.catalogKey);
-      toast(tray[existing].buyNow ? "Marked Buy Now" : "Will request for Whatnot");
-      return;
-    }
 
     if (existing >= 0) {
       writeInterest(pin, { status: "removed_from_tray", channel: "tray" });
@@ -379,11 +334,11 @@
       return;
     }
 
-    addToTray(pin, { buyNow: false });
+    addToTray(pin);
     toast("Added to Shopping Board");
   }
 
-  function addToTray(pin, opts) {
+  function addToTray(pin) {
     if (isSoldPin(pin)) {
       toast("That pin is sold");
       return;
@@ -400,8 +355,7 @@
       shopifyVariantGid: pin.shopifyVariantGid || null,
       boardStem: pin.boardStem,
       imageSrc,
-      listing_title: pin.listing_title || "",
-      buyNow: !!(opts && opts.buyNow)
+      listing_title: pin.listing_title || ""
     };
     tray.push(line);
     writeInterest(pin, {
@@ -441,7 +395,6 @@
     if (!shopifyLive()) {
       toast(`Mock checkout for ${pins.length} pin(s)`);
       removePinsFromTray(pins.map((p) => p.catalogKey));
-      setSplitMode(false);
       if (checkoutTab && !checkoutTab.closed) checkoutTab.close();
       return;
     }
@@ -493,20 +446,6 @@
       }
     }
     return w;
-  }
-
-  function requestPins(pins) {
-    if (!pins.length) {
-      toast("No pins to request");
-      return;
-    }
-    pins.forEach((p) =>
-      writeInterest(p, { status: "whatnot_request", channel: "whatnot_request", requestedAt: Date.now() })
-    );
-    removePinsFromTray(pins.map((p) => p.catalogKey));
-    toast(`Requested ${pins.length} pin(s) for Whatnot`);
-    setSplitMode(false);
-    $("trayDrawer").classList.add("open");
   }
 
   function removePinsFromTray(keys) {
@@ -585,8 +524,6 @@
           div.appendChild(stamp);
         } else {
           if (tray.some((c) => c.catalogKey === catalogKey)) div.classList.add("in-tray");
-          const trayItem = tray.find((c) => c.catalogKey === catalogKey);
-          if (trayItem && trayItem.buyNow) div.classList.add("mark-buy");
           div.onclick = (e) => {
             e.preventDefault();
             handlePinClick(meta, div);
@@ -776,18 +713,314 @@
       const tab = openCheckoutTabForGesture();
       buyPins(tray.slice(), tab).catch((e) => toast(e.message));
     };
-    $("btnRequestAll").onclick = () => requestPins(tray.slice());
-    $("btnSplitMode").onclick = () => setSplitMode(true);
-    $("btnCancelSplit").onclick = () => setSplitMode(false);
-    $("btnCheckoutMarked").onclick = () => {
-      const marked = tray.filter((t) => t.buyNow);
-      const tab = openCheckoutTabForGesture();
-      buyPins(marked, tab).catch((e) => toast(e.message));
+    $("btnVirtualBoard").onclick = () => {
+      runVirtualBoardExport().catch((e) => {
+        console.error(e);
+        toast(e.message || "Virtual board failed");
+        closeVbOverlay();
+      });
     };
-    $("btnFinishSplit").onclick = () => {
-      const rest = tray.filter((t) => !t.buyNow);
-      requestPins(rest);
+    $("virtualBoardExportCancelBtn").onclick = () => {
+      vbCancel = true;
+      if (!vbRunning) closeVbOverlay();
     };
+  }
+
+  function loadCropImage(url) {
+    return new Promise((resolve, reject) => {
+      if (!url) return reject(new Error("No crop image"));
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Could not load crop: ${url}`));
+      img.src = url;
+    });
+  }
+
+  function vbMulberry32(a) {
+    return function () {
+      let t = (a += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function buildVirtualPageCanvas(images, pageSeed) {
+    const n = images.length;
+    const rand = vbMulberry32((pageSeed || 1) * 9973 + n * 131);
+    const gap = 10;
+    const maxDim = n <= 6 ? 240 : n <= 16 ? 200 : 168;
+    const items = images.map((crop, i) => {
+      const scale = Math.min(maxDim / crop.width, maxDim / crop.height) * (0.92 + rand() * 0.16);
+      const dw = Math.max(1, crop.width * scale);
+      const dh = Math.max(1, crop.height * scale);
+      const rot = (rand() - 0.5) * 0.28;
+      const c = Math.abs(Math.cos(rot));
+      const s = Math.abs(Math.sin(rot));
+      return { i, crop, dw, dh, rot, aw: dw * c + dh * s, ah: dw * s + dh * c };
+    });
+    items.sort((a, b) => b.aw * b.ah - a.aw * a.ah);
+
+    function overlaps(cx, cy, aw, ah, placed) {
+      const l = cx - aw / 2 - gap / 2;
+      const r = cx + aw / 2 + gap / 2;
+      const t = cy - ah / 2 - gap / 2;
+      const b = cy + ah / 2 + gap / 2;
+      return placed.some((p) => {
+        const pl = p.cx - p.aw / 2 - gap / 2;
+        const pr = p.cx + p.aw / 2 + gap / 2;
+        const pt = p.cy - p.ah / 2 - gap / 2;
+        const pb = p.cy + p.ah / 2 + gap / 2;
+        return l < pr && r > pl && t < pb && b > pt;
+      });
+    }
+
+    const placed = [];
+    const startPad = 24;
+    items.forEach((it, idx) => {
+      let best = null;
+      if (idx === 0) {
+        best = { cx: startPad + it.aw / 2, cy: startPad + it.ah / 2 };
+      } else {
+        let minX = Infinity,
+          minY = Infinity,
+          maxX = -Infinity,
+          maxY = -Infinity;
+        placed.forEach((p) => {
+          minX = Math.min(minX, p.cx - p.aw / 2);
+          minY = Math.min(minY, p.cy - p.ah / 2);
+          maxX = Math.max(maxX, p.cx + p.aw / 2);
+          maxY = Math.max(maxY, p.cy + p.ah / 2);
+        });
+        const midX = (minX + maxX) / 2;
+        const midY = (minY + maxY) / 2;
+        const candidates = [];
+        placed.forEach((p) => {
+          const ox = (rand() - 0.5) * 14;
+          const oy = (rand() - 0.5) * 14;
+          candidates.push(
+            { cx: p.cx + (p.aw + it.aw) / 2 + gap + ox, cy: p.cy + oy },
+            { cx: p.cx + ox, cy: p.cy + (p.ah + it.ah) / 2 + gap + oy },
+            { cx: p.cx - (p.aw + it.aw) / 2 - gap + ox, cy: p.cy + oy },
+            { cx: p.cx + ox, cy: p.cy - (p.ah + it.ah) / 2 - gap + oy }
+          );
+        });
+        candidates.sort((a, b) => {
+          const da = (a.cx - midX) ** 2 + (a.cy - midY) ** 2;
+          const db = (b.cx - midX) ** 2 + (b.cy - midY) ** 2;
+          return da - db;
+        });
+        for (const c of candidates) {
+          if (c.cx - it.aw / 2 < 8 || c.cy - it.ah / 2 < 8) continue;
+          if (!overlaps(c.cx, c.cy, it.aw, it.ah, placed)) {
+            best = c;
+            break;
+          }
+        }
+        if (!best) {
+          best = { cx: maxX + gap + it.aw / 2 + 4, cy: startPad + it.ah / 2 };
+        }
+      }
+      placed.push({ ...it, cx: best.cx, cy: best.cy });
+    });
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    placed.forEach((p) => {
+      minX = Math.min(minX, p.cx - p.aw / 2);
+      minY = Math.min(minY, p.cy - p.ah / 2);
+      maxX = Math.max(maxX, p.cx + p.aw / 2);
+      maxY = Math.max(maxY, p.cy + p.ah / 2);
+    });
+    const margin = 28;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(maxX - minX + margin * 2);
+    canvas.height = Math.ceil(maxY - minY + margin * 2);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#c9b8d8";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    placed.forEach((p) => {
+      const x = p.cx - minX + margin;
+      const y = p.cy - minY + margin;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(p.rot);
+      ctx.drawImage(p.crop, -p.dw / 2, -p.dh / 2, p.dw, p.dh);
+      ctx.restore();
+    });
+    return canvas;
+  }
+
+  function openVbOverlay() {
+    const el = $("virtualBoardExportOverlay");
+    if (el) el.classList.add("open");
+  }
+
+  function closeVbOverlay() {
+    const el = $("virtualBoardExportOverlay");
+    if (el) el.classList.remove("open");
+    vbRunning = false;
+    vbCancel = false;
+    const preview = $("virtualBoardExportPreview");
+    if (preview && preview.src && preview.src.startsWith("blob:")) {
+      URL.revokeObjectURL(preview.src);
+      preview.removeAttribute("src");
+    }
+    const wrap = $("virtualBoardExportPreviewWrap");
+    const actions = $("virtualBoardExportSaveActions");
+    if (wrap) wrap.classList.remove("show");
+    if (actions) actions.classList.remove("show");
+  }
+
+  function setVbProgress(done, total, status) {
+    const bar = $("virtualBoardExportBar");
+    const st = $("virtualBoardExportStatus");
+    const eta = $("virtualBoardExportEta");
+    const pct = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    if (bar) bar.style.width = `${pct}%`;
+    if (st) st.textContent = status || "";
+    if (eta) eta.textContent = `${pct}%`;
+  }
+
+  function canvasToJpegBlob(canvas, quality) {
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", quality || 0.92);
+    });
+  }
+
+  async function saveVbBlob(blob, filename) {
+    const file = new File([blob], filename, { type: "image/jpeg" });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        return "shared";
+      } catch (e) {
+        if (e && e.name === "AbortError") return "aborted";
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return "download";
+  }
+
+  async function waitForVbSave(blob, filename, pageIndex, pageCount) {
+    return new Promise((resolve) => {
+      const previewUrl = URL.createObjectURL(blob);
+      const preview = $("virtualBoardExportPreview");
+      const wrap = $("virtualBoardExportPreviewWrap");
+      const actions = $("virtualBoardExportSaveActions");
+      const saveBtn = $("virtualBoardExportSaveBtn");
+      const skipBtn = $("virtualBoardExportSkipBtn");
+      const title = $("virtualBoardExportTitle");
+      const st = $("virtualBoardExportStatus");
+      const eta = $("virtualBoardExportEta");
+      if (title) title.textContent = `Save photo ${pageIndex} of ${pageCount}`;
+      if (st) st.textContent = `Ready: ${filename}`;
+      if (eta) eta.textContent = "Tap Save to Photos, or download on desktop.";
+      if (preview) preview.src = previewUrl;
+      if (wrap) wrap.classList.add("show");
+      if (actions) actions.classList.add("show");
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save to Photos";
+      }
+
+      let settled = false;
+      const finish = (result) => {
+        if (settled) return;
+        settled = true;
+        if (saveBtn) saveBtn.onclick = null;
+        if (skipBtn) skipBtn.onclick = null;
+        URL.revokeObjectURL(previewUrl);
+        if (preview) preview.removeAttribute("src");
+        if (wrap) wrap.classList.remove("show");
+        if (actions) actions.classList.remove("show");
+        resolve(result);
+      };
+
+      if (saveBtn) {
+        saveBtn.onclick = async () => {
+          saveBtn.disabled = true;
+          const how = await saveVbBlob(blob, filename);
+          if (how === "aborted") {
+            saveBtn.disabled = false;
+            return;
+          }
+          finish(how);
+        };
+      }
+      if (skipBtn) skipBtn.onclick = () => finish("skipped");
+    });
+  }
+
+  async function runVirtualBoardExport() {
+    if (vbRunning) return;
+    if (!tray.length) {
+      toast("Add pins to your Shopping Board first");
+      return;
+    }
+    vbRunning = true;
+    vbCancel = false;
+    openVbOverlay();
+    const title = $("virtualBoardExportTitle");
+    if (title) title.textContent = "Building virtual pin board";
+    setVbProgress(0, 1, "Gathering pins from your Shopping Board…");
+
+    const pins = tray.slice();
+    const pagesNeeded = Math.max(1, Math.ceil(pins.length / VB_MAX_PER_PAGE));
+    const totalUnits = pins.length + pagesNeeded;
+    let done = 0;
+    const crops = [];
+
+    try {
+      for (let i = 0; i < pins.length; i++) {
+        if (vbCancel) throw new Error("cancelled");
+        setVbProgress(done, totalUnits, `Loading pin ${i + 1} of ${pins.length}…`);
+        const src = cropImageSrc(pins[i]);
+        try {
+          const img = await loadCropImage(src);
+          crops.push(img);
+        } catch (e) {
+          console.warn(e);
+        }
+        done++;
+        await new Promise((r) => setTimeout(r, 0));
+      }
+      if (!crops.length) throw new Error("Could not load pin images for the virtual board");
+
+      for (let page = 0; page < pagesNeeded; page++) {
+        if (vbCancel) throw new Error("cancelled");
+        const slice = crops.slice(page * VB_MAX_PER_PAGE, (page + 1) * VB_MAX_PER_PAGE);
+        setVbProgress(done, totalUnits, `Composing board photo ${page + 1} of ${pagesNeeded}…`);
+        const canvas = buildVirtualPageCanvas(slice, page + 1);
+        const blob = await canvasToJpegBlob(canvas, 0.92);
+        done++;
+        setVbProgress(done, totalUnits, `Board photo ${page + 1} of ${pagesNeeded} ready`);
+        const filename = `FinsAndPins-VirtualBoard-${page + 1}of${pagesNeeded}.jpg`;
+        const result = await waitForVbSave(blob, filename, page + 1, pagesNeeded);
+        if (result === "aborted" || vbCancel) throw new Error("cancelled");
+      }
+      toast("Virtual pin board ready");
+      closeVbOverlay();
+    } catch (e) {
+      if (String(e.message || e) === "cancelled") {
+        toast("Virtual board cancelled");
+        closeVbOverlay();
+        return;
+      }
+      throw e;
+    } finally {
+      vbRunning = false;
+    }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
