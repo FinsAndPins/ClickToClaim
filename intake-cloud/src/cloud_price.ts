@@ -286,13 +286,15 @@ export function rewriteCloudHarnessHtml(html: string, jobId: string): string {
   if (!/<base\s/i.test(out) && /<head>/i.test(out)) {
     out = out.replace(/<head>/i, `<head>\n  <base href="${uiBase}">`);
   }
-  out = out
-    .replace(
-      /https?:\/\/[^"'/\s]+\/(?:jobs|api\/cloud\/jobs)\/[^/"']+\/file\//g,
-      fileBase
-    )
-    .replace(/\/jobs\/[^/"']+\/file\//g, fileBase)
-    .replace(/\/api\/cloud\/jobs\/[^/"']+\/file\//g, fileBase);
+  // Absolute Cloud Run / mistaken host URLs → Worker proxy.
+  out = out.replace(
+    /https?:\/\/[^"'/\s]+\/(?:jobs|api\/cloud\/jobs)\/[^/"']+\/file\//g,
+    fileBase
+  );
+  // Bare /jobs/.../file/ only (do not rematch inside /api/cloud/jobs/...).
+  out = out.replace(/(?<!\/api\/cloud)\/jobs\/[^/"']+\/file\//g, fileBase);
+  // Normalize any already-proxied job file roots to this job id.
+  out = out.replace(/\/api\/cloud\/jobs\/[^/"']+\/file\//g, fileBase);
   return out;
 }
 
