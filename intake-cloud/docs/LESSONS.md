@@ -212,3 +212,13 @@
 **Rule:** Cloud builds always `--firebase-collab`. Assert `ui_data.firebase_collab` after build. Worker proxy still forces collab on served files for older jobs. On Re-detect, clear `overlay_url` + `harness_total_cents` so admin cannot show a stale total from the previous job.
 
 **Where:** `IntakeCloudPricing/cloud_detect/price_job.py`; `intake-cloud` Worker proxy + `queueMacHandoff`
+
+## 2026-11-17 — Cloud pricing crops use full camera boards
+
+**Symptom:** Another agent noted lab boards were shrunk to 1600px long side; Whatnot/CTR need full-res crops.
+
+**Cause:** Cloud Run detect path downscaled after fetching R2 photos (speed shortcut). Crops were cut from that 1600 image.
+
+**Rule:** Cloud Detect keeps full-res EXIF-baked boards for crops (RF-DETR letterboxes to 560 itself). Worker still stores upload JPEG as-is. Re-detect after deploy to refresh crops.
+
+**Where:** `IntakeCloudPricing/cloud_detect/main.py` (`_board_jpeg_for_crops`); not Worker upload path
