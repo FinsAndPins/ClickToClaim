@@ -1019,32 +1019,57 @@ function parseDisplayPriceCents(raw: unknown): number | null {
 /**
  * Staff "Pull total from Firebase": sum display_price on pins Lexi has priced
  * (CTM Match / CTP / manual all write display_price on the harness).
+ * Cloud lab: load ui_data from the Cloud Run job; Mac/Pages: PreparingInventory URL.
  */
-async function pullHarnessTotalFromFirebase(overlayUrl: string): Promise<{
+async function pullHarnessTotalFromFirebase(
+  overlayUrl: string,
+  opts?: { env?: Bindings; jobId?: string | null }
+): Promise<{
   ok: true;
   totalCents: number;
   priced: number;
   pinCount: number;
   testRunId: string;
 } | { ok: false; error: string }> {
-  const finalName = preparingInventoryFinalName(overlayUrl);
-  if (!finalName) {
-    return { ok: false, error: "Could not read the PriceCollection name from the overlay link." };
-  }
-  const uiDataUrl = `https://finsandpins.github.io/PreparingInventory/${finalName}/testing_ui_visual_baseline/ui_data.json`;
   let ui: {
     test_run_id?: string;
     approach_id?: string;
     global_pin_count?: number;
-  };
-  try {
-    const res = await fetch(uiDataUrl);
-    if (!res.ok) {
-      return { ok: false, error: `Could not load harness ui_data.json (HTTP ${res.status}).` };
+  } | null = null;
+
+  if (opts?.env && opts.jobId) {
+    const cloudUi = await fetchCloudJobJson(
+      opts.env,
+      opts.jobId,
+      "testing_ui_visual_baseline/ui_data.json"
+    );
+    if (cloudUi.ok) {
+      ui = cloudUi.body as typeof ui;
+    } else {
+      const alt = await fetchCloudJobJson(opts.env, opts.jobId, "mac_run/testing_ui_visual_baseline/ui_data.json");
+      if (alt.ok) ui = alt.body as typeof ui;
+      else {
+        return { ok: false, error: `Could not load cloud harness ui_data.json: ${cloudUi.error}` };
+      }
     }
-    ui = (await res.json()) as typeof ui;
-  } catch {
-    return { ok: false, error: "Could not load harness ui_data.json from GitHub Pages." };
+  } else {
+    const finalName = preparingInventoryFinalName(overlayUrl);
+    if (!finalName) {
+      return { ok: false, error: "Could not read the PriceCollection name from the overlay link." };
+    }
+    const uiDataUrl = `https://finsandpins.github.io/PreparingInventory/${finalName}/testing_ui_visual_baseline/ui_data.json`;
+    try {
+      const res = await fetch(uiDataUrl);
+      if (!res.ok) {
+        return { ok: false, error: `Could not load harness ui_data.json (HTTP ${res.status}).` };
+      }
+      ui = (await res.json()) as typeof ui;
+    } catch {
+      return { ok: false, error: "Could not load harness ui_data.json from GitHub Pages." };
+    }
+  }
+  if (!ui) {
+    return { ok: false, error: "Could not load harness ui_data.json." };
   }
   const testRunId = String(ui.test_run_id || "").trim();
   const approachId = String(ui.approach_id || "visual_baseline").trim() || "visual_baseline";
@@ -1214,11 +1239,14 @@ app.use("*", async (c, next) => {
     path.startsWith("/o/") ||
     path.startsWith("/boxes/") ||
     path.startsWith("/api/boxes/") ||
+    path.startsWith("/api/cloud/") ||
     path.startsWith("/api/mac/") ||
     path.startsWith("/internal/cloud-run/") ||
     OPEN_PATHS.has(path)
   ) {
-    // /boxes + /api/boxes use box_review_token; /internal/cloud-run uses invoke key
+    // /boxes + /api/boxes use box_review_token; /api/cloud is staff-gated on the route;
+    // /internal/cloud-run uses invoke key. /api/cloud must bypass invite so harness
+    // assets (CTM/CTP/ui_data) load after "Open pricing overlay".
     return next();
   }
   const q = c.req.query("invite");
@@ -2991,12 +3019,21 @@ app.get("/admin/collections/:id", async (c) => {
     ? `<p style="margin-top:10px"><a class="btn secondary" href="${boxEditorHref}">Edit boxes (optional)</a></p>
        <p class="hint">Only if detections look wrong. Saving reprices added/moved boxes, drops deleted ones, and keeps unchanged eBay results.</p>`
     : "";
-  const overlayBlock = row.overlay_url
-    ? `<p><a class="btn" href="${escapeHtml(row.overlay_url)}" target="_blank" rel="noopener">Open cloud CTM / CTP harness</a></p>
-       <p class="hint">Cloud lab harness (Match / No match). Lexi is not texted from this site.</p>
+  // Same label as non-cloud intake admin ("Open pricing overlay"). Prefer same-origin cloud proxy.
+  const cloudJobForOverlay = cloudJobIdFromFolder(
+    (row as CollectionRow & { mac_handoff_folder?: string | null }).mac_handoff_folder
+  );
+  const overlayHref = row.overlay_url
+    ? cloudJobForOverlay
+      ? `/admin/collections/${row.id}/cloud-harness`
+      : row.overlay_url
+    : "";
+  const overlayBlock = overlayHref
+    ? `<p><a class="btn" href="${overlayHref}" target="_blank" rel="noopener">Open pricing overlay</a></p>
+       <p class="hint">Same CTM / CTP harness as Mac intake (ClickToMatch → ClickToPrice). Lexi is not texted from this lab.</p>
        ${optionalBoxEdit}`
     : pricingBusy
-      ? `<p class="hint"><strong>Pricing in progress</strong> (${escapeHtml(row.mac_handoff_status || "")}). Harness link appears when Match is ready.</p>
+      ? `<p class="hint"><strong>Pricing in progress</strong> (${escapeHtml(row.mac_handoff_status || "")}). <strong>Open pricing overlay</strong> appears when Match is ready.</p>
          ${optionalBoxEdit}`
       : awaitingBoxes
         ? `<p class="hint">Detect finished; continuing into eBay shortly (or use Resume confirm below).</p>
@@ -3009,7 +3046,7 @@ app.get("/admin/collections/:id", async (c) => {
              <form method="post" action="/admin/collections/${row.id}/resume-finish" style="margin-top:8px">
                <button type="submit">Resume photo finish now</button>
              </form>`
-          : `<p class="hint">Harness appears after <strong>Detect + price</strong> finishes. Board Box Editor is optional afterward.</p>`;
+          : `<p class="hint"><strong>Open pricing overlay</strong> appears after <strong>Detect + price</strong> finishes. Board Box Editor is optional afterward.</p>`;
   const next = staffNextStatuses(row.status)
     .map(
       (s) =>
@@ -3069,7 +3106,7 @@ app.get("/admin/collections/:id", async (c) => {
     }</p>
     ${paypalPayBtn}
     <div class="card">
-      <h2>Internal (seller never sees this)</h2>
+      <h2>Pricing overlay (seller never sees this)</h2>
       ${overlayBlock}
       ${helperHtml}
       <div class="row" style="margin-top:12px">
@@ -3077,7 +3114,7 @@ app.get("/admin/collections/:id", async (c) => {
           <button type="submit" ${row.overlay_url ? "" : "disabled"}>Pull total from Firebase</button>
         </form>
       </div>
-      <p class="hint">Pull after Lexi finishes CTM Match / CTP / manual prices. Uses Firebase display_price values (not the first-pass pipeline estimate).</p>
+      <p class="hint">Pull after CTM Match / CTP / manual prices. Uses Firebase display_price values (same as Mac intake).</p>
       <form method="post" action="/admin/collections/${row.id}/overlay" style="margin-top:12px">
         <label>Harness total (dollars, no pin count shown to seller)<input name="harness_total" value="${row.harness_total_cents != null ? String(row.harness_total_cents / 100) : ""}" inputmode="decimal" /></label>
         <button type="submit">Save total</button>
@@ -3218,13 +3255,19 @@ app.post("/admin/collections/:id/pull-harness-total", async (c) => {
     .bind(c.req.param("id"))
     .first<CollectionRow>();
   if (!row) return c.redirect("/admin");
-  if (!row.overlay_url) {
+  if (!row.overlay_url && !(row as CollectionRow & { mac_handoff_folder?: string | null }).mac_handoff_folder) {
     return c.redirect(
       `/admin/collections/${row.id}?err=` +
-        encodeURIComponent("Open-pricing link is not set yet. Wait for Named Collections to finish, then try again.")
+        encodeURIComponent("Pricing overlay is not ready yet. Run Detect + price first.")
     );
   }
-  const pulled = await pullHarnessTotalFromFirebase(row.overlay_url);
+  const jobId = cloudJobIdFromFolder(
+    (row as CollectionRow & { mac_handoff_folder?: string | null }).mac_handoff_folder
+  );
+  const pulled = await pullHarnessTotalFromFirebase(row.overlay_url || "", {
+    env: jobId ? c.env : undefined,
+    jobId,
+  });
   if (!pulled.ok) {
     return c.redirect(`/admin/collections/${row.id}?err=` + encodeURIComponent(pulled.error));
   }

@@ -1,5 +1,12 @@
 # Intake lessons
 
+## 2026-11-16 — Admin pricing overlay: invite blocked CTM/CTP assets
+
+- **Symptom:** Staff could open `/admin/.../cloud-harness` but ClickToMatch / ClickToPrice assets 403’d; button label also unclear vs Mac “Open pricing overlay”.
+- **Cause:** Invite middleware required a cookie for `/api/cloud/*` even though those routes are staff-gated. Cloud Run `<base href>` pointed at Cloud Run, so asset URLs never hit the Worker proxy.
+- **Rule:** Bypass invite for `/api/cloud/` (staff auth on the route). Rewrite harness HTML `<base>` + file URLs to `/api/cloud/jobs/{id}/file/...`. Admin button label = **Open pricing overlay** (same as non-cloud).
+- **Where:** `app.ts` invite middleware; `cloud_price.ts` `rewriteCloudHarnessHtml`
+
 ## 2026-11-16 — Staff Detect auto-prices; BBE optional delta
 
 - **Symptom:** Admin collection page parked on Board Box Editor after RF-DETR; harness only after Confirm.

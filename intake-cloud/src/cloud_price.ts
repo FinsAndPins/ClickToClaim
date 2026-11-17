@@ -270,6 +270,32 @@ export async function confirmCloudBoxes(
   };
 }
 
+/**
+ * Point Mac-shaped harness HTML at this Worker’s staff file proxy so CTM/CTP/assets
+ * load same-origin (Cloud Run injects its own /jobs/.../file base which browsers cannot auth).
+ */
+export function rewriteCloudHarnessHtml(html: string, jobId: string): string {
+  const fileBase = `/api/cloud/jobs/${encodeURIComponent(jobId)}/file/`;
+  const uiBase = `${fileBase}testing_ui_visual_baseline/`;
+  let out = html;
+  // Absolute Cloud Run (or mistaken host+/api/cloud) bases → Worker relative base.
+  out = out.replace(
+    /<base\s+href=["'][^"']*\/(?:jobs|api\/cloud\/jobs)\/[^/"']+\/file\/testing_ui_visual_baseline\/["']\s*\/?>/gi,
+    `<base href="${uiBase}">`
+  );
+  if (!/<base\s/i.test(out) && /<head>/i.test(out)) {
+    out = out.replace(/<head>/i, `<head>\n  <base href="${uiBase}">`);
+  }
+  out = out
+    .replace(
+      /https?:\/\/[^"'/\s]+\/(?:jobs|api\/cloud\/jobs)\/[^/"']+\/file\//g,
+      fileBase
+    )
+    .replace(/\/jobs\/[^/"']+\/file\//g, fileBase)
+    .replace(/\/api\/cloud\/jobs\/[^/"']+\/file\//g, fileBase);
+  return out;
+}
+
 export async function fetchCloudHarnessHtml(env: Bindings, jobId: string): Promise<Response> {
   const base = priceBase(env);
   const key = invokeKey(env);
@@ -280,13 +306,14 @@ export async function fetchCloudHarnessHtml(env: Bindings, jobId: string): Promi
     headers: { "X-Intake-Cloud-Key": key },
   });
   const html = await res.text();
-  // Rewrite asset URLs to go through this Worker proxy
-  const proxied = html.replace(
-    /\/jobs\/[^/"']+\/file\/testing_ui_visual_baseline\//g,
-    `/api/cloud/jobs/${encodeURIComponent(jobId)}/file/testing_ui_visual_baseline/`
-  );
-  return new Response(proxied, {
-    status: res.status,
+  if (!res.ok) {
+    return new Response(html, {
+      status: res.status,
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
+  return new Response(rewriteCloudHarnessHtml(html, jobId), {
+    status: 200,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
   });
 }
@@ -301,6 +328,17 @@ export async function fetchCloudJobFile(env: Bindings, jobId: string, filePath: 
     `${base}/jobs/${encodeURIComponent(jobId)}/file/${filePath.replace(/^\/+/, "")}`,
     { headers: { "X-Intake-Cloud-Key": key } }
   );
+  const lower = filePath.toLowerCase();
+  if (res.ok && (lower.endsWith(".html") || lower.endsWith(".htm"))) {
+    const rewritten = rewriteCloudHarnessHtml(await res.text(), jobId);
+    return new Response(rewritten, {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, max-age=60",
+      },
+    });
+  }
   return new Response(res.body, {
     status: res.status,
     headers: {
