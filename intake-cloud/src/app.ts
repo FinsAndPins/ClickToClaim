@@ -2477,6 +2477,44 @@ async function healStuckCloudJobs(env: Bindings): Promise<void> {
       continue;
     }
 
+    // Confirm finished on Cloud Run but Worker waitUntil died before D1 got overlay_url.
+    // Without this, admin stays on "Detect + price" / no Open pricing overlay.
+    const harnessReadyPhases = new Set([
+      "match_ready",
+      "finishing_remaining",
+      "done",
+      "done_partial",
+      "confirmed",
+    ]);
+    if (
+      row.mac_handoff_status === "cloud_confirming" &&
+      handoffAgeMs > 20_000 &&
+      harnessReadyPhases.has(phase)
+    ) {
+      if (await recentlyLogged(env.DB, row.id, "overlay_healed", 120_000)) continue;
+      const harnessLocal = `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${row.id}/cloud-harness`;
+      await env.DB.prepare(
+        `UPDATE collections SET mac_handoff_status = 'cloud_done', mac_handoff_at = ?, updated_at = ?, overlay_url = COALESCE(NULLIF(overlay_url, ''), ?), internal_note = ? WHERE id = ? AND mac_handoff_status = 'cloud_confirming'`
+      )
+        .bind(
+          nowIso(),
+          nowIso(),
+          harnessLocal,
+          remainingDeferred
+            ? "Harness ready (healed). Remaining eBay finishing in background."
+            : "Harness ready (healed).",
+          row.id
+        )
+        .run();
+      await clearConfirmPending(env, row.id);
+      await logEvent(env.DB, row.id, row.seller_email || "system:cron", "overlay_healed", {
+        job_id: jobId,
+        phase,
+        remaining_deferred: remainingDeferred,
+      });
+      continue;
+    }
+
     // Confirm accepted in D1 but Cloud Run never got the POST (waitUntil died early).
     if (
       row.mac_handoff_status === "cloud_confirming" &&
@@ -2511,6 +2549,23 @@ async function healStuckCloudJobs(env: Bindings): Promise<void> {
         // Cloud Run schedules finish-remaining on confirm; heal path below covers stuck jobs.
       }
       continue;
+    }
+
+    // cloud_done but overlay_url never written (partial heal / manual D1 edits).
+    if (row.mac_handoff_status === "cloud_done" && harnessReadyPhases.has(phase)) {
+      const hasOverlay = await env.DB.prepare(
+        `SELECT overlay_url FROM collections WHERE id = ?`
+      )
+        .bind(row.id)
+        .first<{ overlay_url: string | null }>();
+      if (!hasOverlay?.overlay_url) {
+        const harnessLocal = `${env.PUBLIC_BASE_URL.replace(/\/$/, "")}/admin/collections/${row.id}/cloud-harness`;
+        await env.DB.prepare(
+          `UPDATE collections SET overlay_url = ?, updated_at = ?, internal_note = COALESCE(internal_note, ?) WHERE id = ?`
+        )
+          .bind(harnessLocal, nowIso(), "Harness link restored.", row.id)
+          .run();
+      }
     }
 
     // Deferred eBay stuck after Match opened.
