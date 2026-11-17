@@ -202,3 +202,13 @@
 **Rule:** Cloud harness builds use `--firebase-collab` (Mac parity). Worker proxy also forces `firebase_collab` / `load_existing_from_firebase` on `ui_data.json` and embedded Overlay payloads so older jobs sync. Pull falls back to `global_total_value` only when Firebase has no priced pins; skips `not_a_pin` and orphan keys.
 
 **Where:** `Cursor Projects/IntakeCloudPricing/cloud_detect/price_job.py`; `intake-cloud/src/cloud_price.ts`; `intake-cloud/src/app.ts` (`pullHarnessTotalFromFirebase`)
+
+## 2026-11-17 — Cloud harness must use Mac firebase-collab
+
+**Symptom:** Steve expected Overlay to show CTM/CTP Match prices like non-cloud; cloud Overlay kept pipeline badges.
+
+**Cause:** Mac `price_boards_from_inbox.sh` passes `--harness-firebase-collab`. Cloud `_build_mac_harness` had been using `--firebase-local-only` (writes only). CTM/CTP still hydrated Firebase; Overlay did not.
+
+**Rule:** Cloud builds always `--firebase-collab`. Assert `ui_data.firebase_collab` after build. Worker proxy still forces collab on served files for older jobs. On Re-detect, clear `overlay_url` + `harness_total_cents` so admin cannot show a stale total from the previous job.
+
+**Where:** `IntakeCloudPricing/cloud_detect/price_job.py`; `intake-cloud` Worker proxy + `queueMacHandoff`

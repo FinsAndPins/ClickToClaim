@@ -622,9 +622,17 @@ async function queueMacHandoff(
   const updated = nowIso();
   await db
     .prepare(
-      `UPDATE collections SET mac_handoff_status = 'cloud_queued', mac_handoff_folder = ?, mac_handoff_at = ?, updated_at = ? WHERE id = ?`
+      `UPDATE collections
+       SET mac_handoff_status = 'cloud_queued',
+           mac_handoff_folder = ?,
+           mac_handoff_at = ?,
+           updated_at = ?,
+           overlay_url = NULL,
+           harness_total_cents = NULL,
+           internal_note = ?
+       WHERE id = ?`
     )
-    .bind(folder, updated, updated, row.id)
+    .bind(folder, updated, updated, "Queued for Detect + price…", row.id)
     .run();
   if (row.status === "submitted") {
     await db
@@ -636,6 +644,7 @@ async function queueMacHandoff(
     folder,
     auto: extra?.auto === true,
     notify_lexi: false,
+    cleared_overlay_and_total: true,
   });
   return folder;
 }
@@ -3143,7 +3152,7 @@ app.get("/admin/collections/:id", async (c) => {
       </form>`;
   const overlayBlock = overlayHref
     ? `<p><a class="btn" href="${overlayHref}" target="_blank" rel="noopener">Open pricing overlay</a></p>
-       <p class="hint">Same CTM / CTP harness as Mac intake (ClickToMatch → ClickToPrice). Lexi is not texted from this lab.</p>
+       <p class="hint">Same as Mac intake: CTM / CTP Match writes Firebase; Overlay loads those prices (Firebase sync). Hard-refresh if badges look stale. Lexi is not texted from this lab.</p>
        ${optionalBoxEdit}`
     : pricingBusy
       ? `<p class="hint"><strong>Pricing in progress</strong> (${escapeHtml(row.mac_handoff_status || "")}). Refresh in a minute for <strong>Open pricing overlay</strong>.</p>
@@ -3239,7 +3248,7 @@ app.get("/admin/collections/:id", async (c) => {
           <button type="submit" ${row.overlay_url ? "" : "disabled"}>Pull total from Firebase</button>
         </form>
       </div>
-      <p class="hint">Pull after CTM Match / CTP / manual prices. Uses Firebase display_price values (same as Mac intake).</p>
+      <p class="hint">Pull after CTM Match / CTP / manual prices. Sums the same Firebase <code>display_price</code> values Overlay shows after Match (same as Mac).</p>
       <form method="post" action="/admin/collections/${row.id}/overlay" style="margin-top:12px">
         <label>Harness total (dollars, no pin count shown to seller)<input name="harness_total" value="${row.harness_total_cents != null ? String(row.harness_total_cents / 100) : ""}" inputmode="decimal" /></label>
         <button type="submit">Save total</button>
