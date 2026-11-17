@@ -1,5 +1,11 @@
 # Intake lessons
 
+## 2026-11-16 — Preflight: double Detect + missing overlay button
+
+- **Risks before next seller test:** (1) `send-to-ctp` left `cloud_queued` while also `waitUntil(detect)` → cron could start a second Cloud Run job. (2) Admin page did not auto-refresh, so Open pricing overlay looked “missing” after Detect. (3) waitUntil could die after claiming `cloud_running` with only `cloud_pending:…` folder.
+- **Rule:** Claim `cloud_running` immediately after queue; cron atomically claims `cloud_queued` before detect. Admin collection page polls until Open pricing overlay exists. Cron restarts detect if still `cloud_running` with no `cloud:` job after ~90s. Keep overlay heal for `cloud_confirming` + harness-ready phases.
+- **Where:** `send-to-ctp`, `processQueuedCloudPricing`, admin collection poll script, `healStuckCloudJobs`
+
 ## 2026-11-16 — Overlay missing after Detect: heal cloud_confirming → cloud_done
 
 - **Symptom:** Detect + price ran; Cloud Run harness existed; admin still said Open pricing overlay appears after Detect + price (no button).
