@@ -63,8 +63,23 @@ If one board's pins are rotated (2026-11-03, show 20261105 board 10, IMG_1927):
 
 `BoardsToPrice` / inbox watcher already crops from inbox photos — unchanged for crop source. It still uses the enhanced generator above for CTM/CTP pages.
 
-## Best crop we have (2026-11-05)
+## Best crop we have (standing order)
 
-Steve's standing preference: any pin photo we publish or upload uses the best crop available. That includes Whatnot CSVs, review pages, and contact sheets, not only a pricing run.
+Steve's standing preference: any pin photo we publish or upload uses the **best crop available**. That includes Whatnot CSVs, review pages, contact sheets, **Shopify product primary images**, rolling-catalog / Shopping Board `imageSrc`, virtual pin boards, and Google/Lens-bound assets, not only a pricing run.
 
-The 20261105 price-board CSV used `PriceBoardReview` crops. Those were cut from 960×1280 boards and saved at 480px max, so a typical pin was about 150px. The camera originals were still 4284×5712 in the iCloud drop folder. Do not point an upload at the review thumbnail when the full-resolution original is on disk. Crop from that original. Review-page thumbs are for the review page.
+### Required crop source (future builds)
+
+1. **Boxes/JSON:** CTR / Board Box Editor geometry only  
+2. **Raster:** full-res originals (usually `Cursor Projects/<show>/`, ~4284×5712), same path family as `CtrFullresPricing`  
+3. **Do not** cut Shopify/catalog/Whatnot hero crops from CTR web `boards/` (~960×1280) or from review-page thumbs when originals exist  
+
+### Shopify / rolling catalog (locked 2026-11-17)
+
+- Current sandbox inventory (`ShopifyRollingCatalog`, mixed ClickToClaim web crops + some PriceCollection crops) does **not** need a rebuild. Live shop will use different inventory.
+- When preparing the **first real shop catalog**, crop from full-res and upload those files as Shopify primary images (Shopify CDN). Point mapping `imageSrc` at those CDN (or full-res crop) URLs, not soft CTR web crops.
+- Optional smoke before first public shop inventory: re-crop **3–5** pins full-res, upload to Shopify, spot-check catalog tray + product page + one Lens/Merchant image. Do not rebuild the whole test catalog unless Steve asks.
+
+### Historical miss (why this rule exists)
+
+- 20261105 price-board CSV used `PriceBoardReview` crops from 960×1280 boards saved at 480px max (~150px pins) while originals were still on disk.
+- 20261106 Shopify sandbox `imageSrc` mostly pointed at `ClickToClaim/.../crops` cut from web boards; only some rows used larger PriceCollection crops.
