@@ -1030,11 +1030,14 @@ async function pullHarnessTotalFromFirebase(
   priced: number;
   pinCount: number;
   testRunId: string;
+  source: "firebase" | "pipeline";
 } | { ok: false; error: string }> {
   let ui: {
     test_run_id?: string;
     approach_id?: string;
     global_pin_count?: number;
+    global_total_value?: number;
+    boards?: Array<{ pins?: Array<{ pin_key?: string; display_price?: unknown; match_status?: string }> }>;
   } | null = null;
 
   if (opts?.env && opts.jobId) {
@@ -1076,6 +1079,13 @@ async function pullHarnessTotalFromFirebase(
   if (!testRunId) {
     return { ok: false, error: "Harness ui_data.json is missing test_run_id." };
   }
+  const harnessPinKeys = new Set<string>();
+  for (const board of ui.boards || []) {
+    for (const pin of board.pins || []) {
+      const key = String(pin.pin_key || "").trim();
+      if (key) harnessPinKeys.add(key);
+    }
+  }
   const pinsUrl = `https://fins-and-pins-click-to-claim-default-rtdb.firebaseio.com/pin_pricing_tests/${encodeURIComponent(testRunId)}/${encodeURIComponent(approachId)}/pins.json`;
   let pins: Record<string, unknown> | null;
   try {
@@ -1087,29 +1097,50 @@ async function pullHarnessTotalFromFirebase(
   } catch {
     return { ok: false, error: "Could not read pin prices from Firebase." };
   }
-  if (!pins || typeof pins !== "object") {
-    return {
-      ok: false,
-      error: "No Firebase prices yet. Open the overlay, finish CTM/CTP or manual prices, then pull again.",
-    };
-  }
   let totalCents = 0;
   let priced = 0;
-  for (const v of Object.values(pins)) {
-    if (!v || typeof v !== "object") continue;
-    const cents = parseDisplayPriceCents((v as { display_price?: unknown }).display_price);
-    if (cents == null) continue;
-    totalCents += cents;
-    priced += 1;
+  if (pins && typeof pins === "object") {
+    for (const [key, v] of Object.entries(pins)) {
+      if (!v || typeof v !== "object") continue;
+      const row = v as {
+        display_price?: unknown;
+        match_status?: unknown;
+        ctm_match_status?: unknown;
+        pin_key?: unknown;
+      };
+      const status = String(row.match_status || row.ctm_match_status || "").toLowerCase();
+      if (status === "not_a_pin") continue;
+      // Ignore orphan Firebase rows from older runs / key drift.
+      const pinKey = String(row.pin_key || key || "").trim();
+      if (harnessPinKeys.size && pinKey && !harnessPinKeys.has(pinKey) && !harnessPinKeys.has(key)) {
+        continue;
+      }
+      const cents = parseDisplayPriceCents(row.display_price);
+      if (cents == null) continue;
+      totalCents += cents;
+      priced += 1;
+    }
   }
-  if (!priced) {
+  const pinCount = Number(ui.global_pin_count) || harnessPinKeys.size || (pins ? Object.keys(pins).length : 0);
+  if (priced > 0) {
+    return { ok: true, totalCents, priced, pinCount, testRunId, source: "firebase" };
+  }
+  // No staff Firebase prices yet: use the same pipeline total the Overlay shows on first open.
+  const pipelineCents = parseDisplayPriceCents(ui.global_total_value);
+  if (pipelineCents != null) {
     return {
-      ok: false,
-      error: "Firebase has pin rows but no display_price values yet. Finish matching, then pull again.",
+      ok: true,
+      totalCents: pipelineCents,
+      priced: pinCount || 0,
+      pinCount: pinCount || 0,
+      testRunId,
+      source: "pipeline",
     };
   }
-  const pinCount = Number(ui.global_pin_count) || Object.keys(pins).length;
-  return { ok: true, totalCents, priced, pinCount, testRunId };
+  return {
+    ok: false,
+    error: "No Firebase prices yet. Open the overlay, finish CTM/CTP or manual prices, then pull again.",
+  };
 }
 
 function strField(v: unknown): string {
@@ -3374,11 +3405,14 @@ app.post("/admin/collections/:id/pull-harness-total", async (c) => {
     priced: pulled.priced,
     pin_count: pulled.pinCount,
     test_run_id: pulled.testRunId,
+    source: pulled.source,
   });
   const note =
-    pulled.priced < pulled.pinCount
-      ? `Pulled ${centsToDollars(pulled.totalCents)} from ${pulled.priced} of ${pulled.pinCount} pins (some still unpriced).`
-      : `Pulled ${centsToDollars(pulled.totalCents)} from ${pulled.priced} priced pins.`;
+    pulled.source === "pipeline"
+      ? `Pulled pipeline total ${centsToDollars(pulled.totalCents)} (${pulled.pinCount} pins; no Firebase matches yet).`
+      : pulled.priced < pulled.pinCount
+        ? `Pulled ${centsToDollars(pulled.totalCents)} from ${pulled.priced} of ${pulled.pinCount} pins (some still unpriced).`
+        : `Pulled ${centsToDollars(pulled.totalCents)} from ${pulled.priced} priced pins.`;
   return c.redirect(`/admin/collections/${row.id}?ok=` + encodeURIComponent(note));
 });
 

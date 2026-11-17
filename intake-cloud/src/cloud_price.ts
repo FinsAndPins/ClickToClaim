@@ -270,6 +270,64 @@ export async function confirmCloudBoxes(
   };
 }
 
+/** Mac-parity: Overlay must load Firebase so totals match CTM/CTP + admin pull. */
+export function enableFirebaseCollabInUiData(body: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...body,
+    firebase_collab: true,
+    load_existing_from_firebase: true,
+  };
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+/**
+ * Force firebase_collab on embedded ui_data payloads (older cloud jobs used
+ * --firebase-local-only, so Overlay showed pipeline totals while CTM/pull used Firebase).
+ */
+export function rewriteEmbeddedUiDataCollab(html: string): string {
+  const chunkRe =
+    /(<script\b[^>]*\bclass=["'][^"']*\bembedded-ui-b64-chunk\b[^"']*["'][^>]*>)([\s\S]*?)(<\/script>)/gi;
+  const parts: { open: string; b64: string; close: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = chunkRe.exec(html)) !== null) {
+    parts.push({ open: m[1], b64: m[2].trim(), close: m[3] });
+  }
+  if (!parts.length) return html;
+  try {
+    const combined = parts.map((p) => p.b64).join("");
+    const parsed = JSON.parse(new TextDecoder().decode(base64ToBytes(combined))) as Record<string, unknown>;
+    if (parsed.firebase_collab === true && parsed.load_existing_from_firebase === true) {
+      return html;
+    }
+    const newB64 = bytesToBase64(
+      new TextEncoder().encode(JSON.stringify(enableFirebaseCollabInUiData(parsed)))
+    );
+    let replaced = 0;
+    return html.replace(chunkRe, (_full, open: string, _body: string, close: string) => {
+      replaced += 1;
+      // One chunk is enough; clear extras so the decoder does not concatenate stale tails.
+      return replaced === 1 ? `${open}${newB64}${close}` : `${open}${close}`;
+    });
+  } catch {
+    return html;
+  }
+}
+
 /**
  * Point Mac-shaped harness HTML at this Worker’s staff file proxy so CTM/CTP/assets
  * load same-origin (Cloud Run injects its own /jobs/.../file base which browsers cannot auth).
@@ -295,6 +353,7 @@ export function rewriteCloudHarnessHtml(html: string, jobId: string): string {
   out = out.replace(/(?<!\/api\/cloud)\/jobs\/[^/"']+\/file\//g, fileBase);
   // Normalize any already-proxied job file roots to this job id.
   out = out.replace(/\/api\/cloud\/jobs\/[^/"']+\/file\//g, fileBase);
+  out = rewriteEmbeddedUiDataCollab(out);
   return out;
 }
 
@@ -337,9 +396,31 @@ export async function fetchCloudJobFile(env: Bindings, jobId: string, filePath: 
       status: 200,
       headers: {
         "content-type": "text/html; charset=utf-8",
-        "cache-control": "private, max-age=60",
+        "cache-control": "no-store",
       },
     });
+  }
+  if (res.ok && /(^|\/)ui_data\.json$/i.test(lower)) {
+    const text = await res.text();
+    try {
+      const raw = JSON.parse(text) as Record<string, unknown>;
+      const patched = enableFirebaseCollabInUiData(raw);
+      return new Response(JSON.stringify(patched), {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      });
+    } catch {
+      return new Response(text, {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      });
+    }
   }
   return new Response(res.body, {
     status: res.status,

@@ -192,3 +192,13 @@
 **Rule:** Finish is resumable in ticks of 4 photos; cron every 2 minutes resumes claimed sessions and auto-queues handoff when complete. Refuse deliver on count mismatch. Seller must re-submit boards that never landed in `photos`.
 
 **Where:** `intake/src/app.ts`, cron `*/2`, `schema_finish_collection_id.sql`, Mac handoff helper
+
+## 2026-11-16 — Admin harness total $402 vs Overlay $304
+
+**Symptom:** Pull total from Firebase showed $402; Overlay badges summed to $304 on the same cloud job.
+
+**Cause:** Cloud Run built the harness with `--firebase-local-only`. Overlay kept pipeline `ui_data` prices (item `$304`). CTM/CTP still wrote/read Firebase (PinDad matches, often shipping-inclusive / re-picked listings → `$402`). Admin pull always summed Firebase.
+
+**Rule:** Cloud harness builds use `--firebase-collab` (Mac parity). Worker proxy also forces `firebase_collab` / `load_existing_from_firebase` on `ui_data.json` and embedded Overlay payloads so older jobs sync. Pull falls back to `global_total_value` only when Firebase has no priced pins; skips `not_a_pin` and orphan keys.
+
+**Where:** `Cursor Projects/IntakeCloudPricing/cloud_detect/price_job.py`; `intake-cloud/src/cloud_price.ts`; `intake-cloud/src/app.ts` (`pullHarnessTotalFromFirebase`)
