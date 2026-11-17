@@ -2435,9 +2435,23 @@ async function healStuckCloudJobs(env: Bindings): Promise<void> {
   }>();
 
   for (const row of rows.results || []) {
-    const jobId = cloudJobIdFromFolder(row.mac_handoff_folder);
-    if (!jobId) continue;
     const handoffAgeMs = row.mac_handoff_at ? Date.now() - Date.parse(row.mac_handoff_at) : 0;
+    let jobId = cloudJobIdFromFolder(row.mac_handoff_folder);
+    // Staff clicked Detect but waitUntil died before Cloud Run got a job (folder still cloud_pending:…).
+    if (
+      !jobId &&
+      row.mac_handoff_status === "cloud_running" &&
+      handoffAgeMs > 90_000
+    ) {
+      if (await recentlyLogged(env.DB, row.id, "detect_restarted", 180_000)) continue;
+      await logEvent(env.DB, row.id, row.seller_email || "system:cron", "detect_restarted", {
+        folder: row.mac_handoff_folder,
+        age_ms: handoffAgeMs,
+      });
+      await runCloudDetectForCollection(env, row.id, row.seller_email || "system:cron");
+      continue;
+    }
+    if (!jobId) continue;
     const st = await fetchCloudJobJson(env, jobId, "status.json");
     if (!st.ok) continue;
     const phase = String(st.body.phase || st.body.status || "");
@@ -3159,6 +3173,16 @@ app.get("/admin/collections/:id", async (c) => {
          }. Confirm Goods &amp; Services before you send.</p>
        </div>`
     : "";
+  // While Detect/confirm is in flight, auto-refresh until Open pricing overlay is ready.
+  const wantPricingPoll =
+    pricingBusy ||
+    awaitingBoxes ||
+    c.req.query("pricing") === "1" ||
+    Boolean(c.req.query("ok") && /Detect \+ price started/i.test(String(c.req.query("ok") || "")));
+  const pricingPollScript =
+    wantPricingPoll && !overlayHref
+      ? `<script>(function(){var n=0;function tick(){n++;if(n>90)return;fetch(location.pathname+"?poll=1",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.text()}).then(function(t){if(t.indexOf("Open pricing overlay</a>")>=0||t.indexOf(">Open pricing overlay<")>=0){location.replace(location.pathname+"?ok="+encodeURIComponent("Pricing overlay ready."));return}setTimeout(tick,5000)}).catch(function(){setTimeout(tick,8000)})}setTimeout(tick,4000)})();</script>`
+      : "";
   return html(
     c.env,
     row.seller_name,
@@ -3287,7 +3311,8 @@ app.get("/admin/collections/:id", async (c) => {
     <div class="card">
       <h2>Event log</h2>
       <ul class="timeline">${ev}</ul>
-    </div>`,
+    </div>
+    ${pricingPollScript}`,
     true
   );
 });
@@ -3505,6 +3530,14 @@ app.post("/admin/collections/:id/send-to-ctp", async (c) => {
     );
   }
   await queueMacHandoff(c.env.DB, row, staff.email);
+  // Claim immediately so the */2 cron cannot also start Detect on cloud_queued.
+  await c.env.DB.prepare(
+    `UPDATE collections
+     SET mac_handoff_status = 'cloud_running', mac_handoff_at = ?, updated_at = ?, internal_note = ?
+     WHERE id = ? AND mac_handoff_status = 'cloud_queued'`
+  )
+    .bind(nowIso(), nowIso(), "Detect + price starting…", row.id)
+    .run();
   try {
     c.executionCtx.waitUntil(runCloudDetectForCollection(c.env, row.id, staff.email));
   } catch {
@@ -3512,8 +3545,8 @@ app.post("/admin/collections/:id/send-to-ctp", async (c) => {
   }
   return c.redirect(
     `/admin/collections/${row.id}?ok=${encodeURIComponent(
-      "Detect + price started. Harness appears when Match is ready. Board Box Editor stays optional."
-    )}`
+      "Detect + price started. This page refreshes until Open pricing overlay appears."
+    )}&pricing=1`
   );
 });
 
@@ -4199,6 +4232,17 @@ async function processQueuedCloudPricing(env: Bindings): Promise<void> {
      LIMIT 2`
   ).all<{ id: string; status: string }>();
   for (const row of rows.results || []) {
+    // Atomic claim: staff Detect + price also waitUntil-starts detect after queueing.
+    // Without this claim, cron can start a second Cloud Run job on the same collection.
+    const claim = await env.DB.prepare(
+      `UPDATE collections
+       SET mac_handoff_status = 'cloud_running', mac_handoff_at = ?, updated_at = ?,
+           internal_note = COALESCE(internal_note, ?)
+       WHERE id = ? AND mac_handoff_status = 'cloud_queued'`
+    )
+      .bind(nowIso(), nowIso(), "Detect + price claimed by cron…", row.id)
+      .run();
+    if (!claim.meta.changes) continue;
     // Draft still filling the form: detect-only. Submitted/staff: include Match-window eBay.
     const prefetch_n = row.status === "uploading" ? 0 : CLOUD_PREFETCH_N;
     await runCloudDetectForCollection(env, row.id, "system:cron", { prefetch_n });
