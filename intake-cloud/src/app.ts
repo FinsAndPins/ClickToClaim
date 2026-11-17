@@ -3028,25 +3028,40 @@ app.get("/admin/collections/:id", async (c) => {
       ? `/admin/collections/${row.id}/cloud-harness`
       : row.overlay_url
     : "";
+  const detectBusy =
+    row.mac_handoff_status === "cloud_running" ||
+    row.mac_handoff_status === "cloud_queued" ||
+    row.mac_handoff_status === "cloud_confirming";
+  const detectPriceForm = `<form method="post" action="/admin/collections/${row.id}/send-to-ctp" style="margin-top:10px">
+        <button type="submit" ${detectBusy ? "disabled" : ""}>${
+          detectBusy
+            ? "Detect / price in progress…"
+            : row.mac_handoff_status === "cloud_done" || row.mac_handoff_status === "cloud_failed"
+              ? "Re-detect + price"
+              : "Detect + price"
+        }</button>
+      </form>`;
   const overlayBlock = overlayHref
     ? `<p><a class="btn" href="${overlayHref}" target="_blank" rel="noopener">Open pricing overlay</a></p>
        <p class="hint">Same CTM / CTP harness as Mac intake (ClickToMatch → ClickToPrice). Lexi is not texted from this lab.</p>
        ${optionalBoxEdit}`
     : pricingBusy
-      ? `<p class="hint"><strong>Pricing in progress</strong> (${escapeHtml(row.mac_handoff_status || "")}). <strong>Open pricing overlay</strong> appears when Match is ready.</p>
+      ? `<p class="hint"><strong>Pricing in progress</strong> (${escapeHtml(row.mac_handoff_status || "")}). Refresh in a minute for <strong>Open pricing overlay</strong>.</p>
          ${optionalBoxEdit}`
       : awaitingBoxes
-        ? `<p class="hint">Detect finished; continuing into eBay shortly (or use Resume confirm below).</p>
+        ? `<p class="hint">Detect finished; continuing into eBay shortly.</p>
            ${optionalBoxEdit}
            <form method="post" action="/admin/collections/${row.id}/confirm-boxes-as-detected" style="margin-top:8px">
              <button class="secondary" type="submit">Resume confirm + price now</button>
            </form>`
         : finishIncomplete
-          ? `<p class="hint"><strong>Still ingesting photos</strong> (${storedPhotoCount} of ${row.photo_count} stored). Detect + price starts after photos are stored.</p>
+          ? `<p class="hint"><strong>Still ingesting photos</strong> (${storedPhotoCount} of ${row.photo_count} stored).</p>
              <form method="post" action="/admin/collections/${row.id}/resume-finish" style="margin-top:8px">
                <button type="submit">Resume photo finish now</button>
              </form>`
-          : `<p class="hint"><strong>Open pricing overlay</strong> appears after <strong>Detect + price</strong> finishes. Board Box Editor is optional afterward.</p>`;
+          : `<p><strong>Step 1:</strong> run pricing on these boards.</p>
+             ${detectPriceForm}
+             <p class="hint" style="margin-top:8px"><strong>Step 2:</strong> <strong>Open pricing overlay</strong> appears here when Match is ready (same CTM / CTP as Mac).</p>`;
   const next = staffNextStatuses(row.status)
     .map(
       (s) =>
