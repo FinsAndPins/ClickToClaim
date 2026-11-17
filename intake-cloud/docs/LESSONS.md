@@ -1,5 +1,12 @@
 # Intake lessons
 
+## 2026-11-16 — Overlay missing after Detect: heal cloud_confirming → cloud_done
+
+- **Symptom:** Detect + price ran; Cloud Run harness existed; admin still said Open pricing overlay appears after Detect + price (no button).
+- **Cause:** `continuePricingAfterDetect` / confirm `waitUntil` died after Cloud Run reached `match_ready`, before D1 wrote `overlay_url` + `cloud_done`.
+- **Rule:** Cron heal: if `cloud_confirming` and Cloud Run phase is harness-ready (`match_ready` / `done` / …), set `cloud_done` + `overlay_url`. Also restore missing `overlay_url` when already `cloud_done`.
+- **Where:** `healStuckCloudJobs` in `intake-cloud/src/app.ts`
+
 ## 2026-11-16 — Admin pricing overlay: invite blocked CTM/CTP assets
 
 - **Symptom:** Staff could open `/admin/.../cloud-harness` but ClickToMatch / ClickToPrice assets 403’d; button label also unclear vs Mac “Open pricing overlay”.
