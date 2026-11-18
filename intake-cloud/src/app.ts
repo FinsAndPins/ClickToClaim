@@ -203,17 +203,9 @@ async function finalizeEarlySubmission(
     .first<{ id: string; seller_name: string; status: string; mac_handoff_status: string | null }>();
   if (!row) return;
   const status = row.mac_handoff_status || "";
-  // Seller finish: no auto Cloud Run detect. Staff uses admin Detect (future: internal BoardsToPrice).
+  // Non-cloud parity: Submit auto-starts Detect + price (staff only opens the harness).
   if (!status || status === "cloud_failed") {
-    await env.DB.prepare(
-      `UPDATE collections SET status = CASE WHEN status IN ('uploading','submitted') THEN 'pricing' ELSE status END, updated_at = ?, internal_note = ? WHERE id = ?`
-    )
-      .bind(nowIso(), "Submitted. Staff will price (admin Detect or Mac when enabled).", collectionId)
-      .run();
-    await logEvent(env.DB, collectionId, actor, "submitted_awaiting_staff", {
-      photo_count: n,
-      notify_lexi: false,
-    });
+    await autoStartCloudPricingOnSubmit(env, row, actor);
   }
   const sessionRows = await env.DB.prepare(
     `SELECT id FROM upload_sessions WHERE collection_id = ? AND finish_started_at IS NOT NULL`
@@ -462,16 +454,8 @@ async function processSubmissionBackground(
         row.mac_handoff_status !== "queued" &&
         row.mac_handoff_status !== "delivered"
       ) {
-        // Seller path = non-cloud: store photos and wait for staff. No auto detect/BBE.
-        await env.DB.prepare(
-          `UPDATE collections SET status = CASE WHEN status = 'submitted' THEN 'pricing' ELSE status END, updated_at = ?, internal_note = ? WHERE id = ?`
-        )
-          .bind(nowIso(), "Submitted. Staff will price (admin Detect or Mac when enabled).", row.id)
-          .run();
-        await logEvent(env.DB, row.id, session.seller_email, "submitted_awaiting_staff", {
-          photo_count: stored,
-          notify_lexi: false,
-        });
+        // Non-cloud parity: photos stored → auto Detect + price (same moment Mac queues handoff).
+        await autoStartCloudPricingOnSubmit(env, row, session.seller_email);
       } else if (row) {
         await finalizeEarlySubmission(env, row.id, session.seller_email);
         return;
@@ -563,20 +547,15 @@ async function processPendingFinishes(env: Bindings): Promise<void> {
             detail: "finish session has no remaining temp photos",
           });
         } else if (expectedRow && stored >= 1 && !expectedRow.mac_handoff_status) {
-          await env.DB.prepare(
-            `UPDATE collections SET status = CASE WHEN status IN ('uploading','submitted') THEN 'pricing' ELSE status END, updated_at = ?, internal_note = ? WHERE id = ?`
-          )
-            .bind(
-              nowIso(),
-              "Submitted. Staff will price (admin Detect or Mac when enabled).",
-              session.collection_id
-            )
-            .run();
-          await logEvent(env.DB, session.collection_id, session.seller_email || "system:cron", "submitted_awaiting_staff", {
-            photo_count: stored,
-            via: "cron_finish",
-            notify_lexi: false,
-          });
+          await autoStartCloudPricingOnSubmit(
+            env,
+            {
+              id: session.collection_id,
+              seller_name: expectedRow.seller_name,
+              status: expectedRow.status,
+            },
+            session.seller_email || "system:cron"
+          );
           await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
         } else {
           await env.DB.prepare(`DELETE FROM upload_sessions WHERE id = ?`).bind(session.id).run();
@@ -634,7 +613,7 @@ async function queueMacHandoff(
     )
     .bind(folder, updated, updated, "Queued for Detect + price…", row.id)
     .run();
-  if (row.status === "submitted") {
+  if (row.status === "submitted" || row.status === "uploading") {
     await db
       .prepare(`UPDATE collections SET status = 'pricing', updated_at = ? WHERE id = ?`)
       .bind(updated, row.id)
@@ -647,6 +626,44 @@ async function queueMacHandoff(
     cleared_overlay_and_total: true,
   });
   return folder;
+}
+
+/**
+ * Non-cloud parity: seller Submit auto-queues Cloud Detect + price (Mac handoff → BoardsToPrice).
+ * Cron `processQueuedCloudPricing` is the backup if waitUntil dies after queue.
+ */
+async function autoStartCloudPricingOnSubmit(
+  env: Bindings,
+  row: { id: string; seller_name: string; status: string },
+  actor: string
+): Promise<void> {
+  if (!cloudPricingConfigured(env)) {
+    await env.DB.prepare(
+      `UPDATE collections
+       SET status = CASE WHEN status IN ('uploading','submitted') THEN 'pricing' ELSE status END,
+           updated_at = ?,
+           internal_note = ?
+       WHERE id = ?`
+    )
+      .bind(nowIso(), "Submitted. Cloud pricing is not configured on this Worker.", row.id)
+      .run();
+    await logEvent(env.DB, row.id, actor, "submitted_awaiting_staff", {
+      photo_count: null,
+      reason: "cloud_pricing_not_configured",
+      notify_lexi: false,
+    });
+    return;
+  }
+  await queueMacHandoff(env.DB, row, actor, { auto: true });
+  const claim = await env.DB.prepare(
+    `UPDATE collections
+     SET mac_handoff_status = 'cloud_running', mac_handoff_at = ?, updated_at = ?, internal_note = ?
+     WHERE id = ? AND mac_handoff_status = 'cloud_queued'`
+  )
+    .bind(nowIso(), nowIso(), "Detect + price starting (auto on submit)…", row.id)
+    .run();
+  if (!claim.meta.changes) return;
+  await runCloudDetectForCollection(env, row.id, actor);
 }
 
 async function ensureBoxReviewToken(db: D1Database, collectionId: string): Promise<string> {
@@ -1950,7 +1967,7 @@ app.post("/api/submissions/:sessionId/finish", async (c) => {
       if (photos.length) {
         await processSubmissionBackground(c.env, snap, photos);
       } else {
-        // Rare: leftover early-promote collection from a prior build. Mark awaiting staff; no auto detect.
+        // Rare: leftover early-promote collection from a prior build. Finalize still auto-starts pricing.
         await finalizeEarlySubmission(c.env, collectionId!, snap.seller_email);
       }
     })();
@@ -3168,9 +3185,9 @@ app.get("/admin/collections/:id", async (c) => {
              <form method="post" action="/admin/collections/${row.id}/resume-finish" style="margin-top:8px">
                <button type="submit">Resume photo finish now</button>
              </form>`
-          : `<p><strong>Step 1:</strong> run pricing on these boards.</p>
+          : `<p class="hint">Pricing starts automatically after submit (same as non-cloud). <strong>Open pricing overlay</strong> appears here when Match is ready.</p>
              ${detectPriceForm}
-             <p class="hint" style="margin-top:8px"><strong>Step 2:</strong> <strong>Open pricing overlay</strong> appears here when Match is ready (same CTM / CTP as Mac).</p>`;
+             <p class="hint" style="margin-top:8px">Use <strong>Detect + price</strong> only to retry a failed run.</p>`;
   const next = staffNextStatuses(row.status)
     .map(
       (s) =>

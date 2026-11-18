@@ -222,3 +222,13 @@
 **Rule:** Cloud Detect keeps full-res EXIF-baked boards for crops (RF-DETR letterboxes to 560 itself). Worker still stores upload JPEG as-is. Re-detect after deploy to refresh crops.
 
 **Where:** `IntakeCloudPricing/cloud_detect/main.py` (`_board_jpeg_for_crops`); not Worker upload path
+
+## 2026-11-18 — Auto Detect + price on seller submit
+
+**Symptom:** Steve expected pricing to start after upload like non-cloud; admin sat on Detect + price.
+
+**Cause:** Cloud lab had been changed to staff-triggered Detect after we removed seller-side early detect/BBE.
+
+**Rule:** Seller Submit auto-queues Cloud Detect + price (same moment non-cloud queues Mac handoff). Staff opens the harness when ready. Keep Re-detect for retries only. Lexi notify stays off in lab.
+
+**Where:** `intake-cloud/src/app.ts` (`autoStartCloudPricingOnSubmit`)
