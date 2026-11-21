@@ -232,3 +232,13 @@
 **Rule:** Seller Submit auto-queues Cloud Detect + price (same moment non-cloud queues Mac handoff). Staff opens the harness when ready. Keep Re-detect for retries only. Lexi notify stays off in lab.
 
 **Where:** `intake-cloud/src/app.ts` (`autoStartCloudPricingOnSubmit`)
+
+## 2026-11-21 — Finish resume must not treat remaining temps as the full set
+
+**Symptom:** Lexi Jasmine/Pinspired cloud replay auto-priced early (8/12 and 12/17 boards).
+
+**Cause:** Cloud deletes each temp after store. Cron resume passed only remaining temps as `photos`, then `stored >= photos.length` looked complete.
+
+**Rule:** Keep `collections.photo_count` from finish claim. Yield while `upload_temp_photos` remain. Auto Detect + price only when temps are gone and stored >= claimed count. Never shrink photo_count to remaining temps mid-finish.
+
+**Where:** `intake-cloud/src/app.ts` (`processSubmissionBackground` / `processPendingFinishes`)

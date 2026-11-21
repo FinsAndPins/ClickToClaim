@@ -398,15 +398,25 @@ async function processSubmissionBackground(
         .run();
     }
 
-    if (batch.length >= FINISH_PHOTOS_PER_TICK && stored < photos.length) {
-      await logEvent(env.DB, collectionId, "system", "finish_tick_yield", {
-        stored,
-        expected: photos.length,
-        tick: FINISH_PHOTOS_PER_TICK,
-      });
-      // Leave session for cron / next waitUntil tick. Do not hand off yet.
-      return;
+    // Cloud deletes temps as each photo stores. On cron resume, `photos` is only the
+    // remaining temps, so never compare stored >= photos.length (that finished early at
+    // 8/12 and 12/17 in the Lexi replay test). Use collection.photo_count from finish claim.
+    const expectedRow = await env.DB.prepare(`SELECT photo_count FROM collections WHERE id = ?`)
+      .bind(collectionId)
+      .first<{ photo_count: number }>();
+    let expected = Number(expectedRow?.photo_count || 0);
+    if (expected < stored + photos.length) {
+      expected = stored + photos.length;
+      await env.DB.prepare(`UPDATE collections SET photo_count = ?, updated_at = ? WHERE id = ?`)
+        .bind(expected, nowIso(), collectionId)
+        .run();
     }
+    const remRow = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM upload_temp_photos WHERE session_id = ?`
+    )
+      .bind(session.id)
+      .first<{ n: number }>();
+    const remainingTemps = Number(remRow?.n || 0);
 
     const recount = await env.DB.prepare(
       `SELECT COUNT(*) AS n FROM photos WHERE collection_id = ?`
@@ -415,9 +425,19 @@ async function processSubmissionBackground(
       .first<{ n: number }>();
     stored = Number(recount?.n || 0);
 
-    // Done when every finish-batch photo is in `photos`. Do not require temp-row count
-    // (temps are deleted per photo; a prior bug waited for temps==0 before deleting them).
-    if (stored >= photos.length && stored >= 1) {
+    if (remainingTemps > 0) {
+      await logEvent(env.DB, collectionId, "system", "finish_tick_yield", {
+        stored,
+        expected,
+        remaining_temps: remainingTemps,
+        tick: FINISH_PHOTOS_PER_TICK,
+      });
+      // Leave session for cron / next waitUntil tick. Do not hand off yet.
+      return;
+    }
+
+    // No temps left. Done only if we stored the claimed count; otherwise alert and stop.
+    if (stored >= 1 && stored >= expected) {
       if (cover) {
         await env.DB.prepare(`UPDATE collections SET cover_photo_id = COALESCE(cover_photo_id, ?), photo_count = ? WHERE id = ?`)
           .bind(cover, stored, collectionId)
@@ -465,19 +485,19 @@ async function processSubmissionBackground(
       return;
     }
 
-    // Still incomplete: keep session for cron. Alert only when temps are gone and we cannot progress.
+    // Temps gone but short of claimed count (missing R2 objects / normalize skips).
     await env.DB.prepare(
-      `UPDATE collections SET photo_count = ?, updated_at = ? WHERE id = ?`
+      `UPDATE collections SET updated_at = ? WHERE id = ?`
     )
-      .bind(photos.length, nowIso(), collectionId)
+      .bind(nowIso(), collectionId)
       .run();
 
-    if (missingTemps > 0 && stored + missingTemps >= photos.length && stored < photos.length) {
+    if (missingTemps > 0 || stored < expected) {
       await env.DB.prepare(
         `UPDATE collections SET internal_note = ?, updated_at = ? WHERE id = ?`
       )
         .bind(
-          `Finish stuck: ${stored}/${photos.length} stored; ${missingTemps} temp object(s) missing. Seller should re-submit missing boards.`,
+          `Finish stuck: ${stored}/${expected} stored; ${missingTemps} temp object(s) missing. Seller should re-submit missing boards.`,
           nowIso(),
           collectionId
         )
@@ -486,7 +506,7 @@ async function processSubmissionBackground(
         collectionId,
         sellerName: session.seller_name,
         sellerEmail: session.seller_email,
-        expected: photos.length,
+        expected,
         stored,
         detail: `${missingTemps} missing temp object(s); cannot auto-complete`,
       });
@@ -546,7 +566,12 @@ async function processPendingFinishes(env: Bindings): Promise<void> {
             stored,
             detail: "finish session has no remaining temp photos",
           });
-        } else if (expectedRow && stored >= 1 && !expectedRow.mac_handoff_status) {
+        } else if (
+          expectedRow &&
+          stored >= 1 &&
+          stored >= Number(expectedRow.photo_count || 0) &&
+          !expectedRow.mac_handoff_status
+        ) {
           await autoStartCloudPricingOnSubmit(
             env,
             {
