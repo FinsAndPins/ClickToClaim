@@ -308,7 +308,7 @@
         renderItem(it);
       }
       if (it.file.size > maxBytes) {
-        throw new Error("Over the size limit.");
+        throw new Error("That photo is too large. A normal phone photo is fine.");
       }
       const body = new FormData();
       body.append("photo", it.file);
@@ -413,7 +413,7 @@
       .replace(/[$,\s]/g, "");
     if (!cleaned) return null;
     const n = Number(cleaned);
-    if (!Number.isFinite(n) || n <= 0) return null;
+    if (!Number.isFinite(n) || n <= 10) return null;
     return n;
   }
 
@@ -438,7 +438,7 @@
     if (!email) missing.push("Email address");
     else if (!looksLikeEmail(email)) other.push("Email address looks invalid.");
     if (!askingRaw) missing.push("Price you have in mind");
-    else if (!askingOk) other.push("Price must be greater than $0 (for example 1000, not 0).");
+    else if (!askingOk) other.push("Price must be greater than $10.");
     if (!delivery) missing.push("How you'll get the pins to us");
     if (!agree) missing.push("Privacy and terms checkbox");
     if (!missing.length && !other.length) return "";

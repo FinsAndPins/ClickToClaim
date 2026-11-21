@@ -143,3 +143,30 @@ export function sellerPhotosRejectedEmail(sellerName: string): OutboundEmail {
     ].join("\n"),
   };
 }
+
+export function finishIncompleteStaffEmail(opts: {
+  sellerName: string;
+  sellerEmail: string;
+  collectionId: string;
+  expected: number;
+  stored: number;
+  adminLink: string;
+  detail: string;
+}): OutboundEmail {
+  return {
+    to: [],
+    subject: `Intake finish incomplete: ${opts.sellerName} (${opts.stored}/${opts.expected} photos)`,
+    text: [
+      "A seller submission did not finish storing all photos. It was NOT sent to CollectionsToPrice.",
+      "Ask the seller to submit again if photos are missing. Do not rely on the empty drop folder.",
+      "",
+      `Name: ${opts.sellerName}`,
+      `Email: ${opts.sellerEmail}`,
+      `Collection: ${opts.collectionId}`,
+      `Photos stored: ${opts.stored} of ${opts.expected}`,
+      `Detail: ${opts.detail}`,
+      "",
+      opts.adminLink,
+    ].join("\n"),
+  };
+}

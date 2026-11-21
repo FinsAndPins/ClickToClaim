@@ -4,7 +4,8 @@ export function parseDollarsToCents(input: string): number | null {
   const cleaned = input.trim().replace(/[$,\s]/g, "");
   if (!cleaned) return null;
   const n = Number(cleaned);
-  if (!Number.isFinite(n) || n <= 0) return null;
+  // Lexi: sellers entering $0 / $1 caused glitches; require greater than $10.
+  if (!Number.isFinite(n) || n <= 10) return null;
   return Math.round(n * 100);
 }
 
