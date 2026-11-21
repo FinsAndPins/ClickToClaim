@@ -10,6 +10,10 @@ describe("money", () => {
     assert.equal(parseDollarsToCents("$1,250"), 125000);
     assert.equal(parseDollarsToCents(""), null);
     assert.equal(parseDollarsToCents("-5"), null);
+    assert.equal(parseDollarsToCents("0"), null);
+    assert.equal(parseDollarsToCents("1"), null);
+    assert.equal(parseDollarsToCents("10"), null);
+    assert.equal(parseDollarsToCents("10.01"), 1001);
   });
   it("formats helpers", () => {
     const h = offerHelpers(100000);

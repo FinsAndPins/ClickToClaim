@@ -1237,7 +1237,7 @@ function finishIdentityError(opts: {
   const askingBlank = !(opts.asking_raw || "").trim() && opts.asking_cents == null;
   if (askingBlank) missing.push("Price you have in mind");
   else if (opts.asking_cents == null) {
-    other.push("Price must be greater than $0 (for example 1000, not 0).");
+    other.push("Price must be greater than $10.");
   }
   const deliveryOk =
     opts.delivery_method === "ship_us" || opts.delivery_method === "dropoff_florida";
@@ -1394,9 +1394,9 @@ app.get("/", (c) => {
         <li>One board (or one clear group of pins) per photo.</li>
         <li>Fill the frame with the pins. Straight-on is better than a steep angle.</li>
         <li>Use even light. Avoid heavy glare on cellophane if you can.</li>
-        <li>Don’t include people, faces, or anything that isn’t the pins.</li>
+        <li>Don’t include people, faces, hands, or anything that isn’t the pins.</li>
       </ul>
-      <p class="hint">Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. Upload starts as soon as you pick files.</p>
+      <p class="hint">Up to ${maxPhotos} photos. Ordinary phone photos are fine; no need to fuss over exact file size.</p>
       <div class="choose-wrap">
         <input id="files" class="choose-input" type="file" accept="image/*" multiple />
         <label for="files" class="choose-btn">Choose board photos</label>
@@ -1412,12 +1412,12 @@ app.get("/", (c) => {
         <fieldset class="contact-fields" id="contactFields">
           <label>Name (required)<input required type="text" name="seller_name" autocomplete="name" /></label>
           <label>Email address (required)<input required type="email" name="seller_email" autocomplete="email" /></label>
-          <p class="hint">We'll send the offer to this address. Use the link in that email to accept or decline.</p>
+          <p class="hint">We’ll send a link with an offer to accept or decline to the email you use here.</p>
           <label>Price you have in mind (required)
-            <input required type="text" name="asking" inputmode="decimal" placeholder="$" autocomplete="off" />
+            <input required type="text" name="asking" inputmode="decimal" placeholder="Enter a $ amount greater than $10" autocomplete="off" />
           </label>
           <label>Notes <span class="hint">(optional)</span>
-            <textarea name="seller_notes" maxlength="2000" placeholder="AP / PP, extras, anything not obvious in the photos"></textarea>
+            <textarea name="seller_notes" maxlength="2000" placeholder="AP / PP, duplicates (not pictured), anything not obvious in the photos"></textarea>
           </label>
           <p class="hint">Please tell us anything that’s not obvious in the photos, for example AP / PP.</p>
           <label>Instagram <span class="hint">(optional)</span><input type="text" name="instagram" placeholder="@you" autocomplete="username" /></label>
@@ -1445,7 +1445,7 @@ app.get("/", (c) => {
       </form>
     </div>
     <script>window.INTAKE = ${JSON.stringify({ maxPhotos, maxBytes })};</script>
-    <script src="/seller-home.js?v=20261116simple"></script>`
+    <script src="/seller-home.js?v=20261121lexi"></script>`
   );
 });
 
@@ -1558,14 +1558,14 @@ app.get("/upload/:sessionId", async (c) => {
     c.env,
     "Upload photos",
     `<h1>Upload board photos</h1>
-    <p class="lede">Up to ${maxPhotos} photos, ${Math.round(maxBytes / 1024 / 1024)}&nbsp;MB each. After you submit, we run automated safety filters in the background. If a photo doesn’t pass, we’ll email you and those files are not kept.</p>
+    <p class="lede">Up to ${maxPhotos} photos. Ordinary phone photos are fine. After you submit, we run automated safety filters in the background. If a photo doesn’t pass, we’ll email you and those files are not kept.</p>
     <div class="card">
       <h2>How to shoot a board</h2>
       <ul class="legal">
         <li>One board (or one clear group of pins) per photo.</li>
         <li>Fill the frame with the pins. Straight-on is better than a steep angle.</li>
         <li>Use even light. Avoid heavy glare on cellophane if you can.</li>
-        <li>Don’t include people, faces, or anything that isn’t the pins.</li>
+        <li>Don’t include people, faces, hands, or anything that isn’t the pins.</li>
       </ul>
       <div class="choose-wrap">
         <input id="files" class="choose-input" type="file" accept="image/*" multiple />
@@ -1997,7 +1997,7 @@ app.get("/thanks", (c) => {
     "Thanks",
     `<h1>We have your photos</h1>
     <div class="card">
-      <p>Thanks. We’ll review your boards and email your offer, usually within 24-48 business hours.</p>
+      <p>Thanks for submitting your collection! We’ll email you our best offer to the address you submitted within 24 business hours.</p>
       <p class="hint">We still run a quick automated safety check in the background. If a photo doesn’t pass, we’ll email you and those files are not kept.</p>
     </div>`
   );
