@@ -239,6 +239,6 @@
 
 **Cause:** Cloud deletes each temp after store. Cron resume passed only remaining temps as `photos`, then `stored >= photos.length` looked complete.
 
-**Rule:** Keep `collections.photo_count` from finish claim. Yield while `upload_temp_photos` remain. Auto Detect + price only when temps are gone and stored >= claimed count. Never shrink photo_count to remaining temps mid-finish.
+**Rule:** Keep `collections.photo_count` from finish claim. Yield while `upload_temp_photos` remain. Auto Detect + price only when temps are gone and stored >= claimed count. Never shrink photo_count to remaining temps mid-finish. Also never bump expected with stored+photos.length in the same tick (inflated 12→16).
 
 **Where:** `intake-cloud/src/app.ts` (`processSubmissionBackground` / `processPendingFinishes`)

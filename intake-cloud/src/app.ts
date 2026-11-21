@@ -399,18 +399,14 @@ async function processSubmissionBackground(
     }
 
     // Cloud deletes temps as each photo stores. On cron resume, `photos` is only the
-    // remaining temps, so never compare stored >= photos.length (that finished early at
-    // 8/12 and 12/17 in the Lexi replay test). Use collection.photo_count from finish claim.
+    // remaining temps at invoke time, so never compare stored >= photos.length (that
+    // finished early at 8/12 and 12/17). Use collection.photo_count from finish claim.
+    // Do not bump expected with stored+photos.length: `photos` still lists temps already
+    // stored earlier in this same invocation, which inflated 12→16 / 17→21.
     const expectedRow = await env.DB.prepare(`SELECT photo_count FROM collections WHERE id = ?`)
       .bind(collectionId)
       .first<{ photo_count: number }>();
-    let expected = Number(expectedRow?.photo_count || 0);
-    if (expected < stored + photos.length) {
-      expected = stored + photos.length;
-      await env.DB.prepare(`UPDATE collections SET photo_count = ?, updated_at = ? WHERE id = ?`)
-        .bind(expected, nowIso(), collectionId)
-        .run();
-    }
+    const expected = Math.max(Number(expectedRow?.photo_count || 0), 1);
     const remRow = await env.DB.prepare(
       `SELECT COUNT(*) AS n FROM upload_temp_photos WHERE session_id = ?`
     )
