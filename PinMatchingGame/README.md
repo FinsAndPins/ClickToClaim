@@ -4,6 +4,8 @@ Public game: compare a pin crop to an eBay candidate. Match / No Match / Not a p
 
 Live: `https://finsandpins.github.io/ClickToClaim/PinMatchingGame/`
 
+**Agreed design + rollout / agent handoff:** [`AGREED_ROLLOUT_AND_HANDOFF.md`](./AGREED_ROLLOUT_AND_HANDOFF.md)
+
 ## Queue lanes
 
 1. **Controls** (injected): known answers for trust calibration.
