@@ -12,7 +12,7 @@ Use a **text LLM** (not VLM) on the matched eBay **listing title** to fill descr
 | quarantine | `le_size`, `is_chaser`, `is_mystery`, `year` | **never** |
 | drop | shipping / rare / you-choose fluff; **AP** / **PP** back stamps | never |
 
-AP (Artist Proof), PP (Pre-Production / Proof), and Cast Exclusive / CME are excluded from descriptions — they describe a specific physical pin or cast channel that may not match ours.
+Hard excludes (AP/PP/LR/OE/Cast Exclusive/Fantasy/Opened/loose/no box/In Hands/…) live in `scripts/exclude_patterns.py` and the frozen prompt.
 
 **Shopify / other agents:** see [`SHARED_TITLE_SLOT_APPROACH.md`](./SHARED_TITLE_SLOT_APPROACH.md) for the paste-ready handoff.
 

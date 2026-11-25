@@ -1067,7 +1067,7 @@
       "prediction": {
         "keep": {
           "set": "Pooh & The Honey Tree 60th",
-          "maker": "LR",
+          "maker": null,
           "park_or_event": null
         },
         "quarantine": {
@@ -1077,10 +1077,11 @@
           "year": "2026"
         },
         "drop_tokens": [
-          "YOU CHOOSE"
+          "YOU CHOOSE",
+          "LR"
         ]
       },
-      "description_candidate": "Pooh & The Honey Tree 60th LR",
+      "description_candidate": "Pooh & The Honey Tree 60th",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"

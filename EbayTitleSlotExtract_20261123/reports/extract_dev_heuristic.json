@@ -149,7 +149,7 @@
           "year": "2025"
         },
         "drop_tokens": [
-          "ap"
+          "AP"
         ]
       },
       "description_candidate": "Reflections",
@@ -271,7 +271,7 @@
           "year": "2026"
         },
         "drop_tokens": [
-          "you choose"
+          "YOU CHOOSE"
         ]
       },
       "description_candidate": "WDW",
@@ -657,7 +657,9 @@
           "is_mystery": false,
           "year": "2026"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "In Hands"
+        ]
       },
       "description_candidate": "WDW",
       "model": "heuristic",
@@ -718,7 +720,7 @@
           "year": null
         },
         "drop_tokens": [
-          "you choose"
+          "You Choose"
         ]
       },
       "description_candidate": "",
@@ -897,7 +899,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Fantasy Pin"
+        ]
       },
       "description_candidate": "",
       "model": "heuristic",
@@ -1015,7 +1019,8 @@
           "year": "2026"
         },
         "drop_tokens": [
-          "you choose"
+          "LR",
+          "YOU CHOOSE"
         ]
       },
       "description_candidate": "",
@@ -1047,7 +1052,7 @@
           "year": null
         },
         "drop_tokens": [
-          "you choose"
+          "You Choose"
         ]
       },
       "description_candidate": "",
@@ -1140,7 +1145,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "opened"
+        ]
       },
       "description_candidate": "Blind Box Loungefly",
       "model": "heuristic",
@@ -1200,7 +1207,7 @@
           "year": null
         },
         "drop_tokens": [
-          "you choose"
+          "You Choose"
         ]
       },
       "description_candidate": "",
@@ -1233,7 +1240,7 @@
           "year": "2026"
         },
         "drop_tokens": [
-          "cast exclusive"
+          "Cast Exclusive"
         ]
       },
       "description_candidate": "Adorbs WDI",
