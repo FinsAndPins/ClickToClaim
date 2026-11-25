@@ -37,10 +37,13 @@ Never put these in keep or in the assembled description string. Canonical regex:
 - **Cast Exclusive** / **Cast Member Exclusive** / **CME** / bare **Cast Member** / **Employee**
 - **Fantasy Pin** / **Fantasy**
 - **Prototype**, **Error**, **Scrapper**, **Dupe**
-- **Opened**, **loose**, **no box**, **In Hands**, **Ready to ship** — seller condition / logistics
-- **Authentic**, **Genuine**, **Retired**
+- **Opened**, **loose**, **no box**, **In Hands**, **Ready to ship**, **New** / **NIB** / **NWT** / **Mint** / **Sealed**
+- **Free shipping** / **Free ship** / **Ships free**
+- **Authentic**, **Genuine**, **Retired**; bare **Exclusive**
+- Hype: **HTF**, **Rare**, **Unique**, **Wow**
+- Lot picker: **You choose**, **Pick**, **Pick one**, **Chooser** / **Choose**
 - Generic product noise: **Trading Pin**, **Enamel Pin**, **Disney Pin**, **Single Pin**
-- Chooser / sales fluff: you choose, pick, free shipping, rare, HTF, NIB, New/box, seller SKUs, etc.
+- Seller codes: **#12345**, **R-2007**, bare **5–6 digit** SKUs, **SKU**
 
 **Intentionally keep:** anniversary counts (`60th`, `25th`), **BoxLunch**, **DEC** / **WDCS** / **TWDCS**.
 
@@ -106,7 +109,7 @@ Goal: For our ~3000-pin Shopify upload, build customer-facing titles/description
 Hard rules:
 1. Do NOT invent character or movie — reuse Script A / existing character+movie fields we already have.
 2. Extract only keep slots: set, maker, park_or_event from the eBay title text.
-3. NEVER put into Shopify title/description: LE size, year, Chaser, Mystery, AP, Artist Proof, PP, Preproduction, Sample, LR, Limited Release, OE, Open Edition, Cast Exclusive / Cast Member Exclusive / CME / bare Cast Member / Employee, Fantasy Pin, Prototype, Error, Scrapper, Dupe, Opened, loose, no box, In Hands, Ready to ship, Authentic, Genuine, Retired, Trading Pin, Enamel Pin, Disney Pin, Single Pin, you-choose/picker fluff, seller SKUs. KEEP anniversary (60th), BoxLunch, DEC/WDCS/TWDCS. DLR = Disneyland Resort is OK.
+3. NEVER put into Shopify title/description anything in EbayTitleSlotExtract_20261123/scripts/exclude_patterns.py (condition/hype/chooser/SKU/edition stamps including New/NIB/HTF/You choose/bare Exclusive/#SKU/R-codes). KEEP anniversary (60th), BoxLunch, DEC/WDCS/TWDCS. DLR = Disneyland Resort is OK.
 4. Wrong fact worse than empty. Prefer omit over guessing.
 5. Do not change production pricing watchers, PrepareClickToClaim, or ClickToClaim show folders unless I explicitly say SHIP TO PRODUCTION.
 6. New work only under your Shopify project folder (or a new experiment folder). Do not edit EbayTitleSlotExtract_20261123 except to read it.

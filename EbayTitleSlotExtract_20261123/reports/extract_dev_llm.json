@@ -474,7 +474,7 @@
       "prediction": {
         "keep": {
           "set": "Acorn",
-          "maker": "Monogram BoxLunch",
+          "maker": "Monogram BoxLunch BoxLunch",
           "park_or_event": null
         },
         "quarantine": {
@@ -485,7 +485,7 @@
         },
         "drop_tokens": []
       },
-      "description_candidate": "Acorn Monogram BoxLunch",
+      "description_candidate": "Acorn Monogram BoxLunch BoxLunch",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"
@@ -1180,7 +1180,7 @@
       "prediction": {
         "keep": {
           "set": "Stamp",
-          "maker": "DEC TWDCS",
+          "maker": "DEC TWDCS DEC TWDCS",
           "park_or_event": "D23"
         },
         "quarantine": {
@@ -1191,7 +1191,7 @@
         },
         "drop_tokens": []
       },
-      "description_candidate": "Stamp DEC TWDCS D23",
+      "description_candidate": "Stamp DEC TWDCS DEC TWDCS D23",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"
@@ -1407,7 +1407,7 @@
       "prediction": {
         "keep": {
           "set": "Role Models",
-          "maker": "DEC TWDC",
+          "maker": "DEC TWDC DEC TWDC",
           "park_or_event": "D23"
         },
         "quarantine": {
@@ -1418,7 +1418,7 @@
         },
         "drop_tokens": []
       },
-      "description_candidate": "Role Models DEC TWDC D23",
+      "description_candidate": "Role Models DEC TWDC DEC TWDC D23",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"
@@ -1438,7 +1438,7 @@
       "prediction": {
         "keep": {
           "set": "Legends Character Plaques",
-          "maker": "DEC WDCS",
+          "maker": "DEC WDCS DEC WDCS",
           "park_or_event": null
         },
         "quarantine": {
@@ -1452,7 +1452,7 @@
           "Disney Pin"
         ]
       },
-      "description_candidate": "Legends Character Plaques DEC WDCS",
+      "description_candidate": "Legends Character Plaques DEC WDCS DEC WDCS",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"

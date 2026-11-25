@@ -25,15 +25,18 @@ Definitions:
 - quarantine.le_size: limited-edition run size only (e.g. "500", "5750") if clearly an LE size. Never put this in a description.
 - quarantine.is_chaser / is_mystery: true only if those words clearly appear.
 - quarantine.year: calendar year token if present (e.g. "2026").
-- drop_tokens: marketing / sales / chooser fluff you ignored (free shipping, rare, HTF, NIB, you choose, pick, unique, wow, emoji words, seller SKUs, wholesale, etc.) AND tokens that describe a specific physical pin, edition channel, seller condition, or generic product noise — never put these in keep or any description text:
-  - AP / Artist Proof, PP / Preproduction / Pre-Production, Sample
+- drop_tokens: never put these in keep or any description text:
+  - AP / Artist Proof, PP / Preproduction, Sample
   - LR / Limited Release, OE / Open Edition
-  - Cast Exclusive / Cast Member Exclusive / CME / bare Cast Member / Employee
-  - Fantasy Pin / Fantasy
-  - Prototype, Error, Scrapper, Dupe
+  - Cast Exclusive / Cast Member Exclusive / CME / bare Cast Member / Employee / bare Exclusive
+  - Fantasy Pin / Fantasy; Prototype, Error, Scrapper, Dupe
   - Opened, loose, no box, In Hands, Ready to ship
-  - Authentic, Genuine, Retired
+  - New, NIB, NWT, Mint, Sealed; Authentic, Genuine, Retired
+  - Free shipping / Free ship / Ships free
+  - HTF, Rare, Unique, Wow
+  - You choose, Pick, Pick one, Chooser / Choose
   - Trading Pin, Enamel Pin, Disney Pin, Single Pin
+  - Seller SKUs / codes: #12345, R-2007, bare 5–6 digit pin numbers, SKU
 - Intentionally KEEP when present (do not drop): anniversary counts (e.g. 60th, 25th), BoxLunch, DEC / WDCS / TWDCS.
 
 Hard rules:
