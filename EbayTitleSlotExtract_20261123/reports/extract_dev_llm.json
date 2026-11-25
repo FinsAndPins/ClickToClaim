@@ -6,7 +6,7 @@
   "n_ok": 50,
   "n_errors": 0,
   "prompt": "prompts/extract_v1.txt",
-  "note": "Round-1 LLM extract using frozen prompt on Firebase titles from test_PriceCollection_20261121_2225__build_20261123_fullres_visual_baseline. External GEMINI/OPENAI keys were unavailable; re-run scripts/run_extract.py once a key is bound for provider A/B. Sanitizer strips Mystery/Chaser/LE#/year from description_candidate even when keep.set retains product-line wording for review.",
+  "note": "Round-1 LLM extract using frozen prompt on Firebase titles from test_PriceCollection_20261121_2225__build_20261123_fullres_visual_baseline. External GEMINI/OPENAI keys were unavailable; re-run scripts/run_extract.py once a key is bound for provider A/B. Sanitizer strips Mystery/Chaser/LE#/year from description_candidate even when keep.set retains product-line wording for review. AP and PP excluded from description (physical back stamps).",
   "quarantine_self_check_leaks": [],
   "predictions": [
     {
@@ -149,7 +149,7 @@
       "prediction": {
         "keep": {
           "set": "Reflections",
-          "maker": "AP",
+          "maker": null,
           "park_or_event": null
         },
         "quarantine": {
@@ -158,9 +158,11 @@
           "is_mystery": false,
           "year": "2025"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "AP"
+        ]
       },
-      "description_candidate": "Reflections AP",
+      "description_candidate": "Reflections",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"

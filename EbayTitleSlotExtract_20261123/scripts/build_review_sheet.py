@@ -29,12 +29,26 @@ def main() -> None:
 
     out_path = ROOT / "reports" / f"review_{args.split}.csv"
     fields = [
-        "sample_id", "crop_filename", "strata", "ebay_title",
-        "pred_set", "pred_maker", "pred_park_or_event",
-        "pred_le_size", "pred_is_chaser", "pred_is_mystery", "pred_year",
-        "pred_drop_tokens", "description_candidate",
-        "gold_set", "gold_maker", "gold_park_or_event",
-        "gold_le_size", "gold_is_chaser", "gold_is_mystery", "gold_year",
+        "ebay_title",
+        "description_candidate",
+        "sample_id",
+        "crop_filename",
+        "strata",
+        "pred_set",
+        "pred_maker",
+        "pred_park_or_event",
+        "pred_le_size",
+        "pred_is_chaser",
+        "pred_is_mystery",
+        "pred_year",
+        "pred_drop_tokens",
+        "gold_set",
+        "gold_maker",
+        "gold_park_or_event",
+        "gold_le_size",
+        "gold_is_chaser",
+        "gold_is_mystery",
+        "gold_year",
         "notes",
     ]
     with out_path.open("w", encoding="utf-8", newline="") as f:
