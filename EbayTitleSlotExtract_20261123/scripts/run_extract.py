@@ -22,7 +22,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROMPT = (ROOT / "prompts" / "extract_v1.txt").read_text(encoding="utf-8")
-_QUAR_WORD = re.compile(r"\b(LE\s*\d{2,5}|chaser|mystery|(?:19|20)\d{2})\b", re.I)
+# Never enter description: LE size, chaser, mystery, year, AP/PP back stamps.
+_QUAR_WORD = re.compile(
+    r"\b(LE\s*\d{2,5}|chaser|mystery|(?:19|20)\d{2}|AP|PP)\b",
+    re.I,
+)
 
 
 def load_pins(split: str) -> list[dict]:
@@ -94,8 +98,8 @@ def call_openai(title: str, model: str, api_key: str) -> dict:
 def assemble_description(pred: dict) -> str:
     """Candidate description WITHOUT character/movie (Script A fills those later).
 
-    Quarantine tokens (LE size, Chaser, Mystery, year) are stripped even if they
-    appear inside a keep.set string like "Mystery Box".
+    Quarantine/exclude tokens (LE size, Chaser, Mystery, year, AP, PP) are
+    stripped even if they appear inside a keep field.
     """
     keep = pred.get("keep") or {}
     parts = []
@@ -103,6 +107,9 @@ def assemble_description(pred: dict) -> str:
     for key in ("set", "maker", "park_or_event"):
         val = keep.get(key)
         if not val:
+            continue
+        # Whole-field exclude: AP/PP must never be kept as maker.
+        if re.fullmatch(r"(?i)AP|PP", str(val).strip()):
             continue
         cleaned = " ".join(_QUAR_WORD.sub(" ", str(val)).split())
         if not cleaned:

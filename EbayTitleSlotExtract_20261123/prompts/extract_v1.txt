@@ -20,16 +20,17 @@ Return JSON only, no markdown, with this shape:
 
 Definitions:
 - keep.set: set or series name that identifies the pin line (e.g. Adorbs, Stamps, Advent Calendar, Floral Blind Box, Cookie Sheet). Not the character name.
-- keep.maker: maker/brand acronym or short name when present (WDI, MOG, DSSH, DSF, DEC, D23, Loungefly, PALM/Pink a la Mode, Monogram, Disney Parks, etc.). Prefer the acronym when both appear.
+- keep.maker: maker/brand acronym or short name when present (WDI, MOG, DSSH, DSF, DEC, D23, Loungefly, PALM/Pink a la Mode, Monogram, Disney Parks, etc.). Prefer the acronym when both appear. Never treat AP or PP as maker.
 - keep.park_or_event: park or event that identifies the pin (WDW, DLR, HKDL, D23, Disneyland Paris/DLP) when present.
 - quarantine.le_size: limited-edition run size only (e.g. "500", "5750") if clearly an LE size. Never put this in a description.
 - quarantine.is_chaser / is_mystery: true only if those words clearly appear.
 - quarantine.year: calendar year token if present (e.g. "2026").
-- drop_tokens: marketing / sales / chooser fluff you ignored (free shipping, rare, HTF, NIB, you choose, pick, unique, wow, emoji words, seller SKUs, wholesale, etc.).
+- drop_tokens: marketing / sales / chooser fluff you ignored (free shipping, rare, HTF, NIB, you choose, pick, unique, wow, emoji words, seller SKUs, wholesale, etc.) AND physical-back stamp codes AP (Artist Proof) and PP (Pre-Production / Proof) — those describe a specific physical pin that may not match ours, so never put AP or PP in keep or in any description text.
 
 Hard rules:
 1. Describe facts about the matched pin's listing text, not the seller's chooser offer. If the title is "you choose", do not treat "you choose" as keep.
 2. Wrong fact is worse than missing. If a number might be LE size, year, or seller SKU, put LE/year in quarantine only when clear; otherwise omit.
 3. Never output character or movie/franchise fields.
 4. Do not invent makers or sets not supported by the title.
-5. JSON only.
+5. Never keep or describe AP or PP (back-stamp codes). Put them in drop_tokens only.
+6. JSON only.

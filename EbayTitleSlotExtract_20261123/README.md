@@ -10,7 +10,9 @@ Use a **text LLM** (not VLM) on the matched eBay **listing title** to fill descr
 |---|---|---|
 | keep | `set`, `maker`, `park_or_event` | yes (with Script A character/movie) |
 | quarantine | `le_size`, `is_chaser`, `is_mystery`, `year` | **never** |
-| drop | shipping / rare / you-choose fluff | never |
+| drop | shipping / rare / you-choose fluff; **AP** / **PP** back stamps | never |
+
+AP (Artist Proof) and PP (Pre-Production / Proof) are physical-pin back stamps — our matched pin may not have that stamp, so they are excluded from descriptions.
 
 Character + movie/franchise stay with **Script A**. This extractor must not invent them.
 

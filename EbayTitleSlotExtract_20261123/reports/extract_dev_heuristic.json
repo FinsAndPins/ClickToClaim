@@ -139,7 +139,7 @@
       "prediction": {
         "keep": {
           "set": "Reflections",
-          "maker": "AP",
+          "maker": null,
           "park_or_event": null
         },
         "quarantine": {
@@ -148,9 +148,11 @@
           "is_mystery": false,
           "year": "2025"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "ap"
+        ]
       },
-      "description_candidate": "Reflections AP",
+      "description_candidate": "Reflections",
       "model": "heuristic",
       "model_name": "regex_v0"
     },

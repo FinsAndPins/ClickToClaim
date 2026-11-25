@@ -25,7 +25,7 @@ MAKERS = [
     ("PALM", r"\b(?:PALM|Pink a la Mode)\b"),
     ("Monogram", r"\bMonogram\b"),
     ("Disney Parks", r"\bDisney Parks\b"),
-    ("AP", r"\bAP\b"),
+    # AP / PP are back-stamp codes — exclude, never treat as maker.
 ]
 PARKS = [
     ("WDW", r"\b(?:WDW|Walt Disney World)\b"),
@@ -49,7 +49,11 @@ SET_HINTS = [
     (r"\bVanity\b", "Vanity"),
 ]
 DROP = re.compile(
-    r"\b(free shipping|rare|htf|nib|nwt|you choose|pick|unique|wow|wholesale|lot)\b",
+    r"\b(free shipping|rare|htf|nib|nwt|you choose|pick|unique|wow|wholesale|lot|AP|PP)\b",
+    re.I,
+)
+_QUAR_WORD = re.compile(
+    r"\b(LE\s*\d{2,5}|chaser|mystery|(?:19|20)\d{2}|AP|PP)\b",
     re.I,
 )
 LE = re.compile(r"\bLE\s*(\d{2,5})\b", re.I)
@@ -87,9 +91,6 @@ def extract(title: str) -> dict:
     }
 
 
-import re as _re
-_QUAR_WORD = _re.compile(r"\b(LE\s*\d{2,5}|chaser|mystery|(?:19|20)\d{2})\b", _re.I)
-
 def assemble(pred: dict) -> str:
     keep = pred.get("keep") or {}
     parts = []
@@ -97,12 +98,15 @@ def assemble(pred: dict) -> str:
     for k in ("set", "maker", "park_or_event"):
         if not keep.get(k):
             continue
+        if re.fullmatch(r"(?i)AP|PP", str(keep[k]).strip()):
+            continue
         cleaned = " ".join(_QUAR_WORD.sub(" ", str(keep[k])).split())
         if not cleaned or cleaned.lower() in seen:
             continue
         seen.add(cleaned.lower())
         parts.append(cleaned)
     return " ".join(parts).strip()
+
 
 
 def main() -> None:
