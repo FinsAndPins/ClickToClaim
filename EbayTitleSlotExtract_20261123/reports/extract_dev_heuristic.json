@@ -30,6 +30,7 @@
           "year": "2007"
         },
         "drop_tokens": [
+          "R-2007",
           "Single Pin"
         ]
       },
@@ -555,7 +556,10 @@
           "is_mystery": false,
           "year": "2007"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "#55282",
+          "NEW"
+        ]
       },
       "description_candidate": "WDW",
       "model": "heuristic",
@@ -737,6 +741,7 @@
           "year": null
         },
         "drop_tokens": [
+          "New/box",
           "You Choose"
         ]
       },
@@ -768,6 +773,7 @@
           "year": null
         },
         "drop_tokens": [
+          "130930",
           "Trading Pin"
         ]
       },
@@ -1073,6 +1079,7 @@
           "year": null
         },
         "drop_tokens": [
+          "New/box",
           "You Choose"
         ]
       },
@@ -1230,6 +1237,7 @@
           "year": null
         },
         "drop_tokens": [
+          "New/box",
           "You Choose"
         ]
       },
