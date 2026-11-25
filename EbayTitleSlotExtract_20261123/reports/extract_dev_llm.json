@@ -6,7 +6,7 @@
   "n_ok": 50,
   "n_errors": 0,
   "prompt": "prompts/extract_v1.txt",
-  "note": "Round-1 LLM extract using frozen prompt on Firebase titles from test_PriceCollection_20261121_2225__build_20261123_fullres_visual_baseline. External GEMINI/OPENAI keys were unavailable; re-run scripts/run_extract.py once a key is bound for provider A/B. Sanitizer strips Mystery/Chaser/LE#/year from description_candidate even when keep.set retains product-line wording for review. AP and PP excluded from description (physical back stamps).",
+  "note": "Round-1 LLM extract using frozen prompt on Firebase titles from test_PriceCollection_20261121_2225__build_20261123_fullres_visual_baseline. External GEMINI/OPENAI keys were unavailable; re-run scripts/run_extract.py once a key is bound for provider A/B. Sanitizer strips Mystery/Chaser/LE#/year from description_candidate even when keep.set retains product-line wording for review. AP and PP excluded from description (physical back stamps). Cast Exclusive / CME excluded from description.",
   "quarantine_self_check_leaks": [],
   "predictions": [
     {
@@ -1300,7 +1300,7 @@
         "keep": {
           "set": "Adorbs",
           "maker": "WDI/MOG",
-          "park_or_event": "Cast Exclusive"
+          "park_or_event": null
         },
         "quarantine": {
           "le_size": "300",
@@ -1308,9 +1308,11 @@
           "is_mystery": false,
           "year": "2026"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Cast Exclusive"
+        ]
       },
-      "description_candidate": "Adorbs WDI/MOG Cast Exclusive",
+      "description_candidate": "Adorbs WDI/MOG",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"

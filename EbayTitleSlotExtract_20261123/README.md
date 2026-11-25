@@ -12,7 +12,9 @@ Use a **text LLM** (not VLM) on the matched eBay **listing title** to fill descr
 | quarantine | `le_size`, `is_chaser`, `is_mystery`, `year` | **never** |
 | drop | shipping / rare / you-choose fluff; **AP** / **PP** back stamps | never |
 
-AP (Artist Proof) and PP (Pre-Production / Proof) are physical-pin back stamps — our matched pin may not have that stamp, so they are excluded from descriptions.
+AP (Artist Proof), PP (Pre-Production / Proof), and Cast Exclusive / CME are excluded from descriptions — they describe a specific physical pin or cast channel that may not match ours.
+
+**Shopify / other agents:** see [`SHARED_TITLE_SLOT_APPROACH.md`](./SHARED_TITLE_SLOT_APPROACH.md) for the paste-ready handoff.
 
 Character + movie/franchise stay with **Script A**. This extractor must not invent them.
 
