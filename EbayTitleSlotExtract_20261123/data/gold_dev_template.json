@@ -1,0 +1,1239 @@
+[
+  {
+    "sample_id": "dev_000",
+    "split": "dev",
+    "crop_filename": "img2849_pin18.jpg",
+    "ebay_title": "Disney Pixar Ratatouille Parking Pass Blind Box Single Pin R-2007",
+    "strata": [
+      "chooser"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_001",
+    "split": "dev",
+    "crop_filename": "img2841_pin19.jpg",
+    "ebay_title": "Jasmine / Magic Lamp pin from the Loungefly Disney Princess Cross Stitch",
+    "strata": [
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_002",
+    "split": "dev",
+    "crop_filename": "img2855_pin28.jpg",
+    "ebay_title": "Loungefly Disney Princess Mulan Rubber Duck Enamel Pin from Blind Box",
+    "strata": [
+      "chooser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_003",
+    "split": "dev",
+    "crop_filename": "img2850_pin25.jpg",
+    "ebay_title": "Disney WDI TaleSpin aDorbs! Molly Cunningham LE 400 pin",
+    "strata": [
+      "le_or_chaser",
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_004",
+    "split": "dev",
+    "crop_filename": "img2854_pin26.jpg",
+    "ebay_title": "2025 Disney Reflections Tiana Palace Princess Frog AP LE 1500 Pin",
+    "strata": [
+      "le_or_chaser"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_005",
+    "split": "dev",
+    "crop_filename": "img2842_pin08.jpg",
+    "ebay_title": "Disney TDR Tokyo Resort Pin Headband Mystery Set Lilo & Stitch - Angel",
+    "strata": [
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_006",
+    "split": "dev",
+    "crop_filename": "img2854_pin23.jpg",
+    "ebay_title": "Disney Little Mermaid Purse Pin Single Pin 2018",
+    "strata": [
+      "other"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_007",
+    "split": "dev",
+    "crop_filename": "img2850_pin29.jpg",
+    "ebay_title": "WDI TaleSpin Gorilla Goon Adorbs Chaser Disney Pin LE 300",
+    "strata": [
+      "le_or_chaser",
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_008",
+    "split": "dev",
+    "crop_filename": "img2848_pin21.jpg",
+    "ebay_title": "Disney 2026 WDW Tiana's Bayou Attraction Puzzle LE 550 pin YOU CHOOSE",
+    "strata": [
+      "chooser",
+      "le_or_chaser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_009",
+    "split": "dev",
+    "crop_filename": "img2838_pin16.jpg",
+    "ebay_title": "Lumiere (CHASER) - WDW Hidden Disney Series 2026 Wave B: Sundaes",
+    "strata": [
+      "le_or_chaser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_010",
+    "split": "dev",
+    "crop_filename": "img2856_pin26.jpg",
+    "ebay_title": "Disney Pin Young Simba Head Diamond Pattern Lion King 2016",
+    "strata": [
+      "other"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_011",
+    "split": "dev",
+    "crop_filename": "img2838_pin11.jpg",
+    "ebay_title": "PALM Pink A La Mode Stitch Standing Shy Micro Mystery 2025 LE Disney Pin i2",
+    "strata": [
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_012",
+    "split": "dev",
+    "crop_filename": "img2838_pin09.jpg",
+    "ebay_title": "Disney Princess Mirror Vanity - Ariel Design Enamel Pin - Single Disney Pin",
+    "strata": [
+      "other"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_013",
+    "split": "dev",
+    "crop_filename": "img2843_pin05.jpg",
+    "ebay_title": "Disney WDI MOG Flower Girls Villains Takeover Tangled Mother Gothel Pin",
+    "strata": [
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_014",
+    "split": "dev",
+    "crop_filename": "img2838_pin15.jpg",
+    "ebay_title": "Monogram BoxLunch Disney\u2019s Chip \u2018N Dale Rescue Rangers Pin Chip & Dale Acorn",
+    "strata": [
+      "other"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_015",
+    "split": "dev",
+    "crop_filename": "img2845_pin01.jpg",
+    "ebay_title": "2026 TDR Tokyo Disney Mickey Ears Headband Pin - Pluto",
+    "strata": [
+      "other"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_016",
+    "split": "dev",
+    "crop_filename": "img2850_pin24.jpg",
+    "ebay_title": "WDI MOG aDorbs! Dumbo Pink Elephants Round Elephant LE 400 Disney Pin",
+    "strata": [
+      "le_or_chaser",
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_017",
+    "split": "dev",
+    "crop_filename": "img2841_pin21.jpg",
+    "ebay_title": "DISNEY - WDW - First Day of Summer 2007 - Tinker Bell  NEW LE 1500  #55282",
+    "strata": [
+      "le_or_chaser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_018",
+    "split": "dev",
+    "crop_filename": "img2839_pin09.jpg",
+    "ebay_title": "Disney Loungefly - Tiana - Princess Stained Glass Windows Mystery Set Pin",
+    "strata": [
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_019",
+    "split": "dev",
+    "crop_filename": "img2843_pin07.jpg",
+    "ebay_title": "Disney Beyond the Magic Winnie the Pooh Hunny Pot LE 860 Pin Single",
+    "strata": [
+      "le_or_chaser"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_020",
+    "split": "dev",
+    "crop_filename": "img2839_pin16.jpg",
+    "ebay_title": "WDI Adorbs LE 400 - Monsters Inc Mike Wazowski",
+    "strata": [
+      "le_or_chaser",
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_021",
+    "split": "dev",
+    "crop_filename": "img2844_pin04.jpg",
+    "ebay_title": "In Hands 2026 WDW Windows of Attraction Enchanted Tiki Room Rosita LE",
+    "strata": [
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_022",
+    "split": "dev",
+    "crop_filename": "img2855_pin01.jpg",
+    "ebay_title": "Disney WDW Wave A 2019 Stylized Attractions Hidden Mickey Small World Chaser Pin",
+    "strata": [
+      "le_or_chaser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_023",
+    "split": "dev",
+    "crop_filename": "img2842_pin17.jpg",
+    "ebay_title": "Disney Mickey & Friends Cellphone Box Lunch Mystery pin. New/box. You Choose.",
+    "strata": [
+      "chooser",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_024",
+    "split": "dev",
+    "crop_filename": "img2847_pin28.jpg",
+    "ebay_title": "Disney Trading Pin 130930 hidden mickey Princess Crest Ariel",
+    "strata": [
+      "other"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_025",
+    "split": "dev",
+    "crop_filename": "img2852_pin21.jpg",
+    "ebay_title": "Disneyland - Tinker Bell Hot Air Balloon - Disneys Electrical Parade Pin",
+    "strata": [
+      "fluff"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_026",
+    "split": "dev",
+    "crop_filename": "img2835_pin07.jpg",
+    "ebay_title": "Disney D23 Expo 2026 Rapunzel & Pascal Stamp Pin LE 500 Tangled",
+    "strata": [
+      "le_or_chaser",
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_027",
+    "split": "dev",
+    "crop_filename": "img2848_pin05.jpg",
+    "ebay_title": "Disney Aladdin WDW Hidden Mickey Villain Neckties Collection 2015 Jafar PIN",
+    "strata": [
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_028",
+    "split": "dev",
+    "crop_filename": "img2837_pin02.jpg",
+    "ebay_title": "BoxLunch Disney Blind Box Cats Paws Tassel Mystery Chaser Oliver Enamel Pin",
+    "strata": [
+      "chooser",
+      "le_or_chaser",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_029",
+    "split": "dev",
+    "crop_filename": "img2851_pin25.jpg",
+    "ebay_title": "Oliver With A Hot Dog Oliver And Co LE Fantasy Pin",
+    "strata": [
+      "fluff"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_030",
+    "split": "dev",
+    "crop_filename": "img2831_pin07.jpg",
+    "ebay_title": "Disney Magical Theater Little Mermaid Ariel & Flounder LE 4500 - Series 7 of 12",
+    "strata": [
+      "le_or_chaser"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_031",
+    "split": "dev",
+    "crop_filename": "img2851_pin06.jpg",
+    "ebay_title": "Disney Baby Hercules and Snakes Vase 25th Anniversary Mystery Pin",
+    "strata": [
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_032",
+    "split": "dev",
+    "crop_filename": "img2839_pin21.jpg",
+    "ebay_title": "Loungefly Disney Cats & Dogs Cat Trees Pin - Oliver",
+    "strata": [
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_033",
+    "split": "dev",
+    "crop_filename": "img2846_pin04.jpg",
+    "ebay_title": "Disney 2026 Pooh & The Honey Tree 60th Eeyore Rabbit LR Mystery Pin YOU CHOOSE",
+    "strata": [
+      "chooser",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_034",
+    "split": "dev",
+    "crop_filename": "img2859_pin29.jpg",
+    "ebay_title": "Disney Pixar Ratatouille w/Remy Lounge Fly Mystery pin. New/box. You Choose.",
+    "strata": [
+      "chooser",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_035",
+    "split": "dev",
+    "crop_filename": "img2847_pin10.jpg",
+    "ebay_title": "Disney Loungefly Tinker Bell Holiday Mystery Pin - Glitter Red Ornament Chaser",
+    "strata": [
+      "le_or_chaser",
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_036",
+    "split": "dev",
+    "crop_filename": "img2831_pin14.jpg",
+    "ebay_title": "Disney DEC TWDCS D23 2026 Winnie The Pooh Piglet Stamp LE 500 Pin",
+    "strata": [
+      "le_or_chaser",
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_037",
+    "split": "dev",
+    "crop_filename": "img2839_pin03.jpg",
+    "ebay_title": "Disney Loungefly Sitting Princess and Pal Blind Box Pin - Tiana & Frog - opened",
+    "strata": [
+      "chooser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_038",
+    "split": "dev",
+    "crop_filename": "img2844_pin22.jpg",
+    "ebay_title": "Loungefly Disney Pixar Finding Nemo Pop Art Enamel Pin",
+    "strata": [
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_039",
+    "split": "dev",
+    "crop_filename": "img2845_pin24.jpg",
+    "ebay_title": "Disney Pixar Monsters Inc. Student ID card Mystery pin. New/box. You Choose.",
+    "strata": [
+      "chooser",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_040",
+    "split": "dev",
+    "crop_filename": "img2850_pin31.jpg",
+    "ebay_title": "WDI/MOG aDorbs! Trader Moe Chaser TaleSpin Cast Exclusive Pin 2026 LE 300",
+    "strata": [
+      "le_or_chaser",
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_041",
+    "split": "dev",
+    "crop_filename": "img2840_pin18.jpg",
+    "ebay_title": "BoxLunch Disney Blind Box Princess Scenes Jasmine And Raja Enamel Pin",
+    "strata": [
+      "chooser"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_042",
+    "split": "dev",
+    "crop_filename": "img2840_pin04.jpg",
+    "ebay_title": "Loungefly Princess and the Frog Mystery Box Pin (Dr. Facilier)",
+    "strata": [
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_043",
+    "split": "dev",
+    "crop_filename": "img2842_pin04.jpg",
+    "ebay_title": "Disney D23 2026 DEC TWDC Role Models Cinderella & Fairy Godmother Pin LE400",
+    "strata": [
+      "le_or_chaser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_044",
+    "split": "dev",
+    "crop_filename": "img2841_pin06.jpg",
+    "ebay_title": "DEC WDCS Legends Character Plaques Goofy Mickey Friends Mystery Cast Disney Pin",
+    "strata": [
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_045",
+    "split": "dev",
+    "crop_filename": "img2849_pin20.jpg",
+    "ebay_title": "Loungefly Disney Peter Pan Tinker Bell Holiday Mystery Box Pin - Snowflake",
+    "strata": [
+      "maker",
+      "setish"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_046",
+    "split": "dev",
+    "crop_filename": "img2839_pin01.jpg",
+    "ebay_title": "Loungefly Disney Princess Tiana Princess & the Frog Glitter Bow Pin",
+    "strata": [
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_047",
+    "split": "dev",
+    "crop_filename": "img2838_pin14.jpg",
+    "ebay_title": "WDI MOG Cinderella Christmas Holiday Ornament Pin LE 300",
+    "strata": [
+      "le_or_chaser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_048",
+    "split": "dev",
+    "crop_filename": "img2833_pin13.jpg",
+    "ebay_title": "Disney 2026 WDI Chef's Special John Silver Treasure Planet LE 300 pin",
+    "strata": [
+      "le_or_chaser",
+      "maker"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  },
+  {
+    "sample_id": "dev_049",
+    "split": "dev",
+    "crop_filename": "img2844_pin03.jpg",
+    "ebay_title": "Card Fun Disney SSR Card Lady Ice LV01-SSR25",
+    "strata": [
+      "other"
+    ],
+    "gold": {
+      "keep": {
+        "set": null,
+        "maker": null,
+        "park_or_event": null
+      },
+      "quarantine": {
+        "le_size": null,
+        "is_chaser": null,
+        "is_mystery": null,
+        "year": null
+      },
+      "drop_examples": [],
+      "notes": ""
+    }
+  }
+]

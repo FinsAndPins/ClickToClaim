@@ -1,0 +1,37 @@
+{
+  "round": 1,
+  "split": "dev",
+  "n": 50,
+  "source_run": "test_PriceCollection_20261121_2225__build_20261123_fullres_visual_baseline",
+  "prompt": "prompts/extract_v1.txt",
+  "predictions_file": "reports/extract_dev_llm.json",
+  "heuristic_baseline": "reports/extract_dev_heuristic.json",
+  "review_csv": "reports/review_dev.csv",
+  "quarantine_leak_rate_self_check": 0.0,
+  "gold_labeled": false,
+  "holdout_touched": false,
+  "external_api_used": false,
+  "external_api_note": "GEMINI_API_KEY / OPENAI_API_KEY not in environment; re-request recorded. scripts/run_extract.py ready when either key is bound.",
+  "sample_description_candidates": [
+    {
+      "sample_id": "dev_000",
+      "title": "Disney Pixar Ratatouille Parking Pass Blind Box Single Pin R-2007",
+      "description_candidate": "Parking Pass Blind Box"
+    },
+    {
+      "sample_id": "dev_003",
+      "title": "Disney WDI TaleSpin aDorbs! Molly Cunningham LE 400 pin",
+      "description_candidate": "Adorbs WDI"
+    },
+    {
+      "sample_id": "dev_008",
+      "title": "Disney 2026 WDW Tiana's Bayou Attraction Puzzle LE 550 pin YOU CHOOSE",
+      "description_candidate": "Tiana's Bayou Attraction Puzzle WDW"
+    },
+    {
+      "sample_id": "dev_026",
+      "title": "Disney D23 Expo 2026 Rapunzel & Pascal Stamp Pin LE 500 Tangled",
+      "description_candidate": "Stamp D23"
+    }
+  ]
+}

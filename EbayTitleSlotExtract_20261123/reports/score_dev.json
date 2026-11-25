@@ -1,0 +1,80 @@
+{
+  "summary": {
+    "split": "dev",
+    "pred_file": "/workspace/EbayTitleSlotExtract_20261123/reports/extract_dev_heuristic.json",
+    "n_predictions": 50,
+    "n_labeled": 0,
+    "n_unlabeled": 50,
+    "quarantine_leak_count": 0,
+    "quarantine_leak_rate": null,
+    "gate_quarantine_leak_zero": false,
+    "field_stats": {
+      "set": {
+        "exact": 0,
+        "partial": 0,
+        "miss": 0,
+        "both_empty": 0,
+        "gold_empty_pred": 0,
+        "pred_empty_gold": 0,
+        "n": 0
+      },
+      "maker": {
+        "exact": 0,
+        "partial": 0,
+        "miss": 0,
+        "both_empty": 0,
+        "gold_empty_pred": 0,
+        "pred_empty_gold": 0,
+        "n": 0
+      },
+      "park_or_event": {
+        "exact": 0,
+        "partial": 0,
+        "miss": 0,
+        "both_empty": 0,
+        "gold_empty_pred": 0,
+        "pred_empty_gold": 0,
+        "n": 0
+      },
+      "le_size": {
+        "exact": 0,
+        "partial": 0,
+        "miss": 0,
+        "both_empty": 0,
+        "gold_empty_pred": 0,
+        "pred_empty_gold": 0,
+        "n": 0
+      },
+      "is_chaser": {
+        "exact": 0,
+        "partial": 0,
+        "miss": 0,
+        "both_empty": 0,
+        "gold_empty_pred": 0,
+        "pred_empty_gold": 0,
+        "n": 0
+      },
+      "is_mystery": {
+        "exact": 0,
+        "partial": 0,
+        "miss": 0,
+        "both_empty": 0,
+        "gold_empty_pred": 0,
+        "pred_empty_gold": 0,
+        "n": 0
+      },
+      "year": {
+        "exact": 0,
+        "partial": 0,
+        "miss": 0,
+        "both_empty": 0,
+        "gold_empty_pred": 0,
+        "pred_empty_gold": 0,
+        "n": 0
+      }
+    },
+    "note": "Fill data/gold_{split}_50.json before trusting field_stats. Holdout must stay sealed until scorer + prompt are frozen."
+  },
+  "leak_rows": [],
+  "rows": []
+}
