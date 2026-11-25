@@ -26,6 +26,9 @@ QUARANTINE_PATTERNS = [
     re.compile(r"\b(19|20)\d{2}\b"),
     re.compile(r"\bAP\b"),
     re.compile(r"\bPP\b"),
+    re.compile(r"\bCME\b"),
+    re.compile(r"Cast\s+Member\s+Exclusive", re.I),
+    re.compile(r"Cast\s+Exclusive", re.I),
 ]
 
 

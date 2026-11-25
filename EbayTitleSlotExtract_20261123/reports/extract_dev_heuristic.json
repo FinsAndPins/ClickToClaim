@@ -1232,7 +1232,9 @@
           "is_mystery": false,
           "year": "2026"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "cast exclusive"
+        ]
       },
       "description_candidate": "Adorbs WDI",
       "model": "heuristic",

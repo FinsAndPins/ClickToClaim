@@ -49,11 +49,13 @@ SET_HINTS = [
     (r"\bVanity\b", "Vanity"),
 ]
 DROP = re.compile(
-    r"\b(free shipping|rare|htf|nib|nwt|you choose|pick|unique|wow|wholesale|lot|AP|PP)\b",
+    r"\b(free shipping|rare|htf|nib|nwt|you choose|pick|unique|wow|wholesale|lot|AP|PP|CME)\b"
+    r"|Cast\s+Member\s+Exclusive|Cast\s+Exclusive",
     re.I,
 )
 _QUAR_WORD = re.compile(
-    r"\b(LE\s*\d{2,5}|chaser|mystery|(?:19|20)\d{2}|AP|PP)\b",
+    r"\b(LE\s*\d{2,5}|chaser|mystery|(?:19|20)\d{2}|AP|PP|CME)\b"
+    r"|Cast\s+Member\s+Exclusive|Cast\s+Exclusive",
     re.I,
 )
 LE = re.compile(r"\bLE\s*(\d{2,5})\b", re.I)
@@ -98,7 +100,10 @@ def assemble(pred: dict) -> str:
     for k in ("set", "maker", "park_or_event"):
         if not keep.get(k):
             continue
-        if re.fullmatch(r"(?i)AP|PP", str(keep[k]).strip()):
+        if re.fullmatch(
+            r"(?i)AP|PP|CME|Cast\s+Exclusive|Cast\s+Member\s+Exclusive",
+            str(keep[k]).strip(),
+        ):
             continue
         cleaned = " ".join(_QUAR_WORD.sub(" ", str(keep[k])).split())
         if not cleaned or cleaned.lower() in seen:
