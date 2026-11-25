@@ -28,13 +28,16 @@ Input is the matched listing title (same source as CTM/CTP `selected_candidate.t
 
 ### Hard excludes (current list)
 
-Never put these in keep or in the assembled description string:
+Never put these in keep or in the assembled description string. Canonical regex: `scripts/exclude_patterns.py`.
 
 - **LE size** (e.g. LE 300, LE 1500) and year tokens
 - **Chaser**, **Mystery** as flags (also strip those words from description even if they appear inside a set name)
-- **AP** (Artist Proof), **PP** (Pre-Production / Proof) — back stamps on a specific physical pin
-- **Cast Exclusive** / **Cast Member Exclusive** / **CME** — cast channel; our pin may not be that copy
-- Chooser / sales fluff: you choose, pick, free shipping, rare, HTF, NIB, opened, New/box, seller SKUs, etc.
+- **AP** / **Artist Proof**, **PP** / **Preproduction**, **Sample** — back stamps / proofs on a specific physical pin
+- **LR** / **Limited Release**, **OE** / **Open Edition** — edition channel (note: **DLR** = Disneyland Resort is keep; only bare **LR** drops)
+- **Cast Exclusive** / **Cast Member Exclusive** / **CME**
+- **Fantasy Pin** / **Fantasy**
+- **Opened**, **loose**, **no box**, **In Hands** — seller condition / logistics
+- Chooser / sales fluff: you choose, pick, free shipping, rare, HTF, NIB, New/box, seller SKUs, etc.
 
 Wrong keep fact is worse than empty.
 
@@ -53,6 +56,8 @@ Examples from Round 1:
 | 2025 … Reflections … AP LE 1500 | Reflections |
 | … WDW Tiana's Bayou … LE 550 YOU CHOOSE | Tiana's Bayou Attraction Puzzle WDW |
 | WDI/MOG aDorbs! … Cast Exclusive … LE 300 | Adorbs WDI/MOG |
+| … Pooh … 60th … LR Mystery … YOU CHOOSE | Pooh & The Honey Tree 60th |
+| In Hands 2026 WDW Windows of Attraction … | Windows of Attraction WDW |
 
 Character/movie are added by Script A separately (e.g. `Character · Maker · Set` or whatever the Shopify title template is).
 
@@ -96,14 +101,14 @@ Goal: For our ~3000-pin Shopify upload, build customer-facing titles/description
 Hard rules:
 1. Do NOT invent character or movie — reuse Script A / existing character+movie fields we already have.
 2. Extract only keep slots: set, maker, park_or_event from the eBay title text.
-3. NEVER put into Shopify title/description: LE size, year, Chaser, Mystery, AP, PP, Cast Exclusive / Cast Member Exclusive / CME, you-choose/picker fluff, seller SKUs.
+3. NEVER put into Shopify title/description: LE size, year, Chaser, Mystery, AP, Artist Proof, PP, Preproduction, Sample, LR, Limited Release, OE, Open Edition, Cast Exclusive / Cast Member Exclusive / CME, Fantasy Pin, Opened, loose, no box, In Hands, you-choose/picker fluff, seller SKUs. (DLR = Disneyland Resort is OK to keep.)
 4. Wrong fact worse than empty. Prefer omit over guessing.
 5. Do not change production pricing watchers, PrepareClickToClaim, or ClickToClaim show folders unless I explicitly say SHIP TO PRODUCTION.
 6. New work only under your Shopify project folder (or a new experiment folder). Do not edit EbayTitleSlotExtract_20261123 except to read it.
 
 DoD:
 - One row per pin with: ebay_title, script_a_character, script_a_movie, keep fields, description_candidate (or Shopify title built from character + keep), drop/quarantine fields.
-- Quarantine/exclude leak rate into description_candidate = 0 (spot-check AP/PP/Cast Exclusive/LE#).
+- Quarantine/exclude leak rate into description_candidate = 0 (spot-check AP/PP/LR/OE/Cast Exclusive/Fantasy/Opened/In Hands/LE#; DLR must still be allowed).
 - Sample 20 rows for my review before writing all ~3000.
 - Paste verification: counts, 5 example titles before/after, leak count.
 
@@ -112,22 +117,20 @@ If the Shopify title template differs from Whatnot, say how you mapped keep slot
 
 ---
 
-## Other exclude words Steve may want next
+## Other exclude words still open (not hard-excluded yet)
 
-Not yet enforced as hard excludes (except where noted). Worth reviewing on a 20-pin sample before locking:
+Worth a yes/no on a 20-pin sample before locking:
 
 | Candidate | Why |
 |---|---|
-| **LR** / Limited Release | Channel/edition label; similar to AP — often not on our copy |
-| **Artist Proof** / **Preproduction** / **Proof** / **Sample** spelled out | Same as AP/PP |
-| **Fantasy** / **Fantasy Pin** | Not official Disney; may be wrong for store policy |
-| **Opened** / **loose** / **no box** | Condition of seller’s pin |
-| **In Hands** / **Ready to ship** | Seller logistics |
-| **Booster** / **Blind Bag** vs Blind Box | Confirm whether you want product-line words kept |
-| Park acronyms on chooser lots | Title may list many parks; prefer omit if ambiguous |
-| Numeric pin / SKU codes (`#55282`, `130930`, `R-2007`) | Seller inventory — already usually dropped |
-| **DEC** / **WDCS** / **TWDCS** when used as collection codes | Keep only if you want them as maker; otherwise drop |
-| **BoxLunch** as retailer | Sometimes retailer, not maker — decide keep vs drop |
-| Anniversary counts (`25th`, `60th`) | Useful set signal vs noisy — taste call |
+| **Prototype** / **Error** / **Scrapper** / **Dupe** | Not sellable-as-official copy for most Shopify listings |
+| **Employee** / **Cast Member** (without Exclusive) | Channel/person; often wrong for store copy |
+| **Ready to ship** / **Ships free** / **Authentic** / **Genuine** / **Retired** | Seller marketing |
+| **Trading Pin** / **Enamel Pin** / **Disney Pin** / **Single Pin** | Generic product words — usually noise in titles |
+| Anniversary counts (`25th`, `60th`) | Sometimes part of set name (Pooh 60th); taste call |
+| **BoxLunch** as retailer | Retailer vs maker — decide keep vs drop |
+| **DEC** / **WDCS** / **TWDCS** collection codes | Keep as maker only if you want them on Shopify |
+| **Booster** / **Blind Bag** vs Blind Box | Product-line words — usually keep Blind Box |
+| Ambiguous multi-park chooser titles | Prefer omit park if the lot lists several |
 
 Do **not** exclude real makers (WDI, MOG, DSSH, Loungefly, PALM, …) or real set names (Adorbs, Stamp, Reflections, …) unless a sample shows systematic wrong matches.

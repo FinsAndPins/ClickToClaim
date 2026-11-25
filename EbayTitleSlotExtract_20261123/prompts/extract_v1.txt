@@ -20,20 +20,22 @@ Return JSON only, no markdown, with this shape:
 
 Definitions:
 - keep.set: set or series name that identifies the pin line (e.g. Adorbs, Stamps, Advent Calendar, Floral Blind Box, Cookie Sheet). Not the character name.
-- keep.maker: maker/brand acronym or short name when present (WDI, MOG, DSSH, DSF, DEC, D23, Loungefly, PALM/Pink a la Mode, Monogram, Disney Parks, etc.). Prefer the acronym when both appear. Never treat AP or PP as maker.
-- keep.park_or_event: park or event that identifies the pin (WDW, DLR, HKDL, D23, Disneyland Paris/DLP) when present.
+- keep.maker: maker/brand acronym or short name when present (WDI, MOG, DSSH, DSF, DEC, D23, Loungefly, PALM/Pink a la Mode, Monogram, Disney Parks, etc.). Prefer the acronym when both appear. Never treat AP, PP, LR, or OE as maker.
+- keep.park_or_event: park or event that identifies the pin (WDW, DLR, HKDL, D23, Disneyland Paris/DLP) when present. DLR is Disneyland Resort (keep). LR alone is Limited Release (drop).
 - quarantine.le_size: limited-edition run size only (e.g. "500", "5750") if clearly an LE size. Never put this in a description.
 - quarantine.is_chaser / is_mystery: true only if those words clearly appear.
 - quarantine.year: calendar year token if present (e.g. "2026").
-- drop_tokens: marketing / sales / chooser fluff you ignored (free shipping, rare, HTF, NIB, you choose, pick, unique, wow, emoji words, seller SKUs, wholesale, etc.) AND tokens that describe a specific physical pin or channel that may not match ours:
-  - AP (Artist Proof), PP (Pre-Production / Proof) back stamps
+- drop_tokens: marketing / sales / chooser fluff you ignored (free shipping, rare, HTF, NIB, you choose, pick, unique, wow, emoji words, seller SKUs, wholesale, etc.) AND tokens that describe a specific physical pin, edition channel, or seller condition that may not match ours — never put these in keep or any description text:
+  - AP / Artist Proof, PP / Preproduction / Pre-Production, Sample
+  - LR / Limited Release, OE / Open Edition
   - Cast Exclusive / Cast Member Exclusive / CME
-  Never put any of those in keep or in any description text.
+  - Fantasy Pin / Fantasy
+  - Opened, loose, no box, In Hands
 
 Hard rules:
 1. Describe facts about the matched pin's listing text, not the seller's chooser offer. If the title is "you choose", do not treat "you choose" as keep.
 2. Wrong fact is worse than missing. If a number might be LE size, year, or seller SKU, put LE/year in quarantine only when clear; otherwise omit.
 3. Never output character or movie/franchise fields.
 4. Do not invent makers or sets not supported by the title.
-5. Never keep or describe AP, PP, or Cast Exclusive (or Cast Member Exclusive / CME). Put them in drop_tokens only.
+5. Never keep or describe any drop-list token above (AP/PP/LR/OE/Cast Exclusive/Fantasy/Opened/loose/no box/In Hands/Sample/Artist Proof/Preproduction/Open Edition/Limited Release). Put them in drop_tokens only.
 6. JSON only.

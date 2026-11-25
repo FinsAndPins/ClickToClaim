@@ -22,12 +22,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROMPT = (ROOT / "prompts" / "extract_v1.txt").read_text(encoding="utf-8")
-# Never enter description: LE size, chaser, mystery, year, AP/PP, Cast Exclusive.
-_QUAR_WORD = re.compile(
-    r"\b(LE\s*\d{2,5}|chaser|mystery|(?:19|20)\d{2}|AP|PP|CME)\b"
-    r"|Cast\s+Member\s+Exclusive|Cast\s+Exclusive",
-    re.I,
-)
+
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from exclude_patterns import EXCLUDE_RE, WHOLE_EXCLUDE_RE  # noqa: E402
+
+_QUAR_WORD = EXCLUDE_RE
 
 
 def load_pins(split: str) -> list[dict]:
@@ -99,20 +100,17 @@ def call_openai(title: str, model: str, api_key: str) -> dict:
 def assemble_description(pred: dict) -> str:
     """Candidate description WITHOUT character/movie (Script A fills those later).
 
-    Quarantine/exclude tokens (LE size, Chaser, Mystery, year, AP, PP,
-    Cast Exclusive) are stripped even if they appear inside a keep field.
+    Quarantine/exclude tokens are stripped even if they appear inside a keep field.
+    See exclude_patterns.py for the full list (AP/PP/LR/OE/Cast Exclusive/Fantasy/…).
     """
     keep = pred.get("keep") or {}
     parts = []
     seen = set()
-    _whole_exclude = re.compile(
-        r"(?i)^(AP|PP|CME|Cast\s+Exclusive|Cast\s+Member\s+Exclusive)$"
-    )
     for key in ("set", "maker", "park_or_event"):
         val = keep.get(key)
         if not val:
             continue
-        if _whole_exclude.fullmatch(str(val).strip()):
+        if WHOLE_EXCLUDE_RE.fullmatch(str(val).strip()):
             continue
         cleaned = " ".join(_QUAR_WORD.sub(" ", str(val)).split())
         if not cleaned:

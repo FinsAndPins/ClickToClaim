@@ -14,6 +14,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from exclude_patterns import EXCLUDE_RE, TITLE_DROP_FIND_RE, WHOLE_EXCLUDE_RE  # noqa: E402
+
 MAKERS = [
     ("WDI", r"\bWDI\b"),
     ("MOG", r"\bMOG\b"),
@@ -48,14 +53,8 @@ SET_HINTS = [
     (r"\bReflections\b", "Reflections"),
     (r"\bVanity\b", "Vanity"),
 ]
-DROP = re.compile(
-    r"\b(free shipping|rare|htf|nib|nwt|you choose|pick|unique|wow|wholesale|lot|AP|PP|CME)\b"
-    r"|Cast\s+Member\s+Exclusive|Cast\s+Exclusive",
-    re.I,
-)
-_QUAR_WORD = re.compile(
-    r"\b(LE\s*\d{2,5}|chaser|mystery|(?:19|20)\d{2}|AP|PP|CME)\b"
-    r"|Cast\s+Member\s+Exclusive|Cast\s+Exclusive",
+FLUFF = re.compile(
+    r"\b(free shipping|rare|htf|nib|nwt|you choose|pick|unique|wow|wholesale|lot)\b",
     re.I,
 )
 LE = re.compile(r"\bLE\s*(\d{2,5})\b", re.I)
@@ -80,7 +79,13 @@ def extract(title: str) -> dict:
             break
     le_m = LE.search(title)
     year_m = YEAR.search(title)
-    drops = sorted({m.group(0).lower() for m in DROP.finditer(title)})
+    drops = sorted(
+        {
+            *(m.group(0) for m in FLUFF.finditer(title)),
+            *(m.group(0) for m in TITLE_DROP_FIND_RE.finditer(title)),
+        },
+        key=str.lower,
+    )
     return {
         "keep": {"set": set_name, "maker": maker, "park_or_event": park},
         "quarantine": {
@@ -100,12 +105,9 @@ def assemble(pred: dict) -> str:
     for k in ("set", "maker", "park_or_event"):
         if not keep.get(k):
             continue
-        if re.fullmatch(
-            r"(?i)AP|PP|CME|Cast\s+Exclusive|Cast\s+Member\s+Exclusive",
-            str(keep[k]).strip(),
-        ):
+        if WHOLE_EXCLUDE_RE.fullmatch(str(keep[k]).strip()):
             continue
-        cleaned = " ".join(_QUAR_WORD.sub(" ", str(keep[k])).split())
+        cleaned = " ".join(EXCLUDE_RE.sub(" ", str(keep[k])).split())
         if not cleaned or cleaned.lower() in seen:
             continue
         seen.add(cleaned.lower())

@@ -18,17 +18,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from exclude_patterns import EXCLUDE_RE  # noqa: E402
+
 QUARANTINE_PATTERNS = [
-    re.compile(r"\bLE\s*\d{2,5}\b", re.I),
+    EXCLUDE_RE,
     re.compile(r"\b\d{2,5}\s*/\s*\d{2,5}\b"),
-    re.compile(r"\bchaser\b", re.I),
-    re.compile(r"\bmystery\b", re.I),
-    re.compile(r"\b(19|20)\d{2}\b"),
-    re.compile(r"\bAP\b"),
-    re.compile(r"\bPP\b"),
-    re.compile(r"\bCME\b"),
-    re.compile(r"Cast\s+Member\s+Exclusive", re.I),
-    re.compile(r"Cast\s+Exclusive", re.I),
 ]
 
 
