@@ -795,7 +795,15 @@
 
   async function init() {
     const r = await fetch("./boards/manifest.json?v=" + Date.now(), { cache: "no-store" });
-    stems = await r.json();
+    const raw = await r.json();
+    // Accept legacy array or { boards: ["IMG_…"] } / { boards: [{ stem }] }
+    if (Array.isArray(raw)) {
+      stems = raw.map((x) => (typeof x === "string" ? x : (x && (x.stem || x.file || "")).replace(/\.json$/i, "").replace(/\.jpe?g$/i, ""))).filter(Boolean);
+    } else if (raw && Array.isArray(raw.boards)) {
+      stems = raw.boards.map((x) => (typeof x === "string" ? x : (x && (x.stem || x.file || "")).replace(/\.json$/i, "").replace(/\.jpe?g$/i, ""))).filter(Boolean);
+    } else {
+      throw new Error("manifest.json must be a string array of board stems");
+    }
     el.select.innerHTML = stems.map((s, i) => `<option value="${s}">${i + 1}. ${s}</option>`).join("");
     await loadBoard(0);
 
