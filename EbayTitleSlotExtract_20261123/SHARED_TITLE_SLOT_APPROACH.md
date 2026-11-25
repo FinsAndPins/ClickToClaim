@@ -34,10 +34,15 @@ Never put these in keep or in the assembled description string. Canonical regex:
 - **Chaser**, **Mystery** as flags (also strip those words from description even if they appear inside a set name)
 - **AP** / **Artist Proof**, **PP** / **Preproduction**, **Sample** — back stamps / proofs on a specific physical pin
 - **LR** / **Limited Release**, **OE** / **Open Edition** — edition channel (note: **DLR** = Disneyland Resort is keep; only bare **LR** drops)
-- **Cast Exclusive** / **Cast Member Exclusive** / **CME**
+- **Cast Exclusive** / **Cast Member Exclusive** / **CME** / bare **Cast Member** / **Employee**
 - **Fantasy Pin** / **Fantasy**
-- **Opened**, **loose**, **no box**, **In Hands** — seller condition / logistics
+- **Prototype**, **Error**, **Scrapper**, **Dupe**
+- **Opened**, **loose**, **no box**, **In Hands**, **Ready to ship** — seller condition / logistics
+- **Authentic**, **Genuine**, **Retired**
+- Generic product noise: **Trading Pin**, **Enamel Pin**, **Disney Pin**, **Single Pin**
 - Chooser / sales fluff: you choose, pick, free shipping, rare, HTF, NIB, New/box, seller SKUs, etc.
+
+**Intentionally keep:** anniversary counts (`60th`, `25th`), **BoxLunch**, **DEC** / **WDCS** / **TWDCS**.
 
 Wrong keep fact is worse than empty.
 
@@ -101,14 +106,14 @@ Goal: For our ~3000-pin Shopify upload, build customer-facing titles/description
 Hard rules:
 1. Do NOT invent character or movie — reuse Script A / existing character+movie fields we already have.
 2. Extract only keep slots: set, maker, park_or_event from the eBay title text.
-3. NEVER put into Shopify title/description: LE size, year, Chaser, Mystery, AP, Artist Proof, PP, Preproduction, Sample, LR, Limited Release, OE, Open Edition, Cast Exclusive / Cast Member Exclusive / CME, Fantasy Pin, Opened, loose, no box, In Hands, you-choose/picker fluff, seller SKUs. (DLR = Disneyland Resort is OK to keep.)
+3. NEVER put into Shopify title/description: LE size, year, Chaser, Mystery, AP, Artist Proof, PP, Preproduction, Sample, LR, Limited Release, OE, Open Edition, Cast Exclusive / Cast Member Exclusive / CME / bare Cast Member / Employee, Fantasy Pin, Prototype, Error, Scrapper, Dupe, Opened, loose, no box, In Hands, Ready to ship, Authentic, Genuine, Retired, Trading Pin, Enamel Pin, Disney Pin, Single Pin, you-choose/picker fluff, seller SKUs. KEEP anniversary (60th), BoxLunch, DEC/WDCS/TWDCS. DLR = Disneyland Resort is OK.
 4. Wrong fact worse than empty. Prefer omit over guessing.
 5. Do not change production pricing watchers, PrepareClickToClaim, or ClickToClaim show folders unless I explicitly say SHIP TO PRODUCTION.
 6. New work only under your Shopify project folder (or a new experiment folder). Do not edit EbayTitleSlotExtract_20261123 except to read it.
 
 DoD:
 - One row per pin with: ebay_title, script_a_character, script_a_movie, keep fields, description_candidate (or Shopify title built from character + keep), drop/quarantine fields.
-- Quarantine/exclude leak rate into description_candidate = 0 (spot-check AP/PP/LR/OE/Cast Exclusive/Fantasy/Opened/In Hands/LE#; DLR must still be allowed).
+- Quarantine/exclude leak rate into description_candidate = 0 (spot-check excludes in exclude_patterns.py; DLR, anniversary, BoxLunch, DEC/WDCS/TWDCS must still be allowed).
 - Sample 20 rows for my review before writing all ~3000.
 - Paste verification: counts, 5 example titles before/after, leak count.
 
@@ -117,20 +122,12 @@ If the Shopify title template differs from Whatnot, say how you mapped keep slot
 
 ---
 
-## Other exclude words still open (not hard-excluded yet)
+## Intentionally kept (do not exclude)
 
-Worth a yes/no on a 20-pin sample before locking:
+- Anniversary counts (`25th`, `60th`, …)
+- **BoxLunch**
+- **DEC** / **WDCS** / **TWDCS**
 
-| Candidate | Why |
-|---|---|
-| **Prototype** / **Error** / **Scrapper** / **Dupe** | Not sellable-as-official copy for most Shopify listings |
-| **Employee** / **Cast Member** (without Exclusive) | Channel/person; often wrong for store copy |
-| **Ready to ship** / **Ships free** / **Authentic** / **Genuine** / **Retired** | Seller marketing |
-| **Trading Pin** / **Enamel Pin** / **Disney Pin** / **Single Pin** | Generic product words — usually noise in titles |
-| Anniversary counts (`25th`, `60th`) | Sometimes part of set name (Pooh 60th); taste call |
-| **BoxLunch** as retailer | Retailer vs maker — decide keep vs drop |
-| **DEC** / **WDCS** / **TWDCS** collection codes | Keep as maker only if you want them on Shopify |
-| **Booster** / **Blind Bag** vs Blind Box | Product-line words — usually keep Blind Box |
-| Ambiguous multi-park chooser titles | Prefer omit park if the lot lists several |
+Still optional later (not locked): **Booster** / **Blind Bag** vs Blind Box; ambiguous multi-park chooser titles (omit park if several parks listed).
 
 Do **not** exclude real makers (WDI, MOG, DSSH, Loungefly, PALM, …) or real set names (Adorbs, Stamp, Reflections, …) unless a sample shows systematic wrong matches.

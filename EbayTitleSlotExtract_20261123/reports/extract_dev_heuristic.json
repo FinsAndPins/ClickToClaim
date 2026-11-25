@@ -29,7 +29,9 @@
           "is_mystery": false,
           "year": "2007"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Single Pin"
+        ]
       },
       "description_candidate": "Parking Pass",
       "model": "heuristic",
@@ -88,7 +90,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Blind Box Loungefly",
       "model": "heuristic",
@@ -208,7 +212,9 @@
           "is_mystery": false,
           "year": "2018"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Single Pin"
+        ]
       },
       "description_candidate": "",
       "model": "heuristic",
@@ -239,7 +245,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin"
+        ]
       },
       "description_candidate": "Adorbs WDI",
       "model": "heuristic",
@@ -331,7 +339,9 @@
           "is_mystery": false,
           "year": "2016"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin"
+        ]
       },
       "description_candidate": "",
       "model": "heuristic",
@@ -361,7 +371,9 @@
           "is_mystery": true,
           "year": "2025"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin"
+        ]
       },
       "description_candidate": "PALM",
       "model": "heuristic",
@@ -390,7 +402,10 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin",
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Vanity",
       "model": "heuristic",
@@ -508,7 +523,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin"
+        ]
       },
       "description_candidate": "Adorbs WDI",
       "model": "heuristic",
@@ -750,7 +767,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Trading Pin"
+        ]
       },
       "description_candidate": "",
       "model": "heuristic",
@@ -870,7 +889,9 @@
           "is_mystery": true,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Blind Box",
       "model": "heuristic",
@@ -1176,7 +1197,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Loungefly",
       "model": "heuristic",
@@ -1270,7 +1293,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Blind Box",
       "model": "heuristic",
@@ -1360,7 +1385,9 @@
           "is_mystery": true,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin"
+        ]
       },
       "description_candidate": "DEC",
       "model": "heuristic",
