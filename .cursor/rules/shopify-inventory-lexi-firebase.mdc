@@ -1,0 +1,26 @@
+# Shopify inventory: Lexi price/title from Firebase only
+
+## Incident (2026-11-25)
+
+Shopify sample showed `$50` + wrong eBay title for `img2903_pin01` while Overlay/CTP showed Lexi’s `$1200` match. Cause: builder read local PriceCollection `ui_data.json` (bootstrap S0). Lexi’s CTP Match writes only to Firebase.
+
+## Hard rule
+
+For any Shopify / inventory CSV build from a priced collection:
+
+1. **Price + eBay listing title** = Firebase  
+   `pin_pricing_tests/{test_run_id}/visual_baseline/pins`  
+   (same family as Script A `build_pins_from_firebase.py`)
+2. **Local `ui_data.json`** = geometry / crop list only. Never final `display_price` / `listing_title`.
+3. **Script A / Sonnet VLM inputs** must be generated **after** Firebase-backed `pins.json`, via `prepare_vlm_inputs.py`. Never feed VLM stale `ui_data` titles.
+4. **CSV build must fail closed** if `price_source != firebase` (`assert_lexi_source.py`).
+
+Project path: `Cursor Projects/ShopifyInventory_BooksPlus20261123/`  
+Helpers: `tools/lexi_firebase.py`, `tools/assert_lexi_source.py`, `tools/prepare_vlm_inputs.py`  
+Lesson: `LESSONS_ui_data_vs_firebase_20261125.md`
+
+## Do not
+
+- Treat Overlay-looking-correct as proof the CSV source file is correct
+- Patch only “obvious” wrong rows when ui_data was the source (rebuild from Firebase)
+- Write to Firebase from the Shopify inventory builder (read-only)
