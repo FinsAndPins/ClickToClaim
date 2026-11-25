@@ -25,17 +25,21 @@ Definitions:
 - quarantine.le_size: limited-edition run size only (e.g. "500", "5750") if clearly an LE size. Never put this in a description.
 - quarantine.is_chaser / is_mystery: true only if those words clearly appear.
 - quarantine.year: calendar year token if present (e.g. "2026").
-- drop_tokens: marketing / sales / chooser fluff you ignored (free shipping, rare, HTF, NIB, you choose, pick, unique, wow, emoji words, seller SKUs, wholesale, etc.) AND tokens that describe a specific physical pin, edition channel, or seller condition that may not match ours — never put these in keep or any description text:
+- drop_tokens: marketing / sales / chooser fluff you ignored (free shipping, rare, HTF, NIB, you choose, pick, unique, wow, emoji words, seller SKUs, wholesale, etc.) AND tokens that describe a specific physical pin, edition channel, seller condition, or generic product noise — never put these in keep or any description text:
   - AP / Artist Proof, PP / Preproduction / Pre-Production, Sample
   - LR / Limited Release, OE / Open Edition
-  - Cast Exclusive / Cast Member Exclusive / CME
+  - Cast Exclusive / Cast Member Exclusive / CME / bare Cast Member / Employee
   - Fantasy Pin / Fantasy
-  - Opened, loose, no box, In Hands
+  - Prototype, Error, Scrapper, Dupe
+  - Opened, loose, no box, In Hands, Ready to ship
+  - Authentic, Genuine, Retired
+  - Trading Pin, Enamel Pin, Disney Pin, Single Pin
+- Intentionally KEEP when present (do not drop): anniversary counts (e.g. 60th, 25th), BoxLunch, DEC / WDCS / TWDCS.
 
 Hard rules:
 1. Describe facts about the matched pin's listing text, not the seller's chooser offer. If the title is "you choose", do not treat "you choose" as keep.
 2. Wrong fact is worse than missing. If a number might be LE size, year, or seller SKU, put LE/year in quarantine only when clear; otherwise omit.
 3. Never output character or movie/franchise fields.
 4. Do not invent makers or sets not supported by the title.
-5. Never keep or describe any drop-list token above (AP/PP/LR/OE/Cast Exclusive/Fantasy/Opened/loose/no box/In Hands/Sample/Artist Proof/Preproduction/Open Edition/Limited Release). Put them in drop_tokens only.
+5. Never keep or describe any drop-list token above. Put them in drop_tokens only.
 6. JSON only.

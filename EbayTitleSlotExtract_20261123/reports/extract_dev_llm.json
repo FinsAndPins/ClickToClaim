@@ -96,7 +96,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Rubber Duck Blind Box Loungefly",
       "model": "cursor_llm",
@@ -180,7 +182,7 @@
       "price_source": "manual",
       "prediction": {
         "keep": {
-          "set": "Headband Mystery Set",
+          "set": "Headband Set",
           "maker": null,
           "park_or_event": "TDR"
         },
@@ -254,7 +256,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin"
+        ]
       },
       "description_candidate": "Adorbs WDI",
       "model": "cursor_llm",
@@ -349,7 +353,9 @@
           "is_mystery": false,
           "year": "2016"
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin"
+        ]
       },
       "description_candidate": "Diamond Pattern",
       "model": "cursor_llm",
@@ -370,7 +376,7 @@
       "price_source": "listing",
       "prediction": {
         "keep": {
-          "set": "Standing Shy Micro Mystery",
+          "set": "Standing Shy Micro",
           "maker": "PALM",
           "park_or_event": null
         },
@@ -381,7 +387,8 @@
           "year": "2025"
         },
         "drop_tokens": [
-          "i2"
+          "i2",
+          "Disney Pin"
         ]
       },
       "description_candidate": "Standing Shy Micro PALM",
@@ -413,7 +420,9 @@
           "year": null
         },
         "drop_tokens": [
-          "Single Disney Pin"
+          "Single Disney Pin",
+          "Enamel Pin",
+          "Disney Pin"
         ]
       },
       "description_candidate": "Mirror Vanity",
@@ -465,7 +474,7 @@
       "prediction": {
         "keep": {
           "set": "Acorn",
-          "maker": "Monogram",
+          "maker": "Monogram BoxLunch",
           "park_or_event": null
         },
         "quarantine": {
@@ -474,11 +483,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": [
-          "BoxLunch"
-        ]
+        "drop_tokens": []
       },
-      "description_candidate": "Acorn Monogram",
+      "description_candidate": "Acorn Monogram BoxLunch",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"
@@ -538,7 +545,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Disney Pin"
+        ]
       },
       "description_candidate": "Adorbs WDI/MOG",
       "model": "cursor_llm",
@@ -593,7 +602,7 @@
       "price_source": "listing",
       "prediction": {
         "keep": {
-          "set": "Stained Glass Windows Mystery Set",
+          "set": "Stained Glass Windows Set",
           "maker": "Loungefly",
           "park_or_event": null
         },
@@ -921,7 +930,9 @@
           "is_mystery": true,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Cats Paws Tassel Blind Box BoxLunch",
       "model": "cursor_llm",
@@ -1169,7 +1180,7 @@
       "prediction": {
         "keep": {
           "set": "Stamp",
-          "maker": "DEC",
+          "maker": "DEC TWDCS",
           "park_or_event": "D23"
         },
         "quarantine": {
@@ -1178,11 +1189,9 @@
           "is_mystery": false,
           "year": "2026"
         },
-        "drop_tokens": [
-          "TWDCS"
-        ]
+        "drop_tokens": []
       },
-      "description_candidate": "Stamp DEC D23",
+      "description_candidate": "Stamp DEC TWDCS D23",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"
@@ -1243,7 +1252,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Pop Art Loungefly",
       "model": "cursor_llm",
@@ -1341,7 +1352,9 @@
           "is_mystery": false,
           "year": null
         },
-        "drop_tokens": []
+        "drop_tokens": [
+          "Enamel Pin"
+        ]
       },
       "description_candidate": "Princess Scenes Blind Box BoxLunch",
       "model": "cursor_llm",
@@ -1362,7 +1375,7 @@
       "price_source": "listing",
       "prediction": {
         "keep": {
-          "set": "Mystery Box",
+          "set": "Box",
           "maker": "Loungefly",
           "park_or_event": null
         },
@@ -1394,7 +1407,7 @@
       "prediction": {
         "keep": {
           "set": "Role Models",
-          "maker": "DEC",
+          "maker": "DEC TWDC",
           "park_or_event": "D23"
         },
         "quarantine": {
@@ -1403,11 +1416,9 @@
           "is_mystery": false,
           "year": "2026"
         },
-        "drop_tokens": [
-          "TWDC"
-        ]
+        "drop_tokens": []
       },
-      "description_candidate": "Role Models DEC D23",
+      "description_candidate": "Role Models DEC TWDC D23",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"
@@ -1427,7 +1438,7 @@
       "prediction": {
         "keep": {
           "set": "Legends Character Plaques",
-          "maker": "DEC",
+          "maker": "DEC WDCS",
           "park_or_event": null
         },
         "quarantine": {
@@ -1438,10 +1449,10 @@
         },
         "drop_tokens": [
           "Cast",
-          "WDCS"
+          "Disney Pin"
         ]
       },
-      "description_candidate": "Legends Character Plaques DEC",
+      "description_candidate": "Legends Character Plaques DEC WDCS",
       "model": "cursor_llm",
       "model_name": "agent_extract_v1",
       "prompt": "prompts/extract_v1.txt"
@@ -1460,7 +1471,7 @@
       "price_source": "listing",
       "prediction": {
         "keep": {
-          "set": "Holiday Mystery Box Snowflake",
+          "set": "Holiday Box Snowflake",
           "maker": "Loungefly",
           "park_or_event": null
         },
