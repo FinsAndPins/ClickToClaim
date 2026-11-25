@@ -8,19 +8,22 @@ Shopify sample showed `$50` + wrong eBay title for `img2903_pin01` while Overlay
 
 For any Shopify / inventory CSV build from a priced collection:
 
-1. **Price + eBay listing title** = Firebase  
+1. **Price** = Firebase `display_price`  
    `pin_pricing_tests/{test_run_id}/visual_baseline/pins`  
    (same family as Script A `build_pins_from_firebase.py`)
-2. **Local `ui_data.json`** = geometry / crop list only. Never final `display_price` / `listing_title`.
-3. **Script A / Sonnet VLM inputs** must be generated **after** Firebase-backed `pins.json`, via `prepare_vlm_inputs.py`. Never feed VLM stale `ui_data` titles.
-4. **CSV build must fail closed** if `price_source != firebase` (`assert_lexi_source.py`).
+2. **EBay listing title for customer copy** = Firebase only when `price_source == listing`.  
+   If `price_source == manual` (Lexi typed a price after CTM/CTP no-match), do **not** use `listing_title` / S0 bootstrap for Title / Body / Whatnot / title-slot extract. Use Script A VLM character (else `Disney Pin`); keep/maker/set/park empty.
+3. **Local `ui_data.json`** = geometry / crop list only. Never final `display_price` / `listing_title`.
+4. **Script A / Sonnet VLM inputs** must be generated **after** Firebase-backed `pins.json`, via `prepare_vlm_inputs.py`. Never feed VLM stale `ui_data` titles.
+5. **CSV build must fail closed** if Books `price_source != firebase` (`assert_lexi_source.py`), and if `title_confirmed=false` rows still carry a non-empty `ebay_title`.
 
 Project path: `Cursor Projects/ShopifyInventory_BooksPlus20261123/`  
 Helpers: `tools/lexi_firebase.py`, `tools/assert_lexi_source.py`, `tools/prepare_vlm_inputs.py`  
-Lesson: `LESSONS_ui_data_vs_firebase_20261125.md`
+Lessons: `LESSONS_ui_data_vs_firebase_20261125.md`, `LESSONS_manual_price_unconfirmed_title_20261125.md`
 
 ## Do not
 
 - Treat Overlay-looking-correct as proof the CSV source file is correct
 - Patch only “obvious” wrong rows when ui_data was the source (rebuild from Firebase)
 - Write to Firebase from the Shopify inventory builder (read-only)
+- Treat Firebase `listing_title` as Lexi-confirmed when `price_source` is `manual`
